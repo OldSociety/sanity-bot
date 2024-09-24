@@ -55,8 +55,8 @@ module.exports = (client, User) => {
     }
   })
 
-  // Schedule a daily job to add 1 point to all boosters' banks
-  cron.schedule('0 0 * * *', async () => {
+  // Add 1 point to all boosters' banks 5am PST
+  cron.schedule('0 17 * * *', async () => {
     try {
       const guild = await client.guilds.fetch(guildId)
       if (!guild) return

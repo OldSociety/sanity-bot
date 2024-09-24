@@ -15,7 +15,7 @@
 1. Clone this repository:
    ```bash
    git clone https://github.com/OldSociety/sanity-bot.git
-   cd roll-for-sanity-bot
+   cd sanity-bot
    ```
 
 2. Install the required dependencies:
@@ -50,7 +50,7 @@ The bot includes several commands for both users and admins to manage their expe
 | Subcommand    | Description                                                | Permissions Required  |
 | ------------- | ---------------------------------------------------------- | --------------------- |
 | `add-fate`    | Adds fate points to yourself.                              | User                  |
-| `roll`        | Deducts 10 fate points or bank points automatically.       | User                  |
+| `reroll`        | Deducts 10 fate points or bank points automatically.       | User                  |
 | `balance`     | Shows your current fate points and bank balance.           | User                  |
 | `manage`      | Admins can manage the fate points or bank of any user.     | Admin Role            |
 

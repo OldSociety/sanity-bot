@@ -71,12 +71,16 @@ for (const file of eventFiles) {
 // Import the message handler and booster handler
 const messageHandler = require('./handlers/messageHandler')
 const boosterHandler = require('./handlers/boosterHandler')
+const reminderHandler = require('./handlers/reminderHandler')
 
 // Call the function to set up message handling
 messageHandler(client, User)
 
 // Call the function to set up booster handling
 boosterHandler(client, User)
+
+// Call the function to set up booster handling
+reminderHandler(client)
 
 // Log in to Discord with your client's token
 client.login(process.env.TOKEN)
