@@ -4,7 +4,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable(
-      'UserAchievement',
+      'UserAchievements',
       {
         id: {
           type: Sequelize.INTEGER,
@@ -12,8 +12,12 @@ module.exports = {
           primaryKey: true,
         },
         userId: {
-          type: Sequelize.STRING, // Reference to Users' user_id
+          type: Sequelize.STRING, // Make sure this matches the primary key in Users
           allowNull: false,
+          references: {
+            model: 'Users',
+            key: 'user_id',
+          },
         },
         achievementId: {
           type: Sequelize.INTEGER, // Reference to Achievements' id

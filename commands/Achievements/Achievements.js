@@ -1,11 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+} = require('discord.js')
 const { Achievement, User, UserAchievement } = require('../../Models/model')
 
 module.exports = {
-  cooldown: 5,
   data: new SlashCommandBuilder()
     .setName('achievement')
     .setDescription('Manage achievements')
+
     // Subcommand for creating achievements
     .addSubcommand((subcommand) =>
       subcommand
@@ -30,6 +35,7 @@ module.exports = {
             .setRequired(true)
         )
     )
+
     // Subcommand for awarding achievements to users
     .addSubcommand((subcommand) =>
       subcommand
@@ -41,13 +47,21 @@ module.exports = {
             .setDescription('The user to award the achievement to')
             .setRequired(true)
         )
-        .addStringOption((option) =>
+    )
+
+    // Subcommand to remove an achievement from a user
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('remove')
+        .setDescription('Remove an achievement from a user')
+        .addUserOption((option) =>
           option
-            .setName('achievement')
-            .setDescription('The achievement to award')
+            .setName('user')
+            .setDescription('The user to remove the achievement from')
             .setRequired(true)
         )
     )
+
     // Subcommand to view achievements (all achievements or user's earned achievements)
     .addSubcommand((subcommand) =>
       subcommand
@@ -63,11 +77,48 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const allowedChannelIds = [
+        process.env.HELLBOUNDCHANNELID,
+        process.env.BOTTESTCHANNELID,
+      ] 
+  
+      // Check if the command was used in one of the allowed channels
+      if (!allowedChannelIds.includes(interaction.channel.id)) {
+        await interaction.reply({
+          content: `This command can only be used in  <#${allowedChannelIds[0]}>.`,
+          ephemeral: true,
+        })
+        return
+      }
+      const userId = interaction.user.id
+      const member = interaction.member
+  
+      const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+      const hasUnwantedRole = member.roles.cache.has(process.env.UNWANTEDROLEID)
+  
+      // Check if the user has the Unwanted role
+      if (!hasUnwantedRole && !isAdmin) {
+        await interaction.reply({
+          content: 'You do not have permission to use this command.',
+          ephemeral: true,
+        })
+        return
+      }
     const subcommand = interaction.options.getSubcommand()
 
     if (subcommand === 'create') {
       // Handle the creation of a new achievement
       try {
+        const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    
+        // Check if the user has the Unwanted role
+        if (!hasUnwantedRole && !isAdmin) {
+          await interaction.reply({
+            content: 'You do not have permission to use this command.',
+            ephemeral: true,
+          })
+          return
+        }
         const name = interaction.options.getString('name')
         const description = interaction.options.getString('description')
         const secret = interaction.options.getBoolean('secret')
@@ -101,51 +152,144 @@ module.exports = {
           ephemeral: true,
         })
       }
-    } else if (subcommand === 'award') {
-      // Handle awarding an achievement to a user
+    } else if (subcommand === 'award' || subcommand === 'remove') {
+      // Handle awarding or removing an achievement
       try {
+        const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    
+        // Check if the user has the Unwanted role
+        if (!hasUnwantedRole && !isAdmin) {
+          await interaction.reply({
+            content: 'You do not have permission to use this command.',
+            ephemeral: true,
+          })
+          return
+        }
         const user = interaction.options.getUser('user')
-        const achievementName = interaction.options.getString('achievement')
 
-        const userData = await User.findOne({ where: { user_id: user.id } })
-        const achievement = await Achievement.findOne({
-          where: { name: achievementName },
-        })
+        // Fetch all available achievements for drop-down
+        const achievements = await Achievement.findAll()
 
-        if (!userData || !achievement) {
-          return interaction.reply('User or achievement not found.')
+        if (!achievements || achievements.length === 0) {
+          return interaction.reply('No achievements have been created yet.')
         }
 
-        // Check if the user already has the achievement
-        const existingAward = await UserAchievement.findOne({
-          where: {
-            userId: userData.user_id,
-            achievementId: achievement.id,
-          },
-        })
+        // Create drop-down menu with available achievements
+        const achievementOptions = achievements.map((achievement) => ({
+          label: achievement.name,
+          description: achievement.description,
+          value: achievement.id.toString(),
+        }))
 
-        if (existingAward) {
-          return interaction.reply('User already has this achievement.')
-        }
-
-        // Award the achievement
-        await UserAchievement.create({
-          userId: userData.user_id,
-          achievementId: achievement.id,
-        })
-
-        // Award fate points
-        userData.fate_points += achievement.secret ? 20 : 10
-        await userData.save()
-
-        return interaction.reply(
-          `Achievement **${achievement.name}** awarded to ${
-            user.username
-          }, along with ${achievement.secret ? 20 : 10} fate points!`
+        const row = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('select-achievement')
+            .setPlaceholder('Select an achievement')
+            .addOptions(achievementOptions)
         )
+
+        await interaction.reply({
+          content:
+            subcommand === 'award'
+              ? 'Please select an achievement to award:'
+              : 'Please select an achievement to remove:',
+          components: [row],
+          ephemeral: true,
+        })
+
+        // Handle the select menu interaction
+        const filter = (i) =>
+          i.customId === 'select-achievement' &&
+          i.user.id === interaction.user.id
+
+        const collector = interaction.channel.createMessageComponentCollector({
+          filter,
+          time: 15000, // 15 seconds to select
+        })
+
+        collector.on('collect', async (i) => {
+          const achievementId = i.values[0] // Get selected achievement ID
+          const achievement = await Achievement.findByPk(achievementId)
+          const userData = await User.findOne({ where: { user_id: user.id } })
+
+          if (!userData || !achievement) {
+            return i.reply('User or achievement not found.')
+          }
+
+          if (subcommand === 'award') {
+            // Award the achievement to the user
+            const existingAward = await UserAchievement.findOne({
+              where: {
+                userId: userData.user_id,
+                achievementId: achievement.id,
+              },
+            })
+
+            if (existingAward) {
+              return i.reply('User already has this achievement.')
+            }
+
+            await UserAchievement.create({
+              userId: userData.user_id,
+              achievementId: achievement.id,
+            })
+
+            userData.fate_points += achievement.secret ? 20 : 10
+            await userData.save()
+
+            await i.reply(
+              `Achievement **${achievement.name}** awarded to ${
+                user.username
+              }, along with ${achievement.secret ? 20 : 10} fate points!`
+            )
+          } else if (subcommand === 'remove') {
+            // Remove the achievement from the user
+            const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+           
+        
+            // Check if the user has the Unwanted role
+            if (!hasUnwantedRole && !isAdmin) {
+              await interaction.reply({
+                content: 'You do not have permission to use this command.',
+                ephemeral: true,
+              })
+              return
+            }
+            const awardToRemove = await UserAchievement.findOne({
+              where: {
+                userId: userData.user_id,
+                achievementId: achievement.id,
+              },
+            })
+
+            if (!awardToRemove) {
+              return i.reply('User does not have this achievement.')
+            }
+
+            await UserAchievement.destroy({
+              where: {
+                userId: userData.user_id,
+                achievementId: achievement.id,
+              },
+            })
+
+            await i.reply(
+              `Achievement **${achievement.name}** removed from ${user.username}.`
+            )
+          }
+        })
+
+        collector.on('end', (collected) => {
+          if (collected.size === 0) {
+            interaction.editReply({
+              content: 'No achievement selected.',
+              components: [],
+            })
+          }
+        })
       } catch (error) {
-        console.error('Error awarding achievement:', error)
-        return interaction.reply('There was an error awarding the achievement.')
+        console.error('Error managing achievements:', error)
+        return interaction.reply('There was an error managing the achievement.')
       }
     } else if (subcommand === 'view') {
       // Handle viewing achievements (all achievements or user-specific)
@@ -153,13 +297,12 @@ module.exports = {
         const user = interaction.options.getUser('user')
 
         if (user) {
-          // If a user is provided, show their earned achievements
           const userData = await User.findOne({
             where: { user_id: user.id },
             include: [
               {
                 model: Achievement,
-                through: { attributes: [] }, // Exclude UserAchievement details
+                through: { attributes: [] },
               },
             ],
           })
@@ -176,7 +319,6 @@ module.exports = {
             `${user.username} has earned the following achievements: ${achievementsList}`
           )
         } else {
-          // If no user is provided, show all available achievements
           const achievements = await Achievement.findAll()
 
           if (achievements.length === 0) {
