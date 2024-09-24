@@ -1,6 +1,3 @@
-Thank you for providing the additional code features. Here's an updated version of the README in proper Markdown format, including the newly provided code snippets:
-
-```md
 # Roll For Sanity Bot
 
 **Roll For Sanity** is a Discord bot designed to enhance server engagement through a leveling system, achievements, and role-based rewards. Built using `discord.js`, this bot provides a robust platform for tracking user interactions, managing achievements, and maintaining user balances of fate points, allowing for a dynamic and interactive community experience.
@@ -17,7 +14,7 @@ Thank you for providing the additional code features. Here's an updated version 
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/roll-for-sanity-bot.git
+   git clone https://github.com/OldSociety/sanity-bot.git
    cd roll-for-sanity-bot
    ```
 
