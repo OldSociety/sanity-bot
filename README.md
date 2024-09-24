@@ -95,6 +95,65 @@ Provides information about the user executing the command:
    ```
    Sets the fate points for a specified user.
 
+Here’s an **Achievements** section you can add to your `README.md` file, explaining the functionality and usage of the achievement commands.
+
+---
+
+## Achievements
+
+This bot allows for the management of user achievements. Admins can create new achievements, award them to users, and view a list of all available achievements or the specific achievements earned by users. The achievement system also automatically rewards users with fate points when they are awarded an achievement.
+
+### Commands
+
+#### `/achievement create`
+- **Description**: Creates a new achievement that can be awarded to users.
+- **Usage**: `/achievement create name:<name> description:<description> secret:<true/false>`
+  - **name**: The name of the achievement (e.g., "Dragon Slayer").
+  - **description**: A description of the achievement (e.g., "Awarded for slaying a mighty dragon").
+  - **secret**: Boolean value indicating if the achievement is secret (Secret achievements give 20 fate points; non-secret ones give 10 fate points).
+
+##### Example:
+```
+/achievement create name:"Dragon Slayer" description:"Awarded for slaying a mighty dragon" secret:false
+```
+
+#### `/achievement award`
+- **Description**: Awards an achievement to a user and automatically grants them fate points.
+- **Usage**: `/achievement award user:<@user> achievement:<achievement_name>`
+  - **user**: The user to whom you want to award the achievement.
+  - **achievement**: The name of the achievement to award.
+
+##### Example:
+```
+/achievement award user:@JohnDoe achievement:"Dragon Slayer"
+```
+- This will award the "Dragon Slayer" achievement to JohnDoe, along with the respective fate points (20 if the achievement is secret, 10 if it's not).
+
+#### `/achievement view`
+- **Description**: View a list of all achievements or the achievements earned by a specific user.
+- **Usage**: 
+  - To view all achievements: `/achievement view`
+  - To view a user’s earned achievements: `/achievement view user:<@user>`
+  
+##### Example:
+```
+/achievement view user:@JohnDoe
+```
+- This will show all achievements that JohnDoe has earned.
+
+### Fate Points System
+- When an achievement is awarded, the user automatically earns fate points.
+  - **Secret Achievements**: 20 fate points.
+  - **Non-Secret Achievements**: 10 fate points.
+  
+These fate points are stored and can be used for additional in-game mechanics (such as fate rolls).
+
+### Database Models
+- **Achievement**: Stores the list of available achievements with attributes such as name, description, and whether the achievement is secret.
+- **UserAchievement**: Junction table that tracks which achievements have been awarded to which users.
+- **User**: Stores user-specific data, including their earned fate points and the achievements they have received.
+
+
 ## Handlers
 
 ### **Message Handler**
@@ -134,7 +193,6 @@ Ensure you have SQLite set up correctly for local development.
    - **Users**: Tracks user data including fate points, bank balance, chat experience, and levels.
 
 ### Planned Features
-- **Achievements System**: Work-in-progress for creating, managing, and awarding achievements to users.
 - **Auto-Roles**: Automated role management based on user activity and achievement unlocks.
 - **Detailed Logging**: Improved logging and analytics for monitoring bot activity.
 
