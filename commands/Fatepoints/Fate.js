@@ -162,7 +162,7 @@ module.exports = {
         )
 
       await interaction.reply({ embeds: [successEmbed] })
-    } else if (subcommand === 'roll') {
+    } else if (subcommand === 'reroll') {
       let pointsDeducted = 0
       let source = ''
 
