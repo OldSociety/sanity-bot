@@ -479,20 +479,42 @@ module.exports = {
                   achievementId: achievement.id,
                 })
 
+                // Add fate points based on the achievement
                 let fatePointsGained = achievement.secret ? 20 : 10
-                if (userData.fate_points > 100) {
+
+                if (userData.fate_points >= 100) {
+                  // Handle fate points overflow
                   overflow = userData.fate_points - 100
                   userData.fate_points = 100
 
                   if (isBooster) {
                     bank += overflow
                     if (bank > 100) {
-                      bank = 100
+                      bank = 100 // Cap the bank to 100 if overflowing
                     }
                   } else {
-                    fatePointsGained = additionalFatePoints - overflow
+                    fatePointsGained = additionalFatePoints - overflow // Adjust points if not a booster
+                  }
+                } else {
+                  // Add the gained fate points
+                  userData.fate_points += fatePointsGained
+
+                  // Cap the fate points to 100 if it exceeds the maximum
+                  if (userData.fate_points > 100) {
+                    overflow = userData.fate_points - 100
+                    userData.fate_points = 100
+
+                    if (isBooster) {
+                      bank += overflow
+                      if (bank > 100) {
+                        bank = 100
+                      }
+                    }
                   }
                 }
+
+                // Save updated user data (fate points and bank)
+                userData.bank = bank // Save updated bank value
                 await userData.save()
 
                 await buttonInteraction.update({
@@ -522,17 +544,17 @@ module.exports = {
                     achievementId: achievement.id,
                   },
                 })
-              
+
                 if (!awardToRemove) {
                   return buttonInteraction.update({
                     content: 'User does not have this achievement.',
                     components: [],
                   })
                 }
-              
+
                 // Calculate points to deduct
                 const pointsToDeduct = achievement.secret ? 20 : 10
-              
+
                 // Deduct points from the bank first, then from fate_points
                 if (userData.bank >= pointsToDeduct) {
                   userData.bank -= pointsToDeduct
@@ -540,15 +562,15 @@ module.exports = {
                   const remainder = pointsToDeduct - userData.bank
                   userData.bank = 0
                   userData.fate_points -= remainder
-              
+
                   // Prevent negative fate points
                   if (userData.fate_points < 0) {
                     userData.fate_points = 0
                   }
                 }
-              
+
                 await userData.save()
-              
+
                 // Remove the user achievement record
                 await UserAchievement.destroy({
                   where: {
@@ -556,15 +578,12 @@ module.exports = {
                     achievementId: achievement.id,
                   },
                 })
-              
+
                 await buttonInteraction.update({
-                  content: `Achievement **${achievement.name}** removed from ${
-                    user.username
-                  }, and ${pointsToDeduct} fate points have been subtracted (first from the bank if available).`,
+                  content: `Achievement **${achievement.name}** removed from ${user.username}, and ${pointsToDeduct} fate points have been subtracted (first from the bank if available).`,
                   components: [],
                 })
               }
-              
             } else {
               await buttonInteraction.update({
                 content: 'Action cancelled.',

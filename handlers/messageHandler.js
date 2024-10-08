@@ -44,6 +44,7 @@ module.exports = (client, User) => {
         let newLevel = userData.chat_level
         const xpForNextLevel = 5 * newLevel ** 2 + 50 * newLevel + 100
 
+        // Add XP and check if a level up occurs
         if (newXP >= xpForNextLevel) {
           newLevel += 1
           newXP -= xpForNextLevel
@@ -55,30 +56,37 @@ module.exports = (client, User) => {
           )
 
           let fatePointsGained = 0
-          let fatePoints = userData.fate_points
+          let fatePoints = userData.fate_points || 0 // Ensure fate_points is defined
           let bank = userData.bank || 0
           let overflow = 0
 
+          // Award 5 fate points if the user has the unwanted role
           if (hasUnwantedRole) {
-            const additionalFatePoints = 5
-            fatePoints += additionalFatePoints
-            fatePointsGained = additionalFatePoints
+            fatePointsGained = 5 // Fixed 5 fate points for unwanted role
+            fatePoints += fatePointsGained
 
+            // Handle overflow if fate points exceed 100
             if (fatePoints > 100) {
-              overflow = fatePoints - 100
-              fatePoints = 100
+              overflow = fatePoints - 100 // Calculate overflow amount
+              fatePoints = 100 // Cap fate points at 100
 
+              // Check for booster role to handle overflow
               if (isBooster) {
+                // If the user is a booster, add overflow to the bank
                 bank += overflow
+                // Cap the bank at 100 if it exceeds
                 if (bank > 100) {
                   bank = 100
                 }
+                overflow = 0 // Reset overflow as it is added to the bank
               } else {
-                fatePointsGained = additionalFatePoints - overflow
+                // If not a booster, overflow fate points are lost
+                overflow = 0 // Reset overflow since points are lost
               }
             }
           }
 
+          // Update user data (level, XP, fate points, and bank)
           await User.update(
             {
               chat_level: newLevel,
@@ -89,6 +97,7 @@ module.exports = (client, User) => {
             { where: { user_id: userID } }
           )
 
+          // Prepare and send the level-up embed message
           const levelUpEmbed = new EmbedBuilder()
             .setColor(0x00ff00)
             .setTitle('Level Up!')
@@ -104,6 +113,7 @@ module.exports = (client, User) => {
             .setTimestamp()
             .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
 
+          // Add additional embed fields if the user has the unwanted role
           if (hasUnwantedRole) {
             levelUpEmbed.addFields(
               { name: 'Fate', value: `${fatePoints}`, inline: true },
@@ -115,21 +125,23 @@ module.exports = (client, User) => {
               }
             )
 
-            if (overflow > 0 && !isBooster) {
-              levelUpEmbed.addFields({
-                name: 'Note',
-                value: `You have reached the cap of 100 fate points and lost ${overflow} fate points. Consider boosting the server to gain access to an increased fate point bank.`,
-              })
-            } else if (overflow > 0 && isBooster) {
+            // Note if overflow was added to bank or lost
+            if (overflow > 0 && isBooster) {
               levelUpEmbed.addFields({
                 name: 'Bank Update',
-                value: `Excess fate points (${overflow}) have been added to your bank.`,
+                value: `Excess fate points have been added to your bank.`,
+              })
+            } else if (overflow > 0 && !isBooster) {
+              levelUpEmbed.addFields({
+                name: 'Note',
+                value: `You have reached the cap of 100 fate points. Any excess fate points were lost.`,
               })
             }
           }
 
           await message.channel.send({ embeds: [levelUpEmbed] })
         } else {
+          // Update only XP and last chat message if no level up
           await User.update(
             {
               chat_exp: newXP,

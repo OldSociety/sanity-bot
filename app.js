@@ -1,12 +1,13 @@
 // app.js
 
-console.log(`Environment: ${process.env.NODE_ENV}`)
+
 require('dotenv').config({
   path:
-    process.env.NODE_ENV === 'development'
+    process.env.NODE_ENV === 'production'
       ? '.env.development'
       : '.env.production',
 })
+console.log(`Environment: ${process.env.NODE_ENV}`)
 const fs = require('node:fs')
 const path = require('node:path')
 const sequelize = require('./config/sequelize')
