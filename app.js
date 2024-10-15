@@ -1,6 +1,5 @@
 // app.js
 
-
 require('dotenv').config({
   path:
     process.env.NODE_ENV === 'development'
@@ -8,12 +7,14 @@ require('dotenv').config({
       : '.env.production',
 })
 console.log(`Environment: ${process.env.NODE_ENV}`)
+
 const fs = require('node:fs')
 const path = require('node:path')
 const sequelize = require('./config/sequelize')
+const { awardDailyTreats } = require('./handlers/dailyTreats')
+const cron = require('node-cron') // Import cron
 
 const { Client, Collection, GatewayIntentBits } = require('discord.js')
-
 const { User } = require('./Models/model')
 
 // Create a new client instance
@@ -22,13 +23,34 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent,
   ],
 })
 
-global.client = client
+client.once('ready', async () => {
+  console.log(`Ready! Logged in as ${client.user.tag}`)
+
+  // Schedule daily treats at midnight server time
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      const guild = await client.guilds.fetch(process.env.GUILDID)
+      if (guild) {
+        console.log('🎃 Running daily treat award...')
+        await awardDailyTreats(guild)
+        console.log('✅ Daily treats awarded successfully.')
+      }
+    } catch (error) {
+      console.error('❌ Error during daily treat award:', error)
+    }
+  })
+
+  console.log('🕰️ Daily treat schedule set for midnight.')
+})
+
+global.client = client // Set global client after client initialization
 
 client.cooldowns = new Collection()
 client.commands = new Collection()
@@ -40,6 +62,7 @@ for (const folder of commandFolders) {
   const commandFiles = fs
     .readdirSync(commandsPath)
     .filter((file) => file.endsWith('.js'))
+
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file)
     const command = require(filePath)
@@ -80,9 +103,10 @@ messageHandler(client, User)
 // Call the function to set up booster handling
 boosterHandler(client, User)
 
-// Call the function to set up booster handling
+// Call the function to set up reminder handling
 reminderHandler(client)
 
 // Log in to Discord with your client's token
 client.login(process.env.TOKEN)
-module.exports = { sequelize } // Export the Sequelize instance
+
+module.exports = { sequelize }

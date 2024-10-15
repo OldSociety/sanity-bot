@@ -1,5 +1,5 @@
 const { Events } = require('discord.js')
-const {handlePlayerTurn} = require('../commands/Game/Cthulhu')
+
 
 module.exports.run = async (client, message, args) => {
   const { cooldowns } = client
