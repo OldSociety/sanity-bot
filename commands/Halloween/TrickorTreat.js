@@ -22,14 +22,16 @@ module.exports = {
         .setDescription('Register for the spooky event.')
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName('status').setDescription('Check your treats and rank.')
+      subcommand
+        .setName('status')
+        .setDescription('Check your candies and rank.')
     ),
 
   async execute(interaction) {
     const allowedChannelIds = [
       process.env.SPOOKYCHANNELID,
       process.env.BOTTESTCHANNELID,
-    ] 
+    ]
 
     // Check if the command was used in one of the allowed channels
     if (!allowedChannelIds.includes(interaction.channel.id)) {
@@ -55,6 +57,9 @@ module.exports = {
     }
 
     let spookyStat
+    // Whenever a user performs a trick or treat
+    spookyStat.lastActive = new Date()
+    await spookyStat.save()
     try {
       spookyStat = await SpookyStat.findOne({ where: { userId: user.id } })
       if (!spookyStat && subcommand !== 'register') {
@@ -92,8 +97,8 @@ module.exports = {
           .setTitle('🎃 Welcome to the Roll For Sanity Halloween Event!')
           .setDescription(
             `The event runs from **October 15th - 31st**.\n\n` +
-              `You start with 3 treats to gift or use for random tricks.\n` +
-              `Winner: The user with the most treats!\n` +
+              `You start with 3 candies to gift or use for random tricks.\n` +
+              `Winner: The user with the most candies!\n` +
               `Check your progress anytime with \`/spooky status\`.`
           )
           .setColor(0xff8c00)
@@ -109,19 +114,54 @@ module.exports = {
       }
     }
     if (subcommand === 'status') {
+      // Check if the user is an admin
+      const isAdmin = interaction.member.roles.cache.has(
+        process.env.ADMINROLEID
+      )
+
+      // Only log all members' statuses if the command user is an admin
+      if (isAdmin) {
+        const allMembers = await guild.members.fetch() // Fetch all members in the guild
+
+        // Filter out bots
+        const nonBotMembers = allMembers.filter((member) => !member.user.bot)
+
+        // Sort members alphabetically by their status (idle before offline, etc.)
+        const sortedMembers = nonBotMembers.sort((a, b) => {
+          const statusA = a.presence?.status || 'offline'
+          const statusB = b.presence?.status || 'offline'
+          return statusA.localeCompare(statusB) // Sort alphabetically by status
+        })
+
+        // Log the sorted list of members and their statuses
+        sortedMembers.forEach((member) => {
+          const status = member.presence?.status || 'offline' // Check online status or default to 'offline'
+          console.log(`Member: ${member.user.username}, Status: ${status}`)
+        })
+      }
+
+      // Continue with the existing status command logic
       try {
         const participants = await SpookyStat.findAll({
           order: [['treats', 'DESC']],
         })
 
+        // Filter out admins from ranking
+        const filteredParticipants = participants.filter(
+          (stat) =>
+            !guild.members.cache
+              .get(stat.userId)
+              ?.roles.cache.has(process.env.ADMINROLEID)
+        )
+
         const rank =
-          participants.findIndex((stat) => stat.userId === user.id) + 1
+          filteredParticipants.findIndex((stat) => stat.userId === user.id) + 1
 
         const embed = new EmbedBuilder()
           .setTitle(`${user.username}'s Spooky Status`)
           .setDescription(
             `**Treats 🍭:** ${spookyStat.treats}\n` +
-              `**Rank:** #${rank} of ${participants.length} participants`
+              `**Rank:** #${rank} of ${filteredParticipants.length} participants`
           )
           .setColor(0x00ff00)
           .setTimestamp()
@@ -139,7 +179,7 @@ module.exports = {
     if (subcommand === 'treat') {
       if (spookyStat.treats <= 0) {
         return interaction.reply({
-          content: '❌ You have no treats left to give!',
+          content: '❌ You have no candies left to give!',
           ephemeral: true,
         })
       }
@@ -151,7 +191,7 @@ module.exports = {
       if (Math.random() < 0.1) {
         // 10% chance the treat is lost
         return interaction.reply({
-          content: '🎃 Oops! You dropped the treat, and it was lost! 🎃',
+          content: '🎃 Oops! You dropped the candy, and it was lost! 🎃',
           ephemeral: true,
         })
       }
@@ -160,7 +200,8 @@ module.exports = {
         (member) =>
           member.user.id !== user.id &&
           member.presence?.status !== 'offline' &&
-          !member.user.bot && !isAdmin
+          !member.user.bot &&
+          !member.roles.cache.has(process.env.ADMINROLEID) // Exclude admins
       )
 
       if (eligibleMembers.size === 0) {
@@ -197,7 +238,7 @@ module.exports = {
         await recipientStat.save()
 
         return interaction.reply({
-          content: `🎁 ${user} gifted **2 treats** to ${randomMember}!`,
+          content: `🎁 ${user} gifted **2 candies** to ${randomMember}!`,
           ephemeral: false,
         })
       } else if (treatRoll < 0.22) {
@@ -208,10 +249,10 @@ module.exports = {
         spookyStat.lastSpookyUse = now // Track immunity start time
         await spookyStat.save()
 
-        console.log(`✨ ${user.username} granted 1 hour immunity.`)
+        console.log(`✨ ${user.username} granted temporary immunity.`)
 
         return interaction.reply({
-          content: `✨ ${user} gave a treat to ${randomMember}. Because of their generosity, they received **1 hour of immunity** from tricks!`,
+          content: `✨ ${user} gave a treat to ${randomMember}. Because of their generosity, they received **temporary immunity** from tricks!`,
           ephemeral: false,
         })
       } else {
@@ -292,7 +333,7 @@ module.exports = {
 
       if (spookyStat.treats <= 0) {
         return interaction.reply({
-          content: '❌ You have no treats left to perform a trick!',
+          content: '❌ You have no candies left to perform a trick!',
           ephemeral: true,
         })
       }
@@ -301,7 +342,7 @@ module.exports = {
       spookyStat.treats = Math.max(0, spookyStat.treats - 1)
       await spookyStat.save()
 
-      console.log(`🕵️ ${user.username} spent a treat to perform a trick.`)
+      console.log(`🕵️ ${user.username} spent a candy to perform a trick.`)
 
       if (Math.random() < 0.15) {
         // 30% chance of getting caught
@@ -320,7 +361,7 @@ module.exports = {
         const isOnlineOrIdle = member.presence?.status !== 'offline'
         const isNotUser = member.user.id !== user.id
         const isNotBot = !member.user.bot
-        const isNotAdmin = !isAdmin
+        const isNotAdmin = !member.roles.cache.has(process.env.ADMINROLEID) // Exclude admins
         return isOnlineOrIdle && isNotUser && isNotBot && isNotAdmin
       })
 
@@ -384,7 +425,7 @@ module.exports = {
           })
         } else {
           return interaction.reply({
-            content: `❌ ${randomMember.user.username} has no treats to steal!`,
+            content: `❌ ${randomMember.user.username} has no candies to steal!`,
             ephemeral: true,
           })
         }
@@ -410,7 +451,7 @@ module.exports = {
         if (totalStolen === 0) {
           spookyStat.treats = Math.max(0, spookyStat.treats + 2)
           return interaction.reply({
-            content: '❌ No valid targets with treats for the Great Heist!',
+            content: '❌ No valid targets with candies for the Great Heist!',
             ephemeral: true,
           })
         }
@@ -426,7 +467,7 @@ module.exports = {
         )
 
         return interaction.reply({
-          content: `💰 ${user} stole ${totalStolen} treat(s) from: ${affectedUsers.join(
+          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(
             ', '
           )}!`,
           ephemeral: false,

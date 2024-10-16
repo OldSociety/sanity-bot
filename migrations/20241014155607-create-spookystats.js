@@ -33,6 +33,10 @@ module.exports = {
         allowNull: false,
         defaultValue: false,
       },
+      lastActive: { 
+        type: Sequelize.DATE,
+        allowNull: true,
+      }
     })
   },
 
