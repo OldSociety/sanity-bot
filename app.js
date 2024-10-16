@@ -15,7 +15,7 @@ const { awardDailyTreats } = require('./handlers/dailyTreats')
 const cron = require('node-cron') // Import cron
 
 const { Client, Collection, GatewayIntentBits } = require('discord.js')
-const { User } = require('./Models/model')
+const { User, SpookyStat } = require('./Models/model')
 
 // Create a new client instance
 const client = new Client({

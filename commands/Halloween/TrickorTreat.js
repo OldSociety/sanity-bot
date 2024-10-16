@@ -44,7 +44,7 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand()
     const now = new Date()
     const targetChannelId = process.env.HELLBOUNDCHANNELID
-    const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    const isAdmin = interaction.member.roles.cache.has(process.env.ADMINROLEID)
 
     const targetChannel = guild.channels.cache.get(targetChannelId)
     if (!targetChannel || targetChannel.type !== 0) {
@@ -160,7 +160,7 @@ module.exports = {
         (member) =>
           member.user.id !== user.id &&
           member.presence?.status !== 'offline' &&
-          !member.user.bot && !member.roles.cache.has(process.env.ADMINROLEID)
+          !member.user.bot && !isAdmin
       )
 
       if (eligibleMembers.size === 0) {
@@ -320,7 +320,7 @@ module.exports = {
         const isOnlineOrIdle = member.presence?.status !== 'offline'
         const isNotUser = member.user.id !== user.id
         const isNotBot = !member.user.bot
-        const isNotAdmin = !member.roles.cache.has(process.env.ADMINROLEID)
+        const isNotAdmin = !isAdmin
         return isOnlineOrIdle && isNotUser && isNotBot && isNotAdmin
       })
 
@@ -477,17 +477,4 @@ module.exports = {
       }
     }
   },
-}
-// Helper function to get a random valid target
-function getRandomValidTarget(filteredTargets, user) {
-  let randomMember;
-  let isAdmin = true;
-
-  // Keep selecting a target until a non-admin is found
-  while (isAdmin) {
-    randomMember = filteredTargets[Math.floor(Math.random() * filteredTargets.length)];
-    isAdmin = randomMember.roles.cache.has(process.env.ADMINROLEID);
-  }
-
-  return randomMember;
 }
