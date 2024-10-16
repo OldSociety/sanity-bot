@@ -57,9 +57,7 @@ module.exports = {
     }
 
     let spookyStat
-    // Whenever a user performs a trick or treat
-    spookyStat.lastActive = new Date()
-    await spookyStat.save()
+
     try {
       spookyStat = await SpookyStat.findOne({ where: { userId: user.id } })
       if (!spookyStat && subcommand !== 'register') {
@@ -68,6 +66,10 @@ module.exports = {
           ephemeral: true,
         })
       }
+
+      // Update lastActive when the user performs a command
+      spookyStat.lastActive = new Date()
+      await spookyStat.save()
     } catch (error) {
       console.error('❌ Error fetching SpookyStat:', error)
       return interaction.reply({
