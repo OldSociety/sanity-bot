@@ -352,68 +352,71 @@ module.exports = {
       if (trickChance < 0.33) {
         // Steal 1 treat
         if (memberStat.treats > 0) {
-            memberStat.treats = Math.max(0, memberStat.treats - 1);
-            await memberStat.save();
-    
-            // Add 1 treat to the user executing the trick
-            spookyStat.treats += 1;
-            await spookyStat.save();
-    
-            console.log(
-                `👹 ${user.username} stole a treat from ${randomMember.user.username}.`
-            );
-    
-            return interaction.reply({
-                content: `👹 ${user} stole a treat from ${randomMember.user.username}!`,
-                ephemeral: false,
-            });
-        } else {
-            return interaction.reply({
-                content: `❌ ${randomMember.user.username} has no treats to steal!`,
-                ephemeral: true,
-            });
-        }
-    } else if (trickChance < 0.35) {
-        // Great Heist: Steal from 3 random members (2% chance)
-        const heistMembers = filteredTargets.slice(0, 3);
-        const affectedUsers = [];
-        let totalStolen = 0;
-    
-        for (const member of heistMembers) {
-            const heistStat = await SpookyStat.findOne({
-                where: { userId: member.id },
-            });
-    
-            if (heistStat && heistStat.treats > 0) {
-                heistStat.treats = Math.max(0, heistStat.treats - 1);
-                await heistStat.save();
-                totalStolen += 1;
-                affectedUsers.push(member.user.username);
-            }
-        }
-    
-        if (totalStolen === 0) {
-          spookyStat.treats = Math.max(0, spookyStat.treats + 1)
-            return interaction.reply({
-                content: '❌ No valid targets with treats for the Great Heist!',
-                ephemeral: true,
-            });
-        }
-    
-        // Add the total number of stolen treats to the user executing the trick
-        spookyStat.treats += totalStolen;
-        await spookyStat.save();
-    
-        console.log(
-            `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(', ')}.`
-        );
-    
-        return interaction.reply({
-            content: `💰 ${user} stole ${totalStolen} treat(s) from: ${affectedUsers.join(', ')}!`,
+          memberStat.treats = Math.max(0, memberStat.treats - 1)
+          await memberStat.save()
+
+          // Add 1 treat to the user executing the trick
+          spookyStat.treats += 2
+          await spookyStat.save()
+
+          console.log(
+            `👹 ${user.username} stole a treat from ${randomMember.user.username}.`
+          )
+
+          return interaction.reply({
+            content: `👹 ${user} stole a treat from ${randomMember.user.username}!`,
             ephemeral: false,
-        });
-    }
-     else if (trickChance < 0.45) {
+          })
+        } else {
+          return interaction.reply({
+            content: `❌ ${randomMember.user.username} has no treats to steal!`,
+            ephemeral: true,
+          })
+        }
+      } else if (trickChance < 0.35) {
+        // Great Heist: Steal from 3 random members (2% chance)
+        const heistMembers = filteredTargets.slice(0, 3)
+        const affectedUsers = []
+        let totalStolen = 0
+
+        for (const member of heistMembers) {
+          const heistStat = await SpookyStat.findOne({
+            where: { userId: member.id },
+          })
+
+          if (heistStat && heistStat.treats > 0) {
+            heistStat.treats = Math.max(0, heistStat.treats - 1)
+            await heistStat.save()
+            totalStolen += 1
+            affectedUsers.push(member.user.username)
+          }
+        }
+
+        if (totalStolen === 0) {
+          spookyStat.treats = Math.max(0, spookyStat.treats + 2)
+          return interaction.reply({
+            content: '❌ No valid targets with treats for the Great Heist!',
+            ephemeral: true,
+          })
+        }
+
+        // Add the total number of stolen treats to the user executing the trick
+        spookyStat.treats += totalStolen
+        await spookyStat.save()
+
+        console.log(
+          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(
+            ', '
+          )}.`
+        )
+
+        return interaction.reply({
+          content: `💰 ${user} stole ${totalStolen} treat(s) from: ${affectedUsers.join(
+            ', '
+          )}!`,
+          ephemeral: false,
+        })
+      } else if (trickChance < 0.45) {
         // Reverse Nickname (10% chance)
         const currentNickname =
           randomMember.nickname || randomMember.user.username
