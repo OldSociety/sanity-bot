@@ -26,11 +26,25 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const allowedChannelIds = [
+      process.env.SPOOKYCHANNELID,
+      process.env.BOTTESTCHANNELID,
+    ] 
+
+    // Check if the command was used in one of the allowed channels
+    if (!allowedChannelIds.includes(interaction.channel.id)) {
+      await interaction.reply({
+        content: `This command can only be used in  <#${allowedChannelIds[0]}>.`,
+        ephemeral: true,
+      })
+      return
+    }
+
     const { user, guild } = interaction
     const subcommand = interaction.options.getSubcommand()
     const now = new Date()
     const targetChannelId = process.env.HELLBOUNDCHANNELID
-    const botRoleId = process.env.BOTROLEID
+    const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
 
     const targetChannel = guild.channels.cache.get(targetChannelId)
     if (!targetChannel || targetChannel.type !== 0) {
@@ -146,7 +160,7 @@ module.exports = {
         (member) =>
           member.user.id !== user.id &&
           member.presence?.status !== 'offline' &&
-          !member.user.bot
+          !member.user.bot && !member.roles.cache.has(process.env.ADMINROLEID)
       )
 
       if (eligibleMembers.size === 0) {
@@ -306,7 +320,8 @@ module.exports = {
         const isOnlineOrIdle = member.presence?.status !== 'offline'
         const isNotUser = member.user.id !== user.id
         const isNotBot = !member.user.bot
-        return isOnlineOrIdle && isNotUser && isNotBot
+        const isNotAdmin = !member.roles.cache.has(process.env.ADMINROLEID)
+        return isOnlineOrIdle && isNotUser && isNotBot && isNotAdmin
       })
 
       const validTargets = await Promise.all(
@@ -462,4 +477,17 @@ module.exports = {
       }
     }
   },
+}
+// Helper function to get a random valid target
+function getRandomValidTarget(filteredTargets, user) {
+  let randomMember;
+  let isAdmin = true;
+
+  // Keep selecting a target until a non-admin is found
+  while (isAdmin) {
+    randomMember = filteredTargets[Math.floor(Math.random() * filteredTargets.length)];
+    isAdmin = randomMember.roles.cache.has(process.env.ADMINROLEID);
+  }
+
+  return randomMember;
 }
