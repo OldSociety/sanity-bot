@@ -155,6 +155,63 @@ module.exports = (client, User) => {
           )
         }
       }
+
+      try {
+        // Function to reverse the entire message
+        function reverseMessage(messageContent) {
+          return messageContent.split('').reverse().join('')
+        }
+
+        // Function to shuffle the words in the message
+        function shuffleWords(messageContent) {
+          const words = messageContent.split(' ')
+          for (let i = words.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1))
+            ;[words[i], words[j]] = [words[j], words[i]]
+          }
+          return words.join(' ')
+        }
+
+        // HALLOWEEN SPECIAL Check if the user has the Cursed role
+        if (message.member.roles.cache.has(process.env.CURSEDROLEID)) {
+          // 20% chance to send an embedded message instead of the original
+          if (Math.random() < 0.2) {
+            // Decide randomly whether to reverse or shuffle the message
+            const transformation = Math.random() < 0.5 ? 'reverse' : 'shuffle'
+
+            let transformedMessage
+            if (transformation === 'reverse') {
+              transformedMessage = reverseMessage(message.content)
+            } else {
+              transformedMessage = shuffleWords(message.content)
+            }
+
+            const embed = new EmbedBuilder()
+              .setTitle('Cursed Message!')
+              .addFields({
+                name: `${message.author.username} is cursed and trying to say something:`,
+                value: `${transformedMessage}`,
+              })
+              .setColor(0xff0000)
+              .setTimestamp()
+              .setFooter({
+                text: 'The curse will last until they are freed...',
+                iconURL: message.author.displayAvatarURL({ dynamic: true }),
+              })
+
+            // Send the embed and stop the execution before sending the original message
+            await message.channel.send({ embeds: [embed] })
+
+            // Prevent further execution to stop the original message from being sent again
+            return
+          }
+          // If it's not the 20% embed chance, let the message send as normal (without doing anything else).
+        }
+
+        // If the user doesn't have the cursed role, their message goes through naturally.
+      } catch (error) {
+        console.error('Error handling cursed message:', error)
+      }
     } catch (error) {
       console.error('Error updating user XP, level, and fate points:', error)
     }

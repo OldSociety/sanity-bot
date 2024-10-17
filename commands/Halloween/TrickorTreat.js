@@ -480,34 +480,33 @@ module.exports = {
           content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(', ')}!`,
           ephemeral: false,
         })
-      }
-      
-       else if (trickChance < 0.45) {
-        // Reverse Nickname (10% chance)
-        const currentNickname =
-          randomMember.nickname || randomMember.user.username
-        const reversedName = currentNickname.split('').reverse().join('')
-        await randomMember.roles.add(process.env.CURSEDROLEID)
-        await recipientStat.save()
+      }else if (trickChance < 0.5) {
+        // Reverse Nickname and apply text swap for 1 hour (5% chance)
+        const currentNickname = randomMember.nickname || randomMember.user.username;
+        const reversedName = currentNickname.split('').reverse().join('');
+        
+        // Add cursed role
+        await randomMember.roles.add(process.env.CURSEDROLEID);
+        await recipientStat.save();
+    
         try {
-          await randomMember.setNickname(reversedName)
-          console.log(
-            `🔄 ${user.username} reversed ${randomMember.user.username}'s nickname.`
-          )
-
-          return interaction.reply({
-            content: `🔄 ${user} reversed the nickname of ${randomMember.user.username}!`,
-            ephemeral: false,
-          })
+            await randomMember.setNickname(reversedName);
+            console.log(`🔄 ${user.username} reversed ${randomMember.user.username}'s nickname and applied the cursed text effect.`);
+    
+            return interaction.reply({
+                content: `🔄 ${user} cursed ${randomMember.user.username}! Their nickname was reversed and worse!`,
+                ephemeral: false,
+            });
         } catch (error) {
-          console.error('❌ Error setting nickname:', error)
-
-          return interaction.reply({
-            content: `❌ Couldn't change ${randomMember.user.username}'s nickname.`,
-            ephemeral: true,
-          })
+            console.error('❌ Error setting nickname or applying the curse:', error);
+    
+            return interaction.reply({
+                content: `❌ Couldn't reverse ${randomMember.user.username}'s nickname or apply the curse.`,
+                ephemeral: true,
+            });
         }
-      }
+    }
+    
     }
   },
 }

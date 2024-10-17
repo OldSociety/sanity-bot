@@ -7,7 +7,6 @@
 
 # database
 /db/
-/Models/
 
 # testing
 /coverage
