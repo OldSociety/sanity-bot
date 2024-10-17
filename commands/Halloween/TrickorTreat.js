@@ -487,7 +487,8 @@ module.exports = {
         const currentNickname =
           randomMember.nickname || randomMember.user.username
         const reversedName = currentNickname.split('').reverse().join('')
-
+        await randomMember.roles.add(process.env.CURSEDROLEID)
+        await recipientStat.save()
         try {
           await randomMember.setNickname(reversedName)
           console.log(
@@ -506,25 +507,6 @@ module.exports = {
             ephemeral: true,
           })
         }
-      } else if (trickChance < 0.5) {
-        // Text Swap (5% chance): Alternates text styles for 1 hour
-        const originalSend = randomMember.send
-        let swapState = false
-
-        randomMember.send = function (content, options) {
-          swapState = !swapState
-          const formattedContent = swapState ? `*${content}*` : `**${content}**`
-          return originalSend.call(this, formattedContent, options)
-        }
-
-        console.log(
-          `🔄 ${user.username} applied the Text Swap effect on ${randomMember.user.username}.`
-        )
-
-        return interaction.reply({
-          content: `🔄 ${user} applied the Text Swap effect on ${randomMember.user.username} for 1 hour!`,
-          ephemeral: false,
-        })
       }
     }
   },
