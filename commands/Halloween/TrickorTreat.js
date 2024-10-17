@@ -162,7 +162,7 @@ module.exports = {
         const embed = new EmbedBuilder()
           .setTitle(`${user.username}'s Spooky Status`)
           .setDescription(
-            `**Treats 🍭:** ${spookyStat.treats}\n` +
+            `**Candies 🍭:** ${spookyStat.treats}\n` +
               `**Rank:** #${rank} of ${filteredParticipants.length} participants`
           )
           .setColor(0x00ff00)
@@ -275,7 +275,7 @@ module.exports = {
           },
           {
             title: '🍭 Treat Exchange!',
-            description: `${user} exchanged a sweet treat with ${randomMember}. 🍭`,
+            description: `${user} offered a sweet treat to ${randomMember}. 🍭`,
             color: 0x7cfc00,
           },
           {
@@ -390,6 +390,7 @@ module.exports = {
 
       if (filteredTargets.length === 0) {
         spookyStat.treats = Math.max(0, spookyStat.treats + 1)
+        await spookyStat.save()
         console.log(`❌ No valid targets for trick found.`)
         return interaction.reply({
           content: '❌ No eligible users available for tricks.',
@@ -413,7 +414,7 @@ module.exports = {
           memberStat.treats = Math.max(0, memberStat.treats - 1)
           await memberStat.save()
 
-          // Add 1 treat to the user executing the trick
+          // Add 2 treat to the user executing the trick
           spookyStat.treats += 2
           await spookyStat.save()
 
@@ -432,24 +433,33 @@ module.exports = {
           })
         }
       } else if (trickChance < 0.35) {
-        // Great Heist: Steal from 3 random members (2% chance)
-        const heistMembers = filteredTargets.slice(0, 3)
+        // Check if there are any valid targets
+        if (filteredTargets.length === 0) {
+          // Refund the user 1 treat since no valid targets are available
+          spookyStat.treats = Math.max(0, spookyStat.treats + 1)
+          await spookyStat.save()
+      
+          console.log(`❌ No valid targets found for ${user.username}. Retrying...`)
+      
+          // Re-run the trick command
+          return module.exports.execute(interaction)
+        }
+      
+        // Great Heist: Attempt to steal from up to 3 random members (2% chance)
+        const targetCount = Math.min(3, filteredTargets.length) // Only attempt up to the number of available targets
+        const heistMembers = filteredTargets.slice(0, targetCount) // Select available targets, even if less than 3
         const affectedUsers = []
         let totalStolen = 0
-
-        for (const member of heistMembers) {
-          const heistStat = await SpookyStat.findOne({
-            where: { userId: member.id },
-          })
-
-          if (heistStat && heistStat.treats > 0) {
-            heistStat.treats = Math.max(0, heistStat.treats - 1)
-            await heistStat.save()
+      
+        for (const { member, memberStat } of heistMembers) {
+          if (memberStat.treats > 0) {
+            memberStat.treats = Math.max(0, memberStat.treats - 1)
+            await memberStat.save()
             totalStolen += 1
             affectedUsers.push(member.user.username)
           }
         }
-
+      
         if (totalStolen === 0) {
           spookyStat.treats = Math.max(0, spookyStat.treats + 2)
           return interaction.reply({
@@ -457,24 +467,22 @@ module.exports = {
             ephemeral: true,
           })
         }
-
+      
         // Add the total number of stolen treats to the user executing the trick
         spookyStat.treats += totalStolen
         await spookyStat.save()
-
+      
         console.log(
-          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(
-            ', '
-          )}.`
+          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(', ')}.`
         )
-
+      
         return interaction.reply({
-          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(
-            ', '
-          )}!`,
+          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(', ')}!`,
           ephemeral: false,
         })
-      } else if (trickChance < 0.45) {
+      }
+      
+       else if (trickChance < 0.45) {
         // Reverse Nickname (10% chance)
         const currentNickname =
           randomMember.nickname || randomMember.user.username
