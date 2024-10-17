@@ -445,7 +445,7 @@ module.exports = {
           return module.exports.execute(interaction)
         }
       
-        // Great Heist: Attempt to steal from up to 3 random members (2% chance)
+        // Great Heist: Attempt to steal from up to 3 random members (35% chance)
         const targetCount = Math.min(3, filteredTargets.length) // Only attempt up to the number of available targets
         const heistMembers = filteredTargets.slice(0, targetCount) // Select available targets, even if less than 3
         const affectedUsers = []
@@ -453,9 +453,10 @@ module.exports = {
       
         for (const { member, memberStat } of heistMembers) {
           if (memberStat.treats > 0) {
-            memberStat.treats = Math.max(0, memberStat.treats - 1)
+            const stolenTreats = Math.min(1, memberStat.treats) // Ensure we only steal 1 per member
+            memberStat.treats = Math.max(0, memberStat.treats - stolenTreats)
             await memberStat.save()
-            totalStolen += 1
+            totalStolen += stolenTreats
             affectedUsers.push(member.user.username)
           }
         }
@@ -473,14 +474,15 @@ module.exports = {
         await spookyStat.save()
       
         console.log(
-          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(', ')}.`
+          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(', ')} and stole ${totalStolen} treat(s).`
         )
       
         return interaction.reply({
           content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(', ')}!`,
           ephemeral: false,
         })
-      }else if (trickChance < 0.5) {
+      }
+      else if (trickChance < 0.5) {
         // Reverse Nickname and apply text swap for 1 hour (5% chance)
         const currentNickname = randomMember.nickname || randomMember.user.username;
         const reversedName = currentNickname.split('').reverse().join('');
