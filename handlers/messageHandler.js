@@ -8,11 +8,15 @@ module.exports = (client, User) => {
     if (message.channel.type === 'DM') return
     const commandPrefix = '/'
     if (message.content.startsWith(commandPrefix)) return
-    if (message.reference) {
-      const repliedTo = await message.channel.messages.fetch(
-        message.reference.messageId
-      )
-      if (repliedTo.author.id === client.user.id) return
+    if (message.reference && message.reference.messageId) {
+      try {
+        const repliedTo = await message.channel.messages.fetch(
+          message.reference.messageId
+        )
+        if (repliedTo.author && repliedTo.author.id === client.user.id) return
+      } catch (error) {
+        console.error('Error fetching the referenced message:', error)
+      }
     }
     if (message.mentions.has(client.user)) return
 
