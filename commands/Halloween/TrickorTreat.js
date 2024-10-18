@@ -178,6 +178,129 @@ module.exports = {
       }
     }
 
+       // Check for the cursed role and roll a 25% chance for the curse to affect the action
+const hasCursedRole = interaction.member.roles.cache.has(process.env.CURSEDROLEID)
+const cursedRoll = Math.random() < 0.25 // 25% chance
+
+if (hasCursedRole && cursedRoll) {
+  // If cursed, the effect changes depending on whether it's 'treat' or 'trick'
+  const availableMembers = targetChannel.members.filter(
+    (member) =>
+      member.user.id !== user.id &&
+      member.presence?.status !== 'offline' &&
+      !member.user.bot &&
+      !member.roles.cache.has(process.env.ADMINROLEID) // Exclude admins
+  )
+
+  const memberArray = [...availableMembers.values()]
+
+  // If subcommand is 'treat', attempt to give away 3 candies
+  if (subcommand === 'treat') {
+    const spreadCurseRoll = Math.random() < 0.2 // 20% chance to spread the curse
+
+    if (spreadCurseRoll) {
+      // Spread the curse to another player instead of giving candies
+      const randomRecipient = memberArray[Math.floor(Math.random() * memberArray.length)]
+
+      try {
+        await randomRecipient.roles.add(process.env.CURSEDROLEID)
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎃 Your Curse Spreads!')
+          .setDescription(
+            `Your curse is out of control and spread to **${randomRecipient.user.username}**!\nTotal Candies🍬: ${spookyStat.treats}`
+          )
+          .setColor(0xff4500)
+          .setTimestamp()
+
+        return interaction.reply({ embeds: [embed], ephemeral: false })
+      } catch (error) {
+        console.error('❌ Error spreading the curse:', error)
+        return interaction.reply({
+          content: '❌ Failed to spread the curse to another player.',
+          ephemeral: true,
+        })
+      }
+    }
+
+    const candiesToGive = Math.min(3, spookyStat.treats) // Give up to 3 or as many as the user has
+    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive)
+
+    // Shuffle available members and select the number of members to give candies to
+    const recipients = memberArray.sort(() => 0.5 - Math.random()).slice(0, candiesToGive)
+
+    let givenAway = 0
+    const recipientNames = []
+
+    for (const recipient of recipients) {
+      let recipientStat = await SpookyStat.findOne({ where: { userId: recipient.id } })
+
+      if (!recipientStat) {
+        recipientStat = await SpookyStat.create({ userId: recipient.id })
+      }
+
+      recipientStat.treats += 1 // Give 1 candy to each recipient
+      await recipientStat.save()
+      givenAway += 1
+      recipientNames.push(recipient.user.username)
+    }
+
+    await spookyStat.save()
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎃 Your Curse Spreads!')
+      .setDescription(
+        `Your curse has turned your treat into a triple gift!\nYou gave away **${givenAway}** candies to ${recipientNames.join(
+          ', '
+        )}.\nYou lost **${candiesToGive - givenAway}** candies as there were not enough people available.\nTotal Candies🍬: ${spookyStat.treats}`
+      )
+      .setColor(0xff4500)
+      .setTimestamp()
+
+    return interaction.reply({ embeds: [embed], ephemeral: false })
+  }
+
+  // If subcommand is 'trick', attempt to give away 2 candies
+  if (subcommand === 'trick') {
+    const candiesToGive = Math.min(2, spookyStat.treats) // Give up to 2 or as many as the user has
+    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive)
+
+    // Shuffle available members and select the number of members to give candies to
+    const recipients = memberArray.sort(() => 0.5 - Math.random()).slice(0, candiesToGive)
+
+    let givenAway = 0
+    const recipientNames = []
+
+    for (const recipient of recipients) {
+      let recipientStat = await SpookyStat.findOne({ where: { userId: recipient.id } })
+
+      if (!recipientStat) {
+        recipientStat = await SpookyStat.create({ userId: recipient.id })
+      }
+
+      recipientStat.treats += 1 // Give 1 candy to each recipient
+      await recipientStat.save()
+      givenAway += 1
+      recipientNames.push(recipient.user.username)
+    }
+
+    await spookyStat.save()
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎃 Your Curse Spreads!')
+      .setDescription(
+        `Your curse has backfired, and your trick turned into a treat!\nYou gave away **${givenAway}** candies to ${recipientNames.join(
+          ', '
+        )}.\nYou lost **${candiesToGive - givenAway}** candies as there were not enough people available.\nTotal Candies🍬: ${spookyStat.treats}`
+      )
+      .setColor(0xff4500)
+      .setTimestamp()
+
+    return interaction.reply({ embeds: [embed], ephemeral: false })
+  }
+}
+
+
     if (subcommand === 'treat') {
       if (spookyStat.treats <= 0) {
         return interaction.reply({
