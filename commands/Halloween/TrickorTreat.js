@@ -186,12 +186,14 @@ module.exports = {
         })
       }
 
-      // Deduct 1 treat from the giver, even if it’s lost
+      // Deduct 1 treat from the giver
       spookyStat.treats = Math.max(0, spookyStat.treats - 1)
       await spookyStat.save()
 
-      if (Math.random() < 0.1) {
-        // 10% chance the treat is lost
+      const treatRoll = Math.random()
+
+      if (treatRoll < 0.25) {
+        // 25% chance the treat is lost
         return interaction.reply({
           content: '🎃 Oops! You dropped the candy, and it was lost! 🎃',
           ephemeral: true,
@@ -214,94 +216,172 @@ module.exports = {
       }
 
       const randomMember = eligibleMembers.random()
-      let recipientStat = await SpookyStat.findOne({
+      let memberStat = await SpookyStat.findOne({
         where: { userId: randomMember.id },
       })
 
-      if (!recipientStat) {
-        recipientStat = await SpookyStat.create({ userId: randomMember.id })
+      if (!memberStat) {
+        memberStat = await SpookyStat.create({ userId: randomMember.id })
       }
 
-      // Determine which effect occurs when giving the treat
-      const treatRoll = Math.random()
-
-      if (treatRoll < 0.05) {
-        // Sweet Tooth Role: Add the role to the recipient
+      // Determine treat effects
+      if (treatRoll < 0.3) {
+        // 5% chance to grant Sweet Tooth Role
         await randomMember.roles.add(process.env.SWEETTOOTHROLEID)
-        await recipientStat.save()
+        await memberStat.save()
 
         return interaction.reply({
           content: `🎉 ${randomMember} earned the **Sweet Tooth** title! 🍬`,
           ephemeral: false,
         })
-      } else if (treatRoll < 0.12) {
-        // Multi-Gift: Give two treats to the recipient
-        recipientStat.treats += 2
-        await recipientStat.save()
+      } else if (treatRoll < 0.4) {
+        // 10% chance for Multi-Gift: Give two treats
+        memberStat.treats += 2
+        await memberStat.save()
 
         return interaction.reply({
           content: `🎁 ${user} gifted **2 candies** to ${randomMember} for the price of 1!`,
           ephemeral: false,
         })
-      } else if (treatRoll < 0.22) {
-        // Temporary Immunity: Mark the giver as immune for 1 hour
+      } else if (treatRoll < 0.5) {
+        // 10% chance for Temporary Immunity
         const now = new Date()
-
-        spookyStat.hasBeenTricked = true // Immunity flag for giver
-        spookyStat.lastSpookyUse = now // Track immunity start time
+        spookyStat.hasBeenTricked = true
+        spookyStat.lastSpookyUse = now
         await spookyStat.save()
-
-        console.log(`✨ ${user.username} granted temporary immunity.`)
 
         return interaction.reply({
           content: `✨ ${user} gave a treat to ${randomMember}. Because of their generosity, they received **temporary immunity** from tricks!`,
           ephemeral: false,
         })
-      } else {
-        // Standard Treat: One treat given with a random message
-        recipientStat.treats += 1
-        await recipientStat.save()
+      } else if (treatRoll < 0.55) {
+        // 5% chance to break a curse
+        console.log(`✨ ${user.username} is attempting to break a curse.`)
+    
+        if (spookyStat.treats < 2) {
+            // If the user doesn't have enough treats, the curse backfires
+            console.log(`🔮 ${user.username} tried to break a curse but cursed themselves!`)
+    
+            try {
+                await interaction.member.roles.add(process.env.CURSEDROLEID) // Curse the user
+    
+                return interaction.reply({
+                  content: `🔮 ${user.username} risked their lives to break a curse but cursed themselves instead!`,
+                    ephemeral: false,
+                })
+            } catch (error) {
+                console.error('❌ Error applying the backfire curse:', error)
+                return interaction.reply({
+                    content: '❌ The curse backfired, but something went wrong.',
+                    ephemeral: true,
+                })
+            }
+        }
+    
+        // Fetch all members with the cursed role
+        const cursedMembers = targetChannel.members.filter((member) =>
+            member.roles.cache.has(process.env.CURSEDROLEID)
+        )
+    
+        if (cursedMembers.size > 0) {
+            const randomCursedMember = cursedMembers.random()
+    
+            try {
+                await randomCursedMember.roles.remove(process.env.CURSEDROLEID)
+                spookyStat.treats = Math.max(0, spookyStat.treats - 2) // Deduct 3 treats for breaking the curse
+                await spookyStat.save()
+    
+                console.log(`💫 ${user.username} broke the curse on ${randomCursedMember.user.username}.`)
+    
+                return interaction.reply({
+                    content: `💫 ${user.username} broke the curse on ${randomCursedMember.user.username}! They are free!`,
+                    ephemeral: false,
+                })
+            } catch (error) {
+                console.error('❌ Error breaking the curse:', error)
+                return interaction.reply({
+                    content: '❌ Failed to break the curse.',
+                    ephemeral: true,
+                })
+            }
+        } else {
+            // If no cursed members are found, fallback to a standard treat
+            console.log('❌ No cursed members found. Fallback to standard treat.')
+    
+            // Standard Treat: One treat given with a random message
+            memberStat.treats += 1
+            await memberStat.save()
+    
+            const treatMessages = [
+                {
+                    title: '🍬 Treat Gifted!',
+                    description: `${user} gifted a treat to ${randomMember}. Their generosity knows no bounds! 🍬`,
+                    color: 0x00ff00,
+                },
+                {
+                    title: '🎁 Sweet Surprise!',
+                    description: `${user} surprised ${randomMember} with a treat! 🎁`,
+                    color: 0x32cd32,
+                },
+                {
+                    title: '🍭 Treat Exchange!',
+                    description: `${user} offered a sweet treat to ${randomMember}. 🍭`,
+                    color: 0x7cfc00,
+                },
+            ]
+    
+            const selectedMessage = treatMessages[Math.floor(Math.random() * treatMessages.length)]
+    
+            const treatEmbed = new EmbedBuilder()
+                .setTitle(selectedMessage.title)
+                .setDescription(selectedMessage.description)
+                .setColor(selectedMessage.color)
+                .setTimestamp()
+    
+            console.log(
+                `📤 Sending fallback embed for Treat from ${user.username} to ${randomMember.user.username}`
+            )
+    
+            return interaction.reply({ embeds: [treatEmbed] })
+        }
+    }
+     else {
+        // 45% chance for Standard Treat
+        memberStat.treats += 1
+        await memberStat.save()
 
         const treatMessages = [
           {
             title: '🍬 Treat Gifted!',
             description: `${user} gifted a treat to ${randomMember}. Their generosity knows no bounds! 🍬`,
-            color: 0x00ff00,
           },
           {
             title: '🎁 Sweet Surprise!',
             description: `${user} surprised ${randomMember} with a treat! 🎁`,
-            color: 0x32cd32,
           },
           {
             title: '🍭 Treat Exchange!',
             description: `${user} offered a sweet treat to ${randomMember}. 🍭`,
-            color: 0x7cfc00,
           },
           {
             title: '🍫 Chocolate Delight!',
             description: `${user} shared a delicious chocolate with ${randomMember}. 🍫`,
-            color: 0xffd700,
           },
           {
             title: '🍪 Cookie Craze!',
             description: `${user} gave a warm cookie treat to ${randomMember}. 🍪`,
-            color: 0xff6347,
           },
           {
             title: '🍩 Donut Delivery!',
             description: `${user} surprised ${randomMember} with a sugary donut! 🍩`,
-            color: 0xf4a460,
           },
           {
             title: '🍰 Cake of Kindness!',
             description: `${user} gave ${randomMember} a slice of their favorite cake. 🎂`,
-            color: 0xff69b4,
           },
           {
             title: '🧁 Cupcake Cheers!',
             description: `${user} offered ${randomMember} a delightful cupcake! 🧁`,
-            color: 0xba55d3,
           },
         ]
 
@@ -311,225 +391,271 @@ module.exports = {
         const treatEmbed = new EmbedBuilder()
           .setTitle(selectedMessage.title)
           .setDescription(selectedMessage.description)
-          .setColor(selectedMessage.color)
+          .setColor(0x00ff00)
           .setTimestamp()
-
-        console.log(
-          `📤 Sending embed for Treat from ${user.username} to ${randomMember.user.username}`
-        )
 
         return interaction.reply({ embeds: [treatEmbed] })
       }
     }
 
     if (subcommand === 'trick') {
-      let spookyStat;
-    
+      let spookyStat
+
       try {
-        spookyStat = await SpookyStat.findOne({ where: { userId: user.id } });
+        spookyStat = await SpookyStat.findOne({ where: { userId: user.id } })
       } catch (error) {
-        console.error('❌ Error fetching user stats:', error);
+        console.error('❌ Error fetching user stats:', error)
         return interaction.reply({
           content: '❌ An error occurred trying to access your stats.',
           ephemeral: true,
-        });
+        })
       }
-    
+
       if (!spookyStat) {
         return interaction.reply({
-          content: '❌ You are not registered for the event. Use `/spooky register` to participate!',
+          content:
+            '❌ You are not registered for the event. Use `/spooky register` to participate!',
           ephemeral: true,
-        });
+        })
       }
-    
+
       if (spookyStat.treats <= 0) {
         return interaction.reply({
           content: '❌ You have no candies left to perform a trick!',
           ephemeral: true,
-        });
+        })
       }
-    
-      console.log(`🕵️ ${user.username} is attempting a trick.`);
-    
-      const now = new Date();
-    
+
+      console.log(`🕵️ ${user.username} is attempting a trick.`)
+
+      const now = new Date()
+
       // Filter members to include only valid targets (online, non-bot, and not immune)
       const eligibleMembers = targetChannel.members.filter((member) => {
-        const isOnlineOrIdle = member.presence?.status !== 'offline';
-        const isNotUser = member.user.id !== user.id;
-        const isNotBot = !member.user.bot;
-        const isNotAdmin = !member.roles.cache.has(process.env.ADMINROLEID); // Exclude admins
-        return isOnlineOrIdle && isNotUser && isNotBot && isNotAdmin;
-      });
-    
-      console.log(`Eligible members: ${eligibleMembers.size}`);
-    
-      let validTargets;
+        const isOnlineOrIdle = member.presence?.status !== 'offline'
+        const isNotUser = member.user.id !== user.id
+        const isNotBot = !member.user.bot
+        const isNotAdmin = !member.roles.cache.has(process.env.ADMINROLEID) // Exclude admins
+        return isOnlineOrIdle && isNotUser && isNotBot && isNotAdmin
+      })
+
+      console.log(`Eligible members: ${eligibleMembers.size}`)
+
+      let validTargets
       try {
         validTargets = await Promise.all(
           eligibleMembers.map(async (member) => {
-            let memberStat = await SpookyStat.findOne({ where: { userId: member.id } });
-    
+            let memberStat = await SpookyStat.findOne({
+              where: { userId: member.id },
+            })
+
             if (!memberStat) {
-              console.log(`Creating SpookyStat for ${member.user.username}.`);
-              memberStat = await SpookyStat.create({ userId: member.id });
+              console.log(`Creating SpookyStat for ${member.user.username}.`)
+              memberStat = await SpookyStat.create({ userId: member.id })
             }
-    
+
             const isImmune =
-              memberStat.hasBeenTricked && now - new Date(memberStat.lastSpookyUse) <= 60 * 60 * 1000;
-    
-            return !isImmune ? { member, memberStat } : null;
+              memberStat.hasBeenTricked &&
+              now - new Date(memberStat.lastSpookyUse) <= 60 * 60 * 1000
+
+            return !isImmune ? { member, memberStat } : null
           })
-        );
+        )
       } catch (error) {
-        console.error('❌ Error processing target eligibility:', error);
+        console.error('❌ Error processing target eligibility:', error)
         return interaction.reply({
           content: '❌ An error occurred while trying to find valid targets.',
           ephemeral: true,
-        });
+        })
       }
-    
-      const filteredTargets = validTargets.filter((target) => target);
-    
+
+      const filteredTargets = validTargets.filter((target) => target)
+
       if (filteredTargets.length === 0) {
-        console.log(`❌ No valid targets for trick found.`);
+        console.log(`❌ No valid targets for trick found.`)
         return interaction.reply({
           content: '❌ No eligible users available for tricks.',
           ephemeral: true,
-        });
+        })
       }
-    
+
       const { member: randomMember, memberStat } =
-        filteredTargets[Math.floor(Math.random() * filteredTargets.length)];
-    
+        filteredTargets[Math.floor(Math.random() * filteredTargets.length)]
+
       // Mark the target as tricked and set the lastSpookyUse timestamp
       try {
-        memberStat.hasBeenTricked = true;
-        memberStat.lastSpookyUse = now;
-        await memberStat.save();
+        memberStat.hasBeenTricked = true
+        memberStat.lastSpookyUse = now
+        await memberStat.save()
       } catch (error) {
-        console.error('❌ Error updating tricked status for target:', error);
+        console.error('❌ Error updating tricked status for target:', error)
         return interaction.reply({
           content: '❌ An error occurred while tricking the target.',
           ephemeral: true,
-        });
+        })
       }
-    
-      const trickChance = Math.random();
-    
+
+      const trickChance = Math.random()
+
       // Add logging at the start of each trick block
-      if (trickChance < 0.5) {
-        // 50% chance to steal a treat
-        console.log(`👹 Steal Treat - Attempt by ${user.username}`);
+      if (trickChance < 0.4) {
+        // 40% chance to steal a treat
+        console.log(`👹 Steal Treat - Attempt by ${user.username}`)
         if (memberStat.treats > 0) {
-          memberStat.treats = Math.max(0, memberStat.treats - 1);
-          await memberStat.save();
-    
+          memberStat.treats = Math.max(0, memberStat.treats - 1)
+          await memberStat.save()
+
           // Add 2 treats to the user executing the trick
-          spookyStat.treats += 2;
-          await spookyStat.save();
-    
-          console.log(`👹 ${user.username} stole a treat from ${randomMember.user.username}.`);
+          spookyStat.treats += 1
+          await spookyStat.save()
+
+          console.log(
+            `👹 ${user.username} stole a treat from ${randomMember.user.username}.`
+          )
           return interaction.reply({
             content: `👹 ${user} stole a treat from ${randomMember.user.username}!`,
             ephemeral: false,
-          });
+          })
         } else {
           return interaction.reply({
             content: `❌ ${randomMember.user.username} has no candies to steal!`,
             ephemeral: true,
-          });
+          })
         }
-      } else if (trickChance < 0.65) {
-        // 15% chance for the Great Heist
-        console.log(`💰 Great Heist - Attempt by ${user.username}`);
+      } else if (trickChance < 0.5) {
+        // the Great Heist
+        console.log(`💰 Great Heist - Attempt by ${user.username}`)
         if (filteredTargets.length === 0) {
-          console.log(`❌ No valid targets found for ${user.username}.`);
+          console.log(`❌ No valid targets found for ${user.username}.`)
           return interaction.reply({
             content: '❌ No eligible users available for tricks.',
             ephemeral: true,
-          });
+          })
         }
-    
-        const targetCount = Math.min(3, filteredTargets.length);
-        const heistMembers = filteredTargets.slice(0, targetCount);
-        const affectedUsers = [];
-        let totalStolen = 0;
-    
+
+        const targetCount = Math.min(3, filteredTargets.length)
+        const heistMembers = filteredTargets.slice(0, targetCount)
+        const affectedUsers = []
+        let totalStolen = 0
+
         for (const { member, memberStat } of heistMembers) {
           if (memberStat.treats > 0) {
-            const stolenTreats = Math.min(1, memberStat.treats);
-            memberStat.treats = Math.max(0, memberStat.treats - stolenTreats);
-            await memberStat.save();
-            totalStolen += stolenTreats;
-            affectedUsers.push(member.user.username);
+            const stolenTreats = Math.min(1, memberStat.treats)
+            memberStat.treats = Math.max(0, memberStat.treats - stolenTreats)
+            await memberStat.save()
+            totalStolen += stolenTreats
+            affectedUsers.push(member.user.username)
           }
         }
-    
+
         if (totalStolen === 0) {
-          console.log(`❌ No valid targets with candies for the Great Heist.`);
+          console.log(`❌ No valid targets with candies for the Great Heist.`)
           return interaction.reply({
             content: '❌ No valid targets with candies for the Great Heist!',
             ephemeral: true,
-          });
+          })
         }
-    
+
         // Add the total number of stolen treats to the user executing the trick
-        spookyStat.treats += totalStolen;
-        await spookyStat.save();
-    
-        console.log(`💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(', ')} and stole ${totalStolen} treat(s).`);
-    
+        spookyStat.treats += totalStolen
+        await spookyStat.save()
+
+        console.log(
+          `💰 ${user.username} performed a Great Heist on: ${affectedUsers.join(
+            ', '
+          )} and stole ${totalStolen} treat(s).`
+        )
+
         return interaction.reply({
-          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(', ')}!`,
+          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(
+            ', '
+          )}!`,
           ephemeral: false,
-        });
+        })
+      } else if (trickChance < 0.6) {
+        //reverse nickname
+        console.log(`🔄 Reverse Nickname - Attempt by ${user.username}`)
+        const currentNickname =
+          randomMember.nickname || randomMember.user.username
+        const reversedName = currentNickname.split('').reverse().join('')
+
+        try {
+          await randomMember.setNickname(reversedName)
+          console.log(
+            `🔄 ${user.username} reversed ${randomMember.user.username}'s nickname and applied the cursed text effect.`
+          )
+          console.log(
+            `🔄 Deducting treat for ${user.username} after reversing nickname.`
+          )
+          spookyStat.treats = Math.max(0, spookyStat.treats - 1)
+          await spookyStat.save()
+          return interaction.reply({
+            content: `🔄 ${user} casted reverse on ${randomMember.user.username}! Their nickname was reversed!`,
+            ephemeral: false,
+          })
+        } catch (error) {
+          console.error('❌ Error setting nickname:', error)
+          return interaction.reply({
+            content: `❌ Couldn't reverse ${randomMember.user.username}'s nickname.`,
+            ephemeral: true,
+          })
+        }
       } else if (trickChance < 0.7) {
-        // 5% chance to reverse nickname and apply curse
-        console.log(`🔄 Reverse Nickname and Text Swap - Attempt by ${user.username}`);
-        const currentNickname = randomMember.nickname || randomMember.user.username;
-        const reversedName = currentNickname.split('').reverse().join('');
-    
         // Add cursed role
         try {
-          await randomMember.roles.add(process.env.CURSEDROLEID);
-          await recipientStat.save();
+          await randomMember.roles.add(process.env.CURSEDROLEID)
+          await memberStat.save()
+          console.log(
+            `🔄 Deducting treat for ${user.username} after reversing nickname.`
+          )
+          spookyStat.treats = Math.max(0, spookyStat.treats - 1)
+          await spookyStat.save()
+          return interaction.reply({
+            content: `🔄 ${user} cursed ${randomMember.user.username}! Tragic things await unless the curse is lifted!`,
+            ephemeral: false,
+          })
         } catch (error) {
-          console.error('❌ Error applying the cursed role:', error);
+          console.error('❌ Error applying the cursed role:', error)
           return interaction.reply({
             content: '❌ Failed to apply the cursed role.',
             ephemeral: true,
-          });
+          })
         }
-    
+      } else if (trickChance < 0.75) {
+        // 5% chance for curse to backfire
+        console.log(
+          `🔮 Curse Backfire - ${user.username} got cursed themselves.`
+        )
         try {
-          await randomMember.setNickname(reversedName);
-          console.log(`🔄 ${user.username} reversed ${randomMember.user.username}'s nickname and applied the cursed text effect.`);
+          await user.roles.add(process.env.CURSEDROLEID) // Cursing the user instead
+          spookyStat.treats = Math.max(0, spookyStat.treats - 1) // Deduct treat for failed curse
+          await spookyStat.save()
           return interaction.reply({
-            content: `🔄 ${user} cursed ${randomMember.user.username}! Their nickname was reversed and worse!`,
+            content: `🔮 ${user.username} attempted to curse ${randomMember.user.username}, but the curse backfired and cursed ${user.username} instead!`,
             ephemeral: false,
-          });
+          })
         } catch (error) {
-          console.error('❌ Error setting nickname or applying the curse:', error);
+          console.error('❌ Error with backfiring curse:', error)
           return interaction.reply({
-            content: `❌ Couldn't reverse ${randomMember.user.username}'s nickname or apply the curse.`,
+            content: `❌ ${user.username} attempted to curse ${randomMember.user.username}, but the curse backfire failed.`,
             ephemeral: true,
-          });
+          })
         }
       } else {
-        // 30% chance nothing happens
-        console.log(`❌ ${user.username} attempted to steal a treat but was caught.`);
+        // nothing happens
+        console.log(
+          `❌ ${user.username} attempted to steal a treat but was caught.`
+        )
+        console.log(
+          `🔄 Deducting treat for ${user.username} after reversing nickname.`
+        )
+        spookyStat.treats = Math.max(0, spookyStat.treats - 1)
+        await spookyStat.save()
         return interaction.reply({
           content: `❌ ${user.username} attempted to steal a treat but was caught! No treat was stolen.`,
           ephemeral: false,
-        });
+        })
       }
-    
-      // Deduct 1 treat from the user for successful trick
-      spookyStat.treats = Math.max(0, spookyStat.treats - 1);
-      await spookyStat.save();
     }
-    
-    
   },
 }
