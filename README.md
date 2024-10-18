@@ -18,8 +18,6 @@ Sure! Here's the updated install instructions for your `README.md`:
 
 ### 1. Clone the Repository
 
-Start by cloning the repository to your local machine:
-
 ```bash
 git clone https://github.com/OldSociety/sanity-bot.git
 cd sanity-bot
@@ -27,17 +25,11 @@ cd sanity-bot
 
 ### 2. Install Dependencies
 
-Install the necessary dependencies using `npm`:
-
 ```bash
 npm install
 ```
 
 ### 3. Configure Environment Variables
-
-Since you don't commit the `.env`, `.env.development`, or `.env.production` files, you'll need to create these manually for your specific environment.
-
-#### Create `.env` (for basic configuration)
 
 In the root of your project, create a `.env` file and add the following variables:
 
@@ -54,34 +46,27 @@ DATABASE_URL=sqlite://dev.sqlite # SQLite file for development
 
 #### Optional: Create `.env.development` or `.env.production`
 
-For specific environments (development or production), you can create `.env.development` or `.env.production` files with the corresponding environment-specific configurations.
-
-For example, in `.env.development`:
-
-```env
-TOKEN=your-discord-bot-token-dev
-DATABASE_URL=sqlite://dev.sqlite
-```
+For specific environments create `.env.development` or `.env.production` files with the corresponding environment-specific configurations.
 
 ### 4. Running Migrations
-
-If you're using Sequelize for database migrations, run the following command to set up the initial database schema:
 
 ```bash
 npx sequelize-cli db:migrate --env development
 ```
 
-This will use the `dev.sqlite` database based on your environment settings.
+### 5. Deploy Commands
 
-### 5. Run the Bot
+```bash
+node deploy-commands.js
+```
 
-Now you can start the bot. For development, use the following command:
+### 6. Run the Bot
+
+For development:
 
 ```bash
 npm run start:dev
 ```
-
-This will run the bot in development mode, using `nodemon` to watch for file changes and automatically restart.
 
 For production:
 
@@ -96,6 +81,7 @@ The bot includes several commands for both users and admins to manage their expe
 ### Commands Overview
 
 #### **Fate Points Management**: `/fate`
+- Fate points are a currency for the Meridian Campaign setting and are used as a replacement for 5e's Heroic inspiration. 
 
 | Subcommand    | Description                                                | Permissions Required  |
 | ------------- | ---------------------------------------------------------- | --------------------- |
@@ -118,8 +104,6 @@ Displays server statistics, such as:
 Provides information about the user executing the command:
 - Username of the user
 - The date the user joined the server
-
-Using a table for `/fate` commands was a good way to concisely list commands and their descriptions. For consistency and clarity, let's do the same for the `/spooky` commands. Here's an updated version using a table format for better readability:
 
 ---
 
