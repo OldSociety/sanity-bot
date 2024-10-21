@@ -172,7 +172,7 @@ module.exports = (client, User) => {
           return words.join(' ')
         }
 
-        // HALLOWEEN SPECIAL Check if the user has the Cursed role
+        // HALLOWEEN SPECIAL
         if (message.member.roles.cache.has(process.env.CURSEDROLEID)) {
           // 20% chance to send an embedded message instead of the original
           if (Math.random() < 0.2) {
@@ -199,16 +199,37 @@ module.exports = (client, User) => {
                 iconURL: message.author.displayAvatarURL({ dynamic: true }),
               })
 
-            // Send the embed and stop the execution before sending the original message
-            await message.channel.send({ embeds: [embed] })
+            try {
+              // Delete the original message first
+              await message.delete()
 
-            // Prevent further execution to stop the original message from being sent again
+              // Send the transformed message as an embed
+              await message.channel.send({ embeds: [embed] })
+            } catch (error) {
+              console.error('❌ Error handling cursed message:', error)
+
+              // Send the original message content and delete it after sending
+              const fallbackMessage = await message.channel.send(
+                message.content
+              )
+
+              // Delete the fallback message after a brief delay (e.g., 5 seconds)
+              setTimeout(async () => {
+                try {
+                  await fallbackMessage.delete()
+                } catch (deleteError) {
+                  console.error(
+                    '❌ Error deleting fallback message:',
+                    deleteError
+                  )
+                }
+              }, 3000) // 3 seconds delay before deletion
+            }
+
             return
           }
-          // If it's not the 20% embed chance, let the message send as normal (without doing anything else).
         }
 
-        // If the user doesn't have the cursed role, their message goes through naturally.
       } catch (error) {
         console.error('Error handling cursed message:', error)
       }

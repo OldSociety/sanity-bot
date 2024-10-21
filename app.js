@@ -30,12 +30,13 @@ const client = new Client({
   ],
 })
 
+// HALLOWEEN EVENT
 // Daily treat reward
 client.once('ready', async () => {
   console.log(`Ready! Logged in as ${client.user.tag}`)
 
   // Check daily treats every hour
-  cron.schedule('0 * * * *', async () => {
+  cron.schedule('0 0 * * *', async () => {
     try {
       const guild = await client.guilds.fetch(process.env.GUILDID)
       if (guild) {
@@ -52,7 +53,7 @@ client.once('ready', async () => {
 })
 
 // Cron job to reset 'hasBeenTricked' every 10 minutes
-cron.schedule('*/10 * * * *', async () => {
+cron.schedule('*/20 * * * *', async () => {
   try {
     console.log('🔄 Resetting hasBeenTricked flag for all users...')
 

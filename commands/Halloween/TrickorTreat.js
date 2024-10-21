@@ -178,32 +178,32 @@ module.exports = {
       }
     }
 
-       // Check for the cursed role and roll a 25% chance for the curse to affect the action
-const hasCursedRole = interaction.member.roles.cache.has(process.env.CURSEDROLEID)
-const cursedRoll = Math.random() < 0.25 // 25% chance
+    // Check for the cursed role and roll a 25% chance for the curse to affect the action
+const hasCursedRole = interaction.member.roles.cache.has(process.env.CURSEDROLEID);
+const cursedRoll = Math.random() < 0.10; // 10% chance
 
 if (hasCursedRole && cursedRoll) {
-  // If cursed, the effect changes depending on whether it's 'treat' or 'trick'
+  // Get eligible members
   const availableMembers = targetChannel.members.filter(
     (member) =>
       member.user.id !== user.id &&
       member.presence?.status !== 'offline' &&
       !member.user.bot &&
       !member.roles.cache.has(process.env.ADMINROLEID) // Exclude admins
-  )
+  );
 
-  const memberArray = [...availableMembers.values()]
+  const memberArray = [...availableMembers.values()];
 
-  // If subcommand is 'treat', attempt to give away 3 candies
+  // Handle 'treat' subcommand
   if (subcommand === 'treat') {
-    const spreadCurseRoll = Math.random() < 0.2 // 20% chance to spread the curse
+    const spreadCurseRoll = Math.random() < 0.2; // 20% chance to spread the curse
 
     if (spreadCurseRoll) {
       // Spread the curse to another player instead of giving candies
-      const randomRecipient = memberArray[Math.floor(Math.random() * memberArray.length)]
+      const randomRecipient = memberArray[Math.floor(Math.random() * memberArray.length)];
 
       try {
-        await randomRecipient.roles.add(process.env.CURSEDROLEID)
+        await randomRecipient.roles.add(process.env.CURSEDROLEID);
 
         const embed = new EmbedBuilder()
           .setTitle('🎃 Your Curse Spreads!')
@@ -211,92 +211,127 @@ if (hasCursedRole && cursedRoll) {
             `Your curse is out of control and spread to **${randomRecipient.user.username}**!\nTotal Candies🍬: ${spookyStat.treats}`
           )
           .setColor(0xff4500)
-          .setTimestamp()
+          .setTimestamp();
 
-        return interaction.reply({ embeds: [embed], ephemeral: false })
+        return interaction.reply({ embeds: [embed], ephemeral: false });
       } catch (error) {
-        console.error('❌ Error spreading the curse:', error)
-        return interaction.reply({
-          content: '❌ Failed to spread the curse to another player.',
-          ephemeral: true,
-        })
+        console.error('❌ Error spreading the curse:', error);
+        const errorEmbed = new EmbedBuilder()
+          .setTitle('❌ Error Spreading Curse')
+          .setDescription(`Failed to spread the curse to another player.`)
+          .setColor(0xff0000)
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
     }
 
-    const candiesToGive = Math.min(3, spookyStat.treats) // Give up to 3 or as many as the user has
-    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive)
+    const candiesToGive = Math.min(3, spookyStat.treats); // Give up to 3 or as many as the user has
+
+    if (candiesToGive === 0 || memberArray.length === 0) {
+      // No treats to give; curse destroys the treat
+      const embed = new EmbedBuilder()
+        .setTitle('🎃 Cursed!')
+        .setDescription(`Your curse destroyed the treat in your hands! You have no candies left to give.`)
+        .setColor(0xff4500)
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive);
 
     // Shuffle available members and select the number of members to give candies to
-    const recipients = memberArray.sort(() => 0.5 - Math.random()).slice(0, candiesToGive)
+    const recipients = memberArray
+      .sort(() => 0.5 - Math.random())
+      .slice(0, candiesToGive);
 
-    let givenAway = 0
-    const recipientNames = []
+    let givenAway = 0;
+    const recipientNames = [];
 
     for (const recipient of recipients) {
-      let recipientStat = await SpookyStat.findOne({ where: { userId: recipient.id } })
+      let recipientStat = await SpookyStat.findOne({
+        where: { userId: recipient.id },
+      });
 
       if (!recipientStat) {
-        recipientStat = await SpookyStat.create({ userId: recipient.id })
+        recipientStat = await SpookyStat.create({ userId: recipient.id });
       }
 
-      recipientStat.treats += 1 // Give 1 candy to each recipient
-      await recipientStat.save()
-      givenAway += 1
-      recipientNames.push(recipient.user.username)
+      recipientStat.treats += 1; // Give 1 candy to each recipient
+      await recipientStat.save();
+      givenAway += 1;
+      recipientNames.push(recipient.user.username);
     }
 
-    await spookyStat.save()
+    await spookyStat.save();
 
     const embed = new EmbedBuilder()
       .setTitle('🎃 Your Curse Spreads!')
       .setDescription(
         `Your curse has turned your treat into a triple gift!\nYou gave away **${givenAway}** candies to ${recipientNames.join(
           ', '
-        )}.\nYou lost **${candiesToGive - givenAway}** candies as there were not enough people available.\nTotal Candies🍬: ${spookyStat.treats}`
+        )}.\nTotal Candies🍬: ${spookyStat.treats}`
       )
       .setColor(0xff4500)
-      .setTimestamp()
+      .setTimestamp();
 
-    return interaction.reply({ embeds: [embed], ephemeral: false })
+    return interaction.reply({ embeds: [embed], ephemeral: false });
   }
 
-  // If subcommand is 'trick', attempt to give away 2 candies
+  // Handle 'trick' subcommand
   if (subcommand === 'trick') {
-    const candiesToGive = Math.min(2, spookyStat.treats) // Give up to 2 or as many as the user has
-    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive)
+    const candiesToGive = Math.min(2, spookyStat.treats); // Give up to 2 or as many as the user has
 
-    // Shuffle available members and select the number of members to give candies to
-    const recipients = memberArray.sort(() => 0.5 - Math.random()).slice(0, candiesToGive)
+    if (candiesToGive === 0 || memberArray.length === 0) {
+      // No treats to give; curse destroys the treat
+      const embed = new EmbedBuilder()
+        .setTitle('🎃 Cursed!')
+        .setDescription(`Your curse destroyed the candy in your hands! You have no candies left to give.`)
+        .setColor(0xff4500)
+        .setTimestamp();
 
-    let givenAway = 0
-    const recipientNames = []
-
-    for (const recipient of recipients) {
-      let recipientStat = await SpookyStat.findOne({ where: { userId: recipient.id } })
-
-      if (!recipientStat) {
-        recipientStat = await SpookyStat.create({ userId: recipient.id })
-      }
-
-      recipientStat.treats += 1 // Give 1 candy to each recipient
-      await recipientStat.save()
-      givenAway += 1
-      recipientNames.push(recipient.user.username)
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    await spookyStat.save()
+    spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive);
+
+    // Shuffle available members and select the number of members to give candies to
+    const recipients = memberArray
+      .sort(() => 0.5 - Math.random())
+      .slice(0, candiesToGive);
+
+    let givenAway = 0;
+    const recipientNames = [];
+
+    for (const recipient of recipients) {
+      let recipientStat = await SpookyStat.findOne({
+        where: { userId: recipient.id },
+      });
+
+      if (!recipientStat) {
+        recipientStat = await SpookyStat.create({ userId: recipient.id });
+      }
+
+      recipientStat.treats += 1; // Give 1 candy to each recipient
+      await recipientStat.save();
+      givenAway += 1;
+      recipientNames.push(recipient.user.username);
+    }
+
+    await spookyStat.save();
 
     const embed = new EmbedBuilder()
       .setTitle('🎃 Your Curse Spreads!')
       .setDescription(
         `Your curse has backfired, and your trick turned into a treat!\nYou gave away **${givenAway}** candies to ${recipientNames.join(
           ', '
-        )}.\nYou lost **${candiesToGive - givenAway}** candies as there were not enough people available.\nTotal Candies🍬: ${spookyStat.treats}`
+        )}.\nTotal Candies🍬: ${spookyStat.treats}`
       )
       .setColor(0xff4500)
-      .setTimestamp()
+      .setTimestamp();
 
-    return interaction.reply({ embeds: [embed], ephemeral: false })
+    return interaction.reply({ embeds: [embed], ephemeral: false });
   }
 }
 
@@ -681,12 +716,12 @@ if (hasCursedRole && cursedRoll) {
       if (trickChance < 0.3) {
         // 40% chance to steal a treat
         console.log(`👹 Steal Treat - Attempt by ${user.username}`)
-      
+
         // Filter members who have treats to steal
         const membersWithTreats = filteredTargets.filter(
           ({ memberStat }) => memberStat.treats > 0
         )
-      
+
         if (membersWithTreats.length === 0) {
           console.log(`❌ No valid targets with candies for ${user.username}.`)
           return interaction.reply({
@@ -694,19 +729,21 @@ if (hasCursedRole && cursedRoll) {
             ephemeral: true,
           })
         }
-      
+
         // Select a random member from the list of members with treats
-        const { member: randomMember, memberStat } = 
-            membersWithTreats[Math.floor(Math.random() * membersWithTreats.length)]
-      
+        const { member: randomMember, memberStat } =
+          membersWithTreats[
+            Math.floor(Math.random() * membersWithTreats.length)
+          ]
+
         // Deduct 1 treat from the target
         memberStat.treats = Math.max(0, memberStat.treats - 1)
         await memberStat.save()
-      
+
         // Add 1 treat to the user
         spookyStat.treats += 1
         await spookyStat.save()
-      
+
         console.log(
           `👹 ${user.username} stole a treat from ${randomMember.user.username}.`
         )
@@ -714,58 +751,66 @@ if (hasCursedRole && cursedRoll) {
           content: `👹 ${user} stole a treat from ${randomMember.user.username}!\nTotal Candies🍬: ${spookyStat.treats}`,
           ephemeral: false,
         })
-      }
-       else if (trickChance < 0.4) { 
-          // the Great Heist
-          console.log(`💰 Great Heist - Attempt by ${user.username}`)
-        
-          if (filteredTargets.length === 0) {
-            console.log(`❌ No valid targets found for ${user.username}.`)
-            return interaction.reply({
-              content: '❌ No eligible users available for tricks.',
-              ephemeral: true,
-            })
-          }
-        
-          const initialUserTreats = spookyStat.treats; // Store the initial number of user's treats
-        
-          const targetCount = Math.min(3, filteredTargets.length)
-          const heistMembers = filteredTargets.slice(0, targetCount)
-          const affectedUsers = []
-          let totalStolen = 0
-        
-          for (const { member, memberStat } of heistMembers) {
-            if (memberStat.treats > 0) {
-              const stolenTreats = Math.min(1, memberStat.treats)
-              memberStat.treats = Math.max(0, memberStat.treats - stolenTreats)
-              await memberStat.save()
-              totalStolen += stolenTreats
-              affectedUsers.push(`${member.user.username} (${memberStat.treats + stolenTreats} -> ${memberStat.treats})`)
-            }
-          }
-        
-          if (totalStolen === 0) {
-            console.log(`❌ No valid targets with candies for the Great Heist.`)
-            return interaction.reply({
-              content: '❌ No valid targets with candies for the Great Heist!',
-              ephemeral: true,
-            })
-          }
-        
-          // Add the total number of stolen treats to the user executing the trick
-          spookyStat.treats += totalStolen
-          await spookyStat.save()
-        
-          const logMessage = `💰 ${user.username} (${initialUserTreats} -> ${spookyStat.treats}) performed a Great Heist on: ${affectedUsers.join(', ')} and stole ${totalStolen} treat(s).`
-        
-          console.log(logMessage)
-        
+      } else if (trickChance < 0.4) {
+        // the Great Heist
+        console.log(`💰 Great Heist - Attempt by ${user.username}`)
+
+        if (filteredTargets.length === 0) {
+          console.log(`❌ No valid targets found for ${user.username}.`)
           return interaction.reply({
-            content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(', ')}!\nTotal Candies🍬: ${spookyStat.treats}`,
-            ephemeral: false,
+            content: '❌ No eligible users available for tricks.',
+            ephemeral: true,
           })
         }
-         else if (trickChance < 0.5) {
+
+        const initialUserTreats = spookyStat.treats // Store the initial number of user's treats
+
+        const targetCount = Math.min(3, filteredTargets.length)
+        const heistMembers = filteredTargets.slice(0, targetCount)
+        const affectedUsers = []
+        let totalStolen = 0
+
+        for (const { member, memberStat } of heistMembers) {
+          if (memberStat.treats > 0) {
+            const stolenTreats = Math.min(1, memberStat.treats)
+            memberStat.treats = Math.max(0, memberStat.treats - stolenTreats)
+            await memberStat.save()
+            totalStolen += stolenTreats
+            affectedUsers.push(
+              `${member.user.username} (${
+                memberStat.treats + stolenTreats
+              } -> ${memberStat.treats})`
+            )
+          }
+        }
+
+        if (totalStolen === 0) {
+          console.log(`❌ No valid targets with candies for the Great Heist.`)
+          return interaction.reply({
+            content: '❌ No valid targets with candies for the Great Heist!',
+            ephemeral: true,
+          })
+        }
+
+        // Add the total number of stolen treats to the user executing the trick
+        spookyStat.treats += totalStolen
+        await spookyStat.save()
+
+        const logMessage = `💰 ${user.username} (${initialUserTreats} -> ${
+          spookyStat.treats
+        }) performed a Great Heist on: ${affectedUsers.join(
+          ', '
+        )} and stole ${totalStolen} treat(s).`
+
+        console.log(logMessage)
+
+        return interaction.reply({
+          content: `💰 ${user} stole ${totalStolen} candie(s) from: ${affectedUsers.join(
+            ', '
+          )}!\nTotal Candies🍬: ${spookyStat.treats}`,
+          ephemeral: false,
+        })
+      } else if (trickChance < 0.5) {
         //reverse nickname
         console.log(`🔄 Reverse Nickname - Attempt by ${user.username}`)
         const currentNickname =
@@ -817,10 +862,14 @@ if (hasCursedRole && cursedRoll) {
       } else if (trickChance < 0.65) {
         // 5% chance for curse to backfire
         console.log(
-          `🔮 Curse Backfire - ${user.username} got cursed themselves.`
+          `🔮 Curse Backfire - ${user.username} tried to curse another but the spell backfired and they became cursed themselves.`
         )
         try {
-          await user.roles.add(process.env.CURSEDROLEID) // Cursing the user instead
+          // Fetch the GuildMember object to access roles
+          const guildMember = await interaction.guild.members.fetch(user.id)
+
+          // Cursing the user instead
+          await guildMember.roles.add(process.env.CURSEDROLEID)
           spookyStat.treats = Math.max(0, spookyStat.treats - 1) // Deduct treat for failed curse
           await spookyStat.save()
           return interaction.reply({
