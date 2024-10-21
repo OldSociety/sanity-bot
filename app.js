@@ -30,11 +30,12 @@ const client = new Client({
   ],
 })
 
+// Daily treat reward
 client.once('ready', async () => {
   console.log(`Ready! Logged in as ${client.user.tag}`)
 
-  // Schedule daily treats at midnight server time
-  cron.schedule('0 0 * * *', async () => {
+  // Check daily treats every hour
+  cron.schedule('0 * * * *', async () => {
     try {
       const guild = await client.guilds.fetch(process.env.GUILDID)
       if (guild) {

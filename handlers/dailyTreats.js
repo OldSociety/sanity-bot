@@ -7,8 +7,8 @@ async function awardDailyTreats(guild) {
 
     const sweetToothRoleId = process.env.SWEETTOOTHROLEID
 
-    // Get the current date and the date 24 hours ago
     const now = new Date()
+    const hours = now.getHours()
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
     // Fetch users who were active in the last 24 hours
@@ -16,6 +16,9 @@ async function awardDailyTreats(guild) {
       where: {
         lastActive: {
           [Op.gte]: yesterday, // Users active in the last 24 hours
+        },
+        treats: {
+          [Op.lt]: 10, // Only award candies if they have less than 10
         },
       },
     })
@@ -34,19 +37,38 @@ async function awardDailyTreats(guild) {
       const member = await guild.members.fetch(stat.userId).catch(() => null)
 
       if (member) {
-        const treatBonus = member.roles.cache.has(sweetToothRoleId) ? 5 : 3
-        stat.treats += treatBonus
-        await stat.save()
+        // Sweet Tooth role gets candy rewards all day, others between 7am-10pm
+        const isSweetTooth = member.roles.cache.has(sweetToothRoleId)
+        if (isSweetTooth || (hours >= 7 && hours < 22)) {
+          const maxCandiesPerDay = isSweetTooth ? 8 : 5
+          const treatBonus = 1
 
-        console.log(
-          `🎁 Awarded ${treatBonus} treat(s) to ${member.user.username}. Total: ${stat.treats}`
-        )
+          // Calculate candies based on the last award time to give one every 3 hours
+          const hoursSinceLastAward =
+            (now.getTime() - stat.lastActive.getTime()) / (1000 * 60 * 60)
+          const canReceiveCandy = Math.floor(hoursSinceLastAward / 3) > 0
+
+          // Enforce maxCandiesPerDay
+          const candiesAwardedToday = Math.min(
+            stat.treats + treatBonus,
+            maxCandiesPerDay
+          )
+
+          if (canReceiveCandy && stat.treats < 10) {
+            stat.treats = Math.min(candiesAwardedToday, 10)
+            await stat.save()
+
+            console.log(
+              `🎁 Awarded ${treatBonus} treat(s) to ${member.user.username}. Total: ${stat.treats}`
+            )
+          }
+        }
       } else {
         console.log(`⚠️ User with ID ${stat.userId} not found in guild.`)
       }
     }
 
-    // Deduct 1 treat from inactive users
+    // Deduct 1 treat from inactive users every 24 hours
     for (const stat of inactiveSpookyStats) {
       const member = await guild.members.fetch(stat.userId).catch(() => null)
 
@@ -58,7 +80,9 @@ async function awardDailyTreats(guild) {
           `❌ Deducted 1 treat from inactive user ${member.user.username}. Remaining treats: ${stat.treats}`
         )
       } else {
-        console.log(`⚠️ User with ID ${stat.userId} not found in guild or has 0 treats.`)
+        console.log(
+          `⚠️ User with ID ${stat.userId} not found in guild or has 0 treats.`
+        )
       }
     }
 
