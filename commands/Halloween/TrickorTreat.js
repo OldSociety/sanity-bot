@@ -66,10 +66,6 @@ module.exports = {
           ephemeral: true,
         })
       }
-
-      // Update lastActive when the user performs a command
-      spookyStat.lastActive = new Date()
-      await spookyStat.save()
     } catch (error) {
       console.error('❌ Error fetching SpookyStat:', error)
       return interaction.reply({
@@ -79,42 +75,53 @@ module.exports = {
     }
     if (subcommand === 'register') {
       try {
-        let [userRecord] = await User.findOrCreate({
-          where: { user_id: user.id },
-          defaults: { user_name: user.username },
-        })
-
-        let [newSpookyStat, created] = await SpookyStat.findOrCreate({
-          where: { userId: user.id },
-        })
-
-        if (!created) {
+        // Try to find the user first
+        const userRecord = await User.findOne({ where: { user_id: user.id } });
+    
+        if (!userRecord) {
+          // If no user is found, create it
+          await User.create({ user_id: user.id, user_name: user.username });
+        }
+    
+        // Try to find the spooky stats record
+        const spookyStat = await SpookyStat.findOne({ where: { userId: user.id } });
+    
+        if (spookyStat) {
+          // If already registered, notify user
           return interaction.reply({
             content: '✅ You are already registered!',
             ephemeral: true,
-          })
-        }
-
-        const embed = new EmbedBuilder()
-          .setTitle('🎃 Welcome to the Roll For Sanity Halloween Event!')
-          .setDescription(
-            `The event runs from **October 15th - 31st**.\n\n` +
+          });
+        } else {
+          // Create a new SpookyStat record if not found
+          await SpookyStat.create({
+            userId: user.id,
+            treats: 3, // Initialize with 3 candies
+            lastActive: null,
+          });
+    
+          const embed = new EmbedBuilder()
+            .setTitle('🎃 Welcome to the Roll For Sanity Halloween Event!')
+            .setDescription(
+              `The event runs from **October 15th - 31st**.\n\n` +
               `You start with 3 candies to gift or use for random tricks.\n` +
               `Winner: The user with the most candies!\n` +
               `Check your progress anytime with \`/spooky status\`.`
-          )
-          .setColor(0xff8c00)
-          .setTimestamp()
-
-        return interaction.reply({ embeds: [embed], ephemeral: true })
+            )
+            .setColor(0xff8c00)
+            .setTimestamp();
+    
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
       } catch (error) {
-        console.error('❌ Registration error:', error)
+        console.error('❌ Registration error:', error);
         return interaction.reply({
           content: '❌ An error occurred during registration.',
           ephemeral: true,
-        })
+        });
       }
     }
+    
     if (subcommand === 'status') {
       // Check if the user is an admin
       const isAdmin = interaction.member.roles.cache.has(
@@ -196,6 +203,7 @@ if (hasCursedRole && cursedRoll) {
 
   // Handle 'treat' subcommand
   if (subcommand === 'treat') {
+          // Update lastActive when the user performs a command
     const spreadCurseRoll = Math.random() < 0.2; // 20% chance to spread the curse
 
     if (spreadCurseRoll) {
@@ -281,6 +289,7 @@ if (hasCursedRole && cursedRoll) {
 
   // Handle 'trick' subcommand
   if (subcommand === 'trick') {
+          // Update lastActive when the user performs a command
     const candiesToGive = Math.min(2, spookyStat.treats); // Give up to 2 or as many as the user has
 
     if (candiesToGive === 0 || memberArray.length === 0) {
@@ -343,7 +352,8 @@ if (hasCursedRole && cursedRoll) {
           ephemeral: true,
         })
       }
-
+      // Update lastActive when the user performs a command
+      spookyStat.lastActive = new Date()
       // Deduct 1 treat from the giver
       spookyStat.treats = Math.max(0, spookyStat.treats - 1)
       await spookyStat.save()
@@ -383,7 +393,7 @@ if (hasCursedRole && cursedRoll) {
       }
 
       // Sweet Tooth
-      if (treatRoll < 0.3) {
+      if (treatRoll < 0.15) {
         // Check if the user already has the Sweet Tooth role
         if (interaction.member.roles.cache.has(process.env.SWEETTOOTHROLEID)) {
           // User already has the Sweet Tooth role, find a random eligible member
@@ -615,7 +625,7 @@ if (hasCursedRole && cursedRoll) {
 
     if (subcommand === 'trick') {
       let spookyStat
-
+      // Update lastActive when the user performs a command
       try {
         spookyStat = await SpookyStat.findOne({ where: { userId: user.id } })
       } catch (error) {
@@ -838,7 +848,7 @@ if (hasCursedRole && cursedRoll) {
             ephemeral: true,
           })
         }
-      } else if (trickChance < 0.6) {
+      } else if (trickChance < 0.55) {
         // Add cursed role
         try {
           await randomMember.roles.add(process.env.CURSEDROLEID)
@@ -859,7 +869,7 @@ if (hasCursedRole && cursedRoll) {
             ephemeral: true,
           })
         }
-      } else if (trickChance < 0.65) {
+      } else if (trickChance < 0.6) {
         // 5% chance for curse to backfire
         console.log(
           `🔮 Curse Backfire - ${user.username} tried to curse another but the spell backfired and they became cursed themselves.`
@@ -883,21 +893,22 @@ if (hasCursedRole && cursedRoll) {
             ephemeral: true,
           })
         }
-      } else {
-        // nothing happens
-        console.log(
-          `❌ ${user.username} attempted to steal a treat but was caught.`
-        )
-        console.log(
-          `🔄 Deducting treat for ${user.username} after reversing nickname.`
-        )
-        spookyStat.treats = Math.max(0, spookyStat.treats - 1)
-        await spookyStat.save()
-        return interaction.reply({
-          content: `❌ ${user.username} was caught trying to steal a treat!\nTotal Candies🍬: ${spookyStat.treats}`,
-          ephemeral: false,
-        })
-      }
+      }  else {
+          // nothing happens (caught stealing)
+          console.log(`❌ ${user.username} attempted to steal a treat but was caught.`);
+        
+          // Ensure treat is only deducted once
+          if (spookyStat.treats > 0) {
+            spookyStat.treats = Math.max(0, spookyStat.treats - 1);  // Deduct only 1 treat
+            await spookyStat.save();
+          }
+        
+          return interaction.reply({
+            content: `❌ ${user.username} was caught trying to steal a treat!\nTotal Candies🍬: ${spookyStat.treats}`,
+            ephemeral: false,
+          });
+        }
+        
     }
   },
 }

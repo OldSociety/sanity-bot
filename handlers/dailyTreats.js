@@ -34,13 +34,20 @@ async function awardDailyTreats(guild) {
       const member = await guild.members.fetch(stat.userId).catch(() => null)
 
       if (member) {
-        const treatBonus = member.roles.cache.has(sweetToothRoleId) ? 2 : 1
-        stat.treats += treatBonus
-        await stat.save()
+        // Only award treats if the player has fewer than 10
+        if (stat.treats < 10) {
+          const treatBonus = member.roles.cache.has(sweetToothRoleId) ? 2 : 1
+          stat.treats = Math.min(stat.treats + treatBonus, 10) // Cap treats at 10
+          await stat.save()
 
-        console.log(
-          `🎁 Awarded ${treatBonus} treat(s) to ${member.user.username}. Total: ${stat.treats}`
-        )
+          console.log(
+            `🎁 Awarded ${treatBonus} treat(s) to ${member.user.username}. Total: ${stat.treats}`
+          )
+        } else {
+          console.log(
+            `⚠️ ${member.user.username} already has 10 or more treats, no additional treat awarded.`
+          )
+        }
       } else {
         console.log(`⚠️ User with ID ${stat.userId} not found in guild.`)
       }
@@ -58,7 +65,9 @@ async function awardDailyTreats(guild) {
           `❌ Deducted 1 treat from inactive user ${member.user.username}. Remaining treats: ${stat.treats}`
         )
       } else {
-        console.log(`⚠️ User with ID ${stat.userId} not found in guild or has 0 treats.`)
+        console.log(
+          `⚠️ User with ID ${stat.userId} not found in guild or has 0 treats.`
+        )
       }
     }
 

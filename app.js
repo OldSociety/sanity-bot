@@ -35,8 +35,8 @@ const client = new Client({
 client.once('ready', async () => {
   console.log(`Ready! Logged in as ${client.user.tag}`)
 
-  // Check daily treats every hour
-  cron.schedule('0 0 * * *', async () => {
+  // Check daily treats every 3 hours
+  cron.schedule('0 */3 * * *', async () => {
     try {
       const guild = await client.guilds.fetch(process.env.GUILDID)
       if (guild) {
