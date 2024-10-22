@@ -6,6 +6,7 @@ const {
   EmbedBuilder,
   ButtonStyle,
 } = require('discord.js')
+const fetch = ('node-fetch').default
 const { Achievement, User, UserAchievement } = require('../../Models/model')
 const checkPermissions = require('../../utils/checkPermissions')
 
@@ -68,6 +69,17 @@ module.exports = {
           option
             .setName('user')
             .setDescription('The user to remove the achievement from')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('upload')
+        .setDescription('ADMIN: Upload achievements from a CSV file')
+        .addAttachmentOption((option) =>
+          option
+            .setName('file')
+            .setDescription('The CSV file containing achievements')
             .setRequired(true)
         )
     ),
@@ -621,6 +633,97 @@ module.exports = {
           ephemeral: true,
         })
       }
+    } else if (subcommand === 'upload') {
+      console.log('Upload command triggered.');
+    
+      const file = interaction.options.getAttachment('file');
+    
+      // Defer reply to prevent interaction timeout
+      try {
+        await interaction.deferReply({ ephemeral: true });
+      } catch (error) {
+        console.error('Error deferring reply:', error);
+        return;
+      }
+    
+      if (!file.name.endsWith('.csv')) {
+        return interaction.editReply({
+          content: 'Please upload a valid CSV file (must end in .csv).',
+        });
+      }
+    
+      try {
+        // Dynamically import `node-fetch` to avoid module issues
+        const fetch = (await import('node-fetch')).default;
+    
+        // Fetch the file from the provided URL
+        const response = await fetch(file.url);
+    
+        if (!response.ok) {
+          return interaction.editReply({
+            content: 'There was an error retrieving the file. Please try again.',
+          });
+        }
+    
+        // Convert the response to text (since CSV is text-based)
+        const csvData = await response.text();
+    
+        // Parse the CSV data using PapaParse
+        const Papa = require('papaparse');
+        const parsedData = Papa.parse(csvData, {
+          header: true,
+          skipEmptyLines: true,
+        });
+    
+        if (parsedData.errors.length > 0) {
+          console.error('Errors while parsing CSV:', parsedData.errors);
+          return interaction.editReply({
+            content: 'There was an error processing the CSV file. Please check the format.',
+          });
+        }
+    
+        console.log('Parsed data from CSV:', parsedData.data);
+    
+        // Process data for achievements
+        let createdCount = 0;
+    
+        for (const row of parsedData.data) {
+          // Adjust the column names to match the format of your CSV files
+          const { name, description, secret } = row;
+    
+          if (name && description && secret !== undefined) {
+            const existingAchievement = await Achievement.findOne({
+              where: { name: name.trim() },
+            });
+    
+            if (!existingAchievement) {
+              await Achievement.create({
+                name: name.trim(),
+                description: description.trim(),
+                secret: secret.trim().toLowerCase() === 'true',
+              });
+              createdCount++;
+            }
+          }
+        }
+    
+        // Clean up after processing
+        return interaction.editReply({
+          content: `Successfully created ${createdCount} new achievements from the uploaded CSV file!`,
+        });
+    
+      } catch (error) {
+        console.error('Error uploading achievements:', error);
+        return interaction.editReply({
+          content: 'There was an error uploading the achievements. Please try again.',
+        });
+      }
     }
+    
+    
+    
+    
+    
+    
   },
 }
