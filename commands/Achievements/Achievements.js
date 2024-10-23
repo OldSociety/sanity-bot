@@ -6,7 +6,7 @@ const {
   EmbedBuilder,
   ButtonStyle,
 } = require('discord.js')
-const fetch = ('node-fetch').default
+const fetch = 'node-fetch'.default
 const { Achievement, User, UserAchievement } = require('../../Models/model')
 const checkPermissions = require('../../utils/checkPermissions')
 
@@ -39,7 +39,12 @@ module.exports = {
             .setRequired(true)
         )
     )
-
+    // Subcommand for viewing achievements
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('view')
+        .setDescription('ADMIN: Delete an achievement from the list')
+    )
     // Subcommand for deleting achievements
     .addSubcommand((subcommand) =>
       subcommand
@@ -98,93 +103,161 @@ module.exports = {
     // View achievements command
     if (subcommand === 'view') {
       try {
-        const user = interaction.options.getUser('user') // Retrieve the user option
-        const embed = new EmbedBuilder().setColor(0x00ff00).setTimestamp()
-
+        const user = interaction.options.getUser('user'); // Retrieve the user option
+        const embedColor = 0x00ff00;
+    
+        // Define helper function to create embeds
+        const createEmbed = (title, fields, page, totalPages) => {
+          const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setColor(embedColor)
+            .setTimestamp()
+            .addFields(fields);
+    
+          if (totalPages > 1) {
+            embed.setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+          }
+          return embed;
+        };
+    
         // Check if user is null and set default title
+        let achievementsData = [];
+        let title = '';
         if (user) {
-          embed.setTitle(`**${user.username}**'s Achievements`)
-
+          title = `**${user.username}**'s Achievements`;
+    
           // Retrieve user's achievements
           const userData = await User.findOne({
             where: { user_id: user.id },
             include: [{ model: Achievement, through: { attributes: [] } }],
-          })
-
+          });
+    
           if (!userData || userData.Achievements.length === 0) {
-            embed.setDescription(`${user.username} has no achievements.`)
-            return interaction.reply({ embeds: [embed], ephemeral: true })
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setColor(embedColor)
+              .setDescription(`${user.username} has no achievements.`)
+              .setTimestamp();
+            return interaction.reply({ embeds: [embed], ephemeral: true });
           }
-
-          // Show all achievements earned by the user, including secret ones
-          userData.Achievements.forEach((ach) => {
-            embed.addFields({
-              name: ach.name,
-              value: ach.secret
-                ? `(Secret) ${ach.description}`
-                : ach.description,
-            })
-          })
+    
+          // Prepare achievements data
+          achievementsData = userData.Achievements.map((ach) => ({
+            name: ach.name,
+            value: ach.secret ? `(Secret) ${ach.description}` : ach.description,
+          }));
         } else {
           // If no user provided, set a default title
-          embed.setTitle('All Achievements')
-
+          title = 'All Achievements';
+    
           // Get all non-secret achievements
           const nonSecretAchievements = await Achievement.findAll({
             where: { secret: false },
-          })
-
+          });
+    
           // Get all secret achievements if the user is an admin
           const isAdmin = interaction.member.roles.cache.has(
             process.env.ADMINROLEID
-          )
-          let secretAchievements = []
-
+          );
+    
+          let secretAchievements = [];
           if (isAdmin) {
             secretAchievements = await Achievement.findAll({
               where: { secret: true },
-            })
+            });
           }
-
-          // Check if there are any achievements at all
-          if (
-            nonSecretAchievements.length === 0 &&
-            secretAchievements.length === 0
-          ) {
-            embed.setDescription('No achievements have been created yet.')
-            return interaction.reply({ embeds: [embed], ephemeral: true })
-          }
-
-          // Add non-secret achievements to the embed
-          nonSecretAchievements.forEach((ach) => {
-            embed.addFields({ name: ach.name, value: ach.description })
-          })
-
-          // Add secret achievements to the embed if the user is an admin
-          if (secretAchievements.length > 0) {
-            embed.addFields({
-              name: '\u200B',
-              value: '**Secret Achievements**',
-            })
-            secretAchievements.forEach((ach) => {
-              embed.addFields({
-                name: ach.name,
-                value: `(Secret) ${ach.description}`,
-              })
-            })
+    
+          // Prepare achievements data
+          achievementsData = [
+            ...nonSecretAchievements.map((ach) => ({
+              name: ach.name,
+              value: ach.description,
+            })),
+            ...secretAchievements.map((ach) => ({
+              name: ach.name,
+              value: `(Secret) ${ach.description}`,
+            })),
+          ];
+    
+          if (achievementsData.length === 0) {
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setColor(embedColor)
+              .setDescription('No achievements have been created yet.')
+              .setTimestamp();
+            return interaction.reply({ embeds: [embed], ephemeral: true });
           }
         }
-
-        // Return the embed to the user
-        return interaction.reply({ embeds: [embed], ephemeral: true })
+    
+        // Split achievements into groups of 10 for the embed
+        const pageSize = 10;
+        const totalPages = Math.ceil(achievementsData.length / pageSize);
+        const embeds = [];
+    
+        for (let i = 0; i < totalPages; i++) {
+          const fields = achievementsData.slice(
+            i * pageSize,
+            (i + 1) * pageSize
+          );
+          const embed = createEmbed(title, fields, i, totalPages);
+          embeds.push(embed);
+        }
+    
+        // Handling pagination with buttons
+        let currentPage = 0;
+    
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('previous')
+            .setLabel('Previous')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(currentPage === 0),
+          new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('Next')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(currentPage >= totalPages - 1)
+        );
+    
+        await interaction.reply({
+          embeds: [embeds[currentPage]],
+          components: [row],
+          ephemeral: true,
+        });
+    
+        const collector = interaction.channel.createMessageComponentCollector({
+          filter: (i) => i.user.id === interaction.user.id,
+          time: 60000, // 1-minute timeout
+        });
+    
+        collector.on('collect', async (i) => {
+          if (i.customId === 'previous' && currentPage > 0) {
+            currentPage--;
+          } else if (i.customId === 'next' && currentPage < totalPages - 1) {
+            currentPage++;
+          }
+    
+          // Update embed and buttons
+          row.components[0].setDisabled(currentPage === 0);
+          row.components[1].setDisabled(currentPage >= totalPages - 1);
+    
+          await i.update({ embeds: [embeds[currentPage]], components: [row] });
+        });
+    
+        collector.on('end', () => {
+          row.components.forEach((button) => button.setDisabled(true));
+          interaction.editReply({ components: [row] });
+        });
       } catch (error) {
-        console.error('Error viewing achievements:', error)
+        console.error('Error viewing achievements:', error);
         return interaction.reply({
           content: 'Error retrieving achievements.',
           ephemeral: true,
-        })
+        });
       }
     }
+    
+    
 
     // Subcommand: Create achievement
     else if (subcommand === 'create') {
@@ -634,96 +707,92 @@ module.exports = {
         })
       }
     } else if (subcommand === 'upload') {
-      console.log('Upload command triggered.');
-    
-      const file = interaction.options.getAttachment('file');
-    
+      console.log('Upload command triggered.')
+
+      const file = interaction.options.getAttachment('file')
+
       // Defer reply to prevent interaction timeout
       try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: true })
       } catch (error) {
-        console.error('Error deferring reply:', error);
-        return;
+        console.error('Error deferring reply:', error)
+        return
       }
-    
+
       if (!file.name.endsWith('.csv')) {
         return interaction.editReply({
           content: 'Please upload a valid CSV file (must end in .csv).',
-        });
+        })
       }
-    
+
       try {
         // Dynamically import `node-fetch` to avoid module issues
-        const fetch = (await import('node-fetch')).default;
-    
+        const fetch = (await import('node-fetch')).default
+
         // Fetch the file from the provided URL
-        const response = await fetch(file.url);
-    
+        const response = await fetch(file.url)
+
         if (!response.ok) {
           return interaction.editReply({
-            content: 'There was an error retrieving the file. Please try again.',
-          });
+            content:
+              'There was an error retrieving the file. Please try again.',
+          })
         }
-    
+
         // Convert the response to text (since CSV is text-based)
-        const csvData = await response.text();
-    
+        const csvData = await response.text()
+
         // Parse the CSV data using PapaParse
-        const Papa = require('papaparse');
+        const Papa = require('papaparse')
         const parsedData = Papa.parse(csvData, {
           header: true,
           skipEmptyLines: true,
-        });
-    
+        })
+
         if (parsedData.errors.length > 0) {
-          console.error('Errors while parsing CSV:', parsedData.errors);
+          console.error('Errors while parsing CSV:', parsedData.errors)
           return interaction.editReply({
-            content: 'There was an error processing the CSV file. Please check the format.',
-          });
+            content:
+              'There was an error processing the CSV file. Please check the format.',
+          })
         }
-    
-        console.log('Parsed data from CSV:', parsedData.data);
-    
+
+        console.log('Parsed data from CSV:', parsedData.data)
+
         // Process data for achievements
-        let createdCount = 0;
-    
+        let createdCount = 0
+
         for (const row of parsedData.data) {
           // Adjust the column names to match the format of your CSV files
-          const { name, description, secret } = row;
-    
+          const { name, description, secret } = row
+
           if (name && description && secret !== undefined) {
             const existingAchievement = await Achievement.findOne({
               where: { name: name.trim() },
-            });
-    
+            })
+
             if (!existingAchievement) {
               await Achievement.create({
                 name: name.trim(),
                 description: description.trim(),
                 secret: secret.trim().toLowerCase() === 'true',
-              });
-              createdCount++;
+              })
+              createdCount++
             }
           }
         }
-    
+
         // Clean up after processing
         return interaction.editReply({
           content: `Successfully created ${createdCount} new achievements from the uploaded CSV file!`,
-        });
-    
+        })
       } catch (error) {
-        console.error('Error uploading achievements:', error);
+        console.error('Error uploading achievements:', error)
         return interaction.editReply({
-          content: 'There was an error uploading the achievements. Please try again.',
-        });
+          content:
+            'There was an error uploading the achievements. Please try again.',
+        })
       }
     }
-    
-    
-    
-    
-    
-    
   },
 }
