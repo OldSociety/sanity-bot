@@ -103,70 +103,70 @@ module.exports = {
     // View achievements command
     if (subcommand === 'view') {
       try {
-        const user = interaction.options.getUser('user'); // Retrieve the user option
-        const embedColor = 0x00ff00;
-    
+        const user = interaction.options.getUser('user') // Retrieve the user option
+        const embedColor = 0x00ff00
+
         // Define helper function to create embeds
         const createEmbed = (title, fields, page, totalPages) => {
           const embed = new EmbedBuilder()
             .setTitle(title)
             .setColor(embedColor)
             .setTimestamp()
-            .addFields(fields);
-    
+            .addFields(fields)
+
           if (totalPages > 1) {
-            embed.setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+            embed.setFooter({ text: `Page ${page + 1} of ${totalPages}` })
           }
-          return embed;
-        };
-    
+          return embed
+        }
+
         // Check if user is null and set default title
-        let achievementsData = [];
-        let title = '';
+        let achievementsData = []
+        let title = ''
         if (user) {
-          title = `**${user.username}**'s Achievements`;
-    
+          title = `**${user.username}**'s Achievements`
+
           // Retrieve user's achievements
           const userData = await User.findOne({
             where: { user_id: user.id },
             include: [{ model: Achievement, through: { attributes: [] } }],
-          });
-    
+          })
+
           if (!userData || userData.Achievements.length === 0) {
             const embed = new EmbedBuilder()
               .setTitle(title)
               .setColor(embedColor)
               .setDescription(`${user.username} has no achievements.`)
-              .setTimestamp();
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+              .setTimestamp()
+            return interaction.reply({ embeds: [embed], ephemeral: true })
           }
-    
+
           // Prepare achievements data
           achievementsData = userData.Achievements.map((ach) => ({
             name: ach.name,
             value: ach.secret ? `(Secret) ${ach.description}` : ach.description,
-          }));
+          }))
         } else {
           // If no user provided, set a default title
-          title = 'All Achievements';
-    
+          title = 'All Achievements'
+
           // Get all non-secret achievements
           const nonSecretAchievements = await Achievement.findAll({
             where: { secret: false },
-          });
-    
+          })
+
           // Get all secret achievements if the user is an admin
           const isAdmin = interaction.member.roles.cache.has(
             process.env.ADMINROLEID
-          );
-    
-          let secretAchievements = [];
+          )
+
+          let secretAchievements = []
           if (isAdmin) {
             secretAchievements = await Achievement.findAll({
               where: { secret: true },
-            });
+            })
           }
-    
+
           // Prepare achievements data
           achievementsData = [
             ...nonSecretAchievements.map((ach) => ({
@@ -177,35 +177,35 @@ module.exports = {
               name: ach.name,
               value: `(Secret) ${ach.description}`,
             })),
-          ];
-    
+          ]
+
           if (achievementsData.length === 0) {
             const embed = new EmbedBuilder()
               .setTitle(title)
               .setColor(embedColor)
               .setDescription('No achievements have been created yet.')
-              .setTimestamp();
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+              .setTimestamp()
+            return interaction.reply({ embeds: [embed], ephemeral: true })
           }
         }
-    
+
         // Split achievements into groups of 10 for the embed
-        const pageSize = 10;
-        const totalPages = Math.ceil(achievementsData.length / pageSize);
-        const embeds = [];
-    
+        const pageSize = 10
+        const totalPages = Math.ceil(achievementsData.length / pageSize)
+        const embeds = []
+
         for (let i = 0; i < totalPages; i++) {
           const fields = achievementsData.slice(
             i * pageSize,
             (i + 1) * pageSize
-          );
-          const embed = createEmbed(title, fields, i, totalPages);
-          embeds.push(embed);
+          )
+          const embed = createEmbed(title, fields, i, totalPages)
+          embeds.push(embed)
         }
-    
+
         // Handling pagination with buttons
-        let currentPage = 0;
-    
+        let currentPage = 0
+
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('previous')
@@ -217,47 +217,45 @@ module.exports = {
             .setLabel('Next')
             .setStyle(ButtonStyle.Primary)
             .setDisabled(currentPage >= totalPages - 1)
-        );
-    
+        )
+
         await interaction.reply({
           embeds: [embeds[currentPage]],
           components: [row],
           ephemeral: true,
-        });
-    
+        })
+
         const collector = interaction.channel.createMessageComponentCollector({
           filter: (i) => i.user.id === interaction.user.id,
           time: 60000, // 1-minute timeout
-        });
-    
+        })
+
         collector.on('collect', async (i) => {
           if (i.customId === 'previous' && currentPage > 0) {
-            currentPage--;
+            currentPage--
           } else if (i.customId === 'next' && currentPage < totalPages - 1) {
-            currentPage++;
+            currentPage++
           }
-    
+
           // Update embed and buttons
-          row.components[0].setDisabled(currentPage === 0);
-          row.components[1].setDisabled(currentPage >= totalPages - 1);
-    
-          await i.update({ embeds: [embeds[currentPage]], components: [row] });
-        });
-    
+          row.components[0].setDisabled(currentPage === 0)
+          row.components[1].setDisabled(currentPage >= totalPages - 1)
+
+          await i.update({ embeds: [embeds[currentPage]], components: [row] })
+        })
+
         collector.on('end', () => {
-          row.components.forEach((button) => button.setDisabled(true));
-          interaction.editReply({ components: [row] });
-        });
+          row.components.forEach((button) => button.setDisabled(true))
+          interaction.editReply({ components: [row] })
+        })
       } catch (error) {
-        console.error('Error viewing achievements:', error);
+        console.error('Error viewing achievements:', error)
         return interaction.reply({
           content: 'Error retrieving achievements.',
           ephemeral: true,
-        });
+        })
       }
     }
-    
-    
 
     // Subcommand: Create achievement
     else if (subcommand === 'create') {
