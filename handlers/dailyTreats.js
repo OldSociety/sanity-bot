@@ -35,8 +35,8 @@ async function awardDailyTreats(guild) {
 
       if (member) {
         // Only award treats if the player has fewer than 10
-        if (stat.treats < 10) {
-          const treatBonus = member.roles.cache.has(sweetToothRoleId) ? 2 : 1
+        if (stat.treats < 50) {
+          const treatBonus = member.roles.cache.has(sweetToothRoleId) ? 12 : 10
           stat.treats = Math.min(stat.treats + treatBonus, 10) // Cap treats at 10
           await stat.save()
 
@@ -57,8 +57,8 @@ async function awardDailyTreats(guild) {
     for (const stat of inactiveSpookyStats) {
       const member = await guild.members.fetch(stat.userId).catch(() => null)
 
-      if (member && stat.treats > 0) {
-        stat.treats = Math.max(0, stat.treats - 1) // Deduct 1 treat but ensure it doesn't go below 0
+      if (member && stat.treats >= 0) {
+        stat.treats = Math.max(0, stat.treats + 1) // Add 1 treat but ensure it doesn't go below 0
         await stat.save()
 
         console.log(

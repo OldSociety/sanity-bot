@@ -6,7 +6,7 @@ const SUFFIX = process.argv.indexOf('--env') === -1 ? '' :
 module.exports = {
     apps: [
         {
-            name: 'SanityBot' + SUFFIX,
+            name: 'SB' + SUFFIX,
             script: 'app.js',
             env: {
                 NODE_ENV: 'development',
