@@ -453,7 +453,7 @@ if (hasCursedRole && cursedRoll) {
       } else if (treatRoll < 0.5) {
         // 10% chance for Temporary Immunity
         const now = new Date()
-        spookyStat.hasBeenTricked = true
+        // spookyStat.hasBeenTricked = true
         spookyStat.lastSpookyUse = now
         await spookyStat.save()
 
@@ -709,8 +709,8 @@ if (hasCursedRole && cursedRoll) {
 
       // Mark the target as tricked and set the lastSpookyUse timestamp
       try {
-        memberStat.hasBeenTricked = true
-        memberStat.lastSpookyUse = now
+        // memberStat.hasBeenTricked = true
+        // memberStat.lastSpookyUse = now
         await memberStat.save()
       } catch (error) {
         console.error('❌ Error updating tricked status for target:', error)
