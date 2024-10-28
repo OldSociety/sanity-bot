@@ -58,7 +58,7 @@ async function awardDailyTreats(guild) {
       const member = await guild.members.fetch(stat.userId).catch(() => null)
 
       if (member && stat.treats >= 0) {
-        stat.treats = Math.max(0, stat.treats + 1) // Add 1 treat but ensure it doesn't go below 0
+        stat.treats = Math.max(0, stat.treats + 3) // Add 3 treat but ensure it doesn't go below 0
         await stat.save()
 
         console.log(
