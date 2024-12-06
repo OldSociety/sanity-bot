@@ -52,23 +52,6 @@ client.once('ready', async () => {
   console.log('🕰️ Daily treat schedule set for midnight.')
 })
 
-// Cron job to reset 'hasBeenTricked' every 10 minutes
-cron.schedule('*/20 * * * *', async () => {
-  try {
-    console.log('🔄 Resetting hasBeenTricked flag for all users...')
-
-    // Update all users to reset 'hasBeenTricked' to false
-    await SpookyStat.update(
-      { hasBeenTricked: false },
-      { where: { hasBeenTricked: true } }
-    )
-
-    console.log('✅ Successfully reset the hasBeenTricked flag.')
-  } catch (error) {
-    console.error('❌ Error resetting the hasBeenTricked flag:', error)
-  }
-})
-
 global.client = client // Set global client after client initialization
 
 client.cooldowns = new Collection()
