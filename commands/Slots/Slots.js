@@ -6,7 +6,7 @@ const {
 } = require('discord.js')
 const { User } = require('../../Models/model.js')
 
-let jackpot = 1000 // Initialize jackpot value
+let jackpot = 1000
 const activePlayers = new Set() // Track active players to prevent multiple instances
 
 module.exports = {
@@ -68,10 +68,11 @@ module.exports = {
       .setDescription(
         `Winter Slots is a game of chance! Advance through five stages—Red, Blue, Green, Gold, and Silver. Each stage increases the stakes and potential rewards.\n\n` +
           `- **Risk/Reward:** Each roll risks your earned pot! You can stop at any time to collect your winnings or chance losing everything.\n` +
-          `- **Goal:** Advance through stages and collect Winter Points.\n` +
-          `- **Jackpot:** Chance to win the grand prize on the Silver stage!\n\n`
+          `- **Goal:** Advance through stages and collect War Points.\n` +
+          `- **Jackpot:** Chance to win the grand prize on the Silver Stage! ⏩\n\n`
       )
       .setColor('Blue')
+      .setFooter({ text: `❄️${userData.war_points} War Points` })
       .addFields({
         name: 'Current Jackpot',
         value: `${jackpot} WP`,
@@ -125,37 +126,36 @@ async function startGame(interaction, userData) {
           type: 'gain',
           chance: 50,
           range: [1, 3],
-          message: '**Tiny Win**',
+          message: '**Tiny Win 🎅**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '🎅',
           type: 'false_alarm',
-          chance: 12,
-          range: [1, 3],
+          chance: 16,
           message: '**Near Advance!**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '❄️',
           type: 'lose',
-          chance: 16,
+          chance: 12,
           range: [1, 3],
-          message: '**Small Loss**',
+          message: '**Small Loss 💔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2744.svg',
         },
         {
           emoji: '✅',
           type: 'advance',
           chance: 6,
-          message: '**Advance to Next Stage!**  ',
+          message: '**Advance to Next Stage! ⏩**  ',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2705.svg',
         },
         {
           emoji: '🛑',
           type: 'game_over',
           chance: 16,
-          message: '**Game Over!**',
+          message: '**Game Over! 🛑**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f6d1.svg',
         },
       ],
@@ -169,14 +169,13 @@ async function startGame(interaction, userData) {
           type: 'gain',
           chance: 42,
           range: [1, 8],
-          message: '**Small Win**',
+          message: '**Small Win 🎅**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '🎅',
           type: 'false_alarm',
           chance: 10,
-          range: [1, 8],
           message: '**Near Advance!**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
@@ -185,28 +184,28 @@ async function startGame(interaction, userData) {
           type: 'lose',
           chance: 25,
           range: [1, 8],
-          message: '**Medium Loss**',
+          message: '**Medium Loss 💔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2744.svg',
         },
         {
           emoji: '✅',
           type: 'advance',
           chance: 5,
-          message: '**Advance to Next Stage!**',
+          message: '**Advance to Next Stage! ⏩**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2705.svg',
         },
         {
           emoji: '🎄',
           type: 'nothing',
           chance: 10,
-          message: '**Nothing Happens**',
+          message: '**Nothing Happens 🎄**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f384.svg',
         },
         {
           emoji: '🛑',
           type: 'game_over',
           chance: 8,
-          message: '**Game Over!**',
+          message: '**Game Over! 🛑**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f6d1.svg',
         },
       ],
@@ -220,14 +219,13 @@ async function startGame(interaction, userData) {
           type: 'gain',
           chance: 40,
           range: [1, 13],
-          message: '**Medium Win**',
+          message: '**Medium Win 🎅**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '🎅',
           type: 'false_alarm',
           chance: 8,
-          range: [1, 13],
           message: '**Near Advance!**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
@@ -236,14 +234,14 @@ async function startGame(interaction, userData) {
           type: 'lose',
           chance: 24,
           range: [1, 13],
-          message: '**Large Loss**',
+          message: '**Large Loss 💔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2744.svg',
         },
         {
           emoji: '✅',
           type: 'advance',
           chance: 6,
-          message: '**Advance to Next Stage!**',
+          message: '**Advance to Next Stage! ⏩**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2705.svg',
         },
         {
@@ -257,7 +255,7 @@ async function startGame(interaction, userData) {
           emoji: '🛑',
           type: 'game_over',
           chance: 14,
-          message: '**Game Over!**',
+          message: '**Game Over! 🛑**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f6d1.svg',
         },
       ],
@@ -271,14 +269,13 @@ async function startGame(interaction, userData) {
           type: 'gain',
           chance: 35,
           range: [1, 19],
-          message: '**Big Win**',
+          message: '**Big Win 🎅**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '🎅',
           type: 'false_alarm',
           chance: 5,
-          range: [1, 19],
           message: '**Near Advance!**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
@@ -287,28 +284,28 @@ async function startGame(interaction, userData) {
           type: 'lose',
           chance: 27,
           range: [1, 19],
-          message: '**Major Loss**',
+          message: '**Huge Loss 💔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2744.svg',
         },
         {
           emoji: '✅',
           type: 'advance',
           chance: 6,
-          message: '**Advance to Final Stage!**',
+          message: '**Advance to Final Stage! ⏩**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2705.svg',
         },
         {
           emoji: '🔔',
           type: 'mystery',
           chance: 9,
-          message: '**Mysterious Event!**',
+          message: '**🔔 Mystery Event! 🔔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f514.svg',
         },
         {
           emoji: '🛑',
           type: 'game_over',
           chance: 18,
-          message: '**Game Over!**',
+          message: '**Game Over! 🛑 **',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f6d1.svg',
         },
       ],
@@ -322,14 +319,14 @@ async function startGame(interaction, userData) {
           type: 'gain',
           chance: 35,
           range: [1, 25],
-          message: '**Massive Win**',
+          message: '**Massive Win 🎅**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
           emoji: '⭐',
           type: 'jackpot',
           chance: 5,
-          message: '**CONGRATULATIONS!!!!**',
+          message: '**⭐⭐ CONGRATULATIONS ⭐⭐**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2b50.svg',
         },
         {
@@ -337,21 +334,21 @@ async function startGame(interaction, userData) {
           type: 'lose',
           chance: 30,
           range: [1, 25],
-          message: '**Huge Loss**',
+          message: '**Major Loss 💔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/2744.svg',
         },
         {
           emoji: '🔔',
           type: 'mystery',
           chance: 10,
-          message: '**Mystery Event!**',
+          message: '**🔔 Mystery Event! 🔔**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f514.svg',
         },
         {
           emoji: '🛑',
           type: 'game_over',
           chance: 20,
-          message: '**Sorry!**',
+          message: '**Game Over! 🛑**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f6d1.svg',
         },
       ],
@@ -377,15 +374,17 @@ async function startGame(interaction, userData) {
     )
 
   const playRound = async (interactionObject, isInitial = false) => {
-    let effects = columnData[gameState.currentColumn].effects;
+    let effects = columnData[gameState.currentColumn].effects
 
     // Filter effects for the first roll to exclude "advance" and "game_over"
     if (isInitial) {
-        effects = effects.filter(effect => effect.type !== 'advance' && effect.type !== 'game_over');
+      effects = effects.filter(
+        (effect) => effect.type !== 'advance' && effect.type !== 'game_over'
+      )
     }
 
     // Perform the weighted random selection
-    const roll = weightedRandom(effects);
+    const roll = weightedRandom(effects)
     let message = roll.message
 
     if (roll.type === 'gain') {
@@ -415,8 +414,10 @@ async function startGame(interaction, userData) {
       message += ` You lost your pot of **${gameState.totalPoints} WP**.`
       gameState.totalPoints = 0 // Reset the pot
     } else if (roll.type === 'jackpot') {
-      gameState.totalPoints += jackpot
+      userData.war_points += jackpot
+      userData.save()
       gameState.running = false
+      gameState.totalPoints = 0
       activePlayers.delete(interactionObject.user.id)
       message += ` You won the JACKPOT of ${jackpot} WP!`
       jackpot = 1000 // Reset the jackpot
@@ -427,6 +428,7 @@ async function startGame(interaction, userData) {
       .setColor(columnData[gameState.currentColumn].color)
       .setDescription(message)
       .setThumbnail(roll.link) // Set emoji image dynamically
+      .setFooter({ text: `❄️${userData.war_points} War Points` })
       .addFields(
         {
           name: 'Current Pot',
@@ -476,6 +478,7 @@ async function startGame(interaction, userData) {
         const finalEmbed = new EmbedBuilder()
           .setTitle('Winter Slots Results ❄️')
           .setDescription(`You stopped with **${gameState.totalPoints} WP**.`)
+          .setFooter({ text: `❄️${userData.war_points} War Points` })
           .setColor('Green')
 
         await btnInteraction.update({

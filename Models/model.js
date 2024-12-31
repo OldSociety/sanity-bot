@@ -10,6 +10,7 @@ const UserAchievement = require('./Achievement/UserAchievement')(
   DataTypes
 )
 const SpookyStat = require('./SpookyStat/SpookyStat')(sequelize, DataTypes)
+const WinterWar = require('./Winter/WinterWar')(sequelize, DataTypes) 
 
 // Set up associations
 User.associate = (models) => {
@@ -24,16 +25,14 @@ User.associate = (models) => {
   })
 }
 
-// Achievement model associations
 Achievement.associate = (models) => {
   Achievement.belongsToMany(models.User, {
     through: models.UserAchievement,
     foreignKey: 'achievementId',
-    otherKey: 'userId',  
+    otherKey: 'userId',
   })
 }
 
-// SpookyStat associations
 SpookyStat.associate = (models) => {
   SpookyStat.belongsTo(models.User, {
     foreignKey: 'userId',
@@ -41,14 +40,25 @@ SpookyStat.associate = (models) => {
   })
 }
 
+// Add WinterWar associations
+WinterWar.associate = (models) => {
+  WinterWar.belongsTo(models.User, {
+    foreignKey: 'discordId',
+    targetKey: 'id', 
+    as: 'user',
+  })
+}
+
 // Call the associations
-User.associate({ Achievement, UserAchievement, SpookyStat })
+User.associate({ Achievement, UserAchievement, SpookyStat, WinterWar })
 Achievement.associate({ User, UserAchievement })
 SpookyStat.associate({ User })
+WinterWar.associate({ User })
 
 module.exports = {
   User,
   Achievement,
   UserAchievement,
   SpookyStat,
+  WinterWar, 
 }
