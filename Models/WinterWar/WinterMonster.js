@@ -1,49 +1,46 @@
 module.exports = (sequelize, DataTypes) => {
-  const WinterWar = sequelize.define(
-    'WinterWars',
+  const WinterMonster = sequelize.define(
+    'WinterMonsters',
     {
       id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
       },
-      userId: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
-        references: {
-          model: 'Users',
-          key: 'user_id',
-        },
       },
       hp: {
         type: DataTypes.INTEGER,
-        defaultValue: 5,
+        allowNull: false,
       },
       strength: {
         type: DataTypes.INTEGER,
-        defaultValue: 5,
+        allowNull: false,
       },
       defense: {
         type: DataTypes.INTEGER,
-        defaultValue: 5,
+        allowNull: false,
       },
       agility: {
         type: DataTypes.INTEGER,
-        defaultValue: 5,
+        allowNull: false,
       },
-      statPoints: {
-        type: DataTypes.INTEGER,
-        defaultValue: 10,
+      attacks: {
+        type: DataTypes.JSON,
+        allowNull: false, // JSON to store multiple attacks with descriptions and effects
+        defaultValue: [],
       },
-      war_points: {
-        type: DataTypes.INTEGER,
-        defaultValue: 100,
+      flavorText: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {
-      timestamps: false,
+      timestamps: false, // No createdAt or updatedAt fields
     }
   )
 
-  return WinterWar
+  return WinterMonster
 }

@@ -1,4 +1,3 @@
-// ./Models/model.js
 const { DataTypes } = require('sequelize')
 const sequelize = require('../config/sequelize')
 
@@ -10,7 +9,10 @@ const UserAchievement = require('./Achievement/UserAchievement')(
   DataTypes
 )
 const SpookyStat = require('./SpookyStat/SpookyStat')(sequelize, DataTypes)
-const WinterWar = require('./Winter/WinterWar')(sequelize, DataTypes) 
+const WinterWar = require('./WinterWar/WinterWar')(sequelize, DataTypes)
+const WinterMonster = require('./WinterWar/WinterMonster')(sequelize, DataTypes)
+const BaseItem = require('./WinterWar/BaseItem')(sequelize, DataTypes)
+const Inventory = require('./WinterWar/Inventory')(sequelize, DataTypes)
 
 // Set up associations
 User.associate = (models) => {
@@ -36,16 +38,37 @@ Achievement.associate = (models) => {
 SpookyStat.associate = (models) => {
   SpookyStat.belongsTo(models.User, {
     foreignKey: 'userId',
-    as: 'user',
+    as: 'user_id',
   })
 }
 
 // Add WinterWar associations
 WinterWar.associate = (models) => {
   WinterWar.belongsTo(models.User, {
-    foreignKey: 'discordId',
-    targetKey: 'id', 
-    as: 'user',
+    foreignKey: 'userId',
+    as: 'user_id',
+  })
+  WinterWar.hasMany(models.Inventory, {
+    foreignKey: 'winterWarId',
+    as: 'inventory',
+  })
+}
+
+BaseItem.associate = (models) => {
+  BaseItem.hasMany(models.Inventory, {
+    foreignKey: 'itemId',
+    as: 'inventories',
+  })
+}
+
+Inventory.associate = (models) => {
+  Inventory.belongsTo(models.WinterWar, {
+    foreignKey: 'winterWarId',
+    as: 'owner',
+  })
+  Inventory.belongsTo(models.BaseItem, {
+    foreignKey: 'itemId',
+    as: 'item',
   })
 }
 
@@ -53,12 +76,17 @@ WinterWar.associate = (models) => {
 User.associate({ Achievement, UserAchievement, SpookyStat, WinterWar })
 Achievement.associate({ User, UserAchievement })
 SpookyStat.associate({ User })
-WinterWar.associate({ User })
+WinterWar.associate({ User, Inventory })
+BaseItem.associate({ Inventory })
+Inventory.associate({ WinterWar, BaseItem })
 
 module.exports = {
   User,
   Achievement,
   UserAchievement,
   SpookyStat,
-  WinterWar, 
+  WinterMonster,
+  WinterWar,
+  BaseItem, // Export BaseItems
+  Inventory, // Export Inventory
 }

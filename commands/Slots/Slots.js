@@ -4,7 +4,7 @@ const {
   ButtonBuilder,
   EmbedBuilder,
 } = require('discord.js')
-const { User } = require('../../Models/model.js')
+const { WinterWar } = require('../../Models/model.js')
 
 let jackpot = 1000
 const activePlayers = new Set() // Track active players to prevent multiple instances
@@ -37,13 +37,13 @@ module.exports = {
       return
     }
 
-    let userData = await User.findOne({ where: { user_id: userId } })
+    let userData = await WinterWar.findOne({ where: { userId: userId } })
     if (!userData) {
-      userData = await User.create({
-        user_id: userId,
-        user_name: interaction.user.username,
-        war_points: 100,
+      await interaction.reply({
+        content: `❄️ You need to allocate your stats first. Use \`/winterwars account\` to get started!`,
+        ephemeral: true,
       })
+      return
     }
 
     if (userData.war_points < 5) {
