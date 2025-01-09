@@ -47,6 +47,11 @@ module.exports = {
         type: Sequelize.INTEGER,
         defaultValue: 100,
       },
+      equippedCount: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      }
     });
   },
 
