@@ -3,7 +3,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   EmbedBuilder,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
 } = require('discord.js')
 const {
   WinterWar,
@@ -88,7 +88,7 @@ module.exports = {
             .addChoices(
               { name: 'Weapons', value: 'weapon' },
               { name: 'Defense', value: 'defense' },
-              { name: 'Consumables', value: 'consumable' },
+              { name: 'Consumables', value: 'consumable' }
             )
         )
     ),
@@ -218,238 +218,268 @@ module.exports = {
         })
       }
     } else if (subcommand === 'inventory') {
-      const itemType = interaction.options.getString('type'); // Now required
-      const player = await getOrCreatePlayer(userId);
-  
+      const itemType = interaction.options.getString('type') // Now required
+      const player = await getOrCreatePlayer(userId)
+
       const inventoryItems = await Inventory.findAll({
-          where: { winterWarId: player.id },
-          include: { model: BaseItem, as: 'item' },
-      });
-  
+        where: { winterWarId: player.id },
+        include: { model: BaseItem, as: 'item' },
+      })
+
       // Filter items based on type
-      const filteredItems = inventoryItems.filter(
-          (item) => item.item.type === itemType
-      );
-  
+      let filteredItems = inventoryItems.filter(
+        (item) => item.item.type === itemType
+      )
+
       if (!filteredItems.length) {
-          await interaction.reply({
-              content: `No items found in the '${itemType}' category.`,
-              ephemeral: true,
-          });
-          return;
+        await interaction.reply({
+          content: `No items found in the '${itemType}' category.`,
+          ephemeral: true,
+        })
+        return
       }
-  
-      const itemsPerPage = 10;
-      let currentPage = 0;
-  
+
+      const itemsPerPage = 10
+      let currentPage = 0
+
       const createEmbed = (page) => {
         const paginatedItems = filteredItems.slice(
-            page * itemsPerPage,
-            (page + 1) * itemsPerPage
-        );
-    
+          page * itemsPerPage,
+          (page + 1) * itemsPerPage
+        )
+
         const embed = new EmbedBuilder()
-            .setTitle(`${interaction.user.username}'s Inventory (${itemType})`)
-            .setColor('Green')
-            .setFooter({
-                text: `Page ${page + 1} of ${Math.ceil(
-                    filteredItems.length / itemsPerPage
-                )}`,
-            });
-    
+          .setTitle(`${interaction.user.username}'s Inventory (${itemType})`)
+          .setColor('Green')
+          .setFooter({
+            text: `Page ${page + 1} of ${Math.ceil(
+              filteredItems.length / itemsPerPage
+            )}`,
+          })
+
         paginatedItems.forEach((item, index) => {
-            const details = [];
-            
-            // Add damage details if the item deals damage
-            if (item.item.damageMin && item.item.damageMax) {
-                const avgDamage = (item.item.damageMin + item.item.damageMax) / 2;
-                details.push(`• Damage: ${avgDamage} (${item.item.damageType || 'Physical'})`);
-            }
-    
-            // Add healing details if the item heals
-            if (item.item.healing) {
-                details.push(`• Healing: ${item.item.healing}`);
-            }
-    
-            // Add defense details if the item provides defense
-            if (item.item.defense) {
-                details.push(`• Defense: ${item.item.defense} (${item.item.damageType || 'General'})`);
-            }
-    
-            // Show equipped status for non-consumables
-            if (itemType !== 'consumable') {
-                details.push(`• Equipped: ${item.equipped ? 'Yes' : 'No'}`);
-            }
-    
-            embed.addFields({
-                name: `${index + 1 + page * itemsPerPage}. ${item.item.name} ${
-                    item.equipped ? '✅' : ''
-                }`,
-                value: details.length ? details.join('\n') : 'No additional stats.',
-                inline: false,
-            });
-        });
-    
-        return embed;
-    };
-    
-  
+          const details = []
+
+          // Add damage details if the item deals damage
+          if (item.item.damageMin && item.item.damageMax) {
+            const avgDamage = (item.item.damageMin + item.item.damageMax) / 2
+            details.push(
+              `• Damage: ${avgDamage} (${item.item.damageType || 'Physical'})`
+            )
+          }
+
+          // Add healing details if the item heals
+          if (item.item.healing) {
+            details.push(`• Healing: ${item.item.healing}`)
+          }
+
+          // Add defense details if the item provides defense
+          if (item.item.defense) {
+            details.push(
+              `• Defense: ${item.item.defense} (${
+                item.item.damageType || 'General'
+              })`
+            )
+          }
+
+          // Show equipped status for non-consumables
+          if (itemType !== 'consumable') {
+            details.push(`• Equipped: ${item.equipped ? 'Yes' : 'No'}`)
+          }
+
+          embed.addFields({
+            name: `${index + 1 + page * itemsPerPage}. ${item.item.name} ${
+              item.equipped ? '✅' : ''
+            }`,
+            value: details.length ? details.join('\n') : 'No additional stats.',
+            inline: false,
+          })
+        })
+
+        return embed
+      }
+
       const getPaginationButtons = (page) =>
-          new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                  .setCustomId('previous')
-                  .setLabel('Previous')
-                  .setStyle('Secondary')
-                  .setDisabled(page === 0),
-              new ButtonBuilder()
-                  .setCustomId('next')
-                  .setLabel('Next')
-                  .setStyle('Secondary')
-                  .setDisabled((page + 1) * itemsPerPage >= filteredItems.length),
-              new ButtonBuilder()
-                  .setCustomId('finish')
-                  .setLabel('Finish')
-                  .setStyle('Danger')
-          );
-  
-          const createDropdown = (page) => {
-            const paginatedItems = filteredItems.slice(
-                page * itemsPerPage,
-                (page + 1) * itemsPerPage
-            );
-        
-            const options = paginatedItems.map((item) => ({
-                label: `${item.item.name} ${item.equipped ? '✅ Equipped' : ''}`,
-                description: item.item.type,
-                value: `${item.id}`, // Use the inventory ID for unique selection
-            }));
-        
-            return new ActionRowBuilder().addComponents(
-                new StringSelectMenuBuilder()
-                    .setCustomId('equip_dropdown')
-                    .setPlaceholder('Select an item to equip/unequip')
-                    .addOptions(options)
-            );
-        };
-        
-  
-      let canEquip = itemType === 'weapon' || itemType === 'defense';
-  
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('previous')
+            .setLabel('Previous')
+            .setStyle('Secondary')
+            .setDisabled(page === 0),
+          new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('Next')
+            .setStyle('Secondary')
+            .setDisabled((page + 1) * itemsPerPage >= filteredItems.length),
+          new ButtonBuilder()
+            .setCustomId('finish')
+            .setLabel('Finish')
+            .setStyle('Danger')
+        )
+
+      const createDropdown = (page) => {
+        const paginatedItems = filteredItems.slice(
+          page * itemsPerPage,
+          (page + 1) * itemsPerPage
+        )
+
+        const options = paginatedItems.map((item) => ({
+          label: `${item.item.name} ${item.equipped ? '✅ Equipped' : ''}`,
+          description: item.item.type,
+          value: `${item.id}`, // Use the inventory ID for unique selection
+        }))
+
+        return new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('equip_dropdown')
+            .setPlaceholder('Select an item to equip/unequip')
+            .addOptions(options)
+        )
+      }
+
+      let canEquip = itemType === 'weapon' || itemType === 'defense'
+
       await interaction.reply({
-          embeds: [createEmbed(currentPage)],
-          components: [
-              getPaginationButtons(currentPage, canEquip),
-              ...(canEquip ? [createDropdown(currentPage)] : []),
-          ],
-          ephemeral: true,
-      });
-  
+        embeds: [createEmbed(currentPage)],
+        components: [
+          getPaginationButtons(currentPage, canEquip),
+          ...(canEquip ? [createDropdown(currentPage)] : []),
+        ],
+        ephemeral: true,
+      })
+
       const collector = interaction.channel.createMessageComponentCollector({
-          time: 60000,
-      });
-  
-      collector.on('collect', async (btnInteraction) => {
-        if (btnInteraction.user.id !== interaction.user.id) {
-            await btnInteraction.reply({
-                content: "This interaction isn't for you.",
-                ephemeral: true,
-            });
-            return;
+        time: 60000,
+      })
+
+      collector.on('collect', async (interaction) => {
+        if (interaction.user.id !== userId) {
+          await interaction.reply({
+            content: "This interaction isn't for you.",
+            ephemeral: true,
+          })
+          return
         }
-    
-        const action = btnInteraction.customId;
-    
+
+        const action = interaction.customId
+
         if (action === 'finish') {
-            collector.stop('finished');
-            return;
+          await interaction.update({
+            content: 'Inventory management session finished.',
+            components: [],
+          })
+          collector.stop('finished')
+          return
         }
-    
+
         if (action === 'previous') {
-            currentPage = Math.max(currentPage - 1, 0);
-        } else if (action === 'next') {
-            currentPage = Math.min(
-                currentPage + 1,
-                Math.ceil(filteredItems.length / itemsPerPage) - 1
-            );
-        } else if (action === 'equip_dropdown') {
-            const selectedItemId = btnInteraction.values[0];
-            const selectedItem = filteredItems.find(
-                (item) => item.id.toString() === selectedItemId
-            );
-    
-            if (!selectedItem) {
-                await btnInteraction.reply({
-                    content: 'Selected item not found.',
-                    ephemeral: true,
-                });
-                return;
-            }
-    
-            if (selectedItem.equipped) {
-                // Unequip the item
-                await Inventory.update(
-                    { equipped: false },
-                    { where: { id: selectedItem.id } }
-                );
-    
-                await btnInteraction.reply({
-                    content: `Unequipped ${selectedItem.item.name}.`,
-                    ephemeral: true,
-                });
-            } else {
-                const itemType = selectedItem.item.type;
-    
-                // Ensure only one weapon or defense is equipped
-                if (itemType === 'weapon' || itemType === 'defense') {
-                    await Inventory.update(
-                        { equipped: false },
-                        {
-                            where: {
-                                winterWarId: player.id,
-                                equipped: true,
-                            },
-                            include: { model: BaseItem, as: 'item', where: { type: itemType } },
-                        }
-                    );
-                }
-    
-                // Equip the selected item
-                await Inventory.update(
-                    { equipped: true },
-                    { where: { id: selectedItem.id } }
-                );
-    
-                await btnInteraction.reply({
-                    content: `Equipped ${selectedItem.item.name}.`,
-                    ephemeral: true,
-                });
-            }
-    
-            // Refresh filteredItems to reflect changes
-            filteredItems = await Inventory.findAll({
-                where: { winterWarId: player.id },
-                include: { model: BaseItem, as: 'item' },
-            });
-        }
-    
-        // Update embed and components dynamically
-        await btnInteraction.update({
+          currentPage = Math.max(currentPage - 1, 0)
+          await interaction.update({
             embeds: [createEmbed(currentPage)],
             components: [
-                getPaginationButtons(currentPage, canEquip),
-                ...(canEquip ? [createDropdown(currentPage)] : []),
+              getPaginationButtons(currentPage, canEquip),
+              ...(canEquip ? [createDropdown(currentPage)] : []),
             ],
-        });
-    });
-    
-  
+          })
+          return
+        }
+
+        if (action === 'next') {
+          currentPage = Math.min(
+            currentPage + 1,
+            Math.ceil(filteredItems.length / itemsPerPage) - 1
+          )
+          await interaction.update({
+            embeds: [createEmbed(currentPage)],
+            components: [
+              getPaginationButtons(currentPage, canEquip),
+              ...(canEquip ? [createDropdown(currentPage)] : []),
+            ],
+          })
+          return
+        }
+
+        if (action === 'equip_dropdown') {
+          const selectedItemId = interaction.values[0]
+          const selectedItem = filteredItems.find(
+            (item) => item.id.toString() === selectedItemId
+          )
+
+          if (!selectedItem) {
+            await interaction.reply({
+              content: 'Selected item not found.',
+              ephemeral: true,
+            })
+            return
+          }
+
+          if (selectedItem.equipped) {
+            await Inventory.update(
+              { equipped: false },
+              { where: { id: selectedItem.id } }
+            )
+
+            await interaction.reply({
+              content: `Unequipped ${selectedItem.item.name}.`,
+              ephemeral: true,
+            })
+          } else {
+            const itemType = selectedItem.item.type
+
+            // Ensure only one weapon or defense is equipped
+            if (itemType === 'weapon' || itemType === 'defense') {
+              await Inventory.update(
+                { equipped: false },
+                {
+                  where: {
+                    winterWarId: player.id,
+                    equipped: true,
+                  },
+                  include: {
+                    model: BaseItem,
+                    as: 'item',
+                    where: { type: itemType },
+                  },
+                }
+              )
+            }
+
+            // Equip the selected item
+            await Inventory.update(
+              { equipped: true },
+              { where: { id: selectedItem.id } }
+            )
+
+            await interaction.reply({
+              content: `Equipped ${selectedItem.item.name}.`,
+              ephemeral: true,
+            })
+          }
+
+          // Refresh filteredItems to reflect changes
+          filteredItems = await Inventory.findAll({
+            where: { winterWarId: player.id },
+            include: { model: BaseItem, as: 'item' },
+          })
+
+          // Update components dynamically
+          await interaction.followUp({
+            embeds: [createEmbed(currentPage)],
+            components: [
+              getPaginationButtons(currentPage, canEquip),
+              ...(canEquip ? [createDropdown(currentPage)] : []),
+            ],
+            ephemeral: true,
+          })
+        }
+      })
+
       collector.on('end', async () => {
-          await interaction.editReply({
-              components: [],
-          });
-      });
-  }
-   else if (subcommand === 'fight') {
+        await interaction.editReply({
+          components: [],
+        })
+      })
+    } else if (subcommand === 'fight') {
       // Fetch player data
       const player = await WinterWar.findOne({ where: { userId } })
       if (!player) {
