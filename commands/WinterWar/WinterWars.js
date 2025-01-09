@@ -218,35 +218,35 @@ module.exports = {
         })
       }
     } else if (subcommand === 'inventory') {
-      let itemType = interaction.options.getString('type'); // Initial type
-      const player = await getOrCreatePlayer(userId);
-    
+      let itemType = interaction.options.getString('type') // Initial type
+      const player = await getOrCreatePlayer(userId)
+
       const inventoryItems = await Inventory.findAll({
         where: { winterWarId: player.id },
         include: { model: BaseItem, as: 'item' },
-      });
-    
+      })
+
       const filterItems = () =>
-        inventoryItems.filter((item) => item.item.type === itemType);
-    
-      let filteredItems = filterItems();
+        inventoryItems.filter((item) => item.item.type === itemType)
+
+      let filteredItems = filterItems()
       if (!filteredItems.length) {
         await interaction.reply({
           content: `No items found in the '${itemType}' category.`,
           ephemeral: true,
-        });
-        return;
+        })
+        return
       }
-    
-      const itemsPerPage = 10;
-      let currentPage = 0;
-    
+
+      const itemsPerPage = 10
+      let currentPage = 0
+
       const createEmbed = (page) => {
         const paginatedItems = filteredItems.slice(
           page * itemsPerPage,
           (page + 1) * itemsPerPage
-        );
-    
+        )
+
         const embed = new EmbedBuilder()
           .setTitle(`${interaction.user.username}'s Inventory (${itemType})`)
           .setColor('Green')
@@ -254,42 +254,42 @@ module.exports = {
             text: `Equipped: ${player.equippedCount}/2 | Page ${
               page + 1
             } of ${Math.ceil(filteredItems.length / itemsPerPage)}`,
-          });
-    
+          })
+
         paginatedItems.forEach((item, index) => {
-          const details = [];
-    
+          const details = []
+
           if (item.item.damageMin && item.item.damageMax) {
-            const avgDamage = (item.item.damageMin + item.item.damageMax) / 2;
+            const avgDamage = (item.item.damageMin + item.item.damageMax) / 2
             details.push(
               `• Damage: ${avgDamage} (${item.item.damageType || 'Physical'})`
-            );
+            )
           }
-    
+
           if (item.item.healing) {
-            details.push(`• Healing: ${item.item.healing}`);
+            details.push(`• Healing: ${item.item.healing}`)
           }
-    
+
           if (item.item.defense) {
             details.push(
               `• Defense: ${item.item.defense} (${
                 item.item.damageType || 'General'
               })`
-            );
+            )
           }
-    
+
           embed.addFields({
             name: `${index + 1 + page * itemsPerPage}. ${item.item.name} ${
               item.equipped ? '✅' : ''
             }`,
             value: details.length ? details.join('\n') : 'No additional stats.',
             inline: false,
-          });
-        });
-    
-        return embed;
-      };
-    
+          })
+        })
+
+        return embed
+      }
+
       const createButtons = (page) => {
         const typeSwitchButton = new ButtonBuilder()
           .setCustomId('switch_type')
@@ -306,8 +306,8 @@ module.exports = {
               : itemType === 'defense'
               ? 'Secondary'
               : 'Success'
-          );
-    
+          )
+
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('previous')
@@ -324,31 +324,31 @@ module.exports = {
             .setCustomId('finish')
             .setLabel('Finish')
             .setStyle('Danger')
-        );
-      };
-    
+        )
+      }
+
       const createDropdown = (page) => {
         const paginatedItems = filteredItems.slice(
           page * itemsPerPage,
           (page + 1) * itemsPerPage
-        );
-    
+        )
+
         const options = paginatedItems.map((item) => ({
           label: `${item.item.name} ${item.equipped ? '✅ Equipped' : ''}`,
           description: item.item.type,
           value: `${item.id}`,
-        }));
-    
+        }))
+
         return new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId('equip_dropdown')
             .setPlaceholder('Select an item to equip/unequip')
             .addOptions(options)
-        );
-      };
-    
-      let canEquip = itemType === 'weapon' || itemType === 'defense';
-    
+        )
+      }
+
+      let canEquip = itemType === 'weapon' || itemType === 'defense'
+
       await interaction.reply({
         embeds: [createEmbed(currentPage)],
         components: [
@@ -356,103 +356,103 @@ module.exports = {
           ...(canEquip ? [createDropdown(currentPage)] : []),
         ],
         ephemeral: true,
-      });
-    
+      })
+
       const collector = interaction.channel.createMessageComponentCollector({
         time: 60000,
-      });
-    
+      })
+
       collector.on('collect', async (btnInteraction) => {
         try {
           if (btnInteraction.user.id !== interaction.user.id) {
             await btnInteraction.reply({
               content: "This interaction isn't for you.",
               ephemeral: true,
-            });
-            return;
+            })
+            return
           }
-    
-          await btnInteraction.deferUpdate();
-    
+
+          await btnInteraction.deferUpdate()
+
           if (btnInteraction.customId === 'finish') {
-            collector.stop('finished');
+            collector.stop('finished')
             await interaction.editReply({
               content: 'Inventory management session ended.',
               components: [],
-            });
-            return;
+            })
+            return
           }
-    
+
           if (btnInteraction.customId === 'switch_type') {
             itemType =
               itemType === 'weapon'
                 ? 'defense'
                 : itemType === 'defense'
                 ? 'consumable'
-                : 'weapon';
-    
-            filteredItems = filterItems();
-            currentPage = 0;
+                : 'weapon'
+
+            filteredItems = filterItems()
+            currentPage = 0
           } else if (btnInteraction.customId === 'previous') {
-            currentPage = Math.max(currentPage - 1, 0);
+            currentPage = Math.max(currentPage - 1, 0)
           } else if (btnInteraction.customId === 'next') {
             currentPage = Math.min(
               currentPage + 1,
               Math.ceil(filteredItems.length / itemsPerPage) - 1
-            );
+            )
           } else if (btnInteraction.customId === 'equip_dropdown') {
-            const selectedItemId = btnInteraction.values[0];
+            const selectedItemId = btnInteraction.values[0]
             const selectedItem = filteredItems.find(
               (item) => item.id.toString() === selectedItemId
-            );
-    
+            )
+
             if (!selectedItem) {
               await btnInteraction.followUp({
                 content: 'Selected item not found.',
                 ephemeral: true,
-              });
-              return;
+              })
+              return
             }
-    
+
             if (selectedItem.equipped) {
               await Inventory.update(
                 { equipped: false },
                 { where: { id: selectedItem.id } }
-              );
+              )
               await WinterWar.increment('equippedCount', {
                 by: -1,
                 where: { id: player.id },
-              });
-    
+              })
+
               // Update locally
-              selectedItem.equipped = false;
+              selectedItem.equipped = false
             } else {
               if (player.equippedCount >= 2) {
                 await btnInteraction.followUp({
                   content: `You cannot equip more than 2 items at a time.`,
                   ephemeral: true,
-                });
-                return;
+                })
+                return
               }
-    
+
               await Inventory.update(
                 { equipped: true },
                 { where: { id: selectedItem.id } }
-              );
+              )
               await WinterWar.increment('equippedCount', {
                 by: 1,
                 where: { id: player.id },
-              });
-    
+              })
+
               // Update locally
-              selectedItem.equipped = true;
+              selectedItem.equipped = true
             }
-    
+
             player.equippedCount = await WinterWar.sum('equippedCount', {
               where: { id: player.id },
-            });
+            })
           }
-    
+
           // Update the embed with the local state
           await btnInteraction.editReply({
             embeds: [createEmbed(currentPage)],
@@ -462,279 +462,309 @@ module.exports = {
                 ? [createDropdown(currentPage)]
                 : []),
             ],
-          });
+          })
         } catch (error) {
-          console.error('Error handling interaction:', error);
+          console.error('Error handling interaction:', error)
           if (!btnInteraction.replied) {
             await btnInteraction.reply({
               content: 'An error occurred. Please try again.',
               ephemeral: true,
-            });
+            })
           }
         }
-      });
-    
+      })
+
       collector.on('end', async () => {
         await interaction.editReply({
           components: [],
-        });
-      });
-    }
-     else if (subcommand === 'fight') {
-      // Fetch player data
-      const player = await WinterWar.findOne({ where: { userId } })
-      if (!player) {
-        await interaction.reply({
-          content:
-            '❄️ You need to create an account first! Use `/winterwars account`.',
-          ephemeral: true,
         })
-        return
+      })
+    } else if (subcommand === 'fight') {
+      // Fetch player data
+      const player = await WinterWar.findOne({ where: { userId } });
+      if (!player) {
+          await interaction.reply({
+              content:
+                  '❄️ You need to create an account first! Use `/winterwars account`.',
+              ephemeral: true,
+          });
+          return;
       }
-
+  
       // Fetch equipped items
       const equippedItems = await Inventory.findAll({
-        where: { winterWarId: player.id, equipped: true },
-        include: { model: BaseItem, as: 'item' },
-      })
-
+          where: { winterWarId: player.id, equipped: true },
+          include: { model: BaseItem, as: 'item' },
+      });
+  
       const equippedWeapons = equippedItems.filter(
-        (item) => item.item.type === 'weapon'
-      )
+          (item) => item.item.type === 'weapon'
+      );
       const equippedDefenseItems = equippedItems.filter(
-        (item) => item.item.type === 'defense'
-      )
-
+          (item) => item.item.type === 'defense'
+      );
+  
       // Select a random monster
+      let monster;
+  
       try {
-        const monster = await WinterMonster.findOne({
-          order: sequelize.random(),
-        })
-        if (!monster) {
-          await interaction.reply({
-            content: '❄️ No monsters available. Please try again later!',
-            ephemeral: true,
-          })
-          return
-        }
+          await interaction.deferReply({ ephemeral: true });
+  
+          // Fetch all monsters from the database
+          const monsters = await WinterMonster.findAll();
+  
+          if (!monsters || monsters.length === 0) {
+              await interaction.editReply({
+                  content: '❄️ No monsters available. Please try again later!',
+              });
+              return;
+          }
+  
+          // Select a random monster from the list
+          const randomIndex = Math.floor(Math.random() * monsters.length);
+          monster = monsters[randomIndex];
+  
+          if (!monster) {
+              await interaction.editReply({
+                  content: '❄️ No monsters available. Please try again later!',
+              });
+              return;
+          }
+  
+          console.log(`Selected Monster: ${monster.name}`);
+  
+          // Inform the user about the battle start
+          await interaction.editReply({
+              content: `You are battling **${monster.name}**! Prepare for combat!`,
+          });
       } catch (error) {
-        console.error(`Error fetching monster: ${error.message}`)
-        await interaction.reply({
-          content:
-            'An error occurred while starting the battle. Please try again later.',
-          ephemeral: true,
-        })
-        return
+          console.error(`Error fetching monster: ${error.message}`);
+          await interaction.editReply({
+              content:
+                  'An error occurred while starting the battle. Please try again later.',
+          });
+          return;
       }
-
+  
       // Battle state setup
       const battleState = {
-        playerHP: player.hp,
-        monsterHP: monster.hp,
-        history: [],
-        turn: 'player',
-        defenseModifier: 1,
-      }
-
+          playerHP: player.hp,
+          monsterHP: monster.hp,
+          history: [],
+          turn: 'player',
+          defenseModifier: 1,
+      };
+  
       // Agility-Based Damage Swing Logic
       const calculateDamageWithAgility = (
-        damageMin,
-        damageMax,
-        attackerAgility,
-        defenderAgility
+          damageMin,
+          damageMax,
+          attackerAgility,
+          defenderAgility
       ) => {
-        const maxEffect = 0.9 // Cap agility effect at 90%
-        const k = 0.01 // Scaling constant
-
-        const attackerEffect = maxEffect * (1 - Math.exp(-k * attackerAgility))
-        const defenderEffect = maxEffect * (1 - Math.exp(-k * defenderAgility))
-
-        const effectiveSwing = attackerEffect - defenderEffect
-        const damageRange = damageMax - damageMin
-
-        return Math.floor(damageMin + damageRange * (0.5 + effectiveSwing / 2))
-      }
-
+          const maxEffect = 0.9; // Cap agility effect at 90%
+          const k = 0.01; // Scaling constant
+  
+          const attackerEffect = maxEffect * (1 - Math.exp(-k * attackerAgility));
+          const defenderEffect = maxEffect * (1 - Math.exp(-k * defenderAgility));
+  
+          const effectiveSwing = attackerEffect - defenderEffect;
+          const damageRange = damageMax - damageMin;
+  
+          return Math.floor(damageMin + damageRange * (0.5 + effectiveSwing / 2));
+      };
+  
       // Generate battle embed
       const generateBattleEmbed = () =>
-        new EmbedBuilder()
-          .setTitle(`Battle: ${interaction.user.username} vs ${monster.name}`)
-          .setDescription(
-            `❄️ **Your HP:** ${battleState.playerHP}
-      🔥 **${monster.name} HP:** ${battleState.monsterHP}
-      
-      ` +
-              `**Battle History:**
-      ${battleState.history.slice(-5).join('\n') || 'No actions yet.'}`
-          )
-          .setColor('Blue')
-
+          new EmbedBuilder()
+              .setTitle(`Battle: ${interaction.user.username} vs ${monster.name}`)
+              .setDescription(
+                  `❄️ **Your HP:** ${battleState.playerHP}
+  🔥 **${monster.name} HP:** ${battleState.monsterHP}
+  
+  **Battle History:**
+  ${battleState.history.slice(-5).join('\n') || 'No actions yet.'}`
+              )
+              .setColor('Blue');
+  
       // Create action buttons
       const actionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('attack')
-          .setLabel('Attack')
-          .setStyle('Primary'),
-        new ButtonBuilder()
-          .setCustomId('fierce_attack')
-          .setLabel('Fierce Attack')
-          .setStyle('Danger')
-      )
-
-      equippedWeapons.forEach((weapon, index) => {
-        actionRow.addComponents(
           new ButtonBuilder()
-            .setCustomId(`weapon_${index}`)
-            .setLabel(`Use ${weapon.item.name}`)
-            .setStyle('Secondary')
-        )
-      })
-
+              .setCustomId('attack')
+              .setLabel('Attack')
+              .setStyle('Primary'),
+          new ButtonBuilder()
+              .setCustomId('fierce_attack')
+              .setLabel('Fierce Attack')
+              .setStyle('Danger')
+      );
+  
+      equippedWeapons.forEach((weapon, index) => {
+          actionRow.addComponents(
+              new ButtonBuilder()
+                  .setCustomId(`weapon_${index}`)
+                  .setLabel(`Use ${weapon.item.name}`)
+                  .setStyle('Secondary')
+          );
+      });
+  
       // Reply with the initial battle state
-      try {
-        await interaction.reply({
+      await interaction.editReply({
           embeds: [generateBattleEmbed()],
           components: [actionRow],
-          ephemeral: true,
-        })
-      } catch (error) {
-        console.error(`Error sending reply: ${error.message}`)
-      }
-
+      });
+  
       // Monster Turn Logic
       const monsterTurn = async () => {
-        const monsterAttack = calculateDamageWithAgility(
-          monster.damageMin,
-          monster.damageMax,
-          monster.agility,
-          player.agility
-        )
-
-        const finalDamage = Math.max(
-          monsterAttack -
-            player.defense *
+          const monsterAttack = calculateDamageWithAgility(
+              monster.damageMin,
+              monster.damageMax,
+              monster.agility,
+              player.agility
+          );
+  
+          const finalDamage = Math.max(
+              monsterAttack -
+              player.defense *
               getBoostMultiplier(player.defense) *
               battleState.defenseModifier,
-          1
-        )
+              1
+          );
+  
+          battleState.playerHP -= finalDamage;
+          battleState.history.push(
+              `${monster.name} attacks ${interaction.user.username} for ${finalDamage} damage!`
+          );
+  
+          if (battleState.playerHP <= 0) {
+              collector.stop('defeat');
+              return;
+          }
+  
+          battleState.defenseModifier = 1;
+          battleState.turn = 'player';
+          await interaction.editReply({ embeds: [generateBattleEmbed()] });
+      };
+  
+      // Button interaction collector
+const collector = interaction.channel.createMessageComponentCollector({
+  filter: (i) => i.user.id === userId,
+  time: 60000,
+});
 
-        battleState.playerHP -= finalDamage
-        battleState.history.push(
-          `${monster.name} attacks ${interaction.user.username} for ${finalDamage} damage!`
-        )
-
-        if (battleState.playerHP <= 0) {
-          collector.stop('defeat')
-          return
-        }
-
-        battleState.defenseModifier = 1
-        battleState.turn = 'player'
-        await interaction.editReply({ embeds: [generateBattleEmbed()] })
+collector.on('collect', async (btnInteraction) => {
+  try {
+      if (battleState.turn !== 'player') {
+          await btnInteraction.reply({
+              content: 'It’s not your turn!',
+              ephemeral: true,
+          });
+          return;
       }
 
-      // Button interaction collector
-      const collector = interaction.channel.createMessageComponentCollector({
-        filter: (i) => i.user.id === userId,
-        time: 60000,
-      })
+      // Ensure interaction is deferred properly
+      await btnInteraction.deferUpdate();
 
-      collector.on('collect', async (btnInteraction) => {
-        if (battleState.turn !== 'player') {
-          await btnInteraction.reply({
-            content: 'It’s not your turn!',
-            ephemeral: true,
-          })
-          return
-        }
+      const action = btnInteraction.customId;
 
-        const action = btnInteraction.customId
-
-        if (action === 'attack') {
+      if (action === 'attack') {
           const playerAttack = calculateDamageWithAgility(
-            equippedWeapons[0]?.item.damageMin || player.strength,
-            equippedWeapons[0]?.item.damageMax || player.strength * 2,
-            player.agility,
-            monster.agility
-          )
-
-          const finalDamage = Math.max(
-            playerAttack -
-              monster.defense * getBoostMultiplier(monster.defense),
-            1
-          )
-
-          battleState.monsterHP -= finalDamage
-          battleState.history.push(
-            `${interaction.user.username} attacks ${monster.name} for ${finalDamage} damage!`
-          )
-        } else if (action === 'fierce_attack') {
-          const playerAttack =
-            calculateDamageWithAgility(
-              player.strength,
-              player.strength * 2,
+              equippedWeapons[0]?.item.damageMin || player.strength,
+              equippedWeapons[0]?.item.damageMax || player.strength * 2,
               player.agility,
               monster.agility
-            ) * 1.5
+          );
 
           const finalDamage = Math.max(
-            playerAttack -
-              monster.defense * getBoostMultiplier(monster.defense),
-            1
-          )
+              playerAttack - monster.defense * getBoostMultiplier(monster.defense),
+              1
+          );
 
-          battleState.monsterHP -= finalDamage
-          battleState.defenseModifier = 0.5 // Reduce player's defense for next monster attack
+          battleState.monsterHP -= finalDamage;
           battleState.history.push(
-            `${interaction.user.username} uses a fierce attack on ${monster.name} for ${finalDamage} damage!`
-          )
-        } else if (action.startsWith('weapon_')) {
-          const weaponIndex = parseInt(action.split('_')[1], 10)
-          const weapon = equippedWeapons[weaponIndex].item
+              `${interaction.user.username} attacks ${monster.name} for ${finalDamage} damage!`
+          );
+      } else if (action === 'fierce_attack') {
+          const playerAttack =
+              calculateDamageWithAgility(
+                  player.strength,
+                  player.strength * 2,
+                  player.agility,
+                  monster.agility
+              ) * 1.5;
+
+          const finalDamage = Math.max(
+              playerAttack - monster.defense * getBoostMultiplier(monster.defense),
+              1
+          );
+
+          battleState.monsterHP -= finalDamage;
+          battleState.defenseModifier = 0.5; // Reduce player's defense for next monster attack
+          battleState.history.push(
+              `${interaction.user.username} uses a fierce attack on ${monster.name} for ${finalDamage} damage!`
+          );
+      } else if (action.startsWith('weapon_')) {
+          const weaponIndex = parseInt(action.split('_')[1], 10);
+          const weapon = equippedWeapons[weaponIndex].item;
 
           const weaponAttack = calculateDamageWithAgility(
-            weapon.damageMin,
-            weapon.damageMax,
-            player.agility,
-            monster.agility
-          )
+              weapon.damageMin,
+              weapon.damageMax,
+              player.agility,
+              monster.agility
+          );
 
-          battleState.monsterHP -= weaponAttack
+          battleState.monsterHP -= weaponAttack;
           battleState.history.push(
-            `${interaction.user.username} uses ${weapon.name} to deal ${weaponAttack} damage to ${monster.name}!`
-          )
-        }
+              `${interaction.user.username} uses ${weapon.name} to deal ${weaponAttack} damage to ${monster.name}!`
+          );
+      }
 
-        if (battleState.monsterHP <= 0) {
-          collector.stop('victory')
-          return
-        }
+      if (battleState.monsterHP <= 0) {
+          collector.stop('victory');
+          return;
+      }
 
-        battleState.turn = 'monster'
-        await btnInteraction.update({ embeds: [generateBattleEmbed()] })
-        await monsterTurn()
-      })
+      battleState.turn = 'monster';
 
-      collector.on('end', async (collected, reason) => {
-        const resultEmbed = new EmbedBuilder().setTitle('Battle Result')
+      // Update interaction with the battle embed
+      await btnInteraction.editReply({ embeds: [generateBattleEmbed()] });
+      await monsterTurn();
+  } catch (error) {
+      console.error('Error handling button interaction:', error);
 
-        if (reason === 'victory') {
-          resultEmbed
-            .setDescription(`🎉 You defeated ${monster.name}!`)
-            .setColor('Green')
-          await player.increment('war_points', { by: 10 })
-        } else if (reason === 'defeat') {
-          resultEmbed
-            .setDescription(`💔 You were defeated by ${monster.name}.`)
-            .setColor('Red')
-        } else {
-          resultEmbed
-            .setDescription('⏳ The battle ended due to inactivity.')
-            .setColor('Grey')
-        }
+      if (!btnInteraction.replied && !btnInteraction.deferred) {
+          await btnInteraction.reply({
+              content: 'An error occurred. Please try again.',
+              ephemeral: true,
+          });
+      }
+  }
+});
 
-        await interaction.editReply({ embeds: [resultEmbed], components: [] })
-      })
-    }
+// Collector end logic
+collector.on('end', async (collected, reason) => {
+  const resultEmbed = new EmbedBuilder().setTitle('Battle Result');
+
+  if (reason === 'victory') {
+      resultEmbed
+          .setDescription(`🎉 You defeated ${monster.name}!`)
+          .setColor('Green');
+      await player.increment('war_points', { by: 10 });
+  } else if (reason === 'defeat') {
+      resultEmbed
+          .setDescription(`💔 You were defeated by ${monster.name}.`)
+          .setColor('Red');
+  } else {
+      resultEmbed
+          .setDescription('⏳ The battle ended due to inactivity.')
+          .setColor('Grey');
+  }
+
+  await interaction.editReply({ embeds: [resultEmbed], components: [] });
+});
+
+  }
+  
   },
 }
