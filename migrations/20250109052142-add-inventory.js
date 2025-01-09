@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('Inventory', {
+    await queryInterface.createTable('Inventories', {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
@@ -29,7 +29,7 @@ module.exports = {
         defaultValue: false,
       },
       count: {
-        type: DataTypes.INTEGER,
+        type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 1, // Default to 1 when a new item is added
       },
@@ -37,6 +37,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('Inventory')
+    await queryInterface.dropTable('Inventories')
   },
 }

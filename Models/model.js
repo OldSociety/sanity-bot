@@ -50,14 +50,14 @@ WinterWar.associate = (models) => {
   })
   WinterWar.hasMany(models.Inventory, {
     foreignKey: 'winterWarId',
-    as: 'inventory',
+    as: 'inventoryList',
   })
 }
 
 BaseItem.associate = (models) => {
   BaseItem.hasMany(models.Inventory, {
     foreignKey: 'itemId',
-    as: 'inventories',
+    as: 'itemInventories',
   })
 }
 
@@ -78,7 +78,7 @@ Achievement.associate({ User, UserAchievement })
 SpookyStat.associate({ User })
 WinterWar.associate({ User, Inventory })
 BaseItem.associate({ Inventory })
-Inventory.associate({ WinterWar, BaseItem })
+Inventory.associate({ BaseItem, WinterWar });
 
 module.exports = {
   User,

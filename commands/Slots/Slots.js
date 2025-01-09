@@ -4,7 +4,7 @@ const {
   ButtonBuilder,
   EmbedBuilder,
 } = require('discord.js')
-const { WinterWar } = require('../../Models/model.js')
+const { WinterWar, BaseItem, Inventory } = require('../../Models/model.js')
 
 let jackpot = 1000
 const activePlayers = new Set() // Track active players to prevent multiple instances
@@ -131,9 +131,9 @@ async function startGame(interaction, userData) {
         },
         {
           emoji: '🎅',
-          type: 'false_alarm',
+          type: 'item',
           chance: 16,
-          message: '**Near Advance!**',
+          message: '**ITEMNear Advance!**',
           link: 'https://twemoji.maxcdn.com/v/latest/svg/1f385.svg',
         },
         {
@@ -426,8 +426,12 @@ async function startGame(interaction, userData) {
 
         // Check if the user already has the item in their inventory
         const existingItem = await Inventory.findOne({
-          where: { userId: interactionObject.user.id, itemId: item.id },
-        })
+          where: {
+            winterWarId: userData.id, // Use the correct WinterWar ID
+            itemId: item.id,
+          },
+        });
+        
 
         if (existingItem) {
           // Increment the count if the item exists
@@ -436,7 +440,7 @@ async function startGame(interaction, userData) {
         } else {
           // Create a new inventory entry if the item does not exist
           await Inventory.create({
-            userId: interactionObject.user.id,
+            winterWarId: userData.id,
             itemId: item.id,
             count: 1,
           })
