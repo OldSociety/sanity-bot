@@ -28,6 +28,11 @@ module.exports = {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
       },
+      count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1, // Default to 1 when a new item is added
+      },
     })
   },
 

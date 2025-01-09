@@ -413,6 +413,40 @@ async function startGame(interaction, userData) {
       activePlayers.delete(interactionObject.user.id)
       message += ` You lost your pot of **${gameState.totalPoints} WP**.`
       gameState.totalPoints = 0 // Reset the pot
+    } else if (roll.type === 'item') {
+      // Query the database to get all consumables
+      const consumables = await BaseItem.findAll({
+        where: { type: 'consumable' },
+      })
+
+      if (consumables.length > 0) {
+        // Randomly select a consumable
+        const randomIndex = Math.floor(Math.random() * consumables.length)
+        const item = consumables[randomIndex]
+
+        // Check if the user already has the item in their inventory
+        const existingItem = await Inventory.findOne({
+          where: { userId: interactionObject.user.id, itemId: item.id },
+        })
+
+        if (existingItem) {
+          // Increment the count if the item exists
+          existingItem.count += 1
+          await existingItem.save()
+        } else {
+          // Create a new inventory entry if the item does not exist
+          await Inventory.create({
+            userId: interactionObject.user.id,
+            itemId: item.id,
+            count: 1,
+          })
+        }
+
+        message += ` You found a **${item.name}**! 🎁`
+      } else {
+        // Fallback if no consumables are found in the database
+        message += ' No items found in the database. 🎁'
+      }
     } else if (roll.type === 'jackpot') {
       userData.war_points += jackpot
       userData.save()
