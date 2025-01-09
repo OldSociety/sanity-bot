@@ -64,21 +64,6 @@ function getBoostMultiplier(stat) {
   return 0.5
 }
 
-function createPaginationButtons(page, totalItems, itemsPerPage) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('previous')
-      .setLabel('Previous')
-      .setStyle('Secondary')
-      .setDisabled(page === 0),
-    new ButtonBuilder()
-      .setCustomId('next')
-      .setLabel('Next')
-      .setStyle('Secondary')
-      .setDisabled((page + 1) * itemsPerPage >= totalItems)
-  )
-}
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('winterwars')
