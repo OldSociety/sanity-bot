@@ -481,290 +481,290 @@ module.exports = {
       })
     } else if (subcommand === 'fight') {
       // Fetch player data
-      const player = await WinterWar.findOne({ where: { userId } });
+      const player = await WinterWar.findOne({ where: { userId } })
       if (!player) {
-          await interaction.reply({
-              content:
-                  '❄️ You need to create an account first! Use `/winterwars account`.',
-              ephemeral: true,
-          });
-          return;
+        await interaction.reply({
+          content:
+            '❄️ You need to create an account first! Use `/winterwars account`.',
+          ephemeral: true,
+        })
+        return
       }
-  
+
       // Fetch equipped items
       const equippedItems = await Inventory.findAll({
-          where: { winterWarId: player.id, equipped: true },
-          include: { model: BaseItem, as: 'item' },
-      });
-  
+        where: { winterWarId: player.id, equipped: true },
+        include: { model: BaseItem, as: 'item' },
+      })
+
       const equippedWeapons = equippedItems.filter(
-          (item) => item.item.type === 'weapon'
-      );
+        (item) => item.item.type === 'weapon'
+      )
       const equippedDefenseItems = equippedItems.filter(
-          (item) => item.item.type === 'defense'
-      );
-  
+        (item) => item.item.type === 'defense'
+      )
+
       // Select a random monster
-      let monster;
-  
+      let monster
+
       try {
-          await interaction.deferReply({ ephemeral: true });
-  
-          // Fetch all monsters from the database
-          const monsters = await WinterMonster.findAll();
-  
-          if (!monsters || monsters.length === 0) {
-              await interaction.editReply({
-                  content: '❄️ No monsters available. Please try again later!',
-              });
-              return;
-          }
-  
-          // Select a random monster from the list
-          const randomIndex = Math.floor(Math.random() * monsters.length);
-          monster = monsters[randomIndex];
-  
-          if (!monster) {
-              await interaction.editReply({
-                  content: '❄️ No monsters available. Please try again later!',
-              });
-              return;
-          }
-  
-          console.log(`Selected Monster: ${monster.name}`);
-  
-          // Inform the user about the battle start
+        await interaction.deferReply({ ephemeral: true })
+
+        // Fetch all monsters from the database
+        const monsters = await WinterMonster.findAll()
+
+        if (!monsters || monsters.length === 0) {
           await interaction.editReply({
-              content: `You are battling **${monster.name}**! Prepare for combat!`,
-          });
+            content: '❄️ No monsters available. Please try again later!',
+          })
+          return
+        }
+
+        // Select a random monster from the list
+        const randomIndex = Math.floor(Math.random() * monsters.length)
+        monster = monsters[randomIndex]
+
+        if (!monster) {
+          await interaction.editReply({
+            content: '❄️ No monsters available. Please try again later!',
+          })
+          return
+        }
+
+        console.log(`Selected Monster: ${monster.name}`)
+
+        // Inform the user about the battle start
+        await interaction.editReply({
+          content: `You are battling **${monster.name}**! Prepare for combat!`,
+        })
       } catch (error) {
-          console.error(`Error fetching monster: ${error.message}`);
-          await interaction.editReply({
-              content:
-                  'An error occurred while starting the battle. Please try again later.',
-          });
-          return;
+        console.error(`Error fetching monster: ${error.message}`)
+        await interaction.editReply({
+          content:
+            'An error occurred while starting the battle. Please try again later.',
+        })
+        return
       }
-  
+
       // Battle state setup
       const battleState = {
-          playerHP: player.hp,
-          monsterHP: monster.hp,
-          history: [],
-          turn: 'player',
-          defenseModifier: 1,
-      };
-  
+        playerHP: player.hp,
+        monsterHP: monster.hp,
+        history: [],
+        turn: 'player',
+        defenseModifier: 1,
+      }
+
       // Agility-Based Damage Swing Logic
       const calculateDamageWithAgility = (
-          damageMin,
-          damageMax,
-          attackerAgility,
-          defenderAgility
+        damageMin,
+        damageMax,
+        attackerAgility,
+        defenderAgility
       ) => {
-          const maxEffect = 0.9; // Cap agility effect at 90%
-          const k = 0.01; // Scaling constant
-  
-          const attackerEffect = maxEffect * (1 - Math.exp(-k * attackerAgility));
-          const defenderEffect = maxEffect * (1 - Math.exp(-k * defenderAgility));
-  
-          const effectiveSwing = attackerEffect - defenderEffect;
-          const damageRange = damageMax - damageMin;
-  
-          return Math.floor(damageMin + damageRange * (0.5 + effectiveSwing / 2));
-      };
-  
+        const maxEffect = 0.9 // Cap agility effect at 90%
+        const k = 0.01 // Scaling constant
+
+        const attackerEffect = maxEffect * (1 - Math.exp(-k * attackerAgility))
+        const defenderEffect = maxEffect * (1 - Math.exp(-k * defenderAgility))
+
+        const effectiveSwing = attackerEffect - defenderEffect
+        const damageRange = damageMax - damageMin
+
+        return Math.floor(damageMin + damageRange * (0.5 + effectiveSwing / 2))
+      }
+
       // Generate battle embed
       const generateBattleEmbed = () =>
-          new EmbedBuilder()
-              .setTitle(`Battle: ${interaction.user.username} vs ${monster.name}`)
-              .setDescription(
-                  `❄️ **Your HP:** ${battleState.playerHP}
+        new EmbedBuilder()
+          .setTitle(`Battle: ${interaction.user.username} vs ${monster.name}`)
+          .setDescription(
+            `❄️ **Your HP:** ${battleState.playerHP}
   🔥 **${monster.name} HP:** ${battleState.monsterHP}
   
   **Battle History:**
   ${battleState.history.slice(-5).join('\n') || 'No actions yet.'}`
-              )
-              .setColor('Blue');
-  
+          )
+          .setColor('Blue')
+
       // Create action buttons
       const actionRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-              .setCustomId('attack')
-              .setLabel('Attack')
-              .setStyle('Primary'),
-          new ButtonBuilder()
-              .setCustomId('fierce_attack')
-              .setLabel('Fierce Attack')
-              .setStyle('Danger')
-      );
-  
+        new ButtonBuilder()
+          .setCustomId('attack')
+          .setLabel('Attack')
+          .setStyle('Primary'),
+        new ButtonBuilder()
+          .setCustomId('fierce_attack')
+          .setLabel('Fierce Attack')
+          .setStyle('Danger')
+      )
+
       equippedWeapons.forEach((weapon, index) => {
-          actionRow.addComponents(
-              new ButtonBuilder()
-                  .setCustomId(`weapon_${index}`)
-                  .setLabel(`Use ${weapon.item.name}`)
-                  .setStyle('Secondary')
-          );
-      });
-  
+        actionRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`weapon_${index}`)
+            .setLabel(`Use ${weapon.item.name}`)
+            .setStyle('Secondary')
+        )
+      })
+
       // Reply with the initial battle state
       await interaction.editReply({
-          embeds: [generateBattleEmbed()],
-          components: [actionRow],
-      });
-  
+        embeds: [generateBattleEmbed()],
+        components: [actionRow],
+      })
+
       // Monster Turn Logic
       const monsterTurn = async () => {
-          const monsterAttack = calculateDamageWithAgility(
-              monster.damageMin,
-              monster.damageMax,
-              monster.agility,
-              player.agility
-          );
-  
-          const finalDamage = Math.max(
-              monsterAttack -
-              player.defense *
+        const monsterAttack = calculateDamageWithAgility(
+          monster.damageMin,
+          monster.damageMax,
+          monster.agility,
+          player.agility
+        )
+
+        const finalDamage = Math.max(
+          monsterAttack -
+            player.defense *
               getBoostMultiplier(player.defense) *
               battleState.defenseModifier,
-              1
-          );
-  
-          battleState.playerHP -= finalDamage;
-          battleState.history.push(
-              `${monster.name} attacks ${interaction.user.username} for ${finalDamage} damage!`
-          );
-  
-          if (battleState.playerHP <= 0) {
-              collector.stop('defeat');
-              return;
-          }
-  
-          battleState.defenseModifier = 1;
-          battleState.turn = 'player';
-          await interaction.editReply({ embeds: [generateBattleEmbed()] });
-      };
-  
-      // Button interaction collector
-const collector = interaction.channel.createMessageComponentCollector({
-  filter: (i) => i.user.id === userId,
-  time: 60000,
-});
+          1
+        )
 
-collector.on('collect', async (btnInteraction) => {
-  try {
-      if (battleState.turn !== 'player') {
-          await btnInteraction.reply({
-              content: 'It’s not your turn!',
-              ephemeral: true,
-          });
-          return;
+        battleState.playerHP -= finalDamage
+        battleState.history.push(
+          `${monster.name} attacks ${interaction.user.username} for ${finalDamage} damage!`
+        )
+
+        if (battleState.playerHP <= 0) {
+          collector.stop('defeat')
+          return
+        }
+
+        battleState.defenseModifier = 1
+        battleState.turn = 'player'
+        await interaction.editReply({ embeds: [generateBattleEmbed()] })
       }
 
-      // Ensure interaction is deferred properly
-      await btnInteraction.deferUpdate();
+      // Button interaction collector
+      const collector = interaction.channel.createMessageComponentCollector({
+        filter: (i) => i.user.id === userId,
+        time: 60000,
+      })
 
-      const action = btnInteraction.customId;
+      collector.on('collect', async (btnInteraction) => {
+        try {
+          if (battleState.turn !== 'player') {
+            await btnInteraction.reply({
+              content: 'It’s not your turn!',
+              ephemeral: true,
+            })
+            return
+          }
 
-      if (action === 'attack') {
-          const playerAttack = calculateDamageWithAgility(
+          // Ensure interaction is deferred properly
+          await btnInteraction.deferUpdate()
+
+          const action = btnInteraction.customId
+
+          if (action === 'attack') {
+            const playerAttack = calculateDamageWithAgility(
               equippedWeapons[0]?.item.damageMin || player.strength,
               equippedWeapons[0]?.item.damageMax || player.strength * 2,
               player.agility,
               monster.agility
-          );
+            )
 
-          const finalDamage = Math.max(
-              playerAttack - monster.defense * getBoostMultiplier(monster.defense),
+            const finalDamage = Math.max(
+              playerAttack -
+                monster.defense * getBoostMultiplier(monster.defense),
               1
-          );
+            )
 
-          battleState.monsterHP -= finalDamage;
-          battleState.history.push(
+            battleState.monsterHP -= finalDamage
+            battleState.history.push(
               `${interaction.user.username} attacks ${monster.name} for ${finalDamage} damage!`
-          );
-      } else if (action === 'fierce_attack') {
-          const playerAttack =
+            )
+          } else if (action === 'fierce_attack') {
+            const playerAttack =
               calculateDamageWithAgility(
-                  player.strength,
-                  player.strength * 2,
-                  player.agility,
-                  monster.agility
-              ) * 1.5;
+                player.strength,
+                player.strength * 2,
+                player.agility,
+                monster.agility
+              ) * 1.5
 
-          const finalDamage = Math.max(
-              playerAttack - monster.defense * getBoostMultiplier(monster.defense),
+            const finalDamage = Math.max(
+              playerAttack -
+                monster.defense * getBoostMultiplier(monster.defense),
               1
-          );
+            )
 
-          battleState.monsterHP -= finalDamage;
-          battleState.defenseModifier = 0.5; // Reduce player's defense for next monster attack
-          battleState.history.push(
+            battleState.monsterHP -= finalDamage
+            battleState.defenseModifier = 0.5 // Reduce player's defense for next monster attack
+            battleState.history.push(
               `${interaction.user.username} uses a fierce attack on ${monster.name} for ${finalDamage} damage!`
-          );
-      } else if (action.startsWith('weapon_')) {
-          const weaponIndex = parseInt(action.split('_')[1], 10);
-          const weapon = equippedWeapons[weaponIndex].item;
+            )
+          } else if (action.startsWith('weapon_')) {
+            const weaponIndex = parseInt(action.split('_')[1], 10)
+            const weapon = equippedWeapons[weaponIndex].item
 
-          const weaponAttack = calculateDamageWithAgility(
+            const weaponAttack = calculateDamageWithAgility(
               weapon.damageMin,
               weapon.damageMax,
               player.agility,
               monster.agility
-          );
+            )
 
-          battleState.monsterHP -= weaponAttack;
-          battleState.history.push(
+            battleState.monsterHP -= weaponAttack
+            battleState.history.push(
               `${interaction.user.username} uses ${weapon.name} to deal ${weaponAttack} damage to ${monster.name}!`
-          );
-      }
+            )
+          }
 
-      if (battleState.monsterHP <= 0) {
-          collector.stop('victory');
-          return;
-      }
+          if (battleState.monsterHP <= 0) {
+            collector.stop('victory')
+            return
+          }
 
-      battleState.turn = 'monster';
+          battleState.turn = 'monster'
 
-      // Update interaction with the battle embed
-      await btnInteraction.editReply({ embeds: [generateBattleEmbed()] });
-      await monsterTurn();
-  } catch (error) {
-      console.error('Error handling button interaction:', error);
+          // Update interaction with the battle embed
+          await btnInteraction.editReply({ embeds: [generateBattleEmbed()] })
+          await monsterTurn()
+        } catch (error) {
+          console.error('Error handling button interaction:', error)
 
-      if (!btnInteraction.replied && !btnInteraction.deferred) {
-          await btnInteraction.reply({
+          if (!btnInteraction.replied && !btnInteraction.deferred) {
+            await btnInteraction.reply({
               content: 'An error occurred. Please try again.',
               ephemeral: true,
-          });
-      }
-  }
-});
+            })
+          }
+        }
+      })
 
-// Collector end logic
-collector.on('end', async (collected, reason) => {
-  const resultEmbed = new EmbedBuilder().setTitle('Battle Result');
+      // Collector end logic
+      collector.on('end', async (collected, reason) => {
+        const resultEmbed = new EmbedBuilder().setTitle('Battle Result')
 
-  if (reason === 'victory') {
-      resultEmbed
-          .setDescription(`🎉 You defeated ${monster.name}!`)
-          .setColor('Green');
-      await player.increment('war_points', { by: 10 });
-  } else if (reason === 'defeat') {
-      resultEmbed
-          .setDescription(`💔 You were defeated by ${monster.name}.`)
-          .setColor('Red');
-  } else {
-      resultEmbed
-          .setDescription('⏳ The battle ended due to inactivity.')
-          .setColor('Grey');
-  }
+        if (reason === 'victory') {
+          resultEmbed
+            .setDescription(`🎉 You defeated ${monster.name}!`)
+            .setColor('Green')
+          await player.increment('war_points', { by: 10 })
+        } else if (reason === 'defeat') {
+          resultEmbed
+            .setDescription(`💔 You were defeated by ${monster.name}.`)
+            .setColor('Red')
+        } else {
+          resultEmbed
+            .setDescription('⏳ The battle ended due to inactivity.')
+            .setColor('Grey')
+        }
 
-  await interaction.editReply({ embeds: [resultEmbed], components: [] });
-});
-
-  }
-  
+        await interaction.editReply({ embeds: [resultEmbed], components: [] })
+      })
+    }
   },
 }
