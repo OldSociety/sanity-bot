@@ -4,7 +4,80 @@ const {
   ButtonBuilder,
   EmbedBuilder,
 } = require('discord.js')
-const { WinterWar, WinterMonster } = require('../../Models/model.js')
+const {
+  WinterWar,
+  WinterMonster,
+  Inventory,
+  BaseItem,
+} = require('../../Models/model.js')
+
+const STAT_BOOSTS = [
+  { threshold: 750, multiplier: 16 },
+  { threshold: 700, multiplier: 15 },
+  { threshold: 650, multiplier: 14 },
+  { threshold: 600, multiplier: 13 },
+  { threshold: 550, multiplier: 12 },
+  { threshold: 500, multiplier: 11 },
+  { threshold: 450, multiplier: 9.75 },
+  { threshold: 400, multiplier: 8.5 },
+  { threshold: 350, multiplier: 7.5 },
+  { threshold: 300, multiplier: 6.5 },
+  { threshold: 250, multiplier: 5.5 },
+  { threshold: 200, multiplier: 4.5 },
+  { threshold: 125, multiplier: 3 },
+  { threshold: 85, multiplier: 2.5 },
+  { threshold: 55, multiplier: 2 },
+  { threshold: 35, multiplier: 1.5 },
+  { threshold: 20, multiplier: 1.25 },
+  { threshold: 13, multiplier: 1 },
+  { threshold: 8, multiplier: 0.75 },
+  { threshold: 0, multiplier: 0.5 },
+]
+
+async function getOrCreatePlayer(userId) {
+  try {
+    let player = await WinterWar.findOne({ where: { userId } })
+    if (!player) {
+      player = await WinterWar.create({
+        userId,
+        hp: 5,
+        strength: 5,
+        defense: 5,
+        agility: 5,
+        statPoints: 10,
+        war_points: 100,
+      })
+    }
+    return player
+  } catch (error) {
+    console.error(`Error in getOrCreatePlayer: ${error.message}`)
+    throw new Error('Could not retrieve or create player.')
+  }
+}
+
+function getBoostMultiplier(stat) {
+  for (const boost of STAT_BOOSTS) {
+    if (stat >= boost.threshold) {
+      return boost.multiplier
+    }
+  }
+  return 0.5
+}
+
+function createPaginationButtons(page, totalItems, itemsPerPage) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('previous')
+      .setLabel('Previous')
+      .setStyle('Secondary')
+      .setDisabled(page === 0),
+    new ButtonBuilder()
+      .setCustomId('next')
+      .setLabel('Next')
+      .setStyle('Secondary')
+      .setDisabled((page + 1) * itemsPerPage >= totalItems)
+  )
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,6 +90,22 @@ module.exports = {
     )
     .addSubcommand((subcommand) =>
       subcommand.setName('fight').setDescription('Fight a winter monster!')
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('inventory')
+        .setDescription('View and manage your inventory.')
+        .addStringOption((option) =>
+          option
+            .setName('type')
+            .setDescription('Filter by item type.')
+            .addChoices(
+              { name: 'Weapons', value: 'weapon' },
+              { name: 'Defense', value: 'defense' },
+              { name: 'Consumables', value: 'consumable' },
+              { name: 'All', value: 'all' }
+            )
+        )
     ),
 
   async execute(interaction) {
@@ -37,44 +126,46 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand()
 
     if (subcommand === 'account') {
-      let character = await WinterWar.findOne({ where: { userId } })
-      if (!character) {
-        character = await WinterWar.create({
-          userId,
-          hp: 5,
-          strength: 5,
-          defense: 5,
-          agility: 5,
-          statPoints: 10,
-          war_points: 100,
-        })
-      }
+      const player = await getOrCreatePlayer(userId)
+
+      const equippedItems = await Inventory.findAll({
+        where: { winterWarId: player.id, equipped: true },
+        include: { model: BaseItem },
+      })
+
+      const equippedWeapons = equippedItems
+        .filter((item) => item.BaseItem.type === 'weapon')
+        .map((item) => item.BaseItem.name)
+
+      const equippedDefense = equippedItems
+        .filter((item) => item.BaseItem.type === 'defense')
+        .map((item) => item.BaseItem.name)
 
       const generateStatEmbed = () => {
         let description =
-          `**HP:** ${character.hp}\n` +
-          `**Strength:** ${character.strength}\n` +
-          `**Defense:** ${character.defense}\n` +
-          `**Agility:** ${character.agility}\n``**Equipped Items:**\n` +
+          `**HP:** ${player.hp}\n` +
+          `**Strength:** ${player.strength}\n` +
+          `**Defense:** ${player.defense}\n` +
+          `**Agility:** ${player.agility}\n\n**Equipped Items:**\n` +
           `- Weapons: ${equippedWeapons.join(', ') || 'None'}\n` +
           `- Defense: ${equippedDefense.join(', ') || 'None'}\n`
 
-        if (character.statPoints > 0) {
+        if (player.statPoints > 0) {
           description =
-            `Welcome to Winter Wars! You have **${character.statPoints} points** to distribute among the following stats:\n\n` +
+            `Welcome to Winter Wars! You have **${player.statPoints} points** to distribute among the following stats:\n\n` +
             `**HP:** How much damage you can take before defeat.\n` +
             `**Strength:** How much damage you deal to enemies.\n` +
             `**Defense:** How much damage you can block.\n` +
             `**Agility:** How fast you act and dodge attacks.\n` +
             `Use the buttons below to allocate your points!\n\n` +
             description +
-            `\n**Unallocated Points:** ${character.statPoints}\n\n`
+            `\n**Unallocated Points:** ${player.statPoints}\n\n`
         }
 
         return new EmbedBuilder()
           .setTitle(`${interaction.user.username}'s Winter Wars Account`)
           .setDescription(description)
-          .setFooter({ text: `❄️${character.war_points} War Points` })
+          .setFooter({ text: `❄️${player.war_points} War Points` })
           .setColor('Blue')
       }
 
@@ -97,15 +188,19 @@ module.exports = {
           .setStyle('Primary')
       )
 
-      const components = character.statPoints > 0 ? [actionRow] : []
+      const components = player.statPoints > 0 ? [actionRow] : []
 
-      await interaction.reply({
-        embeds: [generateStatEmbed()],
-        components,
-        ephemeral: true,
-      })
+      try {
+        await interaction.reply({
+          embeds: [generateStatEmbed()],
+          components,
+          ephemeral: true,
+        })
+      } catch (error) {
+        console.error(`Error sending reply: ${error.message}`)
+      }
 
-      if (character.statPoints > 0) {
+      if (player.statPoints > 0) {
         const collector = interaction.channel.createMessageComponentCollector({
           filter: (i) => i.user.id === userId,
           time: 60000,
@@ -114,18 +209,18 @@ module.exports = {
         collector.on('collect', async (btnInteraction) => {
           const stat = btnInteraction.customId
 
-          if (character.statPoints > 0) {
-            await character.increment(stat, { by: 1 })
-            await character.decrement('statPoints', { by: 1 })
-            await character.reload()
+          if (player.statPoints > 0) {
+            await player.increment(stat, { by: 1 })
+            await player.decrement('statPoints', { by: 1 })
+            await player.reload()
           }
 
           await btnInteraction.update({
             embeds: [generateStatEmbed()],
-            components: character.statPoints > 0 ? [actionRow] : [],
+            components: player.statPoints > 0 ? [actionRow] : [],
           })
 
-          if (character.statPoints === 0) {
+          if (player.statPoints === 0) {
             collector.stop()
           }
         })
@@ -136,6 +231,232 @@ module.exports = {
           })
         })
       }
+    } else if (subcommand === 'inventory') {
+      const itemType = interaction.options.getString('type') || 'all'
+      const player = await getOrCreatePlayer(userId)
+
+      const inventoryItems = await Inventory.findAll({
+        where: { winterWarId: player.id },
+        include: { model: BaseItem },
+      })
+
+      const filteredItems =
+        itemType === 'all'
+          ? inventoryItems
+          : inventoryItems.filter((item) => item.BaseItem.type === itemType)
+
+      if (!filteredItems.length) {
+        await interaction.reply({
+          content: `No items found in the '${itemType}' category.`,
+          ephemeral: true,
+        })
+        return
+      }
+
+      const itemsPerPage = 10
+      let currentPage = 0
+
+      const createEmbed = (page) => {
+        const paginatedItems = filteredItems.slice(
+          page * itemsPerPage,
+          (page + 1) * itemsPerPage
+        )
+
+        const embed = new EmbedBuilder()
+          .setTitle(`${interaction.user.username}'s Inventory (${itemType})`)
+          .setColor('Green')
+          .setFooter({
+            text: `Page ${page + 1} of ${Math.ceil(
+              filteredItems.length / itemsPerPage
+            )}`,
+          })
+
+        paginatedItems.forEach((item, index) => {
+          const avgDamage =
+            (item.BaseItem.damageMin + item.BaseItem.damageMax) / 2
+          embed.addFields({
+            name: `${index + 1 + page * itemsPerPage}. ${item.BaseItem.name} (${
+              item.BaseItem.type
+            })`,
+            value:
+              `• Avg Damage: ${avgDamage || 'N/A'}\n` +
+              `• Defense: ${item.BaseItem.defense || 'N/A'}\n` +
+              `• Equipped: ${item.equipped ? 'Yes' : 'No'}`,
+            inline: false,
+          })
+        })
+
+        return embed
+      }
+
+      const getPaginationButtons = (page) =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('previous')
+            .setLabel('Previous')
+            .setStyle('Secondary')
+            .setDisabled(page === 0),
+          new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('Next')
+            .setStyle('Secondary')
+            .setDisabled((page + 1) * itemsPerPage >= filteredItems.length),
+          new ButtonBuilder()
+            .setCustomId('equip')
+            .setLabel('Equip/Unequip')
+            .setStyle('Primary'),
+          new ButtonBuilder()
+            .setCustomId('finish')
+            .setLabel('Finish')
+            .setStyle('Danger')
+        )
+
+      try {
+        await interaction.reply({
+          embeds: [createEmbed(currentPage)],
+          components: [getPaginationButtons(currentPage)],
+          ephemeral: true,
+        })
+      } catch (error) {
+        console.error(`Error sending reply: ${error.message}`)
+      }
+
+      const collector = interaction.channel.createMessageComponentCollector({
+        time: 60000,
+      })
+
+      collector.on('collect', async (buttonInteraction) => {
+        if (buttonInteraction.user.id !== interaction.user.id) {
+          await buttonInteraction.reply({
+            content: "This interaction isn't for you.",
+            ephemeral: true,
+          })
+          return
+        }
+
+        if (buttonInteraction.customId === 'finish') {
+          collector.stop('finished')
+          return
+        }
+
+        if (buttonInteraction.customId === 'previous') {
+          currentPage = Math.max(currentPage - 1, 0)
+        } else if (buttonInteraction.customId === 'next') {
+          currentPage = Math.min(
+            currentPage + 1,
+            Math.ceil(filteredItems.length / itemsPerPage) - 1
+          )
+        } else if (buttonInteraction.customId === 'equip') {
+          const equipEmbed = new EmbedBuilder()
+            .setTitle('Equip/Unequip Items')
+            .setDescription(
+              `Type the number of the item you'd like to equip/unequip from the inventory.`
+            )
+            .setFooter({ text: 'Reply with "cancel" to exit this menu.' })
+            .setColor('Yellow')
+
+          try {
+            await buttonInteraction.reply({
+              embeds: [equipEmbed],
+              ephemeral: true,
+            })
+          } catch (error) {
+            console.error(`Error sending reply: ${error.message}`)
+          }
+
+          const messageCollector = interaction.channel.createMessageCollector({
+            filter: (msg) => msg.author.id === interaction.user.id,
+            time: 30000,
+          })
+
+          messageCollector.on('collect', async (message) => {
+            if (message.content.toLowerCase() === 'cancel') {
+              await messageCollector.stop('cancel')
+              return
+            }
+
+            const itemIndex =
+              parseInt(message.content, 10) - 1 + currentPage * itemsPerPage
+
+            if (
+              isNaN(itemIndex) ||
+              itemIndex < 0 ||
+              itemIndex >= filteredItems.length
+            ) {
+              await message.reply(
+                'Invalid selection. Please choose a valid item number.'
+              )
+              return
+            }
+
+            const selectedItem = filteredItems[itemIndex]
+
+            if (selectedItem.equipped) {
+              await Inventory.update(
+                { equipped: false },
+                { where: { id: selectedItem.id } }
+              )
+              await message.reply(`Unequipped ${selectedItem.BaseItem.name}.`)
+            } else {
+              const itemType = selectedItem.BaseItem.type
+
+              // Ensure only one weapon and one defense can be equipped
+              if (itemType === 'weapon') {
+                await Inventory.update(
+                  { equipped: false },
+                  {
+                    where: {
+                      winterWarId: player.id,
+                      equipped: true,
+                      '$BaseItem.type$': 'weapon',
+                    },
+                  }
+                )
+              } else if (itemType === 'defense') {
+                await Inventory.update(
+                  { equipped: false },
+                  {
+                    where: {
+                      winterWarId: player.id,
+                      equipped: true,
+                      '$BaseItem.type$': 'defense',
+                    },
+                  }
+                )
+              }
+
+              await Inventory.update(
+                { equipped: true },
+                { where: { id: selectedItem.id } }
+              )
+
+              await message.reply(`Equipped ${selectedItem.BaseItem.name}.`)
+            }
+
+            messageCollector.stop()
+          })
+
+          messageCollector.on('end', async (_, reason) => {
+            if (reason === 'time') {
+              await interaction.followUp({
+                content: 'Equip/Unequip session timed out.',
+                ephemeral: true,
+              })
+            }
+          })
+        }
+
+        await buttonInteraction.update({
+          embeds: [createEmbed(currentPage)],
+          components: [getPaginationButtons(currentPage)],
+        })
+      })
+
+      collector.on('end', async () => {
+        await interaction.editReply({
+          components: [],
+        })
+      })
     } else if (subcommand === 'fight') {
       // Fetch player data
       const player = await WinterWar.findOne({ where: { userId } })
@@ -162,10 +483,22 @@ module.exports = {
       )
 
       // Select a random monster
-      const monster = await WinterMonster.findOne({ order: sequelize.random() })
-      if (!monster) {
+      try {
+        const monster = await WinterMonster.findOne({
+          order: sequelize.random(),
+        })
+        if (!monster) {
+          await interaction.reply({
+            content: '❄️ No monsters available. Please try again later!',
+            ephemeral: true,
+          })
+          return
+        }
+      } catch (error) {
+        console.error(`Error fetching monster: ${error.message}`)
         await interaction.reply({
-          content: '❄️ No monsters available. Please try again later!',
+          content:
+            'An error occurred while starting the battle. Please try again later.',
           ephemeral: true,
         })
         return
@@ -178,39 +511,6 @@ module.exports = {
         history: [],
         turn: 'player',
         defenseModifier: 1,
-      }
-
-      // Strength/Defense Boost Logic
-      const getBoostMultiplier = (stat) => {
-        const boosts = [
-          { threshold: 750, multiplier: 16 },
-          { threshold: 700, multiplier: 15 },
-          { threshold: 650, multiplier: 14 },
-          { threshold: 600, multiplier: 13 },
-          { threshold: 550, multiplier: 12 },
-          { threshold: 500, multiplier: 11 },
-          { threshold: 450, multiplier: 9.75 },
-          { threshold: 400, multiplier: 8.5 },
-          { threshold: 350, multiplier: 7.5 },
-          { threshold: 300, multiplier: 6.5 },
-          { threshold: 250, multiplier: 5.5 },
-          { threshold: 200, multiplier: 4.5 },
-          { threshold: 125, multiplier: 3 },
-          { threshold: 85, multiplier: 2.5 },
-          { threshold: 55, multiplier: 2 },
-          { threshold: 35, multiplier: 1.5 },
-          { threshold: 20, multiplier: 1.25 },
-          { threshold: 13, multiplier: 1 },
-          { threshold: 8, multiplier: 0.75 },
-          { threshold: 0, multiplier: 0.5 },
-        ]
-
-        for (const boost of boosts) {
-          if (stat >= boost.threshold) {
-            return boost.multiplier
-          }
-        }
-        return 0.5
       }
 
       // Agility-Based Damage Swing Logic
@@ -268,11 +568,15 @@ module.exports = {
       })
 
       // Reply with the initial battle state
-      await interaction.reply({
-        embeds: [generateBattleEmbed()],
-        components: [actionRow],
-        ephemeral: true,
-      })
+      try {
+        await interaction.reply({
+          embeds: [generateBattleEmbed()],
+          components: [actionRow],
+          ephemeral: true,
+        })
+      } catch (error) {
+        console.error(`Error sending reply: ${error.message}`)
+      }
 
       // Monster Turn Logic
       const monsterTurn = async () => {
@@ -284,7 +588,10 @@ module.exports = {
         )
 
         const finalDamage = Math.max(
-          monsterAttack - player.defense * getBoostMultiplier(player.defense),
+          monsterAttack -
+            player.defense *
+              getBoostMultiplier(player.defense) *
+              battleState.defenseModifier,
           1
         )
 
@@ -298,6 +605,7 @@ module.exports = {
           return
         }
 
+        battleState.defenseModifier = 1
         battleState.turn = 'player'
         await interaction.editReply({ embeds: [generateBattleEmbed()] })
       }
