@@ -587,60 +587,141 @@ module.exports = {
           )
           .setColor('Blue')
 
-      // Create action buttons
-      const actionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('attack')
-          .setLabel('Attack')
-          .setStyle('Primary'),
-        new ButtonBuilder()
-          .setCustomId('fierce_attack')
-          .setLabel('Fierce Attack')
-          .setStyle('Danger')
-      )
-
-      equippedWeapons.forEach((weapon, index) => {
-        actionRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId(`weapon_${index}`)
-            .setLabel(`Use ${weapon.item.name}`)
-            .setStyle('Secondary')
-        )
-      })
+          const generateActionButtons = () => {
+            const actionRow = new ActionRowBuilder();
+          
+            // Check if weapons are equipped
+            if (equippedWeapons.length > 0) {
+              equippedWeapons.forEach((weapon, index) => {
+                // Calculate average damage (primary and secondary)
+                const primaryAverage =
+                  (weapon.item.damageMin + weapon.item.damageMax) / 2;
+                const secondaryAverage =
+                  weapon.item.damage2Min && weapon.item.damage2Max
+                    ? (weapon.item.damage2Min + weapon.item.damage2Max) / 2
+                    : 0;
+          
+                const totalAverage = Math.floor(primaryAverage + secondaryAverage);
+          
+                // Add a button for each weapon
+                actionRow.addComponents(
+                  new ButtonBuilder()
+                    .setCustomId(`weapon_${index}`)
+                    .setLabel(`${weapon.item.name} [${totalAverage}]`)
+                    .setStyle('Secondary')
+                );
+              });
+            } else {
+              // Add fallback "Basic Attack" button if no weapons are equipped
+              actionRow.addComponents(
+                new ButtonBuilder()
+                  .setCustomId('basic_attack')
+                  .setLabel('Basic Attack')
+                  .setStyle('Primary')
+              );
+            }
+          
+            // Add the "Fierce Attack" button
+            actionRow.addComponents(
+              new ButtonBuilder()
+                .setCustomId('fierce_attack')
+                .setLabel('Fierce Attack')
+                .setStyle('Danger')
+            );
+          
+            return actionRow;
+          };
+          
 
       // Reply with the initial battle state
       await interaction.editReply({
         embeds: [generateBattleEmbed()],
-        components: [actionRow],
+        components: [generateActionButtons()],
       })
 
       // Monster Turn Logic
       const monsterTurn = async () => {
+        // Parse monster's attacks if stored as JSON
+        const parsedAttacks =
+          typeof monster.attacks === 'string'
+            ? JSON.parse(monster.attacks)
+            : monster.attacks
+
+        // Filter attacks by specific conditions (e.g., player HP < 3)
+        const prioritizedAttacks = parsedAttacks.filter((attack) => {
+          // Example condition: Use high-damage attacks if player HP is low
+          if (battleState.playerHP < 3 && attack.damageMax > 2) {
+            return true
+          }
+          // Otherwise, keep all attacks available
+          return true
+        })
+
+        // Sort attacks by priority (higher priority first)
+        prioritizedAttacks.sort((a, b) => b.priority - a.priority)
+
+        // Select attack: Weighted random or highest priority
+        const chosenAttack = prioritizedAttacks[0] // Default to the highest-priority attack
+
+        // Calculate raw attack damage
         const monsterAttack = calculateDamageWithAgility(
-          monster.damageMin,
-          monster.damageMax,
+          chosenAttack.damageMin,
+          chosenAttack.damageMax,
           monster.agility,
           player.agility
         )
 
+        // Calculate type-specific defense
+        let totalDefense = 0
+
+        // Check for type-specific defense items equipped by the player
+        for (const item of equippedItems) {
+          if (item.damageType === chosenAttack.damageType) {
+            totalDefense += item.defense
+          }
+        }
+
+        // Fallback to default player defense if no type-specific defense applies
+        if (totalDefense === 0) {
+          totalDefense = player.defense * getBoostMultiplier(player.defense)
+        }
+
+        const effectivePlayerDefense =
+          player.defense *
+          getBoostMultiplier(player.defense) *
+          battleState.defenseModifier
+
+        // Calculate final damage
         const finalDamage = Math.max(
-          monsterAttack -
-            player.defense *
-              getBoostMultiplier(player.defense) *
-              battleState.defenseModifier,
-          1
+          monsterAttack - totalDefense,
+          1 // Minimum damage floor
         )
 
+        // Apply damage to the player
         battleState.playerHP -= finalDamage
-        battleState.history.push(
-          `${monster.name} attacks ${interaction.user.username} for ${finalDamage} damage!`
-        )
 
+        // Log the attack in the battle history
+        battleState.history.push(
+          `${monster.name} uses ${chosenAttack.name} (${chosenAttack.damageType}) against ${interaction.user.username} for ${finalDamage} damage!`
+        )
+        // battleState.history.push(
+        //   `🛡️ Your effective defense during this attack: ${Math.floor(
+        //     effectivePlayerDefense
+        //   )}`
+        // );
+
+        console.log(`[Monster Turn Log] Monster Attack: ${monsterAttack}`)
+        console.log(
+          `[Monster Turn Log] Player Effective Defense: ${effectivePlayerDefense}`
+        )
+        console.log(`[Monster Turn Log] Final Damage: ${finalDamage}`)
+        // Check if the player is defeated
         if (battleState.playerHP <= 0) {
           collector.stop('defeat')
           return
         }
 
+        // Pass turn back to the player
         battleState.defenseModifier = 1
         battleState.turn = 'player'
         await interaction.editReply({ embeds: [generateBattleEmbed()] })
@@ -669,8 +750,8 @@ module.exports = {
 
           if (action === 'attack') {
             const playerAttack = calculateDamageWithAgility(
-              equippedWeapons[0]?.item.damageMin || player.strength,
-              equippedWeapons[0]?.item.damageMax || player.strength * 2,
+              equippedWeapons[0]?.item.damageMin || 1,
+              equippedWeapons[0]?.item.damageMax || 2,
               player.agility,
               monster.agility
             )
@@ -686,24 +767,79 @@ module.exports = {
               `${interaction.user.username} attacks ${monster.name} for ${finalDamage} damage!`
             )
           } else if (action === 'fierce_attack') {
-            const playerAttack =
-              calculateDamageWithAgility(
-                player.strength,
-                player.strength * 2,
-                player.agility,
-                monster.agility
-              ) * 1.5
+            // Calculate the total base damage
+            let basePlayerAttack = equippedWeapons.reduce(
+              (totalDamage, weapon) => {
+                const primaryDamage = calculateDamageWithAgility(
+                  weapon.item.damageMin,
+                  weapon.item.damageMax,
+                  player.agility,
+                  monster.agility
+                )
 
-            const finalDamage = Math.max(
-              playerAttack -
-                monster.defense * getBoostMultiplier(monster.defense),
-              1
+                const secondaryDamage =
+                  weapon.item.damage2Min && weapon.item.damage2Max
+                    ? calculateDamageWithAgility(
+                        weapon.item.damage2Min,
+                        weapon.item.damage2Max,
+                        player.agility,
+                        monster.agility
+                      )
+                    : 0
+
+                return totalDamage + primaryDamage + secondaryDamage
+              },
+              0
             )
 
-            battleState.monsterHP -= finalDamage
-            battleState.defenseModifier = 0.5 // Reduce player's defense for next monster attack
+            // Add unarmed damage if no weapons are equipped
+            if (equippedWeapons.length === 0) {
+              basePlayerAttack += calculateDamageWithAgility(
+                1, // Unarmed damageMin
+                2, // Unarmed damageMax
+                player.agility,
+                monster.agility
+              )
+            }
+
+            // Apply fierce attack multiplier
+            const fiercePlayerAttack = basePlayerAttack * 1.5
+
+            // Calculate final damage
+            const finalFierceDamage = Math.max(
+              Math.floor(fiercePlayerAttack) -
+                monster.defense * getBoostMultiplier(monster.defense),
+              2 // Minimum damage floor for fierce attacks
+            )
+
+            // Apply damage to the monster
+            battleState.monsterHP -= finalFierceDamage
+
+            // Adjust defense penalty based on equipped weapons
+            if (equippedWeapons.length === 2) {
+              battleState.defenseModifier = 0.25 // 75% reduction
+            } else if (equippedWeapons.length === 1) {
+              battleState.defenseModifier = 0.5 // 50% reduction
+            } else {
+              battleState.defenseModifier = 1 // No penalty if unarmed
+            }
+
+            // Log the fierce attack
             battleState.history.push(
-              `${interaction.user.username} uses a fierce attack on ${monster.name} for ${finalDamage} damage!`
+              `${interaction.user.username} uses a fierce attack on ${monster.name} for ${finalFierceDamage} damage!`
+            )
+
+            battleState.history.push(
+              `⚔️ Fierce attack increased your damage by 1.5× but reduced your defense by ${
+                equippedWeapons.length === 2 ? '75%' : '50%'
+              } until your next turn.`
+            )
+
+            console.log(
+              `[Fierce Attack Log] Base Player Attack: ${basePlayerAttack}, Fierce Damage: ${finalFierceDamage}`
+            )
+            console.log(
+              `[Fierce Attack Log] Defense Modifier Applied: ${battleState.defenseModifier}`
             )
           } else if (action.startsWith('weapon_')) {
             const weaponIndex = parseInt(action.split('_')[1], 10)
