@@ -33,6 +33,7 @@ module.exports = {
           },
         ]),
         flavorText: 'A mischievous goat that curses your name!',
+        url: 'julbock'
       },
       // {
       //   name: 'Inflatable Frostbeast',

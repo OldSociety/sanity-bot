@@ -586,52 +586,54 @@ module.exports = {
   ${battleState.history.slice(-5).join('\n') || 'No actions yet.'}`
           )
           .setColor('Blue')
+          .setThumbnail(
+            `https://raw.githubusercontent.com/OldSociety/sanity-bot/main/assets/${monster.url}.png`
+          )
 
-          const generateActionButtons = () => {
-            const actionRow = new ActionRowBuilder();
-          
-            // Check if weapons are equipped
-            if (equippedWeapons.length > 0) {
-              equippedWeapons.forEach((weapon, index) => {
-                // Calculate average damage (primary and secondary)
-                const primaryAverage =
-                  (weapon.item.damageMin + weapon.item.damageMax) / 2;
-                const secondaryAverage =
-                  weapon.item.damage2Min && weapon.item.damage2Max
-                    ? (weapon.item.damage2Min + weapon.item.damage2Max) / 2
-                    : 0;
-          
-                const totalAverage = Math.floor(primaryAverage + secondaryAverage);
-          
-                // Add a button for each weapon
-                actionRow.addComponents(
-                  new ButtonBuilder()
-                    .setCustomId(`weapon_${index}`)
-                    .setLabel(`${weapon.item.name} [${totalAverage}]`)
-                    .setStyle('Secondary')
-                );
-              });
-            } else {
-              // Add fallback "Basic Attack" button if no weapons are equipped
-              actionRow.addComponents(
-                new ButtonBuilder()
-                  .setCustomId('basic_attack')
-                  .setLabel('Basic Attack')
-                  .setStyle('Primary')
-              );
-            }
-          
-            // Add the "Fierce Attack" button
+      const generateActionButtons = () => {
+        const actionRow = new ActionRowBuilder()
+
+        // Check if weapons are equipped
+        if (equippedWeapons.length > 0) {
+          equippedWeapons.forEach((weapon, index) => {
+            // Calculate average damage (primary and secondary)
+            const primaryAverage =
+              (weapon.item.damageMin + weapon.item.damageMax) / 2
+            const secondaryAverage =
+              weapon.item.damage2Min && weapon.item.damage2Max
+                ? (weapon.item.damage2Min + weapon.item.damage2Max) / 2
+                : 0
+
+            const totalAverage = Math.floor(primaryAverage + secondaryAverage)
+
+            // Add a button for each weapon
             actionRow.addComponents(
               new ButtonBuilder()
-                .setCustomId('fierce_attack')
-                .setLabel('Fierce Attack')
-                .setStyle('Danger')
-            );
-          
-            return actionRow;
-          };
-          
+                .setCustomId(`weapon_${index}`)
+                .setLabel(`${weapon.item.name} [${totalAverage}]`)
+                .setStyle('Secondary')
+            )
+          })
+        } else {
+          // Add fallback "Basic Attack" button if no weapons are equipped
+          actionRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId('basic_attack')
+              .setLabel('Basic Attack')
+              .setStyle('Primary')
+          )
+        }
+
+        // Add the "Fierce Attack" button
+        actionRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId('fierce_attack')
+            .setLabel('Fierce Attack')
+            .setStyle('Danger')
+        )
+
+        return actionRow
+      }
 
       // Reply with the initial battle state
       await interaction.editReply({
@@ -888,11 +890,18 @@ module.exports = {
           resultEmbed
             .setDescription(`🎉 You defeated ${monster.name}!`)
             .setColor('Green')
+            .setThumbnail(
+              `https://raw.githubusercontent.com/OldSociety/sanity-bot/main/assets/${monster.url}.png`
+            )
+
           await player.increment('war_points', { by: 10 })
         } else if (reason === 'defeat') {
           resultEmbed
             .setDescription(`💔 You were defeated by ${monster.name}.`)
             .setColor('Red')
+            .setThumbnail(
+              `https://raw.githubusercontent.com/OldSociety/sanity-bot/main/assets/${monster.url}.png`
+            )
         } else {
           resultEmbed
             .setDescription('⏳ The battle ended due to inactivity.')

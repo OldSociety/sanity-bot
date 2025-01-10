@@ -37,6 +37,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      url: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
     })
   },
 
