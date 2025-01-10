@@ -11,8 +11,13 @@ const UserAchievement = require('./Achievement/UserAchievement')(
 const SpookyStat = require('./SpookyStat/SpookyStat')(sequelize, DataTypes)
 const WinterWar = require('./WinterWar/WinterWar')(sequelize, DataTypes)
 const WinterMonster = require('./WinterWar/WinterMonster')(sequelize, DataTypes)
+const PlayerMonsterStat = require('./WinterWar/PlayerMonsterStat')(
+  sequelize,
+  DataTypes
+)
 const BaseItem = require('./WinterWar/BaseItem')(sequelize, DataTypes)
 const Inventory = require('./WinterWar/Inventory')(sequelize, DataTypes)
+// Ensure models are loaded
 
 // Set up associations
 User.associate = (models) => {
@@ -72,13 +77,40 @@ Inventory.associate = (models) => {
   })
 }
 
+WinterWar.associate = (models) => {
+  WinterWar.hasMany(models.PlayerMonsterStat, {
+    foreignKey: 'playerId',
+    as: 'monsterStats',
+  });
+};
+
+WinterMonster.associate = (models) => {
+  WinterMonster.hasMany(models.PlayerMonsterStat, {
+    foreignKey: 'monsterId',
+    as: 'playerStats',
+  });
+};
+
+PlayerMonsterStat.associate = (models) => {
+  PlayerMonsterStat.belongsTo(models.WinterWar, {
+    foreignKey: 'playerId',
+    as: 'player',
+  });
+  PlayerMonsterStat.belongsTo(models.WinterMonster, {
+    foreignKey: 'monsterId',
+    as: 'monster',
+  });
+};
+
+
 // Call the associations
 User.associate({ Achievement, UserAchievement, SpookyStat, WinterWar })
 Achievement.associate({ User, UserAchievement })
 SpookyStat.associate({ User })
-WinterWar.associate({ User, Inventory })
+WinterWar.associate({ User, Inventory, PlayerMonsterStat })
 BaseItem.associate({ Inventory })
-Inventory.associate({ BaseItem, WinterWar });
+Inventory.associate({ BaseItem, WinterWar })
+PlayerMonsterStat.associate({ WinterWar, WinterMonster })
 
 module.exports = {
   User,
@@ -87,6 +119,7 @@ module.exports = {
   SpookyStat,
   WinterMonster,
   WinterWar,
-  BaseItem, // Export BaseItems
-  Inventory, // Export Inventory
+  BaseItem,
+  Inventory,
+  PlayerMonsterStat,
 }

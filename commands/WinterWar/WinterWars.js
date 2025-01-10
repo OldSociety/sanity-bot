@@ -10,6 +10,7 @@ const {
   WinterMonster,
   Inventory,
   BaseItem,
+  PlayerMonsterStat,
 } = require('../../Models/model.js')
 
 const STAT_BOOSTS = [
@@ -526,6 +527,7 @@ module.exports = {
         })
         return
       }
+
       const damageTypeEmojis = {
         physical: '✊', // Sword
         cold: '❄️', // Snowflake
@@ -996,34 +998,35 @@ module.exports = {
 
       // Collector end logic
       collector.on('end', async (collected, reason) => {
-        const resultEmbed = new EmbedBuilder().setTitle('Battle Result');
-      
+        const resultEmbed = new EmbedBuilder().setTitle('Battle Result')
+
         if (reason === 'victory') {
           resultEmbed
             .setDescription(`🎉 You defeated ${monster.name}!`)
             .setColor('Green')
             .setImage(
               `https://raw.githubusercontent.com/OldSociety/sanity-bot/main/assets/${monster.url}.png`
-            );
-      
-          await player.increment('war_points', { by: 10 });
+            )
+            .setFooter({ text: `🏆:  ` })
+
+          await player.increment('war_points', { by: 10 })
+          await playerMonsterStat.increment('victories', { by: 1 })
         } else if (reason === 'defeat') {
           resultEmbed
             .setDescription(`💔 You were defeated by ${monster.name}.`)
             .setColor('Red')
             .setThumbnail(
               `https://raw.githubusercontent.com/OldSociety/sanity-bot/main/assets/${monster.url}.png`
-            );
+            )
         } else {
           resultEmbed
             .setDescription('⏳ The battle ended due to inactivity.')
-            .setColor('Grey');
+            .setColor('Grey')
         }
-      
+
         // Follow up with a public message
-        await interaction.followUp({ embeds: [resultEmbed] });
-      });
-      
+        await interaction.followUp({ embeds: [resultEmbed] })
+      })
     }
   },
 }
