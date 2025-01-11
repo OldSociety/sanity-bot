@@ -28,9 +28,12 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
       },
+      resistance: {
+        type: Sequelize.JSON,
+        defaultValue: {},
+      },
       attacks: {
         type: Sequelize.JSON,
-        allowNull: false, // JSON to store multiple attacks with descriptions and effects
         defaultValue: [],
       },
       flavorText: {
@@ -39,6 +42,14 @@ module.exports = {
       },
       url: {
         type: Sequelize.STRING,
+        allowNull: true,
+      },
+      loot: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      droprate: {
+        type: Sequelize.FLOAT,
         allowNull: true,
       },
     })

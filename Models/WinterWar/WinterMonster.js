@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const WinterMonster = sequelize.define(
-    'WinterMonsters',
+    'WinterMonster',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -27,9 +27,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      resistance: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+      },
       attacks: {
         type: DataTypes.JSON,
-        allowNull: false, // JSON to store multiple attacks with descriptions and effects
         defaultValue: [],
       },
       flavorText: {
@@ -40,11 +43,19 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      loot: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      droprate: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
     },
     {
       timestamps: false, // No createdAt or updatedAt fields
     }
-  )
+  );
 
-  return WinterMonster
-}
+  return WinterMonster;
+};

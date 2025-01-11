@@ -12,44 +12,48 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       type: {
-        type: DataTypes.STRING, // e.g., "weapon", "armor", "consumable"
+        type: DataTypes.STRING,
         allowNull: false,
       },
       damageMin: {
-        type: DataTypes.INTEGER, // For weapons
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
       damageMax: {
-        type: DataTypes.INTEGER, // For weapons
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
       damage2Min: {
-        type: DataTypes.INTEGER, // For weapons
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
       damage2Max: {
-        type: DataTypes.INTEGER, // For weapons
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
       defense: {
-        type: DataTypes.INTEGER, // For shields/armor
-        defaultValue: 0,
+        type: DataTypes.JSON,
+        defaultValue: {},
       },
       healing: {
-        type: DataTypes.INTEGER, // For consumables
+        type: DataTypes.INTEGER,
         defaultValue: 0,
       },
       damageType: {
-        type: DataTypes.STRING, // e.g., "fire", "ice"
+        type: DataTypes.STRING,
         allowNull: true,
       },
       damageType2: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      duration: {
-        type: DataTypes.INTEGER, // For consumables
+      durability: {
+        type: DataTypes.INTEGER,
         allowNull: true,
+      },
+      effects: {
+        type: DataTypes.JSON,
+        defaultValue: {},
       },
       description: {
         type: DataTypes.TEXT,
