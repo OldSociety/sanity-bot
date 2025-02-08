@@ -17,6 +17,7 @@ const cron = require('node-cron') // Import cron
 const { Client, Collection, GatewayIntentBits } = require('discord.js')
 const { User, SpookyStat } = require('./Models/model')
 
+
 // Create a new client instance
 const client = new Client({
   intents: [
@@ -32,25 +33,25 @@ const client = new Client({
 
 // HALLOWEEN EVENT
 // Daily treat reward
-client.once('ready', async () => {
-  console.log(`Ready! Logged in as ${client.user.tag}`)
+// client.once('ready', async () => {
+//   console.log(`Ready! Logged in as ${client.user.tag}`)
 
-  // Check daily treats every 3 hours
-  cron.schedule('0 */3 * * *', async () => {
-    try {
-      const guild = await client.guilds.fetch(process.env.GUILDID)
-      if (guild) {
-        console.log('🎃 Running daily treat award...')
-        await awardDailyTreats(guild)
-        console.log('✅ Daily treats awarded successfully.')
-      }
-    } catch (error) {
-      console.error('❌ Error during daily treat award:', error)
-    }
-  })
+//   // Check daily treats every 3 hours
+//   cron.schedule('0 */3 * * *', async () => {
+//     try {
+//       const guild = await client.guilds.fetch(process.env.GUILDID)
+//       if (guild) {
+//         console.log('🎃 Running daily treat award...')
+//         await awardDailyTreats(guild)
+//         console.log('✅ Daily treats awarded successfully.')
+//       }
+//     } catch (error) {
+//       console.error('❌ Error during daily treat award:', error)
+//     }
+//   })
 
-  console.log('🕰️ Daily treat schedule set for midnight.')
-})
+//   console.log('🕰️ Daily treat schedule set for midnight.')
+// })
 
 global.client = client // Set global client after client initialization
 
@@ -99,12 +100,14 @@ const messageHandler = require('./handlers/messageHandler')
 const boosterHandler = require('./handlers/boosterHandler')
 const reminderHandler = require('./handlers/reminderHandler')
 const reportHandler = require('./handlers/reportHandler')
+const birthdayHandler = require('./handlers/birthdayHandler');
 
 
 messageHandler(client, User)
 boosterHandler(client, User)
 reminderHandler(client)
 reportHandler(client)
+birthdayHandler(client)
 
 // Log in to Discord with your client's token
 client.login(process.env.TOKEN)

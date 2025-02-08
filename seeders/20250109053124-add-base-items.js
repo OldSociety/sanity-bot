@@ -6,6 +6,8 @@ module.exports = {
       {
         name: 'Magic Snowball',
         type: 'consumable',
+        rarity: 'unique',
+        theme: 'winter',
         damageMin: 4,
         damageMax: 5,
         damageType: 'cold',
@@ -40,6 +42,8 @@ module.exports = {
       {
         name: 'Basic Shield',
         type: 'defense',
+        rarity: 'common',
+        theme: null,
         damageMin: 0,
         damageMax: 0,
         damageType: null,

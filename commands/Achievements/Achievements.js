@@ -189,8 +189,8 @@ module.exports = {
           }
         }
 
-    // Sort achievements alphabetically by name
-    achievementsData.sort((a, b) => a.name.localeCompare(b.name))
+        // Sort achievements alphabetically by name
+        achievementsData.sort((a, b) => a.name.localeCompare(b.name))
 
         // Split achievements into groups of 10 for the embed
         const pageSize = 10
@@ -229,22 +229,25 @@ module.exports = {
         })
 
         const collector = interaction.channel.createMessageComponentCollector({
-          filter: (i) => i.user.id === interaction.user.id,
-          time: 60000, // 1-minute timeout
+          filter: (i) =>
+            i.user.id === interaction.user.id &&
+            ['previous', 'next'].includes(i.customId),
+          time: 60000,
         })
 
         collector.on('collect', async (i) => {
-          if (i.customId === 'previous' && currentPage > 0) {
-            currentPage--
-          } else if (i.customId === 'next' && currentPage < totalPages - 1) {
-            currentPage++
+          try {
+            if (i.customId === 'previous' && currentPage > 0) currentPage--
+            else if (i.customId === 'next' && currentPage < totalPages - 1)
+              currentPage++
+
+            row.components[0].setDisabled(currentPage === 0)
+            row.components[1].setDisabled(currentPage >= totalPages - 1)
+
+            await i.update({ embeds: [embeds[currentPage]], components: [row] })
+          } catch (error) {
+            console.error('Error updating interaction:', error)
           }
-
-          // Update embed and buttons
-          row.components[0].setDisabled(currentPage === 0)
-          row.components[1].setDisabled(currentPage >= totalPages - 1)
-
-          await i.update({ embeds: [embeds[currentPage]], components: [row] })
         })
 
         collector.on('end', () => {
@@ -427,56 +430,62 @@ module.exports = {
     // Award or Remove achievement command
     else if (subcommand === 'award' || subcommand === 'remove') {
       try {
-        console.log(`Subcommand: ${subcommand}, User ID: ${interaction.user.id}`);
-    
-        const user = interaction.options.getUser('user');
+        console.log(
+          `Subcommand: ${subcommand}, User ID: ${interaction.user.id}`
+        )
+
+        const user = interaction.options.getUser('user')
         const userData = await User.findOne({
           where: { user_id: user.id },
           include: [{ model: Achievement, through: { attributes: [] } }],
-        });
-    
+        })
+
         if (!userData) {
-          console.log(`User not found in database: ${user.id}`);
+          console.log(`User not found in database: ${user.id}`)
           return interaction.reply({
             content: 'User not found.',
             ephemeral: true,
-          });
+          })
         }
-    
-        console.log(`Retrieved userData for ${user.username}`);
-    
-        let achievements = [];
+
+        console.log(`Retrieved userData for ${user.username}`)
+
+        let achievements = []
         if (subcommand === 'remove') {
-          achievements = userData.Achievements;
+          achievements = userData.Achievements
           if (achievements.length === 0) {
-            console.log(`No achievements to remove for user: ${user.username}`);
+            console.log(`No achievements to remove for user: ${user.username}`)
             return interaction.reply({
               content: `${user.username} has no achievements to remove.`,
               ephemeral: true,
-            });
+            })
           }
         } else {
-          achievements = await Achievement.findAll();
+          achievements = await Achievement.findAll()
         }
-    
+
         if (!achievements || achievements.length === 0) {
-          console.log(`No achievements available for ${subcommand === 'remove' ? 'removal' : 'award'}.`);
+          console.log(
+            `No achievements available for ${
+              subcommand === 'remove' ? 'removal' : 'award'
+            }.`
+          )
           return interaction.reply({
             content: `No achievements available for ${
               subcommand === 'remove' ? 'removal' : 'award'
             }.`,
             ephemeral: true,
-          });
+          })
         }
-    
+
         // Sort achievements alphabetically by name
-        achievements = achievements.sort((a, b) => a.name.localeCompare(b.name));
-        console.log(`Achievements sorted alphabetically for ${subcommand}.`);
-    
-        const pageSize = 25;
-        let currentPage = 0;
-        const totalPages = Math.ceil(achievements.length / pageSize);
-    
+        achievements = achievements.sort((a, b) => a.name.localeCompare(b.name))
+        console.log(`Achievements sorted alphabetically for ${subcommand}.`)
+
+        const pageSize = 25
+        let currentPage = 0
+        const totalPages = Math.ceil(achievements.length / pageSize)
+
         const createDropdown = (page) => {
           const achievementOptions = achievements
             .slice(page * pageSize, (page + 1) * pageSize)
@@ -484,18 +493,18 @@ module.exports = {
               label: achievement.name,
               description: achievement.description,
               value: achievement.id.toString(),
-            }));
-    
+            }))
+
           return new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('select-achievement')
               .setPlaceholder('Select an achievement')
               .addOptions(achievementOptions)
-          );
-        };
-    
+          )
+        }
+
         const createNavigationButtons = () => {
-          const navButtons = new ActionRowBuilder();
+          const navButtons = new ActionRowBuilder()
           if (totalPages > 1) {
             navButtons.addComponents(
               new ButtonBuilder()
@@ -507,53 +516,49 @@ module.exports = {
                 .setCustomId('next_page')
                 .setLabel('Next')
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(currentPage === totalPages - 1)
-            );
+                .setDisabled(currentPage >= totalPages - 1)
+            )
           }
-          return navButtons;
-        };
-    
-        await interaction.deferReply({ ephemeral: true });
-        console.log('Deferred interaction reply.');
-    
+          return navButtons
+        }
+
+        await interaction.deferReply({ ephemeral: true })
+        console.log('Deferred interaction reply.')
+
         const initialMessage = await interaction.followUp({
           content: `Please select an achievement to ${
             subcommand === 'award' ? 'award' : 'remove'
           }:`,
           components: [createDropdown(currentPage), createNavigationButtons()],
           ephemeral: true,
-        });
-    
-        console.log(`Initial message sent for ${subcommand} subcommand.`);
-    
+        })
+
+        console.log(`Initial message sent for ${subcommand} subcommand.`)
+
         const filter = (i) =>
           ['select-achievement', 'prev_page', 'next_page'].includes(
             i.customId
-          ) && i.user.id === interaction.user.id;
-    
+          ) && i.user.id === interaction.user.id
+
         const collector = interaction.channel.createMessageComponentCollector({
           filter,
           time: 60000,
-        });
-    
+        })
+
         collector.on('collect', async (i) => {
           try {
-            await i.deferUpdate(); // Immediate defer to prevent interaction expiry
-    
             if (i.customId === 'select-achievement') {
-              console.log(`Achievement selected: ${i.values[0]}`);
-              const achievementId = i.values[0];
-              const achievement = await Achievement.findByPk(achievementId);
-    
+              const achievementId = i.values[0]
+              const achievement = await Achievement.findByPk(achievementId)
+
               if (!achievement) {
-                console.log(`Achievement not found: ID ${achievementId}`);
-                await i.update({
+                console.log(`Achievement not found: ID ${achievementId}`)
+                return i.reply({
                   content: 'Achievement not found.',
-                  components: [],
-                });
-                return;
+                  ephemeral: true,
+                })
               }
-    
+
               const confirmationRow = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                   .setCustomId('confirm-achievement')
@@ -563,9 +568,9 @@ module.exports = {
                   .setCustomId('cancel-achievement')
                   .setLabel('Cancel')
                   .setStyle(ButtonStyle.Secondary)
-              );
-    
-              await i.followUp({
+              )
+
+              await i.reply({
                 content: `Are you sure you want to ${
                   subcommand === 'award' ? 'award' : 'remove'
                 } the achievement **${achievement.name}** ${
@@ -573,51 +578,88 @@ module.exports = {
                 } ${user.username}?`,
                 components: [confirmationRow],
                 ephemeral: true,
-              });
+              })
+
+              const confirmationFilter = (btnInteraction) =>
+                ['confirm-achievement', 'cancel-achievement'].includes(
+                  btnInteraction.customId
+                ) && btnInteraction.user.id === i.user.id
+
+              const confirmationCollector =
+                i.channel.createMessageComponentCollector({
+                  filter: confirmationFilter,
+                  time: 10000,
+                })
+
+              confirmationCollector.on('collect', async (btnInteraction) => {
+                if (btnInteraction.customId === 'confirm-achievement') {
+                  if (subcommand === 'award') {
+                    await UserAchievement.create({
+                      user_id: user.id,
+                      achievement_id: achievement.id,
+                    })
+                    await btnInteraction.update({
+                      content: `Achievement **${achievement.name}** has been awarded to ${user.username}.`,
+                      components: [],
+                    })
+                  } else if (subcommand === 'remove') {
+                    await UserAchievement.destroy({
+                      where: {
+                        user_id: user.id,
+                        achievement_id: achievement.id,
+                      },
+                    })
+                    await btnInteraction.update({
+                      content: `Achievement **${achievement.name}** has been removed from ${user.username}.`,
+                      components: [],
+                    })
+                  }
+                } else {
+                  await btnInteraction.update({
+                    content: 'Action canceled.',
+                    components: [],
+                  })
+                }
+                confirmationCollector.stop()
+              })
+
+              confirmationCollector.on('end', async () => {
+                console.log('Confirmation collector ended.')
+              })
             } else if (i.customId === 'prev_page') {
-              currentPage = Math.max(currentPage - 1, 0);
-              console.log(`Navigated to previous page: ${currentPage + 1}`);
+              currentPage = Math.max(currentPage - 1, 0)
               await i.update({
-                components: [createDropdown(currentPage), createNavigationButtons()],
-              });
+                components: [
+                  createDropdown(currentPage),
+                  createNavigationButtons(),
+                ],
+              })
             } else if (i.customId === 'next_page') {
-              currentPage = Math.min(currentPage + 1, totalPages - 1);
-              console.log(`Navigated to next page: ${currentPage + 1}`);
+              currentPage = Math.min(currentPage + 1, totalPages - 1)
               await i.update({
-                components: [createDropdown(currentPage), createNavigationButtons()],
-              });
+                components: [
+                  createDropdown(currentPage),
+                  createNavigationButtons(),
+                ],
+              })
             }
           } catch (error) {
-            console.error('Error updating interaction:', error);
+            console.error('Error updating interaction:', error)
           }
-        });
-    
+        })
+
         collector.on('end', async () => {
-          try {
-            console.log('Collector ended. Clearing components from initial message.');
-            await initialMessage.edit({
-              components: [],
-            });
-          } catch (error) {
-            if (error.code === 10008) {
-              console.error('Unknown Message, likely already deleted.');
-            } else if (error.code === 10062) {
-              console.error('Interaction has expired.');
-            } else {
-              console.error('Error clearing components after collector ends:', error);
-            }
-          }
-        });
+          console.log('Collector ended.')
+          await initialMessage.edit({ components: [] })
+        })
       } catch (error) {
-        console.error('Error managing achievements:', error);
-        return interaction.reply({
+        console.error('Error managing achievements:', error)
+        await interaction.reply({
           content: 'There was an error managing the achievement.',
           ephemeral: true,
-        });
+        })
       }
-    }
-    
- else if (subcommand === 'upload') {
+    } else if (subcommand === 'upload') {
       console.log('Upload command triggered.')
 
       const file = interaction.options.getAttachment('file')

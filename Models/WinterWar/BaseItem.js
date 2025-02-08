@@ -15,6 +15,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      rarity: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      theme: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       damageMin: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

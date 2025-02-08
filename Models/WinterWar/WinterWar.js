@@ -15,27 +15,11 @@ module.exports = (sequelize, DataTypes) => {
           key: 'user_id',
         },
       },
-      hp: {
+      snowballs: {
         type: DataTypes.INTEGER,
-        defaultValue: 5,
+        defaultValue: 0,
       },
-      strength: {
-        type: DataTypes.INTEGER,
-        defaultValue: 5,
-      },
-      defense: {
-        type: DataTypes.INTEGER,
-        defaultValue: 5,
-      },
-      agility: {
-        type: DataTypes.INTEGER,
-        defaultValue: 5,
-      },
-      statPoints: {
-        type: DataTypes.INTEGER,
-        defaultValue: 10,
-      },
-      war_points: {
+      success_ratio: {
         type: DataTypes.INTEGER,
         defaultValue: 100,
       },

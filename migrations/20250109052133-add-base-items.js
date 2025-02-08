@@ -16,6 +16,14 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      rarity: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      theme: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
       damageMin: {
         type: Sequelize.INTEGER,
         defaultValue: 0,
