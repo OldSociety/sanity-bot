@@ -8,31 +8,29 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true,
       },
-      winterWarId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'WinterWars',
-          key: 'id',
-        },
-      },
-      itemId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'BaseItems',
-          key: 'id',
-        },
-      },
-      equipped: {
-        type: Sequelize.BOOLEAN,
+      name: {
+        type: Sequelize.TEXT,
         defaultValue: false,
       },
-      count: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 1, // Default to 1 when a new item is added
+      description: {
+        type: Sequelize.TEXT,
+        defaultValue: false,
       },
+      image_url: {
+        type: Sequelize.TEXT,
+        defaultValue: false,
+      },
+      cost: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+      },
+      stock: {
+        type: Sequelize.INTEGER,
+        defaultValue: -1, //Negative 1 for infinite
+      },
+    },
+    {
+      timestamps: false,
     })
   },
 
