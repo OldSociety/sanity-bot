@@ -1,6 +1,23 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
 const { User, Inventory } = require('../../Models/model.js')
-const { Op } = require('sequelize')
+const { Op, literal } = require('sequelize')
+
+// Helper function to generate a slug from a string.
+const slugify = (text) =>
+  text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
+
+// Fetch available items (stock > 0 or infinite) sorted with infinite stock first, then by name.
+const fetchAvailableItems = async () => {
+  return await Inventory.findAll({
+    where: {
+      stock: { [Op.or]: { [Op.gt]: 0, [Op.eq]: -1 } },
+    },
+    order: [
+      [literal("CASE WHEN stock = -1 THEN 0 ELSE 1 END"), 'ASC'],
+      ['name', 'ASC']
+    ]
+  })
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -44,8 +61,8 @@ module.exports = {
         .setDescription('Admins: Remove an item from the shop.')
         .addIntegerOption((option) =>
           option
-            .setName('id')
-            .setDescription('Item ID to remove')
+            .setName('number')
+            .setDescription('Item number (as displayed in the shop list) to remove')
             .setRequired(true)
         )
     )
@@ -55,8 +72,8 @@ module.exports = {
         .setDescription('Admins: Restock an item in the shop.')
         .addIntegerOption((option) =>
           option
-            .setName('id')
-            .setDescription('Item ID to restock')
+            .setName('number')
+            .setDescription('Item number (as displayed in the shop list) to restock')
             .setRequired(true)
         )
         .addIntegerOption((option) =>
@@ -77,8 +94,8 @@ module.exports = {
         .setDescription('Purchase an item from the shop.')
         .addIntegerOption((option) =>
           option
-            .setName('id')
-            .setDescription('Item ID to buy')
+            .setName('number')
+            .setDescription('Item number (as displayed in the shop list) to buy')
             .setRequired(true)
         )
     ),
@@ -91,28 +108,23 @@ module.exports = {
 
     if (!allowedChannelIds.includes(interaction.channel.id)) {
       return interaction.reply({
-        content: `This command can only be used in  <#${allowedChannelIds[0]}>.`,
+        content: `This command can only be used in <#${allowedChannelIds[0]}>.`,
         ephemeral: true,
       })
     }
 
-    console.log(
-      `Received /shop command: ${interaction.options.getSubcommand()}`
-    )
+    console.log(`Received /shop command: ${interaction.options.getSubcommand()}`)
 
     const member = interaction.member
-    const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    const isAdmin = member.roles.cache.has(
+      process.env.ADMINROLEID || process.env.MODERATORROLEID
+    )
     const subcommand = interaction.options.getSubcommand()
-    const itemId = interaction.options.getInteger('id')
-
-    console.log(`Subcommand: ${subcommand} | Item ID: ${itemId || 'N/A'}`)
 
     try {
       if (subcommand === 'add-item') {
         if (!isAdmin) {
-          console.log(
-            `Unauthorized add-item attempt by ${interaction.user.username}.`
-          )
+          console.log(`Unauthorized add-item attempt by ${interaction.user.username}.`)
           return interaction.reply({
             content: 'Only admins can add items.',
             ephemeral: true,
@@ -127,8 +139,12 @@ module.exports = {
 
         console.log(`Adding item: ${itemName}, Cost: ${cost}, Stock: ${stock}`)
 
+        // Generate slug from the item name.
+        const shopSlug = slugify(itemName)
+
         const newItem = await Inventory.create({
           name: itemName,
+          slug: shopSlug,
           description,
           image_url: image,
           cost,
@@ -144,6 +160,16 @@ module.exports = {
         })
       }
 
+      // For remove and restock, fetch all items without filtering by stock.
+      const fetchAllSortedItems = async () => {
+        return await Inventory.findAll({
+          order: [
+            [literal("CASE WHEN stock = -1 THEN 0 ELSE 1 END"), 'ASC'],
+            ['name', 'ASC']
+          ]
+        })
+      }
+
       if (subcommand === 'remove-item') {
         if (!isAdmin)
           return interaction.reply({
@@ -151,19 +177,29 @@ module.exports = {
             ephemeral: true,
           })
 
-        console.log(`Attempting to remove item ID: ${itemId}`)
-        const deleted = await Inventory.destroy({ where: { id: itemId } })
+        const number = interaction.options.getInteger('number')
+        const items = await fetchAllSortedItems()
+        if (number < 1 || number > items.length) {
+          console.log(`Invalid item number: ${number}`)
+          return interaction.reply({
+            content: 'Item not found. Please check the shop list for the correct number.',
+            ephemeral: true,
+          })
+        }
+        const targetItem = items[number - 1]
+        console.log(`Attempting to remove item: ${targetItem.name} (Slug: ${targetItem.slug})`)
+        const deleted = await Inventory.destroy({ where: { slug: targetItem.slug } })
         if (!deleted) {
-          console.log(`Item ID ${itemId} not found.`)
+          console.log(`Item ${targetItem.slug} not found.`)
           return interaction.reply({
             content: 'Item not found.',
             ephemeral: true,
           })
         }
 
-        console.log(`Item ID ${itemId} removed successfully.`)
+        console.log(`Item ${targetItem.slug} removed successfully.`)
         return interaction.reply({
-          content: `Item ID **${itemId}** removed from the shop.`,
+          content: `Item **${targetItem.name}** removed from the shop.`,
           ephemeral: true,
         })
       }
@@ -175,12 +211,22 @@ module.exports = {
             ephemeral: true,
           })
 
+        const number = interaction.options.getInteger('number')
         const newStock = interaction.options.getInteger('amount')
-        console.log(`Restocking item ID ${itemId} to ${newStock} units.`)
+        const items = await fetchAllSortedItems()
+        if (number < 1 || number > items.length) {
+          console.log(`Invalid item number: ${number}`)
+          return interaction.reply({
+            content: 'Item not found. Please check the shop list for the correct number.',
+            ephemeral: true,
+          })
+        }
+        const targetItem = items[number - 1]
+        console.log(`Restocking item: ${targetItem.name} (Slug: ${targetItem.slug}) to ${newStock} units.`)
 
         const updated = await Inventory.update(
-          { stock: newStock }, // Directly updating stock
-          { where: { id: itemId } }
+          { stock: newStock },
+          { where: { slug: targetItem.slug } }
         )
 
         if (!updated[0])
@@ -189,9 +235,9 @@ module.exports = {
             ephemeral: true,
           })
 
-        console.log(`Item ID ${itemId} restocked successfully.`)
+        console.log(`Item ${targetItem.slug} restocked successfully.`)
         return interaction.reply({
-          content: `Item ID **${itemId}** restocked to **${newStock}** units.`,
+          content: `Item **${targetItem.name}** restocked to **${newStock}** units.`,
           ephemeral: true,
         })
       }
@@ -199,12 +245,7 @@ module.exports = {
       if (subcommand === 'list') {
         console.log(`Fetching shop inventory.`)
 
-        // Fetch items where stock > 0 or stock = -1 (infinite)
-        const items = await Inventory.findAll({
-          where: {
-            stock: { [Op.or]: { [Op.gt]: 0, [Op.eq]: -1 } },
-          },
-        })
+        const items = await fetchAvailableItems()
 
         if (items.length === 0) {
           console.log(`No items found in shop.`)
@@ -217,9 +258,7 @@ module.exports = {
           where: { user_id: interaction.user.id },
         })
         if (!userData) {
-          console.log(
-            `User ${interaction.user.id} not found. Creating new entry.`
-          )
+          console.log(`User ${interaction.user.id} not found. Creating new entry.`)
           userData = await User.create({
             user_id: interaction.user.id,
             user_name: interaction.user.username,
@@ -229,15 +268,15 @@ module.exports = {
         }
         const embed = new EmbedBuilder()
           .setTitle('🛒 Meridian Campaign Setting Shop')
-          .setDescription('Use `/shop buy <item id>` to purchase an item.')
+          .setDescription('Use `/shop buy <number>` to purchase an item.')
           .setColor('#FFD700')
           .setFooter({
             text: `Current Fate: ${userData.fate_points}`,
           })
 
-        items.forEach((item) => {
+        items.forEach((item, index) => {
           embed.addFields({
-            name: `${item.id}. ${item.name} - **<:fatePoints:1338569506640887919>${item.cost}**`,
+            name: `${index + 1}. ${item.name} - **<:fatePoints:1338569506640887919>${item.cost}**`,
             value: `${item.description}\nStock: ${
               item.stock === -1 ? 'Infinite' : item.stock
             }`,
@@ -250,31 +289,30 @@ module.exports = {
       }
 
       if (subcommand === 'buy') {
-        console.log(
-          `User ${interaction.user.username} attempting to buy item ID: ${itemId}`
-        )
-        const item = await Inventory.findOne({
-          where: {
-            id: itemId,
-            stock: { [Op.or]: { [Op.gt]: 0, [Op.eq]: -1 } }, // Only allow purchase if stock is >0 or infinite (-1)
-          },
-        })
+        // Try to retrieve the option "number"; if null, fall back to "id"
+        let number = interaction.options.getInteger('number')
+        if (number === null) {
+          number = interaction.options.getInteger('id')
+        }
+        console.log(`User ${interaction.user.username} attempting to buy item number: ${number}`)
 
-        if (!item) {
-          console.log(`Item ID ${itemId} not found or out of stock.`)
+        // Use the same ordering as in the list command.
+        const items = await fetchAvailableItems()
+
+        if (number === null || number < 1 || number > items.length) {
+          console.log(`Invalid item number: ${number}`)
           return interaction.reply({
-            content: 'Item not found or out of stock.',
+            content: 'Item not found. Please check the shop list for the correct number.',
             ephemeral: true,
           })
         }
+        const targetItem = items[number - 1]
 
         let userData = await User.findOne({
           where: { user_id: interaction.user.id },
         })
         if (!userData) {
-          console.log(
-            `User ${interaction.user.id} not found. Creating new entry.`
-          )
+          console.log(`User ${interaction.user.id} not found. Creating new entry.`)
           userData = await User.create({
             user_id: interaction.user.id,
             user_name: interaction.user.username,
@@ -283,46 +321,41 @@ module.exports = {
           })
         }
 
-        if (userData.fate_points < item.cost) {
-          console.log(
-            `User ${interaction.user.username} does not have enough Fate Points.`
-          )
+        if (userData.fate_points < targetItem.cost) {
+          console.log(`User ${interaction.user.username} does not have enough Fate Points.`)
           return interaction.reply({
             content: 'Not enough Fate Points.',
             ephemeral: true,
           })
         }
 
-        // Deduct cost and update user
-        userData.fate_points -= item.cost
+        // Deduct cost and update user.
+        userData.fate_points -= targetItem.cost
         await userData.save()
 
-        // Reduce stock only if it's not infinite (-1)
-        if (item.stock > 0) {
-          item.stock -= 1
-          await item.save()
+        // Reduce stock only if it's not infinite (-1).
+        if (targetItem.stock > 0) {
+          targetItem.stock -= 1
+          await targetItem.save()
         }
 
-        console.log(
-          `User ${interaction.user.username} successfully purchased item ID ${itemId}.`
-        )
+        console.log(`User ${interaction.user.username} successfully purchased item: ${targetItem.name} (Slug: ${targetItem.slug}).`)
 
-        // Validate the image URL before using setImage()
         const embed = new EmbedBuilder()
           .setTitle('🎉 Purchase Successful')
           .setColor('#00FF00')
           .setDescription(
-            `${interaction.user.username}  bought **${item.name}** for **${item.cost}** Fate Points.`
+            `${interaction.user.username} bought **${targetItem.name}** for **${targetItem.cost}** Fate Points.`
           )
           .setFooter({
             text: `Current Fate: ${userData.fate_points}`,
           })
 
-        if (item.image_url && item.image_url.startsWith('http')) {
-          embed.setImage(item.image_url)
+        if (targetItem.image_url && targetItem.image_url.startsWith('http')) {
+          embed.setImage(targetItem.image_url)
         } else {
           console.warn(
-            `Invalid image URL for item ID ${itemId}: ${item.image_url}`
+            `Invalid image URL for item ${targetItem.slug}: ${targetItem.image_url}`
           )
         }
 
