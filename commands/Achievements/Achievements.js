@@ -595,19 +595,37 @@ module.exports = {
                 if (btnInteraction.customId === 'confirm-achievement') {
                   if (subcommand === 'award') {
                     await UserAchievement.create({
-                      user_id: user.id,
-                      achievement_id: achievement.id,
+                      // link user ↔ achievement
+                      userId: user.id,
+                      achievementId: achievement.id,
                     })
-                    await btnInteraction.update({
-                      content: `Achievement **${achievement.name}** has been awarded to ${user.username}.`,
-                      components: [],
-                    })
+
+                    const delta = achievement.secret ? 20 : 10
+                    const oldBank = userData.bank
+
+                    await userData.increment('bank', { by: delta }) // safer than +=
+                    await userData.reload() // get new balance
+
+                    await btnInteraction.update({ components: [] }) // tidy ephemerals
+
+                    const label = achievement.secret
+                      ? 'Secret Achievement'
+                      : 'Achievement'
+                    const embed = new EmbedBuilder()
+                      .setColor(0x00ff00)
+                      .setDescription(
+                        `✅ ${label} **${achievement.name}** awarded to **${user.username}**.\n\n*${achievement.description}*`
+                      )
+                      .addFields({
+                        name: 'Bank',
+                        value: `${oldBank} → ${userData.bank}`,
+                        inline: true,
+                      })
+
+                    await interaction.channel.send({ embeds: [embed] })
                   } else if (subcommand === 'remove') {
                     await UserAchievement.destroy({
-                      where: {
-                        user_id: user.id,
-                        achievement_id: achievement.id,
-                      },
+                      where: { userId: user.id, achievementId: achievement.id },
                     })
                     await btnInteraction.update({
                       content: `Achievement **${achievement.name}** has been removed from ${user.username}.`,
@@ -650,7 +668,14 @@ module.exports = {
 
         collector.on('end', async () => {
           console.log('Collector ended.')
-          await initialMessage.edit({ components: [] })
+          try {
+            // skip if the message was already deleted by Discord
+            if (!initialMessage?.deleted) {
+              await initialMessage.edit({ components: [] })
+            }
+          } catch (_) {
+            /* ignore 10008 */
+          }
         })
       } catch (error) {
         console.error('Error managing achievements:', error)
