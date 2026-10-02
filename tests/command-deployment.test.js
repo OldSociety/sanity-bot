@@ -2,6 +2,15 @@ const test = require('node:test'), assert = require('node:assert/strict')
 const { runDeployment, offlineDefinitions } = require('../deploy-commands')
 const { commandEntry, inventory, validateDefinition, loadRegistry } = require('../services/command-registry')
 const root = require('node:path').resolve(__dirname, '..')
+test('Discord omissions preserve false defaults and empty lists while enforcing supplied constraints', () => {
+  const { matches } = require('../deploy-commands')
+  const desired = { name: 'fixture', options: [{ name: 'empty', type: 1, options: [] }, { name: 'optional', type: 3, required: false, autocomplete: false }] }
+  const actual = { name: 'fixture', options: [{ name: 'empty', type: 1 }, { name: 'optional', type: 3 }] }
+  assert.equal(matches(actual, desired), true)
+  assert.equal(matches({ ...actual, options: [] }, desired), false)
+  assert.equal(matches({ type: 3 }, { type: 3, required: true }), false)
+  assert.equal(matches({ type: 1 }, { type: 1, options: [{ name: 'missing' }] }), false)
+})
 const desired = [{ type: 1, name: 'example', description: 'Synthetic example', options: [] }]
 function fixture(live = []) {
   const calls = [], runtime = { env: 'development', guildId: '123456789012345678', clientId: '234567890123456789', database: { storage: ':memory:' } }

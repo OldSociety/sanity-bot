@@ -37,6 +37,11 @@ function matches(actual, desired) {
   if (desired && typeof desired === 'object') return actual && Object.keys(desired).filter(key => desired[key] !== undefined).every(key => {
     // Guild commands omit global-only context/DM fields even if builders emit them.
     if (['dm_permission', 'contexts', 'integration_types'].includes(key)) return true
+    // Discord omits empty option lists and false option defaults in responses.
+    // Accept only these documented-equivalent omissions, retaining strict checks
+    // for true flags, nonempty lists, ordering and all supplied constraints.
+    if (actual[key] === undefined && ['options', 'choices'].includes(key) && Array.isArray(desired[key]) && desired[key].length === 0) return true
+    if (actual[key] === undefined && ['required', 'autocomplete'].includes(key) && desired[key] === false) return true
     return matches(actual[key], desired[key])
   })
   return actual === desired

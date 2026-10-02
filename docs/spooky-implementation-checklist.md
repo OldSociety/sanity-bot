@@ -1,13 +1,24 @@
 # Spooky implementation checklist
 
+## Authorized development startup — 2026-10-02
+
+- [x] Final full suite **252/252 pass**; syntax/scoped whitespace pass. Updated obsolete pre-commit registry test to enforce actual command presence/preservation. Human implementation commit dd89501 retained.
+
+- [x] Human authorized live development setup and confirmed stopped bot. Inspect storage/permissions/intents, apply four migrations with verified backup, register fourteen commands preserving /game, enable development only, start one PM2 SB-development; production stopped and unchanged. See [evidence](spooky-development-live-session.md).
+- [x] Correct Discord empty-list/false-option omission verification; inspect GET instead of repeating PUT. Development/production activation isolation and normalization regressions: focused 11/11 pass.
+- [ ] Human hands-on acceptance matrix, observed resource/effect/recovery evidence. Setup success does not complete player acceptance or public launch.
+
 ## Preparation — 2026-10-02
+
+- [x] Final target/settings/deploy-target/preflight/full-registry checks pass; [concrete development session plan](spooky-development-session.md) prepared. No real DB/network actions or flag changes.
 
 - [x] Full offline suite **250/250 pass**; local log artifacts/spooky-preparation-tests.log ignored.
 
 - [x] Add offline `npm run spooky:check:dev`: selected-file role/channel syntax, distinct roles, @everyone rejection; six synthetic-file tests pass.
 - [x] Check actual settings: missing/invalid CURSEDROLEID found and requested; other two roles and bot-test channel pass syntax. No DB/network/credential output.
 - [x] Correct stale audit/recovery instructions; update README/AGENTS/handoff/runbook. New script/test and package command; no runtime/schema/economy changes.
-- [ ] Supply development Cursed role ID and rerun settings check; then explicitly authorized live acceptance. All flags stay disabled.
+- [x] Human supplied development Cursed role ID; actual `npm run spooky:check:dev` passes on 2026-10-02. No credentials printed or DB/network accessed.
+- [ ] Explicitly authorized live acceptance: verify guild ownership, permissions, portal intents, storage and registry plans, then interactions. All flags stay disabled.
 
 Branch: `feature/S-1-spooky`. Created 2026-10-01.
 

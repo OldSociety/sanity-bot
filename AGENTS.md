@@ -1,10 +1,20 @@
 # Repository instructions and continuation context
 
+## Active development session — 2026-10-02
+
+Final suite **252/252 pass**, including response omission and environment-isolation regressions; registry test now survives implementation commit dd89501 rather than requiring pre-commit additions. Changed JS syntax/scoped whitespace checks pass. Latest evidence/logs are in the live session guide; older 250/244 counts are milestone evidence. No commits were made by this setup.
+
+Read [live startup evidence](docs/spooky-development-live-session.md) first. Human explicitly authorized real development setup and will test hands-on. Four migrations applied with verified backup config/backups/spooky-01zi6l/dev.sqlite; fourteen live commands registered, thirteen source definitions plus preserved /game. Actual guild/role/channel permissions and portal intents pass. SB-development online through PM2 from this checkout, SB-production remains stopped. Do not assume writers are stopped now. Development-only gameplay is active via developmentEnabled=true; global enabled=false and optional flags remain false. New selectEvent isolates production/test/unset. Initial post-PUT response normalization issue fixed and GET verified without another PUT. Source/new config hashes differ from archived audit evidence; it remains historical. Player acceptance and product/public-launch/optional gates remain open. Do not reset, remove /game, enable production or optional workers under this session authorization. Earlier no-real-operation/all-disabled statements below are historical.
+
 ## Latest preparation — 2026-10-02
+
+Final five offline checks pass (target, settings, deploy target, static preflight, full registry). Read [prepared development session](docs/spooky-development-session.md) for exact targets/order and scope. No real storage/network work ran. Before live apply obtain explicit session authorization and stopped-writer confirmation; human slash-command testers are needed. Keep optional settings disabled and approved v4 unchanged.
+
+Final five offline checks pass (target, settings, deploy target, static preflight, full registry). Read [prepared development session](docs/spooky-development-session.md) for exact targets/order and scope. No real storage/network work ran. Before live apply obtain explicit session authorization and stopped-writer confirmation; human slash-command testers are needed. Keep optional settings disabled and approved v4 unchanged.
 
 Latest full suite: **250/250 pass** (244 existing + six preparation regressions). Older counts below are milestone evidence. Full log is ignored artifacts/spooky-preparation-tests.log.
 
-New `npm run spooky:check:dev` validates selected-file role/channel syntax, distinct gameplay roles and @everyone rejection without DB/network/credential output. Six synthetic regressions pass. Actual settings fail: CURSEDROLEID is missing/invalid. Asked the human for the development server role ID; do not guess or copy production. BOTTESTCHANNELID, SWEETTOOTHROLEID and UNWANTEDROLEID pass syntax. SPOOKYCHANNELID is optional when bot-test channel exists. Set only a supplied development ID, rerun this check, then follow separately authorized live acceptance. Checks do not prove guild ownership, permissions or portal intents. All flags remain disabled. Changed scripts/spooky-development-check.js, tests/spooky-development-check.test.js, package.json and current docs; no runtime/economy/schema/odds changes.
+New `npm run spooky:check:dev` validates selected-file role/channel syntax, distinct gameplay roles and @everyone rejection without DB/network/credential output. Six synthetic regressions pass. The human supplied CURSEDROLEID in development; rerun on 2026-10-02 passes for all required roles and BOTTESTCHANNELID with distinct production guild. SPOOKYCHANNELID is optional when bot-test channel exists. Next follow separately authorized live acceptance. Checks do not prove guild ownership, permissions or portal intents. All flags remain disabled. Changed scripts/spooky-development-check.js, tests/spooky-development-check.test.js, package.json and current docs; no runtime/economy/schema/odds changes.
 
 ## Read before continuing
 

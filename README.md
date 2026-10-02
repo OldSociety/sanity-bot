@@ -1,8 +1,16 @@
 # Roll For Sanity Bot
 
-**Preparation update (2026-10-02):** Run `npm run spooky:check:dev` to check selected development role/channel settings offline. It found missing/invalid `CURSEDROLEID`, which must be supplied before enabling the game. The other required role IDs and bot-test channel pass syntax; server ownership/permissions still require live checks. No credentials are printed, databases opened or Discord calls made. See [acceptance gates](docs/spooky-development-acceptance.md).
+**Development is running (2026-10-02):** Authorized migrations/verified backup and fourteen-command registration completed; existing `/game` preserved. `SB-development` is online through PM2 in the development environment; production remains stopped. Gameplay activates only in development (`developmentEnabled=true`, global `enabled=false`); optional workers/access remain disabled. See [startup evidence and hands-on next steps](docs/spooky-development-live-session.md). Earlier offline-only statements below are historical.
+
+Latest full suite: **252/252 pass**. Begin hands-on testing with `/spooky welcome`, `/spooky register`, `/spooky status` in the configured bot-test channel.
+
+**Preparation update (2026-10-02):** The supplied development `CURSEDROLEID` is verified: `npm run spooky:check:dev` passes for all required role IDs and the bot-test channel. Server ownership/permissions still require live checks. No credentials were printed, databases opened or Discord calls made. See [acceptance gates](docs/spooky-development-acceptance.md).
 
 Latest full offline suite: **250/250 pass**. All activation flags remain disabled.
+
+Final preparation checks pass. The [development session plan](docs/spooky-development-session.md) records the target, reviewed migration/command sequence, tester needs and deferred features. Live execution has not begun.
+
+Final preparation checks pass. The [development session plan](docs/spooky-development-session.md) records the target, reviewed migration/command sequence, tester needs and deferred features. Live execution has not begun.
 
 **Spooky development status (2026-10-01): all nine audit findings fixed offline.** On `feature/S-1-spooky`, **244/244 tests pass**, including 20 positive audit regressions; static preflight/full registry review pass. See [fixes and remaining work](docs/spooky-audit-fixes.md), [the original audit](docs/spooky-feature-branch-audit.md) and [current handoff](docs/spooky-handoff.md). Member requests are shared/rate-aware, committed public rewards survive private reply failure, stale intents are guarded, and chat level/fate transitions are claimed once. Deployment now requires an explicitly reviewed registry hash. Gameplay/reminder/winner/access flags remain disabled; no real migration, login or registration occurred. Next is separately authorized development acceptance; public-launch balance, six artworks and optional settings remain open.
 

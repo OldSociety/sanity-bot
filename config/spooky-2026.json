@@ -2,6 +2,7 @@
   "version": 4,
   "eventId": "spooky-2026",
   "enabled": false,
+  "developmentEnabled": true,
   "timezone": "America/Los_Angeles",
   "startsAt": "2026-10-01T07:00:00.000Z",
   "endsAt": "2026-11-01T07:00:00.000Z",

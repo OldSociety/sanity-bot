@@ -59,7 +59,13 @@ function deepFreeze(value) {
   for (const child of Object.values(value)) if (child && typeof child === 'object') deepFreeze(child)
   return Object.freeze(value)
 }
-const config = deepFreeze(validateEvent(eventData))
+function selectEvent(data, environment) {
+  if (data.developmentEnabled !== undefined && typeof data.developmentEnabled !== 'boolean') throw new Error('Invalid development activation flag')
+  // Development activation must not enable a future production PM2 process
+  // reading this same checkout. Economy rules/version stay identical.
+  return validateEvent({ ...data, enabled: data.enabled || (environment === 'development' && data.developmentEnabled === true) })
+}
+const config = deepFreeze(selectEvent(eventData, process.env.NODE_ENV))
 const pieces = deepFreeze(createPieces(manifestData))
 
 function getEventState(now, event = config) {
@@ -75,4 +81,4 @@ function requireApprovedRarity(event = config) {
   if (event.ordinaryRarity.status !== 'approved') throw new Error('Ordinary rarity weights are provisional; approval is required before acquisition')
 }
 
-module.exports = { config, pieces, validateEvent, createPieces, getEventState, requireApprovedRarity }
+module.exports = { config, pieces, validateEvent, createPieces, getEventState, requireApprovedRarity, selectEvent }

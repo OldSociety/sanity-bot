@@ -1,6 +1,10 @@
 # Spooky development acceptance and storage recovery
 
-**Preparation update (2026-10-02): 250/250 offline tests pass.** New `npm run spooky:check:dev` found missing/invalid CURSEDROLEID in the selected development file; the human has been asked for its development role ID. Other required roles/bot-test channel pass syntax. No live/database action occurred; all flags remain disabled. Fix this setting and rerun the check before an authorized live session. Earlier 244-test counts are the audit milestone.
+**Live setup completed (2026-10-02):** Human authorized migrations/registration/development PM2 startup. Four migrations, verified backup, permissions/intents and fourteen registered commands pass; SB-development online with development-only gameplay. Production and optional workers/access unchanged. See [session evidence](spooky-development-live-session.md). Hands-on player matrix remains pending; earlier no-live-operation statements describe prior preparation. Do not execute stopped-writer storage commands while the bot is running.
+
+Latest full isolated suite **252/252 pass**; live setup is verified, player interaction/visibility/recovery acceptance still needs human testing.
+
+**Preparation update (2026-10-02): 250/250 offline tests pass.** The human supplied development CURSEDROLEID and `npm run spooky:check:dev` now passes for all required roles and bot-test channel. No live/database action occurred; all flags remain disabled. Next is an authorized live session with guild/permission/intents/storage/registry verification. Earlier 244-test counts are the audit milestone.
 
 **Audit corrections complete offline (2026-10-01): 244/244 tests and 20 positive regressions pass.** Read [fix evidence](spooky-audit-fixes.md) and [current handoff](spooky-handoff.md). The nine source/adapter defects are fixed; this matrix still requires explicit live-session authorization and actual server evidence. All flags remain disabled; no real storage/network setup has occurred. Dated notes below are historical.
 
@@ -32,7 +36,7 @@ Read-only target checks on 2026-10-01 confirmed development application `1291847
 | --- | --- | --- |
 | Branch and work | Feature branch; uncommitted implementation plus earlier holiday/haiku/package work | Preserve all changes; record reviewed source revision/snapshot before deployment |
 | Branch audit | All nine findings fixed offline; 244-test audit milestone and 20 positive regressions pass | Verify live adapter behavior in the matrix; retain one-writer and ambiguous-send constraints |
-| Development runtime settings | Offline check fails: CURSEDROLEID missing/invalid; other roles and bot-test channel pass syntax | Supply development Cursed role ID, rerun `npm run spooky:check:dev`, verify guild ownership/permissions live |
+| Development runtime settings | Offline check passes after human supplied CURSEDROLEID; required roles and bot-test channel valid, production guild distinct | Verify guild ownership, permissions, hierarchy and portal intents live |
 | Economy balance | Task 17 targets unmet; approved v4 unchanged | Core development testing can use current settings; resolve balance before public event activation |
 | Reminders | Disabled; channel/Resident IDs/Pacific time pending | Exact supplied destination/allowlist/time, development-server validation |
 | Final titles | Disabled; names/role IDs/announcement channel pending | Distinct supplied roles/names, destination, hierarchy and permissions verified |

@@ -1,10 +1,18 @@
 # Spooky implementation handoff
 
+## Active development session — 2026-10-02
+
+Latest full suite **252/252 pass**, source syntax and scoped whitespace pass. HEAD is now human implementation commit dd89501; current session changes remain uncommitted. Preserve both. Final test log: artifacts/spooky-development-session/full-tests-final.log (ignored).
+
+Real development setup is authorized and complete: four migrations with verified backup, live permissions/intents and fourteen commands (preserved /game), one SB-development PM2 process logged in and maintenance committed. Production stopped/unchanged. Development-only gameplay active; global/optional activation stays false. Read [exact startup evidence](spooky-development-live-session.md) for targets, hashes, backup, response-normalization fix, changed files and testing steps. Human hands-on acceptance is next; no live player matrix claim. Writers are running now. Earlier offline-only sections are historical.
+
 ## Preparation update — 2026-10-02
+
+Final five offline checks pass; [development session plan](spooky-development-session.md) now records exact target/scope/order/tester needs. Real execution awaits explicit session authorization and confirmation all development writers are stopped. No schema/network/config activation changed.
 
 Latest full suite: **250/250 pass**, including six new preparation regressions. Log: ignored artifacts/spooky-preparation-tests.log. `.gitignore` also changed to keep the local test log out of source.
 
-New `npm run spooky:check:dev` validates selected development role/channel IDs offline. Six synthetic-file tests pass. Actual settings fail for missing/invalid CURSEDROLEID; requested from the human, still pending. Other two roles and bot-test channel pass syntax. Do not guess IDs or enable flags. Set the supplied development role ID, rerun settings check, then separately authorized live acceptance. Guild ownership/hierarchy/permissions/intents remain live checks. Changed script/test/package and README/AGENTS/checklist/runbook only; no runtime/economy/schema/odds/database/network changes. Earlier 244-test counts describe the audit milestone.
+New `npm run spooky:check:dev` validates selected development role/channel IDs offline. Six synthetic-file tests pass. The human added CURSEDROLEID; the actual settings check now passes for all required roles and bot-test channel, with a distinct production guild. Next is separately authorized live acceptance. Guild ownership/hierarchy/permissions/intents remain live checks; do not enable flags automatically. Changed script/test/package and README/AGENTS/checklist/runbook only; no runtime/economy/schema/odds/database/network changes. Earlier 244-test counts describe the audit milestone.
 
 Snapshot: 2026-10-01 (Pacific). Checkout: `C:\Users\headm\code\sanity-bot-dev`. Required and verified branch: **`feature/S-1-spooky`**. HEAD: `f98cc79`. Implementation remains uncommitted, with many untracked files. Preserve the working tree.
 

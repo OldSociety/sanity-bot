@@ -1,5 +1,7 @@
 # Development storage tools — Task 20b complete offline
 
+**Live development update (2026-10-02):** All four migrations are now applied to the authorized development target with verified backup; see [session evidence](spooky-development-live-session.md). SB-development is running, so stopped-writer commands require stopping it first. Prior no-real-storage statements below are historical. Production storage remains unchanged.
+
 Work remains on `feature/S-1-spooky`. Status, backup, reviewed migration planning and apply/tracking are implemented and tested only on synthetic disposable storage. No real development/production database was opened, backed up, migrated or restored. Full Task 20 live acceptance remains open; event/reminder/winner flags are disabled.
 
 Files: services/spooky/storage-tools.js, scripts/spooky-storage.js, tests/spooky-storage-tools.test.js and tests/spooky-storage-apply.test.js. The three existing migration up APIs accept an optional injected transaction; standalone use still works and DDL is unchanged. No dependency/gameplay version/odds changes. config/backups is ignored by Git.

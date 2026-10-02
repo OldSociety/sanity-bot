@@ -3,6 +3,15 @@ const assert = require('node:assert/strict')
 const { config, pieces, validateEvent, createPieces, getEventState, requireApprovedRarity } = require('../services/spooky/config')
 const manifest = require('../config/spooky-pieces.json')
 const copy = value => JSON.parse(JSON.stringify(value))
+test('development activation leaves production/test disabled and approved economy unchanged', () => {
+  const { selectEvent } = require('../services/spooky/config')
+  const data = require('../config/spooky-2026.json')
+  for (const environment of ['production', 'test', undefined]) assert.equal(selectEvent(data, environment).enabled, false)
+  assert.equal(selectEvent(data, 'development').enabled, true)
+  assert.equal(data.enabled, false)
+  assert.equal(selectEvent(data, 'development').version, 4)
+  assert.throws(() => selectEvent({ ...data, developmentEnabled: 'true' }, 'development'), /activation/)
+})
 
 test('invalid probability edits and duplicated outcomes fail validation', () => {
   const wrongTotal = copy(config); wrongTotal.treatOutcomes[0].percent++
