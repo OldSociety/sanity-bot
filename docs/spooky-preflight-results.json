@@ -1,0 +1,62 @@
+{
+  "scope": "offline Spooky definitions/configuration only",
+  "configVersion": 4,
+  "databaseOpened": false,
+  "discordContacted": false,
+  "environmentCredentialsRead": false,
+  "checksPassed": true,
+  "liveAcceptanceComplete": false,
+  "pieces": 28,
+  "tokenImages": 105,
+  "fullCircleImages": 7,
+  "commands": [
+    {
+      "name": "spooky",
+      "subcommands": [
+        "welcome",
+        "help",
+        "register",
+        "status",
+        "collection",
+        "trick",
+        "treat",
+        "fate"
+      ]
+    },
+    {
+      "name": "spooky-admin",
+      "subcommands": [
+        "player",
+        "config",
+        "transactions",
+        "deliveries",
+        "adjust",
+        "grant-quarter",
+        "remove-quarter",
+        "clear-effect",
+        "pause",
+        "reset-development",
+        "recompute-badges",
+        "resolve-notification",
+        "resolve-delivery"
+      ]
+    }
+  ],
+  "permanentBadgeCommand": {
+    "name": "badges",
+    "subcommands": [
+      "view",
+      "leaderboard"
+    ]
+  },
+  "gates": [
+    "Population balance targets remain unmet; obtain a decision before enabling gameplay.",
+    "Six badge artworks/emoji names remain pending; Selene is configured and generic medals represent other earned badges.",
+    "Offline full registry review passed (see command-registry-audit-results.json); compare live server-only commands before any bulk registration.",
+    "Live development migration, permissions, interaction visibility and recovery acceptance have not run.",
+    "Gameplay is disabled.",
+    "Badge emoji access is disabled or partially configured; dedicated cosmetic roles and explicit emoji restriction setup are pending.",
+    "Reminder activation/channel/Resident roles/Pacific time are pending.",
+    "Winner activation/title names/roles/announcement channel are pending."
+  ]
+}

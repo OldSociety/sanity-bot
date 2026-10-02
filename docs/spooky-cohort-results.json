@@ -1,0 +1,192 @@
+{
+  "seed": 20261002,
+  "trialsPerProfile": 5000,
+  "assumptions": "20 starting candy, capacity 40, 20/day refill; 1 Eye/action; 5 Eyes/draw; max 4 paid draws/day; 70/22/8 rarity; automatic five-extra exchange; no theft, fate, targeting, or protection; late joiners receive normal starting candy, not catch-up; daily discrete refill approximation; continue drawing after completion, preserve post-completion extras",
+  "summaries": [
+    {
+      "profile": {
+        "name": "Casual",
+        "start": 1,
+        "min": 3,
+        "max": 4,
+        "missed": 6
+      },
+      "milestones": {
+        "firstQuarter": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 2
+        },
+        "firstBadge": {
+          "achievedPercent": 16.56,
+          "conditionalMedianOctoberDay": 26
+        },
+        "threeBadges": {
+          "achievedPercent": 0,
+          "conditionalMedianOctoberDay": null
+        },
+        "sevenBadges": {
+          "achievedPercent": 0,
+          "conditionalMedianOctoberDay": null
+        }
+      },
+      "averages": {
+        "draws": 17.09,
+        "duplicates": 4.73,
+        "exchanges": 0.55,
+        "theftLoss": 0,
+        "candies": 37.17,
+        "eyes": 2.03,
+        "extras": 1.97,
+        "uniquePieces": 12.91
+      }
+    },
+    {
+      "profile": {
+        "name": "Regular",
+        "start": 1,
+        "min": 6,
+        "max": 10,
+        "missed": 0
+      },
+      "milestones": {
+        "firstQuarter": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 1
+        },
+        "firstBadge": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 16
+        },
+        "threeBadges": {
+          "achievedPercent": 94.98,
+          "conditionalMedianOctoberDay": 25
+        },
+        "sevenBadges": {
+          "achievedPercent": 4.54,
+          "conditionalMedianOctoberDay": 30
+        }
+      },
+      "averages": {
+        "draws": 49.18,
+        "duplicates": 29.47,
+        "exchanges": 5.48,
+        "theftLoss": 0,
+        "candies": 32,
+        "eyes": 2,
+        "extras": 2.05,
+        "uniquePieces": 25.19
+      }
+    },
+    {
+      "profile": {
+        "name": "Engaged",
+        "start": 1,
+        "min": 20,
+        "max": 20,
+        "missed": 0
+      },
+      "milestones": {
+        "firstQuarter": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 1
+        },
+        "firstBadge": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 6
+        },
+        "threeBadges": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 10
+        },
+        "sevenBadges": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 15
+        }
+      },
+      "averages": {
+        "draws": 124,
+        "duplicates": 103.83,
+        "exchanges": 7.83,
+        "theftLoss": 0,
+        "candies": 0,
+        "eyes": 0,
+        "extras": 64.68,
+        "uniquePieces": 28
+      }
+    },
+    {
+      "profile": {
+        "name": "Late October 10",
+        "start": 10,
+        "min": 20,
+        "max": 20,
+        "missed": 0
+      },
+      "milestones": {
+        "firstQuarter": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 10
+        },
+        "firstBadge": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 16
+        },
+        "threeBadges": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 19
+        },
+        "sevenBadges": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 24
+        }
+      },
+      "averages": {
+        "draws": 88,
+        "duplicates": 67.83,
+        "exchanges": 7.83,
+        "theftLoss": 0,
+        "candies": 0,
+        "eyes": 0,
+        "extras": 28.69,
+        "uniquePieces": 28
+      }
+    },
+    {
+      "profile": {
+        "name": "Late October 15",
+        "start": 15,
+        "min": 20,
+        "max": 20,
+        "missed": 0
+      },
+      "milestones": {
+        "firstQuarter": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 15
+        },
+        "firstBadge": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 21
+        },
+        "threeBadges": {
+          "achievedPercent": 100,
+          "conditionalMedianOctoberDay": 24
+        },
+        "sevenBadges": {
+          "achievedPercent": 96.44,
+          "conditionalMedianOctoberDay": 29
+        }
+      },
+      "averages": {
+        "draws": 68,
+        "duplicates": 47.83,
+        "exchanges": 7.79,
+        "theftLoss": 0,
+        "candies": 0,
+        "eyes": 0,
+        "extras": 8.88,
+        "uniquePieces": 27.96
+      }
+    }
+  ]
+}

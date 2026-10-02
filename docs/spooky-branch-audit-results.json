@@ -1,0 +1,28 @@
+{
+  "auditDate": "2026-10-01",
+  "branch": "feature/S-1-spooky",
+  "baselineCommit": "f98cc7952529c55f9415aa9e0afd939e63e15554",
+  "implementationUncommitted": true,
+  "syntheticStorageOnly": true,
+  "discordContacted": false,
+  "realDatabaseOpened": false,
+  "regressionSuite": { "passed": 224, "failed": 0 },
+  "preflight": { "passed": true, "pieces": 28, "tokenImages": 105, "fullCircleImages": 7 },
+  "registry": { "passed": true, "activeCommands": 13, "removedActiveHeadCommands": [] },
+  "reproduced": {
+    "committedQuarterNotificationStrandedByEditReply": "pending",
+    "fateDebitedDespiteFailedReply": true,
+    "cancelledRoleIntentStillApplied": [{ "role": "sweet", "present": true }],
+    "cleanupAfterRoleConfigChangeRemovesWrongRole": "new-curse",
+    "profileAcknowledgementOrder": ["badge-network-before-ack", "reply"],
+    "consecutiveSnapshotFullGuildRequests": 2,
+    "malformedCommandSkippedDuringBulkWrite": [{ "route": "synthetic-route", "commands": ["spooky"] }],
+    "adminRepairBadgeStatus": {
+      "receipt": "not implemented; repair does not award or revoke badges",
+      "actualOwnership": ["spooky-2026:sel"]
+    },
+    "concurrentLevelUpReward": { "level": 2, "bank": 10, "expectedBankForOneLevel": 5 },
+    "cursedMessageCallsAfterXpFailure": 0
+  },
+  "interpretation": "Characterization evidence of existing defects, not passing regression assertions for desired behavior. See spooky-feature-branch-audit.md. Full-member rate-limit impact follows actual adapter source and official Discord documentation; it was not tested against live Discord."
+}

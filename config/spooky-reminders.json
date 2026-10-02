@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "timezone": "America/Los_Angeles",
+  "everyDays": 3,
+  "channelId": null,
+  "roleIds": [],
+  "localTime": null
+}

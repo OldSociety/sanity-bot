@@ -48,6 +48,8 @@ module.exports = {
       } catch (error) {
         console.error(`Error executing ${interaction.commandName}`)
         console.error(error)
+        const payload = { content: 'The command could not complete. Check your saved state before trying another paid action; completed rewards remain saved.', ephemeral: true, allowedMentions: { parse: [] } }
+        if (!interaction.replied && !interaction.deferred) await interaction.reply(payload).catch(() => {})
       }
     }
     // Handle Button Interactions

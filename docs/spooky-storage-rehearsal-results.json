@@ -1,0 +1,48 @@
+{
+  "status": "passed",
+  "generatedAt": "2026-10-02T04:06:57.258Z",
+  "syntheticStorageOnly": true,
+  "discordAccessed": false,
+  "sqliteVersion": "3.44.2",
+  "journalMode": "WAL",
+  "backupMethod": "VACUUM INTO",
+  "migrations": [
+    "20261001000000-create-spooky-core.js",
+    "20261001000001-create-spooky-delivery.js",
+    "20261001000002-create-spooky-notifications.js",
+    "20261001000003-create-permanent-badges.js"
+  ],
+  "migrationSha256": {
+    "20261001000000-create-spooky-core.js": "2e6db655091532f56ccdd759f15ac952d9fa0bf802f2a14f7857c85bd4263bc8",
+    "20261001000001-create-spooky-delivery.js": "316d43291e1e24c369fd51d2cbcd8cbb2249707dd04196789d95a2787423b333",
+    "20261001000002-create-spooky-notifications.js": "20a224c250eb8e1ce193a7750d2aa316b6f0b6359ca08e204557a2b0664465f5",
+    "20261001000003-create-permanent-badges.js": "32e4220147a67fb3f8d88197c6573be580d865dc948d44e7ad96a2405bf95f7c"
+  },
+  "spookyTables": 8,
+  "baselineHash": "0dc04f4acdc8850e4c68115f14467eb29dac92d66ac513118575d46d65d5a9df",
+  "populatedHash": "115cd85605f301f7b85771d95babf4fd134a05f6aeaefe0bbb9de7b5eb3049df",
+  "beforeRestoreMatches": true,
+  "populatedRestoreMatches": true,
+  "schemaRollbackPreservesExistingData": true,
+  "reapplyCreatesEmptySeasonalTables": true,
+  "autoincrementHighWatermarkPreserved": true,
+  "permanentBadgeTables": 1,
+  "restoredBadges": [
+    "spooky-2026:sel"
+  ],
+  "permanentOwnershipRestoreMatches": true,
+  "seasonalSchemaRollbackPreservesBadges": true,
+  "restoredOperationReplayPreservesBadge": true,
+  "restoredParticipantResetPreservesBadges": true,
+  "restoredQueueStates": {
+    "delivery": "pending",
+    "notification": "uncertain"
+  },
+  "existingWallet": {
+    "bank": 73,
+    "fate_points": 12
+  },
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "temporaryFilesRemoved": true
+}

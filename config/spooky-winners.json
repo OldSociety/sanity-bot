@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "channelId": null,
+  "treat": { "name": null, "roleId": null },
+  "trick": { "name": null, "roleId": null }
+}

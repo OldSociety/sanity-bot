@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "characters": [
+    { "id": "had", "name": "Hadley" },
+    { "id": "hfm", "name": "Hellfed Marq" },
+    { "id": "mrq", "name": "Marq" },
+    { "id": "max", "name": "Maxim" },
+    { "id": "nik", "name": "Niklaus" },
+    { "id": "qam", "name": "Qam" },
+    { "id": "sel", "name": "Selene" }
+  ],
+  "positions": [
+    { "id": "tl", "rarity": "common", "color": "#3498DB" },
+    { "id": "tr", "rarity": "common", "color": "#3498DB" },
+    { "id": "bl", "rarity": "rare", "color": "#9B59B6" },
+    { "id": "br", "rarity": "legendary", "color": "#FFD700" }
+  ]
+}

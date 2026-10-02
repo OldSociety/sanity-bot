@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
 const { User } = require('../../Models/model.js')
+const { saveWallet } = require('../../services/fate-wallet')
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -138,7 +139,7 @@ module.exports = {
 
       userData.fate_points = fatePoints
       userData.bank = bank
-      await userData.save()
+      await saveWallet(User, userData)
 
       let description = `You have added ${pointsToAdd} fate points.`
       if (excessPoints > 0 && (isBooster || isAdmin)) {
@@ -186,7 +187,7 @@ module.exports = {
         return
       }
 
-      await userData.save()
+      await saveWallet(User, userData)
 
       const rollEmbed = new EmbedBuilder()
         .setColor('#FFFF00') // Yellow for neutral informative messages
@@ -269,7 +270,7 @@ module.exports = {
           description = `Set ${targetUser.username}'s bank to ${targetData.bank}.`
         }
 
-        await targetData.save()
+        await saveWallet(User, targetData)
 
         if (capped) {
           description += `\nNote: The value was capped at 100.`

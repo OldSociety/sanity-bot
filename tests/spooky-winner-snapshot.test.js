@@ -1,0 +1,140 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const Sequelize = require('sequelize')
+const migration = require('../migrations/20261001000000-create-spooky-core')
+const { defineSpookyModels } = require('../services/spooky/models')
+const { createEconomy } = require('../services/spooky/economy')
+const { createParticipants } = require('../services/spooky/participants')
+const { createProgression } = require('../services/spooky/progression')
+const { createLifecycle } = require('../services/spooky/lifecycle')
+const { createWinnerSnapshot, snapshotOperationId } = require('../services/spooky/winner-snapshot')
+const { config } = require('../services/spooky/config')
+
+async function fixture(t) {
+  const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
+  t.after(() => sequelize.close())
+  await migration.up(sequelize.getQueryInterface())
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true }
+  const scope = { eventId: event.eventId, guildId: 'guild' }
+  let now = new Date(event.startsAt), key = 0, deliveries = 0
+  const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => now })
+  const participants = createParticipants({ models, economy, event })
+  const progression = createProgression({ models, User: { sequelize }, event, isUnwanted: () => false })
+  const winners = createWinnerSnapshot({ models, event })
+  const run = (callback, workerKey = `setup-${key++}`) => economy.execute({ ...scope, actorId: 'system', workerKey, operationType: 'snapshot_test' }, callback)
+  const register = id => participants.register({ ...scope, actorId: id, interactionId: `register-${id}-${key++}` })
+  const score = (id, action, outcome = 'standard_gift', result = {}) => run(ctx => progression.prestige(ctx, { actorId: id, action, outcome, overridden: false }, result))
+  const make = (overrides = {}) => createLifecycle({ models, economy, event, guildId: scope.guildId,
+    playful: { cleanup: async () => ({ cleared: [] }) }, delivery: { async reconcile() { deliveries++; return [] } }, winnerSnapshots: winners, ...overrides })
+  const read = () => models.Operation.findByPk(snapshotOperationId(event.eventId, scope.guildId))
+  return { sequelize, models, event, scope, economy, participants, progression, winners, run, register, score, make, read,
+    time: value => { now = new Date(value) }, calls: () => deliveries }
+}
+
+test('closure freezes tied leaders/admins/both titles and excludes inactive registrants atomically', async t => {
+  const f = await fixture(t)
+  for (const id of ['alice', 'admin', 'idle']) await f.register(id)
+  await f.score('alice', 'treat'); await f.score('admin', 'treat')
+  await f.score('alice', 'trick')
+  const player = await f.models.Participant.findOne({ where: { userId: 'alice' } })
+  await f.models.Inventory.create({ participantId: player.id, pieceId: 'had_tl', quantity: 2 })
+  f.time(Date.parse(config.endsAt) - 1)
+  assert.equal((await f.make().maintain('last-ms')).receipt.phase, 'ACTIVE')
+  assert.equal(await f.read(), null)
+  f.time(config.endsAt)
+  const closed = await f.make().maintain('close')
+  assert.equal(closed.receipt.newlyArchived, true)
+  assert.equal(closed.receipt.winnerSnapshot.newlyFrozen, true)
+  const frozen = (await f.read()).receipt
+  assert.deepEqual(frozen.tracks.treat.userIds, ['admin', 'alice'])
+  assert.deepEqual(frozen.tracks.trick.userIds, ['alice'])
+  assert.equal(frozen.tracks.treat.entrants.length, 2)
+  assert.equal(frozen.scoringVersion, 1)
+  assert.equal(frozen.frozenAt, config.endsAt)
+  assert.equal((await f.models.EventState.findOne()).archivedAt.toISOString(), frozen.frozenAt)
+  assert.equal((await f.models.Inventory.findOne()).quantity, 2)
+  assert.equal(player.candy, 10)
+})
+
+test('empty tracks have no winner; zero/negative actual actors qualify over inactive zeroes', async t => {
+  const f = await fixture(t)
+  await f.register('loser'); await f.register('idle')
+  await f.score('loser', 'treat', 'lost_candy', { noEffect: 'lost' })
+  f.time(config.endsAt); await f.make().maintain('close')
+  const result = (await f.read()).receipt
+  assert.deepEqual(result.tracks.treat.userIds, ['loser']); assert.equal(result.tracks.treat.score, -1)
+  assert.deepEqual(result.tracks.trick, { score: null, userIds: [], entrants: [] })
+  const zero = await fixture(t); await zero.register('actor')
+  await zero.score('actor', 'trick', 'steal_candy', { noEffect: 'no_recipient' })
+  zero.time(config.endsAt); await zero.make().maintain('close')
+  assert.equal((await zero.read()).receipt.tracks.trick.score, 0)
+  assert.deepEqual((await zero.read()).receipt.tracks.trick.userIds, ['actor'])
+})
+
+test('frozen receipt survives restart/concurrent workers and later participant edits/deletion', async t => {
+  const f = await fixture(t); await f.register('alice'); await f.score('alice', 'treat')
+  f.time(config.endsAt)
+  await Promise.all([f.make().maintain('a'), f.make().maintain('b'), f.make().maintain('a')])
+  const original = (await f.read()).receipt
+  assert.equal(await f.models.Operation.count({ where: { operationType: 'winner_snapshot' } }), 1)
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'prestige_snapshot' } }), 1)
+  await f.models.Participant.destroy({ where: { userId: 'alice' } })
+  await f.make().maintain('restart')
+  assert.deepEqual((await f.read()).receipt, original)
+  assert.deepEqual(original.tracks.treat.userIds, ['alice'])
+})
+
+test('snapshot failure rolls back cleanup and archive; corrected evidence succeeds with the same root key', async t => {
+  const f = await fixture(t); await f.register('alice'); await f.score('alice', 'treat')
+  await f.models.Participant.update({ treatPrestige: 99 }, { where: { userId: 'alice' } })
+  await f.models.Effect.create({ participantId: 1, effectType: 'theft_protection', expiresAt: new Date(config.endsAt), metadata: {} })
+  const lifecycle = f.make({ playful: { async cleanup(ctx) { await f.models.Effect.destroy({ where: {}, transaction: ctx.transaction }); return { cleared: [] } } } })
+  f.time(config.endsAt)
+  await assert.rejects(() => lifecycle.maintain('close'), /does not match/)
+  assert.equal(await f.read(), null); assert.equal(await f.models.EventState.count(), 0)
+  assert.equal(await f.models.Effect.count(), 1); assert.equal(f.calls(), 0)
+  await f.models.Participant.update({ treatPrestige: 2 }, { where: { userId: 'alice' } })
+  await lifecycle.maintain('close')
+  assert.ok(await f.read()); assert.equal(await f.models.Effect.count(), 0)
+})
+
+test('generation identity excludes pre-reset actions even at the same timestamp; legacy entries remain readable', async t => {
+  const f = await fixture(t); await f.register('alice'); await f.score('alice', 'treat')
+  const old = await f.models.Participant.findOne({ where: { userId: 'alice' } })
+  assert.equal((await f.models.Ledger.findOne({ where: { resource: 'treatPrestige' } })).metadata.participantId, old.id)
+  await old.destroy(); await f.register('alice'); await f.register('bob')
+  await f.score('bob', 'trick')
+  const ledger = await f.models.Ledger.findOne({ where: { resource: 'trickPrestige' } })
+  await ledger.update({ metadata: { outcome: 'standard_gift', scoringVersion: 1 } })
+  f.time(config.endsAt); await f.make().maintain('close')
+  const frozen = (await f.read()).receipt
+  assert.deepEqual(frozen.tracks.treat.userIds, [])
+  assert.deepEqual(frozen.tracks.trick.userIds, ['bob'])
+})
+
+test('foreign scope and post-October ledgers cannot qualify; corrupt scoring evidence fails safely', async t => {
+  const f = await fixture(t); await f.register('alice'); await f.score('alice', 'treat')
+  const entry = await f.models.Ledger.findOne({ where: { resource: 'treatPrestige' } })
+  await entry.update({ guildId: 'other' })
+  f.time(config.endsAt); await assert.rejects(() => f.make().maintain('close'), /does not match/)
+  await entry.update({ guildId: 'guild', timestamp: new Date(config.endsAt) })
+  await assert.rejects(() => f.make().maintain('close'), /does not match/)
+  await entry.update({ timestamp: new Date(config.startsAt), metadata: { participantId: 1, scoringVersion: 999 } })
+  await assert.rejects(() => f.make().maintain('close'), /ledger version/)
+  assert.equal(await f.read(), null)
+})
+
+test('disabled/active snapshot guards, invalid existing proof and late archive catch-up', async t => {
+  const f = await fixture(t)
+  await assert.rejects(() => f.run(ctx => f.winners.freeze(ctx)), /closed enabled/)
+  f.time(config.endsAt)
+  const disabled = createWinnerSnapshot({ models: f.models, event: config })
+  await assert.rejects(() => f.run(ctx => disabled.freeze(ctx)), /closed enabled/)
+  await f.models.EventState.create({ ...f.scope, configVersion: config.version, archivedAt: new Date(config.endsAt), actionsPaused: true })
+  await f.make().maintain('catchup')
+  assert.ok(await f.read()); assert.equal((await f.models.EventState.findOne()).actionsPaused, true)
+  await (await f.read()).update({ operationType: 'wrong' })
+  await assert.rejects(() => f.make().maintain('invalid-proof'), /receipt is invalid/)
+  await (await f.read()).update({ operationType: 'winner_snapshot', receipt: {} })
+  await assert.rejects(() => f.make().maintain('invalid-shape'), /receipt is invalid/)
+})

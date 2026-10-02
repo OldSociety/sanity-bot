@@ -1,0 +1,12 @@
+{
+  "collectionId": "spooky-2026",
+  "badges": [
+    { "characterId": "had", "name": "Hadley", "emojiName": null },
+    { "characterId": "hfm", "name": "Hellfed Marq", "emojiName": null },
+    { "characterId": "mrq", "name": "Marq", "emojiName": null },
+    { "characterId": "max", "name": "Maxim", "emojiName": null },
+    { "characterId": "nik", "name": "Niklaus", "emojiName": null },
+    { "characterId": "qam", "name": "Qam", "emojiName": null },
+    { "characterId": "sel", "name": "Selene", "emojiName": "selene_badge" }
+  ]
+}

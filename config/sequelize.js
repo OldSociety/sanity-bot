@@ -1,9 +1,4 @@
-const Sequelize = require('sequelize');
-const config = require('./config.json')['development']; // Make sure it's the correct environment
+const Sequelize = require('sequelize')
+const { resolveRuntime } = require('./runtime')
 
-const sequelize = new Sequelize({
-  dialect: config.dialect,
-  storage: config.storage,
-});
-
-module.exports = sequelize;
+module.exports = new Sequelize(resolveRuntime(process.env.NODE_ENV).database)
