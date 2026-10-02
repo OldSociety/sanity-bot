@@ -25,7 +25,7 @@ function createFatePurchases({ User, models, economy, collection, event = defaul
       if (changed !== 1) throw new Error('Fate bank changed during purchase')
       await ctx.record({ userId, resource: 'bank', delta: -cost, before, after, metadata: { reason: 'fate_quarter_purchase' } })
       const result = await collection.drawQuarter(ctx, userId)
-      return finalizeReceipt(ctx, { ...result, userId, bankSpent: cost, bank: after })
+      return finalizeReceipt(ctx, { ...result, userId, bankSpent: cost, bankBefore: before, bank: after, fatePoints: user.fate_points })
     })
   }
   return { purchase }

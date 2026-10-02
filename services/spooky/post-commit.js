@@ -5,12 +5,23 @@ async function safeEdit(interaction, payload, operationId) {
   catch (error) { log('reply', operationId, error); return false }
 }
 // A webhook failure cannot roll back an operation or suppress its durable outbox.
-async function finishSaved({ interaction, result, payload, publish, badgeAccess, userId, savedTitle = '🎃 Action Saved' }) {
-  await safeEdit(interaction, payload, result.operationId)
-  try { if (publish) await publish() }
+async function finishSaved({ interaction, result, payload, publish, badgeAccess, userId, savedTitle = '🎃 Action Saved', hideAfterPublish = false }) {
+  if (!hideAfterPublish) await safeEdit(interaction, payload, result.operationId)
+  try {
+    const delivery = publish ? await publish() : null
+    if (hideAfterPublish && delivery?.allSent === false) throw new Error('Public result remains undelivered')
+    if (hideAfterPublish) {
+      // The public flavor embed is the result. Remove the deferred private
+      // acknowledgement only after delivery succeeds, keeping failures visible.
+      try {
+        if (typeof interaction.deleteReply === 'function') await interaction.deleteReply()
+        else await safeEdit(interaction, payload, result.operationId)
+      } catch (error) { log('acknowledgement cleanup', result.operationId, error); await safeEdit(interaction, payload, result.operationId) }
+    }
+  }
   catch (error) {
     log('public delivery', result.operationId, error)
-    await safeEdit(interaction, privateScreen(savedTitle, `Your rewards are saved. **Operation: ${result.operationId}**\nPublic delivery needs recovery or inspection. Do not repeat this paid action to recover its result.`), result.operationId)
+    await safeEdit(interaction, require('./presentation').withBalances(privateScreen(savedTitle, 'Your turn counted, but its message could not be delivered. Please ask an admin for help; do not spend candy again to recover it.'), result.receipt), result.operationId)
   }
   // Access is a repairable cosmetic projection. It must not delay saved rewards.
   if (badgeAccess && userId) {

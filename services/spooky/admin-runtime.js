@@ -24,7 +24,7 @@ function runtime(client) {
   }
   const delivery = require('./delivery').createDelivery({ models, read: economy.read,
     canDeliver: require('./winner-awards').createTitleGuard({ models,
-      reservedRoleIds: [process.env.CURSEDROLEID, process.env.SWEETTOOTHROLEID, process.env.UNWANTEDROLEID].filter(Boolean),
+      reservedRoleIds: [process.env.CURSEDROLEID, (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID), process.env.UNWANTEDROLEID].filter(Boolean),
       onError: error => console.error('Spooky winner configuration failed:', error.message) }),
     adapter: require('./discord-adapter').createDiscordAdapter(async id => {
       if (id !== guildId) throw new Error('Projection guild mismatch')
@@ -43,8 +43,11 @@ function runtime(client) {
   }
   const admin = require('./admin').createAdmin({ sequelize, User, models, economy, guildId,
     badges,
+    fateReminderSettings: require('./reminder-settings').fateReminderSettings({ channelId: require('./channels').allowedChannels()[0],
+      roleId: process.env.UNWANTEDROLEID }),
     environment: resolveRuntime(process.env.NODE_ENV).env,
-    developmentStorage: resolveRuntime('development').database.storage, delivery, roleIds: { curse: process.env.CURSEDROLEID },
+    developmentStorage: resolveRuntime('development').database.storage, delivery,
+    roleIds: { curse: process.env.CURSEDROLEID, sweetTooth: (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID) },
     authorize: input => authorize(client, input.guildId, input.actorId, guildId, process.env.ADMINROLEID),
     readMember: async input => {
       const value = await member(input.guildId, input.userId)
@@ -63,7 +66,7 @@ function runtime(client) {
       return { ...receipt, messages }
     } })
   const controller = require('./admin-command').createAdminController({ admin, notifications, delivery, fetchChannel, badgeAccess, scope: { eventId: config.eventId, guildId },
-    allowedChannelIds: [process.env.SPOOKYCHANNELID, process.env.BOTTESTCHANNELID].filter(Boolean) })
+    allowedChannelIds: require('./channels').allowedChannels() })
   instances.set(client, controller)
   return controller
 }
@@ -74,8 +77,8 @@ async function execute(interaction) {
     if (!await authorize(interaction.client, interaction.guildId, interaction.user.id, process.env.GUILDID, process.env.ADMINROLEID)) {
       return interaction.editReply(privateScreen('🎃 Admin Access Denied', 'Administrator permission is required in the configured server.'))
     }
-    const channels = [process.env.SPOOKYCHANNELID, process.env.BOTTESTCHANNELID].filter(Boolean)
-    if (!channels.includes(interaction.channelId)) return interaction.editReply(privateScreen('🎃 Admin Access Denied', 'Use a configured Spooky or bot-test channel.'))
+    const restricted = require('./channels').channelRestriction(interaction)
+    if (restricted) return interaction.editReply(restricted)
     return await runtime(interaction.client).execute(interaction)
   } catch {
     return interaction.editReply(privateScreen('🎃 Admin Inspection Unavailable', 'Check development configuration, migrations and permissions.'))

@@ -1,5 +1,8 @@
 # Badge emoji access — individual native unlocks
 
+Current continuation: development test reset, combined completion/badge thumbnail and Selene emoji access are implemented. Historical entries below remain evidence. See [current fixes and exact acceptance steps](spooky-launch-fixes.md). Production still waits for human acceptance, balance and finale configuration.
+
+
 User authorized implementing this if practical. It is practical for seven independent character badges: one dedicated cosmetic role per character, not one shared event role. Discord guild emoji roles grant access to any listed role; a shared event role would allow all its members to use the same emojis. SQLite remains the permanent ownership authority, and native Discord use is its role projection.
 
 Official verification (2026-10-01): https://docs.discord.com/developers/resources/emoji documents guild emoji roles and Modify Guild Emoji, and https://docs.discord.com/developers/topics/permissions documents role hierarchy. Installed discord.js GuildEmoji.edit accepts roles/reason; GuildEmojiRoleManager.set delegates to edit. Server emoji role restrictions support this design; application emoji are not used for player picker access. Live client behavior remains a development acceptance check.

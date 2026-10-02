@@ -50,7 +50,7 @@ function createActions({ models, economy, participants, handlers, getCurseState,
       const after = await models.Participant.findByPk(participant.id, { transaction: ctx.transaction })
       after.lastActive = ctx.now
       await after.save({ transaction: ctx.transaction })
-      return finalizeReceipt(ctx, { ...selected, candySpent: baseCost, candy: after.candy, result })
+      return finalizeReceipt(ctx, { ...selected, candySpent: baseCost, candy: after.candy, eyes: after.eyes, result })
     })
   }
   return { execute }

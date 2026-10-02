@@ -37,13 +37,13 @@ test('attachment resolution rejects arbitrary paths and leaves durable payload J
 test('public reveal uses saved cumulative ownership; duplicate keeps circle, old award has single-piece fallback', () => {
   const base = { actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }], registeredIds: new Set(['alice']) }
   const piece = pieces.find(piece => piece.id === 'mrq_bl')
-  const message = award => actionMessages({ result: { awards: [award] } }, base)[1].payload
+  const message = award => actionMessages({ result: { awards: [award] } }, base).find(message => message.payload.embeds[0].title.includes('COLLECTED') || message.payload.embeds[0].title.includes('DUPLICATE')).payload
   assert.equal(message({ ...piece, ownedPositions: ['tr', 'bl'] }).embeds[0].image.url, 'attachment://mrq_tr_bl.png')
   assert.equal(message({ ...piece, ownedPositions: ['tr', 'bl'], duplicate: true }).files[0].name, 'mrq_tr_bl.png')
   assert.equal(message(piece).files[0].name, 'mrq_bl.png')
   assert.equal(message({ ...piece, ownedPositions: ['tl', 'tr', 'bl', 'br'] }).files[0].name, 'mrq_tl_tr_bl_br.png')
   const complete = actionMessages({ result: { newlyCompletedCharacters: ['mrq'] } }, base).at(-1).payload
-  assert.equal(complete.embeds[0].image.url, 'attachment://mrq_tl_tr_bl_br.png')
+  assert.equal(complete.embeds[0].thumbnail.url, 'attachment://mrq_tl_tr_bl_br.png')
 })
 
 test('admin acknowledgement resolves attachment CDN URLs only against trusted matching filenames', () => {
@@ -52,4 +52,19 @@ test('admin acknowledgement resolves attachment CDN URLs only against trusted ma
   assert.equal(evidenceEmbeds(payload, evidence)[0].image.url, 'attachment://mrq_tr_bl.png')
   assert.deepEqual(evidenceEmbeds(payload, { ...evidence, attachments: [] }), [])
   assert.notEqual(evidenceEmbeds(payload, { ...evidence, embeds: [{ image: { url: 'wrong' } }] })[0].image.url, 'attachment://mrq_tr_bl.png')
+})
+
+
+test('duplicate progress uses saved cumulative token thumbnail and numbered player labels', () => {
+  const base = { actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }], registeredIds: new Set(['alice']) }
+  for (const [index, position] of ['tl','tr','bl','br'].entries()) {
+    const piece = pieces.find(p => p.id === 'sel_' + position)
+    const payload = actionMessages({ awards: [{ ...piece, duplicate: true, duplicates: 1, ownedPositions: ['tl','tr'] }] }, base)[0].payload
+    assert.match(payload.embeds[0].title, /DUPLICATE PIECE FOUND/)
+    assert.ok(payload.embeds[0].description.includes('Selene #' + (index+1)))
+    assert.match(payload.embeds[0].description, /Current Duplicates: 1\/5/)
+    assert.doesNotMatch(payload.embeds[0].description, /Character collection|\b(TL|TR|BL|BR)\b/)
+    assert.equal(payload.embeds[0].thumbnail.url, 'attachment://sel_tl_tr.png')
+    assert.equal(payload.embeds[0].image, undefined)
+  }
 })

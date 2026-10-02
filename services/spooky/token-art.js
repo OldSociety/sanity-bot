@@ -14,13 +14,20 @@ function tokenImage(characterId, ownedPositions) {
   return `${characterId}_${owned.join('_')}.png`
 }
 function validateFiles(files) {
-  if (!Array.isArray(files) || files.length !== 1 || !names.has(files[0]?.tokenAsset) || files[0].name !== files[0].tokenAsset) throw new Error('Invalid token attachment descriptor')
+  const badgeNames = new Set(require('../badges').badges.map(badge => badge.imageAsset)
+    .filter(name => typeof name === 'string' && /^[A-Za-z0-9_-]+\.png$/.test(name)))
+  if (!Array.isArray(files) || files.length < 1 || files.length > 2 || new Set(files.map(file => file?.name)).size !== files.length ||
+    files.some(file => !file || (file.tokenAsset && file.badgeAsset) ||
+      !(file.tokenAsset ? names.has(file.tokenAsset) && file.name === file.tokenAsset : badgeNames.has(file.badgeAsset) && file.name === file.badgeAsset))) {
+    throw new Error('Invalid token attachment descriptor')
+  }
   return files
 }
 function preparePayload(payload) {
   if (!payload.files) return payload
   return { ...payload, files: validateFiles(payload.files).map(file => ({
-    attachment: path.join(__dirname, '..', '..', 'assets', 'spooky', 'tokens', file.tokenAsset), name: file.name,
+    attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', file.badgeAsset)
+      : path.join(__dirname, '..', '..', 'assets', 'spooky', 'tokens', file.tokenAsset), name: file.name,
   })) }
 }
 // Discord expands attachment:// references into CDN URLs. Resolve only against
@@ -28,11 +35,13 @@ function preparePayload(payload) {
 function evidenceEmbeds(payload, evidence) {
   if (!payload.files) return evidence.embeds || []
   validateFiles(payload.files)
-  const file = payload.files[0]
-  const attachment = evidence.attachments?.find(item => item.name === file.name)
-  if (!attachment?.url) return []
+  const attachments = payload.files.map(file => ({ file, attachment: evidence.attachments?.find(item => item.name === file.name) }))
+  if (attachments.some(item => !item.attachment?.url)) return []
+  const portableURL = url => attachments.find(item => item.attachment.url === url)
+  const resolve = url => portableURL(url) ? `attachment://${portableURL(url).file.name}` : url
   return (evidence.embeds || []).map(embed => ({ ...embed,
-    ...(embed.image?.url === attachment.url ? { image: { ...embed.image, url: `attachment://${file.name}` } } : {}),
+    ...(embed.image ? { image: { ...embed.image, url: resolve(embed.image.url) } } : {}),
+    ...(embed.thumbnail ? { thumbnail: { ...embed.thumbnail, url: resolve(embed.thumbnail.url) } } : {}),
   }))
 }
 module.exports = { tokenImage, preparePayload, evidenceEmbeds }

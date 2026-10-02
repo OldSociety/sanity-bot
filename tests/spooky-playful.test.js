@@ -40,6 +40,63 @@ async function fixture(t) {
     time: value => { now = new Date(value) }, fail: value => { failure = value }, calls: () => networkCalls }
 }
 
+test('cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role', async t => {
+  const f = await fixture(t)
+  await f.invoke('curse', 'curse_backfire')
+  await f.delivery.reconcile(f.scope)
+  assert.ok(f.members[0].roleIds.includes('curse-role'))
+  for (let i = 0; i < 9; i++) {
+    const result = await f.run(`goodwill-${i}`, ctx => f.playful.handlers.standard_gift(ctx, { actorId: 'alice', action: 'treat' }))
+    assert.equal(result.receipt.goodwillFreedUserId, undefined)
+  }
+  const result = await f.run('goodwill-finish', ctx => f.playful.handlers.standard_gift(ctx, { actorId: 'alice', action: 'treat' }))
+  assert.equal(result.receipt.goodwillFreedUserId, 'alice')
+  assert.equal(await f.models.Effect.count({ where: { effectType: 'curse' } }), 0)
+  await f.delivery.reconcile(f.scope)
+  assert.ok(!f.members[0].roleIds.includes('curse-role'))
+  const replay = await f.run('goodwill-finish', () => { throw new Error('must not execute') })
+  assert.equal(replay.receipt.goodwillFreedUserId, 'alice')
+})
+
+test('failed curse removal survives another hit and eventually removes only the bot-owned role', async t => {
+  const f = await fixture(t)
+  await f.invoke('curse', 'curse_target'); await f.delivery.reconcile(f.scope)
+  f.fail(true)
+  await f.invoke('break', 'break_curse'); await f.delivery.reconcile(f.scope)
+  const before = (await f.models.Delivery.findOne()).get({ plain: true })
+  assert.equal(before.status, 'pending'); assert.equal(before.payload.present, false)
+  assert.equal((await f.invoke('again', 'curse_target')).receipt.noEffect, 'restoration_pending')
+  assert.equal(await f.models.Effect.count(), 0)
+  const after = await f.models.Delivery.findOne()
+  assert.equal(after.revision, before.revision); assert.deepEqual(after.payload, before.payload)
+  f.time(config.endsAt); await f.run('close', ctx => f.playful.cleanup(ctx))
+  f.fail(false); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].roleIds.includes('curse-role'), false)
+})
+
+test('pending/conflicting nickname restoration cannot be overwritten by a new reversal', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Bob'
+  await f.invoke('reverse', 'reverse_nickname'); await f.delivery.reconcile(f.scope)
+  await f.run('clear', async ctx => {
+    const removed = await f.effects.remove(ctx, 'bob', 'reversed_nickname')
+    await f.delivery.enqueue(ctx, 'bob', 'nickname', { nickname: removed.metadata.originalNickname,
+      expectedNickname: removed.metadata.appliedNickname })
+    return {}
+  })
+  f.fail(true); await f.delivery.reconcile(f.scope)
+  const row = await f.models.Delivery.findOne(), revision = row.revision
+  assert.equal((await f.invoke('again', 'reverse_nickname')).receipt.noEffect, 'restoration_pending')
+  assert.equal(await f.models.Effect.count(), 0)
+  assert.equal((await row.reload()).revision, revision); assert.equal(row.payload.nickname, 'Bob')
+  f.members[1].nickname = 'Manual'; f.fail(false); await f.delivery.reconcile(f.scope)
+  assert.equal((await row.reload()).status, 'conflict')
+  assert.equal((await f.invoke('conflict-hit', 'reverse_nickname')).receipt.noEffect, 'restoration_pending')
+  f.members[1].nickname = 'boB'; await row.update({ status: 'pending' }); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Bob')
+  assert.equal((await f.invoke('after-restore', 'reverse_nickname')).receipt.reversedUserId, 'bob')
+})
+
 test('ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties', async t => {
   const f = await fixture(t)
   assert.equal((await f.invoke('gift', 'standard_gift')).receipt.deliveredCandy, 1)
@@ -107,13 +164,13 @@ test('failed Discord delivery survives reconstruction and retry is idempotent', 
   assert.equal(f.calls(), calls)
 })
 
-test('Sweet Tooth retains random role and existing-holder generosity candy; Eye treat converts', async t => {
+test('Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts', async t => {
   const f = await fixture(t)
   await f.invoke('sweet', 'sweet_tooth'); await f.delivery.reconcile(f.scope)
   assert.ok(f.members[0].roleIds.includes('sweet-role'))
-  assert.equal((await f.invoke('again', 'sweet_tooth')).receipt.candyReward, 5)
+  assert.equal((await f.invoke('again', 'sweet_tooth')).receipt.candyReward, 0)
   await f.delivery.reconcile(f.scope)
-  assert.ok(f.members[1].roleIds.includes('sweet-role'))
+  assert.ok(!f.members[1].roleIds.includes('sweet-role'))
   await f.models.Participant.update({ registeredAt: new Date(config.startsAt), eyes: 4 }, { where: { userId: 'alice' } })
   assert.equal((await f.invoke('eye', 'find_eye')).receipt.awards.length, 1)
 })

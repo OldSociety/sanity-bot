@@ -2,11 +2,11 @@
 // Adapter methods run after commit and must use fresh Discord state, never cached roles.
 const queues = new WeakMap()
 const { serialize } = require('./economy')
-function createDelivery({ models, adapter, read, canDeliver = async row => !['final_treat_role', 'final_trick_role'].includes(row.kind) }) {
+function createDelivery({ models, adapter, read, canDeliver = async row => !['final_treat_role', 'final_trick_role', 'final_overall_role'].includes(row.kind) }) {
   const store = work => serialize(models.Delivery.sequelize, work)
   read ||= work => store(() => work())
   async function enqueue(ctx, userId, kind, payload) {
-    if (!['curse_role', 'sweet_tooth_role', 'nickname', 'final_treat_role', 'final_trick_role'].includes(kind)) throw new Error('Unknown delivery kind')
+    if (!['curse_role', 'sweet_tooth_role', 'nickname', 'final_treat_role', 'final_trick_role', 'final_overall_role'].includes(kind)) throw new Error('Unknown delivery kind')
     const where = { ...ctx.scope, userId, kind }
     const row = await models.Delivery.findOne({ where, transaction: ctx.transaction })
     const values = { revision: ctx.operationId, payload, status: 'pending', lastError: null }
@@ -42,7 +42,7 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
             if (!row.payload.roleId) throw new Error('Missing role ID')
             const has = current.roleIds.includes(row.payload.roleId)
             if (has !== row.payload.present) {
-              if (['final_treat_role', 'final_trick_role'].includes(row.kind) &&
+              if (['final_treat_role', 'final_trick_role', 'final_overall_role'].includes(row.kind) &&
                 (!adapter.checkRolePermission || await adapter.checkRolePermission(row.guildId, row.userId, row.payload.roleId) !== true)) throw new Error('Winner role permissions/hierarchy unavailable')
               if (await canDeliver(row) !== true) { results.push({ userId: row.userId, kind: row.kind, status: 'blocked' }); continue }
               if (!await isCurrent()) { results.push({ userId: row.userId, kind: row.kind, status: 'superseded' }); continue }
@@ -69,8 +69,8 @@ async function checkTitleRolePermission(guild, userId, roleId) {
   ])
   const role = roles.get(roleId)
   return Boolean(role && !role.managed && role.id !== guild.id &&
-    bot.permissions.has(PermissionFlagsBits.ManageRoles) && member.id !== guild.ownerId &&
-    bot.roles.highest.comparePositionTo(role) > 0 && bot.roles.highest.comparePositionTo(member.roles.highest) > 0)
+    member.id === userId && bot.permissions.has(PermissionFlagsBits.ManageRoles) &&
+    bot.roles.highest.comparePositionTo(role) > 0)
 }
 
 module.exports = { createDelivery, checkTitleRolePermission }

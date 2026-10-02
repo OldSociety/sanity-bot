@@ -45,6 +45,9 @@ function createCollection({ models, participants, event = defaultConfig, random 
     const ownedPositions = pieces.filter(item => item.characterId === piece.characterId && owned.has(item.id)).map(item => item.position)
     const newlyAwardedBadge = badges && ownedPositions.length === 4 ? await badges.award(ctx, participant.userId, piece.characterId) : null
     return { ...piece, duplicate: before > 0, source: reason, ownedPositions,
+      // Keep the count at this acquisition, before an automatic exchange consumes
+      // five extras. Saved reveals must not read today's inventory on replay.
+      duplicates: [...owned.values()].reduce((sum, row) => sum + row.quantity - 1, 0),
       ...(badges ? { newlyAwardedBadge, badgeAlreadyOwned: ownedPositions.length === 4 && !newlyAwardedBadge } : {}) }
   }
   async function exchange(ctx, participant, owned) {

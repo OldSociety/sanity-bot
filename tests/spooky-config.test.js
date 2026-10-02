@@ -9,7 +9,7 @@ test('development activation leaves production/test disabled and approved econom
   for (const environment of ['production', 'test', undefined]) assert.equal(selectEvent(data, environment).enabled, false)
   assert.equal(selectEvent(data, 'development').enabled, true)
   assert.equal(data.enabled, false)
-  assert.equal(selectEvent(data, 'development').version, 4)
+  assert.equal(selectEvent(data, 'development').version, data.version)
   assert.throws(() => selectEvent({ ...data, developmentEnabled: 'true' }, 'development'), /activation/)
 })
 
@@ -26,10 +26,15 @@ test('manifest provides unique durable quarter IDs and each character has requir
   assert.equal(new Set(pieces.map(p => p.id)).size, 28)
   for (const character of manifest.characters) {
     const group = pieces.filter(p => p.characterId === character.id)
-    assert.deepEqual(group.map(p => [p.position, p.rarity]), [['tl', 'common'], ['tr', 'common'], ['bl', 'rare'], ['br', 'legendary']])
+    const expected = { had: ['common','common','common','rare'], hfm: ['common','rare','rare','legendary'],
+      mrq: ['common','common','common','common'], max: ['common','rare','legendary','legendary'],
+      nik: ['common','rare','rare','legendary'], qam: ['common','common','common','rare'], sel: ['common','common','common','common'] }
+    assert.deepEqual(group.map(p => p.position), ['tl','tr','bl','br'])
+    assert.deepEqual(group.map(p => p.rarity), expected[character.id])
+    assert.ok(group.every(piece => piece.color === manifest.rarityColors[piece.rarity]))
   }
-  const bad = copy(manifest); bad.positions[2].rarity = 'legendary'
-  assert.throws(() => createPieces(bad), /position rarity/)
+  const bad = copy(manifest); bad.characters[0].rarities[0] = 'legendary'
+  assert.throws(() => createPieces(bad), /character rarity/)
   const repeated = copy(manifest); repeated.characters[1].id = repeated.characters[0].id
   assert.throws(() => createPieces(repeated), /Duplicate/)
 })
@@ -43,6 +48,22 @@ test('Pacific event opening/closing includes all October 31 and no redemption wi
   assert.equal(local(open), '10/01, 00:00')
   assert.equal(local(close), '11/01, 00:00')
   assert.throws(() => getEventState(NaN), /timestamp/)
+})
+
+test('character rarity metadata rejects missing, unknown or unordered assignments and invalid colors', () => {
+  const mutations = [m => { m.characters[0].rarities.pop() }, m => { m.characters[0].rarities[1] = 'mythic' },
+    m => { m.characters[0].rarities = ['common','legendary','rare','common'] },
+    m => { m.positions.reverse() }, m => { m.rarityColors.rare = 'purple' }]
+  for (const mutate of mutations) { const altered = copy(manifest); mutate(altered); assert.throws(() => createPieces(altered)) }
+  assert.deepEqual(Object.fromEntries(['common','rare','legendary'].map(rarity => [rarity, pieces.filter(piece => piece.rarity === rarity).length])), { common: 17, rare: 7, legendary: 4 })
+})
+
+test('character rarity metadata rejects missing, unknown or unordered assignments and invalid colors', () => {
+  const mutations = [m => { m.characters[0].rarities.pop() }, m => { m.characters[0].rarities[1] = 'mythic' },
+    m => { m.characters[0].rarities = ['common','legendary','rare','common'] },
+    m => { m.positions.reverse() }, m => { m.rarityColors.rare = 'purple' }]
+  for (const mutate of mutations) { const altered = copy(manifest); mutate(altered); assert.throws(() => createPieces(altered)) }
+  assert.deepEqual(Object.fromEntries(['common','rare','legendary'].map(rarity => [rarity, pieces.filter(piece => piece.rarity === rarity).length])), { common: 17, rare: 7, legendary: 4 })
 })
 test('configuration cannot silently enable redemption, draw ceilings, or unbanked fate', () => {
   for (const mutate of [c => { c.redemptionEndsAt = '2026-11-02T07:00:00.000Z' }, c => { c.eyes.dailyDrawLimit = 4 }, c => { c.fate.paymentResource = 'fate_points' }]) {

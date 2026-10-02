@@ -1,12 +1,42 @@
 {
   "collectionId": "spooky-2026",
   "badges": [
-    { "characterId": "had", "name": "Hadley", "emojiName": null },
-    { "characterId": "hfm", "name": "Hellfed Marq", "emojiName": null },
-    { "characterId": "mrq", "name": "Marq", "emojiName": null },
-    { "characterId": "max", "name": "Maxim", "emojiName": null },
-    { "characterId": "nik", "name": "Niklaus", "emojiName": null },
-    { "characterId": "qam", "name": "Qam", "emojiName": null },
-    { "characterId": "sel", "name": "Selene", "emojiName": "selene_badge" }
+    {
+      "characterId": "had",
+      "name": "Hadley",
+      "emojiName": null
+    },
+    {
+      "characterId": "hfm",
+      "name": "Hellfed Marq",
+      "emojiName": null
+    },
+    {
+      "characterId": "mrq",
+      "name": "Marq",
+      "emojiName": "spooky_marq_badge",
+      "imageAsset": "SPOOKY_MARQ_BADGE.png"
+    },
+    {
+      "characterId": "max",
+      "name": "Maxim",
+      "emojiName": null
+    },
+    {
+      "characterId": "nik",
+      "name": "Niklaus",
+      "emojiName": null
+    },
+    {
+      "characterId": "qam",
+      "name": "Qam",
+      "emojiName": null
+    },
+    {
+      "characterId": "sel",
+      "name": "Selene",
+      "emojiName": "spooky_selene_badge",
+      "imageAsset": "SPOOKY_SELENE_BADGE.png"
+    }
   ]
 }

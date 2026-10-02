@@ -35,11 +35,31 @@ test('admin access fails closed for every view and mismatched guild before datab
   assert.equal(await f.models.Operation.count(), 0)
   assert.equal(await f.models.Participant.count(), 0)
 })
+
+test('transaction activity identifies who acted, command, outcome and charged candy without mutating state', async t => {
+  const f = await fixture(t)
+  await f.User.create({ user_id: 'alice', user_name: 'Alice' })
+  await f.run('logged-trick', async ctx => {
+    await ctx.record({ userId: 'alice', resource: 'candy', delta: -1, before: 10, after: 9 })
+    return { outcome: 'caught_stealing', candySpent: 1, candy: 9 }
+  }, { operationType: 'spooky_trick' })
+  const result = await f.inspect('transactions', { userId: 'alice' })
+  assert.equal(result.activity.length, 1)
+  assert.equal(result.activity[0].actorName, 'Alice')
+  assert.equal(result.activity[0].actorId, 'alice')
+  assert.equal(result.activity[0].command, '/spooky trick')
+  assert.equal(result.activity[0].outcome, 'caught_stealing')
+  assert.equal(result.activity[0].candySpent, 1)
+  assert.equal(result.activity[0].candyAfter, 9)
+  assert.equal(result.activity[0].interactionId, 'logged-trick')
+  assert.equal(await f.models.Operation.count(), 1)
+  assert.equal(await f.models.Ledger.count(), 1)
+})
 test('inspection works with disabled play and validates explicit environment, limits, cursors and required player', async t => {
   const f = await fixture(t)
   const result = await f.inspect('config')
   assert.equal(result.configuration.enabled, false); assert.equal(result.environment, 'test')
-  assert.equal(result.configuration.version, 4)
+  assert.equal(result.configuration.version, config.version)
   assert.equal(result.reminders.enabled, false)
   assert.deepEqual(result.reminders.roleIds, [])
   assert.equal(result.reminders.localTime, null)
@@ -142,7 +162,9 @@ test('admin adapter defers privately, enforces channels, suppresses mentions and
   const large = inspectionScreen('transactions', { text: 'x'.repeat(7000) }, 3)
   assert.ok(large.embeds[0].description.length <= 4096)
   assert.throws(() => inspectionScreen('config', {}, 2), /Page/)
-  assert.deepEqual(command.data.toJSON().options.map(option => option.name), ['player', 'config', 'transactions', 'deliveries', 'adjust', 'grant-quarter', 'remove-quarter', 'clear-effect', 'pause', 'reset-development', 'recompute-badges', 'resolve-notification', 'resolve-delivery'])
+  assert.deepEqual(command.data.toJSON().options.map(option => option.name), ['inspect', 'repair', 'event', 'queue'])
+  assert.equal(command.data.toJSON().options.flatMap(group => group.options).length, 15)
+  assert.equal(command.data.toJSON().default_member_permissions, String(PermissionFlagsBits.Administrator))
   assert.equal(command.data.toJSON().dm_permission, false)
   // The wired entry point rejects a DM before importing the real connection.
   const modelPath = require.resolve('../Models/model')

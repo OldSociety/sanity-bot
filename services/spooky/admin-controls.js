@@ -21,7 +21,7 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       if (!['curse', 'reversed_nickname', 'theft_protection'].includes(input.effectType)) throw new Error('Unknown spooky effect')
       return { ...wanted, userId: input.userId, effectType: input.effectType }
     }
-    if (input.action !== 'reset-development') throw new Error('Unknown administrator control')
+    if (!['reset-development', 'reset-testing'].includes(input.action)) throw new Error('Unknown administrator control')
     if (input.confirm !== true) throw new Error('Development reset requires explicit confirmation')
     return { ...wanted, userId: input.userId, confirm: true }
   }
@@ -98,7 +98,7 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
   async function control(input) {
     await checkAccess(input)
     const wanted = request(input)
-    if (wanted.action === 'reset-development') requireDevelopment()
+    if (['reset-development', 'reset-testing'].includes(wanted.action)) requireDevelopment()
     const digest = createHash('sha256').update(JSON.stringify(wanted)).digest('hex')
     return economy.execute({ ...scope, actorId: input.actorId, interactionId: input.interactionId,
       operationType: `admin_control:${digest}` }, async original => {
@@ -119,6 +119,8 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       if (!player) throw new Error('Control requires an existing seasonal player')
       if (wanted.action === 'clear-effect') return { request: wanted, effects: [await clear(ctx, player, wanted.effectType)], restorationQueued: true }
       const removedParticipant = player.get({ plain: true })
+      const testReset = wanted.action === 'reset-testing'
+      if (testReset && (!badges || !delivery || !roleIds?.sweetTooth)) throw new Error('Full test reset requires badges and configured Crown delivery')
       const badgeOwnershipBefore = badges ? await badges.owned(ctx.scope.guildId, player.userId, ctx.transaction) : null
       const rows = await models.Effect.findAll({ where: { participantId: player.id }, transaction: ctx.transaction })
       const nicknameIntent = await models.Delivery.findOne({ where: { ...ctx.scope, userId: player.userId,
@@ -132,7 +134,8 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       for (const row of rows) cleared.push(await clear(ctx, player, row.effectType))
       const curseIntent = await models.Delivery.findOne({ where: { ...ctx.scope, userId: player.userId, kind: 'curse_role' }, transaction: ctx.transaction })
       if (curseIntent?.payload.present === true) await cancelIntent(ctx, player.userId, 'curse_role')
-      await cancelIntent(ctx, player.userId, 'sweet_tooth_role')
+      if (testReset) await delivery.enqueue(ctx, player.userId, 'sweet_tooth_role', { roleId: roleIds.sweetTooth, present: false })
+      else await cancelIntent(ctx, player.userId, 'sweet_tooth_role')
       // Reset cancels unapplied awards only. In-flight/ambiguous messages cannot
       // safely be recalled or resent, so preserve and expose them for inspection.
       const notifications = await cancelNotifications(ctx, player.userId)
@@ -145,12 +148,31 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
         metadata: { snapshot: removedParticipant } })
       await models.Inventory.destroy({ where: { participantId: player.id }, transaction: ctx.transaction })
       await player.destroy({ transaction: ctx.transaction })
+      const removedBadges = []
+      if (testReset) {
+        // Explicit development-only exception to permanent ownership retention.
+        // Do not touch other seasons, the shared Fate wallet, or audit history.
+        const Ownership = require('../badges').defineBadgeModel(sequelize)
+        const awards = await Ownership.findAll({ where: { guildId: ctx.scope.guildId,
+          userId: player.userId, sourceEventId: ctx.scope.eventId }, transaction: ctx.transaction })
+        for (const award of awards) {
+          await ctx.record({ userId: player.userId, resource: `badge:${award.badgeId}`, delta: -1, before: 1, after: 0,
+            metadata: { reason: 'development_test_reset', ownership: award.get({ plain: true }) } })
+          removedBadges.push(award.badgeId)
+          await award.destroy({ transaction: ctx.transaction })
+        }
+        // An audit marker resets Crown eligibility without deleting old awards.
+        await ctx.record({ userId: player.userId, resource: 'crown_reset', delta: 0,
+          metadata: { reason: 'development_test_reset', participantId: player.id } })
+      }
       const badgeOwnershipAfter = badges ? await badges.owned(ctx.scope.guildId, player.userId, ctx.transaction) : null
-      if (JSON.stringify(badgeOwnershipBefore?.slice().sort()) !== JSON.stringify(badgeOwnershipAfter?.slice().sort())) throw new Error('Development reset changed permanent badge ownership')
+      const expectedBadges = badgeOwnershipBefore?.filter(id => !removedBadges.includes(id))
+      if (JSON.stringify(expectedBadges?.slice().sort()) !== JSON.stringify(badgeOwnershipAfter?.slice().sort())) throw new Error('Development reset changed unexpected permanent ownership')
       if (badges) await ctx.record({ userId: player.userId, resource: 'badge_preservation', delta: 0,
         metadata: { badgeOwnershipBefore, badgeOwnershipAfter } })
       return { request: wanted, removedParticipant, removedInventory: inventory.map(row => row.get({ plain: true })),
-        effects: cleared, ...notifications, badgeOwnershipRetained: badgeOwnershipAfter, auditHistoryRetained: true, walletAndPermanentOwnershipUntouched: true }
+        effects: cleared, ...notifications, badgeOwnershipRetained: badgeOwnershipAfter, removedBadges, testReset,
+        auditHistoryRetained: true, walletUntouched: true, walletAndPermanentOwnershipUntouched: !testReset }
     })
   }
   return { control }

@@ -1,5 +1,15 @@
 # Spooky population balance — Task 17
 
+Current continuation: development test reset, combined completion/badge thumbnail and Selene emoji access are implemented. Historical entries below remain evidence. See [current fixes and exact acceptance steps](spooky-launch-fixes.md). Production still waits for human acceptance, balance and finale configuration.
+
+
+Current launch verdict (2026-10-02): **production launch should wait**. Read [the final launch audit](spooky-launch-audit.md) first. The original nine findings are fixed; seven new findings remain open (six P2 correctness/integration issues and one P3 maintenance-growth issue). Final **288/288 tests** pass, seven synthetic defect probes reproduce the gaps, 44 syntax checks and offline preflight/registry/development-target checks pass. Config 8/manifest 2 and approved odds are unchanged; development was already running, production remains disabled/stopped. No real database, Discord registration/message/role, migration, restart or production change occurred in this audit. The successful Sweet Tooth source title is now **🦷 SWEET TOOTH!**; it awaits a later reviewed development reload.
+
+Next: fix **L01/L02 restoration provenance** together, then L03/L04 cancellation and notification-owner inspection, L05 Markdown names, L06 legacy achievement bank policy, and L07 bounded maintenance. Add positive regressions and update the characterization assertions after each fix. The current two-seed config-8 balance sample (16 guilds/336 player-months/520,115 actions) passed conservation but misses casual/regular targets; it is diagnostic, not launch calibration. Winner role/channel/November time, six badge artworks/access decisions and human development/recovery acceptance remain open. Current dated audit/guide takes precedence over historical readiness, flags and test-count claims below.
+
+Latest approved update: [character rarity map](spooky-character-rarity.md), configuration **version 5**, manifest **version 2**. Pools: 17 common / 7 rare / 4 legendary; ordinary odds remain 70/22/8. Stable IDs, existing ownership and historical receipts are preserved. Lost-candy wording explicitly identifies the one action candy (6 → 5); no additional penalty. Full **261/261** tests, offline preflight and registry audit pass. Earlier version 4 statements and population results are historical; balance for the new map still needs measurement. Development reload/visual acceptance is the next step; production and optional activation remain unchanged.
+
+
 Run date: 2026-10-01. Branch: `feature/S-1-spooky`. Approved configuration version 4 is unchanged and disabled. This is an offline behavioral simulation, not live-server acceptance or a permanent badge award test.
 
 Continuation note: Task 18a subsequently added scheduled cleanup/closure and pre-existing-role restoration safeguards in `playful.js`. The JSON hashes describe the recorded Task 17 source snapshot; they are not claims about all later source revisions. Balance parameters are unchanged and the SQLite gameplay parity check still passes. See the [lifecycle guide](spooky-lifecycle.md).

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js')
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { privateScreen, actionMessages } = require('./presentation')
 
 function adminCommand(controller) {
@@ -39,6 +39,10 @@ function adminCommand(controller) {
     .addUserOption(option => option.setName('player').setDescription('Development participant to reset.').setRequired(true))
     .addBooleanOption(option => option.setName('confirm').setDescription('Explicitly confirm the seasonal development reset.').setRequired(true))
     .addStringOption(reasonOption))
+  data.addSubcommand(command => command.setName('reset-testing').setDescription('Fresh development test: clear event state, badges and Crown; retain Fate/Bank and audit.')
+    .addUserOption(option => option.setName('player').setDescription('Development player to fully reset.').setRequired(true))
+    .addBooleanOption(option => option.setName('confirm').setDescription('Confirm clearing event badges and Crown eligibility too.').setRequired(true))
+    .addStringOption(reasonOption))
   data.addSubcommand(command => command.setName('recompute-badges').setDescription('Reconcile earned permanent badges without changing quarters.')
     .addUserOption(option => option.setName('player').setDescription('Registered event participant.').setRequired(true))
     .addBooleanOption(option => option.setName('confirm').setDescription('Confirm permanent badge eligibility reconciliation.').setRequired(true))
@@ -55,6 +59,20 @@ function adminCommand(controller) {
       .addStringOption(reasonOption)
     if (target === 'notification') command.addStringOption(option => option.setName('message').setDescription('Observed bot message ID, required for acknowledge.').setMaxLength(20))
     return command
+  })
+  // Custom admin roles can be allowed in server command permissions; fresh
+  // runtime authorization remains required independently of picker visibility.
+  data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+  const commands = [...data.options]
+  data.options = []
+  const groups = { inspect: ['player', 'config', 'transactions', 'deliveries'],
+    repair: ['adjust', 'grant-quarter', 'remove-quarter', 'clear-effect', 'recompute-badges'],
+    event: ['pause', 'reset-development', 'reset-testing'], queue: ['resolve-notification', 'resolve-delivery'] }
+  for (const [name, names] of Object.entries(groups)) data.addSubcommandGroup(group => {
+    group.setName(name).setDescription(`Spooky ${name} tools.`)
+    for (const command of commands.filter(command => names.includes(command.name))) group.addSubcommand(command)
+    if (name === 'inspect') group.addSubcommand(command => command.setName('wording').setDescription('Privately browse trick and treat embed designs.'))
+    return group
   })
   return { data, execute: interaction => controller.execute(interaction) }
 }
@@ -88,6 +106,12 @@ function createAdminController({ admin, allowedChannelIds, notifications = null,
     try {
       if (!Array.isArray(allowedChannelIds) || !allowedChannelIds.length || !allowedChannelIds.includes(interaction.channelId)) throw new Error('Use a configured Spooky or bot-test channel')
       const subcommand = interaction.options.getSubcommand()
+      if (subcommand === 'wording') {
+        const authorize = () => admin.inspect({ view: 'config', guildId: interaction.guildId, actorId: interaction.user.id })
+        await authorize()
+        await require('./wording-preview').showPreview(interaction, authorize)
+        return
+      }
       if (['resolve-notification', 'resolve-delivery'].includes(subcommand)) {
         const target = subcommand === 'resolve-notification' ? 'notification' : 'delivery'
         const result = await admin.resolve({ guildId: interaction.guildId, actorId: interaction.user.id, interactionId: interaction.id,
@@ -121,7 +145,7 @@ function createAdminController({ admin, allowedChannelIds, notifications = null,
           publish: notifications ? () => notifications.deliver(result.operationId, interaction.channel) : null })
         return
       }
-      if (['clear-effect', 'pause', 'reset-development'].includes(subcommand)) {
+      if (['clear-effect', 'pause', 'reset-development', 'reset-testing'].includes(subcommand)) {
         const input = { guildId: interaction.guildId, actorId: interaction.user.id, interactionId: interaction.id,
           channelId: interaction.channelId, action: subcommand, reason: interaction.options.getString('reason') }
         if (subcommand === 'pause') input.paused = interaction.options.getBoolean('paused')
@@ -135,12 +159,16 @@ function createAdminController({ admin, allowedChannelIds, notifications = null,
         const receipt = result.receipt
         // Scope comes from trusted runtime composition, never interaction options.
         const projections = delivery && scope && input.userId ? await delivery.reconcile(scope, { userId: input.userId }) : []
+        if (receipt.testReset && badgeAccess) await badgeAccess.reconcileUser(scope.guildId, input.userId)
+          .catch(error => console.error('Test reset badge access pending:', error.message))
         await interaction.editReply(privateScreen('🎃 Control Saved', [
           `**Operation:** ${result.operationId}`,
           `**Control:** ${subcommand}`,
           ...(receipt.state ? [`**Actions paused:** ${receipt.state.actionsPaused}`] : []),
           ...(receipt.effects ? [`**Effects cleared:** ${receipt.effects.filter(effect => effect.cleared).length}`] : []),
-          ...(receipt.removedParticipant ? ['Development seasonal participant removed; wallet and audit history retained.'] : []),
+          ...(receipt.removedParticipant ? [receipt.testReset
+            ? 'Fresh development test reset: registration, candy, Eyes, quarters, scores, event badges and Crown eligibility cleared. Fate/Bank and audit history retained.'
+            : 'Development seasonal participant removed; wallet and audit history retained.'] : []),
           ...(receipt.ambiguousNotifications?.length ? [`**Notifications needing inspection:** ${receipt.ambiguousNotifications.join(', ')}`] : []),
           ...(projections.length ? [`**Restoration:** ${projections.map(row => `${row.kind}: ${row.status}`).join(', ')}`] : []),
           result.replayed ? 'Saved receipt replayed; no second control mutation.' : 'Control recorded in the ledger.',
@@ -159,7 +187,7 @@ function createAdminController({ admin, allowedChannelIds, notifications = null,
         committed = true
         const receipt = result.receipt
         const payload = privateScreen('🎃 Repair Saved',
-          `**Operation:** ${result.operationId}\n**Player:** ${receipt.request.userId}\n**Candy:** ${receipt.candy}/80\n**Eyes:** ${receipt.eyes}\n**Quarters awarded:** ${receipt.result.awards.length}\n**Owned pieces:** ${receipt.result.ownedPieces}\n**Extras:** ${receipt.result.duplicates}\n${result.replayed ? 'Replayed saved receipt; no second correction.' : 'Correction recorded in the ledger.'}\nUse /spooky-admin player or transactions for full details.`)
+          `**Operation:** ${result.operationId}\n**Player:** ${receipt.request.userId}\n**Candy:** ${receipt.candy}\n**Eyes:** ${receipt.eyes}\n**Quarters awarded:** ${receipt.result.awards.length}\n**Owned pieces:** ${receipt.result.ownedPieces}\n**Extras:** ${receipt.result.duplicates}\n${result.replayed ? 'Replayed saved receipt; no second correction.' : 'Correction recorded in the ledger.'}\nUse /spooky-admin player or transactions for full details.`)
         await require('./post-commit').finishSaved({ interaction, result, payload, badgeAccess, userId: receipt.request.userId, savedTitle: '🎃 Repair Saved',
           publish: notifications ? () => notifications.deliver(result.operationId, interaction.channel) : null })
         return

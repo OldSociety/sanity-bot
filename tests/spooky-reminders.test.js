@@ -27,6 +27,23 @@ async function fixture(t) {
     time: value => { now = new Date(value) }, fail: value => { fail = value }, fetchFail: value => { fetchFail = value }, lookups: () => lookups }
 }
 
+test('weekly Fate reminders have independent identity and a strict Unwanted-only role mention', async t => {
+  const f = await fixture(t)
+  const weekly = { ...settings, everyDays: 7, roleIds: [settings.roleIds[0]] }
+  const make = () => createReminders({ models: f.models, economy: f.economy, notifications: f.notifications,
+    event: f.event, guildId: 'guild', settings: weekly, clock: f.clock, getChannel: async () => f.channel,
+    namespace: 'fate-reminder', operationType: 'fate_reminder', payload: value => ({
+      content: `<@&${value.roleIds[0]}>`, allowedMentions: { parse: [], roles: value.roleIds, users: [] },
+      embeds: [{ title: 'Fate', description: '10 banked Fate Points buy a quarter with /spooky fate during October.' }],
+    }) })
+  await f.make().tick(); await make().tick()
+  assert.equal(f.sends.length, 2)
+  await make().tick(); assert.equal(f.sends.length, 2)
+  assert.deepEqual(f.sends[1].allowedMentions.roles, weekly.roleIds)
+  f.time('2026-10-07T19:00:00Z'); await make().tick(); assert.equal(f.sends.length, 2)
+  f.time('2026-10-08T19:00:00Z'); await make().tick(); assert.equal(f.sends.length, 3)
+})
+
 test('reminder settings fail closed; payload mentions only configured Resident roles', () => {
   assert.equal(reminderConfig.enabled, false); assert.equal(reminderConfig.channelId, null)
   for (const changes of [{ channelId: null }, { roleIds: [] }, { roleIds: ['@everyone'] },
@@ -37,7 +54,7 @@ test('reminder settings fail closed; payload mentions only configured Resident r
   const payload = reminderPayload(settings)
   assert.deepEqual(payload.allowedMentions, { parse: [], roles: settings.roleIds, users: [], repliedUser: false })
   assert.equal(payload.content, '<@&200000000000000001> <@&200000000000000002>')
-  assert.match(payload.embeds[0].description, /\/spooky welcome/)
+  assert.match(payload.embeds[0].description, /\/spooky register/)
   assert.doesNotMatch(payload.embeds[0].description, /\/trick\b|\/treat\b|prestige|permanent badge/i)
 })
 

@@ -4,6 +4,8 @@
 
 Latest full isolated suite **252/252 pass**; live setup is verified, player interaction/visibility/recovery acceptance still needs human testing.
 
+Subsequent onboarding change: **253/253 pass**, seven-subcommand definition registered and development restarted. Register now includes introduction/avatar/🍬 and 🧿 footer; no separate welcome. Test that repeat registration preserves balances and inspect avatar/footer on Discord.
+
 **Preparation update (2026-10-02): 250/250 offline tests pass.** The human supplied development CURSEDROLEID and `npm run spooky:check:dev` now passes for all required roles and bot-test channel. No live/database action occurred; all flags remain disabled. Next is an authorized live session with guild/permission/intents/storage/registry verification. Earlier 244-test counts are the audit milestone.
 
 **Audit corrections complete offline (2026-10-01): 244/244 tests and 20 positive regressions pass.** Read [fix evidence](spooky-audit-fixes.md) and [current handoff](spooky-handoff.md). The nine source/adapter defects are fixed; this matrix still requires explicit live-session authorization and actual server evidence. All flags remain disabled; no real storage/network setup has occurred. Dated notes below are historical.
@@ -85,7 +87,7 @@ Mark live evidence with date, tester IDs, interaction/operation IDs, before/afte
 
 | Area / actual commands | Expected result and evidence |
 | --- | --- |
-| `/spooky welcome`, `/spooky help` | Private newcomer/returning-player rules; command names match eight subcommands; disabled help still works; no arbitrary mentions |
+| `/spooky register`, `/spooky help` | Registration includes newcomer/returning introduction, avatar and 🍬/🧿 footer balances; names match seven subcommands; disabled help still works; no arbitrary mentions. No separate welcome command |
 | `/spooky register`, `/spooky status` | First economic touch seeds 10 candy; repeated registration keeps state; +10 per three elapsed hours/cap 80/no catch-up; status reports own state privately. Exact timed accrual already verified with injected clocks offline |
 | Guild/channel and admin gates | Wrong server/channel rejected; normal user cannot use admin tools; fresh admin authorization; no economy mutation on rejected requests |
 | `/spooky treat`, `/spooky trick` | One candy action debit in ledger, including curses/break-curse; net balance may also reflect the selected gift/loss. Legacy effects remain; personal outcomes private, other-player outcomes public |

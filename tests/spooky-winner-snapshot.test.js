@@ -31,6 +31,18 @@ async function fixture(t) {
     time: value => { now = new Date(value) }, calls: () => deliveries }
 }
 
+test('combined closure proof retains actual action totals and approved crown/heist bonuses', async t => {
+  const f = await fixture(t); await f.register('alice')
+  await f.run(ctx => f.progression.prestige(ctx, { actorId: 'alice', action: 'treat', outcome: 'sweet_tooth' }, { crownWon: true }))
+  await f.run(ctx => f.progression.prestige(ctx, { actorId: 'alice', action: 'trick', outcome: 'great_heist' }, { stolen: 1 }))
+  f.time(config.endsAt); await f.make().maintain('bonus-close')
+  const proof = (await f.read()).receipt
+  assert.equal(proof.tracks.overall.score, 19)
+  assert.equal(proof.tracks.overall.entrants[0].treats, 1); assert.equal(proof.tracks.overall.entrants[0].tricks, 1)
+  await f.make().maintain('bonus-replay')
+  assert.equal((await f.read()).receipt.tracks.overall.score, 19)
+})
+
 test('closure freezes tied leaders/admins/both titles and excludes inactive registrants atomically', async t => {
   const f = await fixture(t)
   for (const id of ['alice', 'admin', 'idle']) await f.register(id)

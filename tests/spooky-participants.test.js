@@ -22,13 +22,15 @@ async function fixture(t, event = { ...config, enabled: true }) {
 
 test('refill boundaries, partial intervals, downtime and capped surplus are deterministic', () => {
   const calc = (candy, elapsed, anchor = start) => calculateRefill({ candy, refillAnchor: anchor, now: start + elapsed })
-  assert.equal(calc(10, 3 * hour - 1).delta, 0)
+  assert.equal(calc(10, config.candy.refillIntervalMs - 1).delta, 0)
+  assert.equal(calc(10, config.candy.refillIntervalMs).candy, 11)
   assert.equal(calc(10, 3 * hour).candy, 20)
-  assert.equal(calc(10, 10 * hour).refillAnchor.getTime(), start + 9 * hour)
+  assert.equal(calc(10, 10 * hour).refillAnchor.getTime(), start + 33 * config.candy.refillIntervalMs)
   const capped = calc(10, 100 * hour)
   assert.equal(capped.candy, 80)
   assert.equal(capped.refillAnchor.getTime(), start + 100 * hour)
-  assert.equal(calc(79, 101 * hour, capped.refillAnchor).delta, 0)
+  const nextTick = Math.ceil(100 * hour / config.candy.refillIntervalMs) * config.candy.refillIntervalMs
+  assert.equal(calc(79, nextTick - 1, capped.refillAnchor).delta, 0)
   assert.equal(calc(80, hour).refillAnchor.getTime(), start + hour)
   assert.equal(calc(10, -hour).delta, 0)
   const end = Date.parse(config.endsAt)
@@ -119,10 +121,11 @@ test('spending after downtime at capacity starts a fresh interval and receipts r
     const participant = await ctx.changeBalance('alice', 'candy', -10)
     return { candy: participant.candy }
   })
-  f.time(start + 103 * hour - 1)
+  const nextTick = start + Math.ceil(100 * hour / config.candy.refillIntervalMs) * config.candy.refillIntervalMs
+  f.time(nextTick - 1)
   assert.equal((await f.service.refill(f.input('before'))).receipt.candy, 70)
-  f.time(start + 103 * hour)
-  assert.equal((await f.service.refill(f.input('due'))).receipt.candy, 80)
+  f.time(nextTick)
+  assert.equal((await f.service.refill(f.input('due'))).receipt.candy, 71)
   f.time(Date.parse(config.endsAt))
   assert.equal((await f.service.refill(f.input('due'))).replayed, true)
   await assert.rejects(() => f.service.refill(f.input('after-end')), /not active/)

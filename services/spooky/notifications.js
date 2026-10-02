@@ -33,7 +33,17 @@ function createNotifications({ models }) {
           continue
         }
         const nonce = createHash('sha256').update(`${operationId}:${row.ordinal}`).digest('hex').slice(0, 24)
-        const message = await channel.send({ ...preparePayload(row.payload), nonce, enforceNonce: true })
+        // Final status validation and starting dispatch share the DB queue with
+        // admin cancellation. Only start the request here; await its response
+        // outside the queue and outside all transactions. This closes the gap
+        // after awaited eligibility without blocking economy work on Discord.
+        const dispatch = await store(async () => {
+          const current = await models.Notification.findByPk(row.id)
+          if (current?.status !== 'sending') return null
+          return { response: channel.send({ ...preparePayload(row.payload), nonce, enforceNonce: true }) }
+        })
+        if (!dispatch) { allSent = false; continue }
+        const message = await dispatch.response
         const [saved] = await store(() => models.Notification.update({ status: 'sent', messageId: message.id }, { where: { id: row.id, status: 'sending' } }))
         if (!saved) {
           const current = await store(() => models.Notification.findByPk(row.id))

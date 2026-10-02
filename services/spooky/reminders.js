@@ -5,7 +5,7 @@ const defaults = require('../../config/spooky-reminders.json')
 
 function validateReminders(settings) {
   const snowflake = value => typeof value === 'string' && /^\d{17,20}$/.test(value)
-  if (typeof settings.enabled !== 'boolean' || settings.timezone !== 'America/Los_Angeles' || settings.everyDays !== 3) throw new Error('Invalid reminder enable/cadence/timezone')
+  if (typeof settings.enabled !== 'boolean' || settings.timezone !== 'America/Los_Angeles' || ![3, 7].includes(settings.everyDays)) throw new Error('Invalid reminder enable/cadence/timezone')
   if (settings.channelId !== null && !snowflake(settings.channelId)) throw new Error('Invalid reminder channel ID')
   if (!Array.isArray(settings.roleIds) || settings.roleIds.length > 10 || settings.roleIds.some(id => !snowflake(id)) || new Set(settings.roleIds).size !== settings.roleIds.length) throw new Error('Invalid reminder role allowlist')
   if (settings.localTime !== null && (typeof settings.localTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.localTime))) throw new Error('Invalid reminder local time')
@@ -33,16 +33,16 @@ function latestReminderSlot(now, settings = reminderConfig, event = defaultEvent
 function reminderPayload(settings) {
   return { content: settings.roleIds.map(id => `<@&${id}>`).join(' '),
     embeds: [{ color: 0xF39C12, title: '🎃 Spooky Season Is On!',
-      description: 'Spend candy on tricks and treats, cause Halloween mischief, and collect Evil Eyes!\n\nUse **/spooky welcome** to get started or **/spooky help** for the rules. Every five Eyes automatically awards a token quarter.' }],
+      description: 'Spend 🍬 candy on tricks and treats, cause Halloween mischief, and collect 🧿 Evil Eyes!\n\nUse **/spooky register** to get started or **/spooky help** for the rules. Every five 🧿 Evil Eyes automatically awards a token quarter.' }],
     allowedMentions: { parse: [], roles: [...settings.roleIds], users: [], repliedUser: false } }
 }
 class NotDue extends Error {}
 function createReminders({ models, economy, notifications, guildId, getChannel, event = defaultEvent,
-  settings = reminderConfig, clock = () => new Date() }) {
+  settings = reminderConfig, clock = () => new Date(), namespace = 'reminder', operationType = 'event_reminder', payload = reminderPayload }) {
   const approved = validateReminders(settings)
   if (typeof guildId !== 'string' || !guildId.trim() || typeof getChannel !== 'function') throw new Error('Reminder guild/channel adapter required')
   const scope = { eventId: event.eventId, guildId }
-  const signature = createHash('sha256').update(JSON.stringify(approved)).digest('hex')
+  const signature = createHash('sha256').update(JSON.stringify({ settings: approved, payload: payload(approved) })).digest('hex')
   async function canSend(receipt, now, transaction) {
     if (!event.enabled || latestReminderSlot(now, approved, event) !== receipt.slot || receipt.signature !== signature) return false
     const state = await models.EventState.findOne({ where: scope, transaction })
@@ -51,7 +51,7 @@ function createReminders({ models, economy, notifications, guildId, getChannel, 
   async function sweep() {
     // Scope through owning operations: notifications do not carry a guild column.
     const pending = await economy.read(async transaction => {
-      const owners = await models.Operation.findAll({ where: { ...scope, operationType: 'event_reminder' }, transaction })
+      const owners = await models.Operation.findAll({ where: { ...scope, operationType }, transaction })
       if (!owners.length) return []
       const byId = new Map(owners.map(owner => [owner.operationId, owner]))
       const rows = await models.Notification.findAll({ where: { operationId: { [Op.in]: [...byId.keys()] }, status: 'pending' }, transaction })
@@ -60,9 +60,9 @@ function createReminders({ models, economy, notifications, guildId, getChannel, 
         return receipt?.signature !== signature || latestReminderSlot(clock(), approved, event) !== receipt?.slot
       }).map(row => row.id)
     })
-    for (const id of pending) await economy.execute({ ...scope, actorId: 'system', workerKey: `reminder-expire:${id}`, operationType: 'reminder_expiry' }, async ctx => {
+    for (const id of pending) await economy.execute({ ...scope, actorId: 'system', workerKey: `${namespace}-expire:${id}`, operationType: `${namespace}_expiry` }, async ctx => {
       const row = await models.Notification.findByPk(id, { transaction: ctx.transaction })
-      const owner = row && await models.Operation.findOne({ where: { ...scope, operationId: row.operationId, operationType: 'event_reminder' }, transaction: ctx.transaction })
+      const owner = row && await models.Operation.findOne({ where: { ...scope, operationId: row.operationId, operationType }, transaction: ctx.transaction })
       if (!owner || row.status !== 'pending') return { cancelled: false }
       if (owner.receipt?.signature === signature && latestReminderSlot(ctx.now, approved, event) === owner.receipt?.slot) throw new NotDue('Reminder became current before expiry')
       await row.update({ status: 'cancelled', lastError: null }, { transaction: ctx.transaction })
@@ -78,10 +78,10 @@ function createReminders({ models, economy, notifications, guildId, getChannel, 
     if (!slot) return { skipped: 'not_due' }
     let result
     try {
-      result = await economy.execute({ ...scope, actorId: 'system', workerKey: `reminder:${slot}`, operationType: 'event_reminder' }, async ctx => {
+      result = await economy.execute({ ...scope, actorId: 'system', workerKey: `${namespace}:${slot}`, operationType }, async ctx => {
         const receipt = { slot, signature, channelId: approved.channelId, roleIds: approved.roleIds, localTime: approved.localTime }
         if (!await canSend(receipt, ctx.now, ctx.transaction)) throw new NotDue('Reminder paused, closed or no longer due')
-        await notifications.enqueue(ctx, approved.channelId, [{ public: true, payload: reminderPayload(approved) }])
+        await notifications.enqueue(ctx, approved.channelId, [{ public: true, payload: payload(approved) }])
         await ctx.record({ userId: 'system', resource: 'event_reminder', delta: 0, metadata: receipt })
         return receipt
       })

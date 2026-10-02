@@ -28,6 +28,8 @@ function validateEvent(config) {
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
   if (config.fate.paymentResource !== 'bank') throw new Error('Fate purchases must use bank only')
+  for (const [key, value] of Object.entries(config.crown || {})) requirePositiveInteger(value, `crown.${key}`)
+  for (const [key, value] of Object.entries(config.prestigeBonuses || {})) requirePositiveInteger(value, `prestigeBonuses.${key}`)
   if (config.prestige) {
     if (!Number.isSafeInteger(config.prestige.version) || config.prestige.version < 1 || !['approved', 'provisional'].includes(config.prestige.status)) throw new Error('Invalid prestige version/status')
     for (const key of ['success', 'failure', 'curseReplacement', 'noEffect']) if (!Number.isSafeInteger(config.prestige[key])) throw new Error('Invalid prestige weight')
@@ -43,16 +45,19 @@ function validateEvent(config) {
 function createPieces(manifest) {
   if (manifest.characters.length !== 7 || manifest.positions.length !== 4) throw new Error('Expected seven characters with four positions')
   if (new Set(manifest.characters.map(c => c.id)).size !== 7 || new Set(manifest.positions.map(p => p.id)).size !== 4) throw new Error('Duplicate manifest ID')
-  const expected = { tl: 'common', tr: 'common', bl: 'rare', br: 'legendary' }
-  for (const position of manifest.positions) {
-    if (expected[position.id] !== position.rarity || !/^#[0-9A-F]{6}$/i.test(position.color)) throw new Error('Invalid position rarity or color')
-  }
+  if (manifest.positions.map(position => position.id).join(',') !== 'tl,tr,bl,br') throw new Error('Invalid position order; expected tl,tr,bl,br')
+  const ranks = { common: 0, rare: 1, legendary: 2 }
+  for (const rarity of Object.keys(ranks)) if (!/^#[0-9A-F]{6}$/i.test(manifest.rarityColors?.[rarity] || '')) throw new Error('Invalid rarity color')
   for (const character of manifest.characters) {
     if (!/^[a-z]{3}$/.test(character.id) || typeof character.name !== 'string' || !character.name) throw new Error('Invalid character identity')
+    if (!Array.isArray(character.rarities) || character.rarities.length !== 4 || character.rarities[0] !== 'common'
+      || character.rarities.some((rarity, index) => !Object.hasOwn(ranks, rarity) || (index > 0 && ranks[rarity] < ranks[character.rarities[index - 1]]))) throw new Error('Invalid character rarity order')
   }
-  return manifest.characters.flatMap(character => manifest.positions.map(position => ({
+  // IDs/position order remain permanent; rarity now belongs to each character.
+  // Historical acquisition receipts retain their saved original rarity/color.
+  return manifest.characters.flatMap(character => manifest.positions.map((position, index) => ({
     id: `${character.id}_${position.id}`, characterId: character.id, characterName: character.name,
-    position: position.id, rarity: position.rarity, color: position.color,
+    position: position.id, rarity: character.rarities[index], color: manifest.rarityColors[character.rarities[index]],
   })))
 }
 function deepFreeze(value) {

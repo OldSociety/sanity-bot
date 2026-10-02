@@ -1,5 +1,17 @@
 const { Op } = require('sequelize')
 const { config: defaultEvent, getEventState } = require('./config')
+function overallTrack(tracks) {
+  const combined = new Map()
+  for (const track of ['treat', 'trick']) for (const row of tracks[track].entrants) {
+    const entry = combined.get(row.userId) || { userId: row.userId, participantId: row.participantId, score: 0, actions: 0, treats: 0, tricks: 0 }
+    entry.score += row.score; entry.actions += row.actions; entry[track === 'treat' ? 'treats' : 'tricks'] += row.actions
+    if (![entry.score, entry.actions, entry.treats, entry.tricks].every(Number.isSafeInteger)) throw new Error('Overall prestige overflow')
+    combined.set(row.userId, entry)
+  }
+  const entrants = [...combined.values()].sort((a, b) => b.score - a.score || a.userId.localeCompare(b.userId))
+  const score = entrants.length ? entrants[0].score : null
+  return { entrants, score, userIds: entrants.filter(entry => entry.score === score).map(entry => entry.userId).sort() }
+}
 
 function snapshotOperationId(eventId, guildId) {
   return `worker:${eventId}:${guildId}:winner-snapshot`
@@ -32,6 +44,7 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
         const leaders = data.entrants.filter(entry => entry.score === top).map(entry => entry.userId).sort()
         if (top !== data.score || JSON.stringify(leaders) !== JSON.stringify(data.userIds)) throw new Error('Winner snapshot receipt is invalid')
       }
+      if (saved.tracks.overall && JSON.stringify(saved.tracks.overall) !== JSON.stringify(overallTrack(saved.tracks))) throw new Error('Winner overall proof is invalid')
       return { operationId, frozenAt: saved.frozenAt, newlyFrozen: false }
     }
     const players = await models.Participant.findAll({ where: ctx.scope, transaction: ctx.transaction })
@@ -58,7 +71,10 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
         if (!Number.isSafeInteger(player[resource])) throw new Error('Invalid prestige balance')
         let score = 0
         for (const entry of actions) {
-          if (!Number.isSafeInteger(entry.delta) || !validDeltas.has(entry.delta) || entry.metadata?.scoringVersion !== event.prestige.version) throw new Error('Invalid prestige ledger version/delta')
+          const bonus = entry.metadata?.bonus || 0
+          const allowedBonus = entry.metadata?.outcome === 'sweet_tooth' ? event.crown?.prestigeBonus : event.prestigeBonuses?.[entry.metadata?.outcome]
+          if (!Number.isSafeInteger(entry.delta) || entry.metadata?.scoringVersion !== event.prestige.version ||
+            (bonus ? bonus !== allowedBonus || entry.metadata.base !== event.prestige.success || entry.delta !== entry.metadata.base + bonus : !validDeltas.has(entry.delta))) throw new Error('Invalid prestige ledger version/delta')
           score += entry.delta
           if (!Number.isSafeInteger(score)) throw new Error('Prestige total overflow')
         }
@@ -71,6 +87,7 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
       const score = entrants.length ? entrants[0].score : null
       tracks[track] = { score, userIds: entrants.filter(entry => entry.score === score).map(entry => entry.userId).sort(), entrants }
     }
+    tracks.overall = overallTrack(tracks)
     const receipt = { ...ctx.scope, configVersion: event.version, scoringVersion: event.prestige.version,
       endsAt: event.endsAt, frozenAt: ctx.now.toISOString(), sourceOperationId: ctx.operationId,
       policy: { adminEligible: true, ties: 'shared', allowBothTitles: true }, tracks }
@@ -85,4 +102,4 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
   return { freeze }
 }
 
-module.exports = { createWinnerSnapshot, snapshotOperationId }
+module.exports = { createWinnerSnapshot, snapshotOperationId, overallTrack }

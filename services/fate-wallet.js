@@ -3,7 +3,7 @@ const { serialize } = require('./spooky/economy')
 
 function levelReward(unwanted, booster) {
   return unwanted ? { fate_points: literal('MIN(100, fate_points + 5)'),
-    bank: booster ? literal('MIN(100, bank + MAX(0, fate_points + 5 - 100))') : literal('bank') } : {}
+    bank: booster ? literal('MAX(bank, MIN(100, bank + MAX(0, fate_points + 5 - 100)))') : literal('bank') } : {}
 }
 
 // This entry point runs outside economy callbacks. Sharing the connection queue
@@ -63,11 +63,32 @@ async function awardLevelUp(User, userId, values, { unwanted, booster }) {
 async function creditBank(User, userId, amount, { countBoost = false } = {}) {
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Invalid bank reward')
   return serialize(User.sequelize, async () => {
-    await User.update({ bank: literal(`MIN(100, bank + ${amount})`), ...(countBoost ? {
+    await User.update({ bank: literal(`MAX(bank, MIN(100, bank + ${amount}))`), ...(countBoost ? {
     boosterTotal: literal('boosterTotal + CASE WHEN bank < 100 THEN 1 ELSE 0 END'),
   } : {}) }, { where: { user_id: userId } })
     return User.findByPk(userId)
   })
 }
 
-module.exports = { saveWallet, awardLevelUp, creditBank, applyChatMessage }
+async function awardAchievement(User, UserAchievement, { userId, achievementId, amount }) {
+  if (User.sequelize !== UserAchievement.sequelize || !Number.isSafeInteger(achievementId) || achievementId < 1 ||
+    !Number.isSafeInteger(amount) || amount < 1) throw new Error('Invalid achievement award')
+  // Award ownership and its wallet credit commit once together. The same queue
+  // prevents this legacy command from joining an unrelated Spooky transaction.
+  return serialize(User.sequelize, () => User.sequelize.transaction({ type: require('sequelize').Transaction.TYPES.IMMEDIATE }, async transaction => {
+    const user = await User.findByPk(userId, { transaction })
+    if (!user || !Number.isSafeInteger(user.bank) || user.bank < 0) throw new Error('Invalid achievement wallet')
+    const before = user.bank
+    const where = { userId, achievementId }
+    if (await UserAchievement.findOne({ where, transaction })) return { awarded: false, before, bank: before, credited: 0 }
+    await UserAchievement.create(where, { transaction })
+    // Pre-existing above-cap balances are retained, never silently clamped.
+    const bank = before >= 100 ? before : Math.min(100, before + amount)
+    await user.update({ bank }, { transaction })
+    return { awarded: true, before, bank, credited: bank - before }
+  }))
+}
+async function removeAchievement(UserAchievement, where) {
+  return serialize(UserAchievement.sequelize, () => UserAchievement.destroy({ where }))
+}
+module.exports = { saveWallet, awardLevelUp, creditBank, applyChatMessage, awardAchievement, removeAchievement }

@@ -1,5 +1,8 @@
 # Token collection artwork — Task 19a
 
+Latest approved update: [character rarity map](spooky-character-rarity.md), configuration **version 5**, manifest **version 2**. Pools: 17 common / 7 rare / 4 legendary; ordinary odds remain 70/22/8. Stable IDs, existing ownership and historical receipts are preserved. Lost-candy wording explicitly identifies the one action candy (6 → 5); no additional penalty. Full **261/261** tests, offline preflight and registry audit pass. Earlier version 4 statements and population results are historical; balance for the new map still needs measurement. Development reload/visual acceptance is the next step; production and optional activation remain unchanged.
+
+
 The user supplied token_combinations_uniform_all_70.zip on 2026-10-01 and authorized token image integration. This supersedes the token-art deferral; permanent badges/emojis/profile/level-up work remains deferred. Work stays on feature/S-1-spooky; no Discord uploads or live sends occurred.
 
 ## Shipped assets and selection

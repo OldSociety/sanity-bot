@@ -1,5 +1,15 @@
 # Spooky 2026 rules specification
 
+Latest rules (2026-10-02), config **8**: [crown, goodwill and Scream Supreme](spooky-crown-and-finale.md) overrides historical 5% crown/recipient sharing/separate final titles. Treat probabilities: lost 20%, Sweet Tooth 1%, double gift 15%, immunity 10%, break curse 5%, standard gift 36%, find Eye 13%. First caller-only crown queues Sweet Tooth role and pays +5 banked Fate/+5 candy/+10 hidden prestige (resource caps retained). Successful Great Heist +5 prestige. Actual cursed treat gifts advance a private uniform 10–30 delivered-candy goal; meeting it clears the curse. `/spooky leaderboard` ranks combined trick+treat prestige without revealing scores. Shared ties/admin eligibility still apply. November overall finale reports winning score and scored action/point totals without formula; operational role/time are unresolved, so finale remains disabled. Weekly Unwanted Fate reminder runs Pacific noon Oct 1/8/15/22/29; purchases still stop at October closure. New wording uses 🧿 before Evil Eye and 🍬 before candy. No crown badge yet.
+
+Latest human-approved UI: [private candy nudges and admin wording gallery](spooky-private-ui.md). Current config **version 7**, piece manifest 2; refills use shared 18-minute ticks. Both 50-candy (1–24h since gameplay, 48h cooldown) and full-bucket (weekly) nudges are ephemeral on a qualifying interaction; the public bucket worker is disconnected. Status removed; six player commands, balance footers/countdown at zero, no embed timestamps, collection ❔/earned badge emoji. Admin tools have inspect/repair/event/queue groups and Administrator default visibility; custom admin roles need server command permission override. Wording preview uses real embeds, Previous/Next, fresh authorization and ten-minute expiry. Full **273/273** tests, static preflight/registry pass. Reviewed development definition update applied once under hash 95e1decf185689348b284c318baca039d261292d62318919b6155124ea32b887, preserving all fourteen commands including /game. Earlier public reminder/status/per-player clock descriptions are historical. Next: verify development reload then human UI testing; no production/schema/odds changes.
+
+
+Latest human-approved change: [steady candy and weekly bucket reminders](spooky-candy-refill.md). Current configuration **version 6**, piece manifest 2: **1 candy every 18 minutes**, same 80/day, initial 10 and backend cap 80. New balance displays omit the capacity fraction. Registered full-bucket players receive a Spooky-channel reminder at most once per rolling seven days, with only their user mention. Durable cooldown/outbox and eligibility/closure guards survive restart; sending/uncertain needs admin inspection. Resident recruitment stays disabled. No schema, command definitions, outcome/draw odds or ownership changes. Validation: **268/268 full tests**, **38/38 focused**, offline preflight/registry and source syntax/scoped whitespace pass. Next human acceptance is steady refill and reminder visuals. Earlier versions/refill descriptions are historical.
+
+
+Player presentation must retain playful legacy flavor. Lost/caught are normal failures that consume the one action candy, never an extra penalty or unavailable effect. Public success results remove their routine private acknowledgement; details remain in private admin transactions/queues. Cosmetic variants must not consume gameplay RNG or change saved receipt replay. See [flavor contract](spooky-flavor.md).
+
 For actual implementation, changed files, known bugs, and the exact next task, read the [current handoff](spooky-handoff.md). This specification describes intended rules; it does not imply commands already implement them.
 
 Status: confirmed core specification, 2026-10-01. Tasks 1–8, 10–17 and 18a/18b worker/18c1 snapshots/18c2 awards are complete offline and gameplay is wired in source. The event remains disabled; real migrations, Discord registration and live acceptance have not occurred. Task 16 admin tools are complete offline/source wired; Task 20a development acceptance/storage preparation is complete; 20b status/backup/apply and 20c scoped offline preflight are complete; live acceptance is next; permanent badge artwork/integration remains pending. Remaining decisions are tracked below. Branch verified: `feature/S-1-spooky`.
@@ -12,7 +22,7 @@ Task 6 implementation choice: first economic access starts the candy clock, with
 
 - Anyone in the server may participate, including administrators. Registration tracks event participation; no role is required to join.
 - Candy is action energy. Natural generation is 80/day, balance capacity 80. There is no daily action ceiling. Candy gifts, theft, and losses affect total possible actions.
-- Start with 10 candy. Regenerate 10 every three elapsed hours, capped at 80. Eight refill intervals provide up to 80 natural candy per 24 hours. Persist the refill anchor and credit whole elapsed intervals; time spent full cannot become an invisible surplus. Apply only eligible event time. First registration reuses any already-materialized nonparticipant balance.
+- Start with 10 candy. Regenerate 1 every 18 elapsed minutes, capped at 80. Eighty refill intervals provide up to 80 natural candy per 24 hours. Persist the refill anchor and credit whole elapsed intervals; time spent full cannot become an invisible surplus. Apply only eligible event time. First registration reuses any already-materialized nonparticipant balance.
 - Candy accrual stops at capacity, with no hidden surplus available immediately after spending. Materializing a nonparticipant's balance and later registering must not grant starter candy twice.
 - Evil Eyes are a separate collection currency. Whenever a registered player reaches five Eyes, automatically debit five and grant a random quarter in the same transaction. Repeat for multiple groups in a batch. No manual redemption, Eye shop purchase button, or hard daily draw limit. Four quarters/20 Eyes per day is a balancing aspiration, not an enforced maximum or a guarantee.
 - Ten **banked** fate points purchase an additional ordinary random quarter, with no daily draw limit. The latest explicit bank-only rule replaces earlier proposals to combine bank and unbanked fate. Insufficient bank means no purchase even if unbanked fate exists. Any registered player with sufficient banked fate may purchase; no Unwanted/admin restriction (confirmed 2026-10-01).
@@ -65,14 +75,16 @@ Candy distribution accounting must use actual recipients; never subtract three i
 
 Seven characters: Hadley (`had`), Hellfed Marq (`hfm`), Marq (`mrq`), Maxim (`max`), Niklaus (`nik`), Qam (`qam`), Selene (`sel`). IDs use stable character and position keys, for example `had_tl`; display names can change without changing IDs.
 
-| Position | Rarity | Color |
-| --- | --- | --- |
-| tl | Common | Blue |
-| tr | Common | Blue |
-| bl | Rare | Purple |
-| br | Legendary | Gold |
+| Character | tl | tr | bl | br |
+| --- | --- | --- | --- | --- |
+| Selene / Marq | Common | Common | Common | Common |
+| Qam / Hadley | Common | Common | Common | Rare |
+| Niklaus / Hellfed Marq | Common | Rare | Rare | Legendary |
+| Maxim | Common | Rare | Legendary | Legendary |
 
-Ordinary rarity weights are approved by the user on 2026-10-01: 70% common / 22% rare / 8% legendary (approved in version 2; current configuration version 4). Each rarity has uniform piece selection unless another selection policy is explicitly agreed. Exchange selection is always uniform across missing piece IDs, independent of ordinary rarity weights.
+Confirmed 2026-10-02, configuration version 5 / manifest version 2. Pools: 17 common, 7 rare, 4 legendary. Colors remain blue / purple / gold. Stable IDs, existing inventory and historical receipts are retained; see [change evidence](spooky-character-rarity.md).
+
+Ordinary rarity weights are approved by the user on 2026-10-01: 70% common / 22% rare / 8% legendary (approved in version 2; current configuration version 6). Each rarity has uniform piece selection unless another selection policy is explicitly agreed. Exchange selection is always uniform across missing piece IDs, independent of ordinary rarity weights.
 
 On each acquisition, retain the first copy and count later copies as extras. At five extras across any pieces, automatically consume exactly five and grant one uniformly random unowned piece. This has no daily limit, extra cost, or manual confirmation. Repeat if a batch creates multiple groups. Save acquisition, exchange, and eligibility state atomically; send one coherent result after commit. At full collection, retain extra copies and stop missing-piece exchange; this conservative terminal behavior avoids destroying inventory without an agreed replacement reward.
 
@@ -87,7 +99,7 @@ Task 15 visibility correction from user: effects involving another player are pu
 - Randomize tricks and treats where appropriate. Specific treat targeting is not a launch requirement. One-hour theft protection is confirmed. Registered players may be Eye theft targets without an additional recent-activity or daily-loss restriction; protection still applies. Candy theft may target any eligible human in the server, registered or not. Do not silently exclude admins from ordinary play.
 - For unregistered candy victims, credit the transferred candy and identify its source using a plain-text name without pinging or enrolling them. Economic eligibility excludes bots/self and protected victims where applicable. Refill/materialize the victim's actual default candy before transferring; do not mint a theft reward without its matching debit.
 - No nonparticipant mentions in game messages. Recruitment reminders may mention configured Resident roles in the fuckery channel every three Pacific calendar days. Task 18b worker is source wired with strict role-only mentions, latest-only downtime handling and guarded durable outbox. Operational config remains disabled with channel/roles/local time pending user input; no real reminders sent. See the [reminder guide](spooky-reminders.md).
-- Private welcome/help/status/collection and solely personal action receipts follow the supplied BloodHunter style; other-player actions are public under the mention rules above. Automatic quarter reveals and eventual badge announcements should be prominent and bold. Quarter reveals are public reward embeds, not native unsolicited dialogs. Actual command definitions must match README and the final announcement.
+- Registration is the private newcomer introduction, replacing a separate welcome subcommand. It preserves the existing one-time starting candy and shows available commands, player avatar and footer balances (🍬 candy / 🧿 Evil Eyes). Re-registration preserves progress and never grants starting candy again. Help/status/collection and solely personal action receipts remain private; other-player actions are public under the mention rules above. Automatic quarter reveals and eventual badge announcements should be prominent and bold. Quarter reveals are public reward embeds, not native unsolicited dialogs. Actual command definitions must match README and the final announcement.
 - Admin tools inspect player/config/ledger, correct balances, grant/remove pieces, recompute badges, clear effects, pause actions, and reset only development seasonal state. Corrections require authorization, reason, and replay-safe ledger entries.
 
 ## Fate and prestige — implemented; final awards pending
@@ -111,14 +123,14 @@ Separate seasonal scoring and category tracking are implemented. Only final titl
 | D7 | Shield recipients and other-effect immunity | Confirmed giver and recipient, one hour, theft protection | 13 |
 | D8 | Full collection extras | Retain without exchange; no unapproved replacement reward | 8 |
 | D9 | Redemption | Confirmed no post-October redemption | 18 |
-| D10 | Ordinary drop weights | User approved 70/22/8 on 2026-10-01; approved in version 2; current version 4 | 3/7/17 |
+| D10 | Ordinary drop weights | User approved 70/22/8 on 2026-10-01; approved in version 2; current version 5 | 3/7/17 |
 | D11 | Legacy roles/effect lifetimes | Curse/nickname until broken or October end; retain random Sweet Tooth, distinct winner titles | 13/14 |
 | D12 | Prestige | Approved v1 +2/−1/+1/0; admins eligible, shared ties, one player may win both | 14/18 |
 | D13 | Rare recipient Eye gifts | Deferred: absent from locked table; do not add implicitly | 11 |
 
 D13 is deferred unless the user approves attachment to an agreed outcome without silently changing total Eye supply. The latest locked treat table otherwise grants its Eye only to the caller. Table totals do not permit simply adding a new branch.
 
-Core effect, rarity, scoring and admin repair policies are confirmed and implemented offline. Task 17 has evaluated balance; the casual/regular targets conflict with current action budgets and stealable Eye accumulation. See the [population balance report](spooky-population-balance.md) before any adjustment. Approved config remains version 4 unchanged. Remaining work includes balance decisions, lifecycle awards/reminders, deferred art/badges and live acceptance. See the handoff for exact next steps. Routine implementation choices (IDs, transaction structure, persisted receipts) do not require new approval.
+Core effect, rarity, scoring and admin repair policies are confirmed and implemented offline. Task 17 has evaluated balance; the casual/regular targets conflict with current action budgets and stealable Eye accumulation. See the [population balance report](spooky-population-balance.md) before any adjustment. Current config is version 5 with the approved character rarity map; the previous version 4 simulations are historical. Remaining work includes balance decisions, lifecycle awards/reminders, deferred art/badges and live acceptance. See the handoff for exact next steps. Routine implementation choices (IDs, transaction structure, persisted receipts) do not require new approval.
 
 ## Validation performed
 

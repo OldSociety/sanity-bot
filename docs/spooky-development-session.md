@@ -10,7 +10,7 @@ This is the prepared live-session scope, not evidence that it ran. Work remains 
 - Development guild: `684459745167671453`; configured production guild is distinct.
 - Database: `C:/Users/headm/code/sanity-bot-dev/config/dev.sqlite`, selected by authoritative `.env.development`.
 - Gameplay channel: configured BOTTESTCHANNELID. Required curse/Sweet Tooth/Unwanted role IDs pass syntax; their actual guild and permissions remain unverified.
-- Four additive migrations; thirteen active command definitions, including eight Spooky and thirteen private Spooky admin subcommands. No active local HEAD command is missing. Live-only commands require separate comparison.
+- Four additive migrations; thirteen active source command definitions, including seven Spooky and thirteen private Spooky admin subcommands. Registration is the introduction; separate welcome removed. No active local HEAD command is missing. Live-only commands require separate comparison.
 - Core development correctness uses approved economy v4. No balance changes, production operations, reminders, final awards or badge emoji restrictions are included.
 
 ## Execution order

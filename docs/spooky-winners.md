@@ -1,5 +1,7 @@
 # Spooky winner snapshots and final delivery — Tasks 18c1/18c2
 
+2026-10-02 supersession: current final mode is **overall SCREAM SUPREME**, combining both tracks, rather than the historical separate titles below. See [current crown/finale guide](spooky-crown-and-finale.md). Freeze retains both tracks and derives verified overall score/action counts; old frozen proofs derive only from their saved tracks. November delivery waits for configured announcementAt and a distinct winner role, using existing guarded role/outbox semantics. Final config remains disabled/null pending the human role/time; read-only development role lookup found no matching role. Crown bonus +10 and successful heist +5 are additive audited scoring metadata; historical rows are not rescored. Role grants allow owner recipients when the awarded role is below the bot. Existing separate mode remains for compatibility/tests only.
+
 Completed offline/source wired on `feature/S-1-spooky`, 2026-10-01. Current full suite: **193/193 pass**. Snapshot and title delivery workers are complete; final operational configuration remains pending and Task 18 overall stays open. Event/reminders remain disabled. No real storage migration or Discord call occurred.
 
 `services/spooky/winner-snapshot.js` exposes internal `createWinnerSnapshot({ models, event }).freeze(ctx)`. Runtime injects it into lifecycle maintenance. The caller owns the root economy transaction: cleanup, snapshot proof, audit and `archivedAt` commit together. Do not call another economy executor inside `freeze`.

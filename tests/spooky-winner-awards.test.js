@@ -52,6 +52,27 @@ async function fixture(t) {
     memberError: value => { memberError = value }, time: value => { now = new Date(value) }, writes: () => writes }
 }
 
+test('overall Scream Supreme combines both tracks, waits for announced time and awards only one title', async t => {
+  const f = await fixture(t)
+  await f.register(alice); await f.register(admin)
+  await f.score(alice, 'treat'); await f.score(alice, 'trick'); await f.score(admin, 'treat')
+  await f.close()
+  const combined = { enabled: true, mode: 'overall', channelId: settings.channelId,
+    overall: { name: 'SCREAM SUPREME', roleId: '200000000000000003' }, announcementAt: '2026-11-01T20:00:00Z' }
+  const delivery = f.makeDelivery({ canDeliver: createTitleGuard({ models: f.models, event: f.event, settings: combined, clock: f.clock }) })
+  const worker = f.make({ settings: combined, delivery })
+  assert.equal((await worker.tick()).skipped, 'not_due')
+  assert.equal(f.sends.length, 0)
+  f.time(combined.announcementAt)
+  const result = await worker.tick()
+  assert.deepEqual(result.receipt.winners, { overall: [alice] })
+  assert.ok(f.roles.get(alice).has(combined.overall.roleId)); assert.equal(f.roles.get(admin).size, 0)
+  assert.equal(f.sends.length, 1)
+  assert.match(f.sends[0].embeds[0].description, /2 treats.*1 tricks.*6 prestige/)
+  assert.doesNotMatch(f.sends[0].embeds[0].description, /scoringVersion|success|bonus|delta/)
+  await worker.tick(); assert.equal(f.sends.length, 1)
+})
+
 test('winner configuration is disabled/incomplete by default and rejects unsafe or reused titles/roles', () => {
   assert.equal(winnerConfig.enabled, false); assert.equal(winnerConfig.channelId, null)
   for (const changes of [{ enabled: 'yes' }, { channelId: null }, { channelId: '@everyone' },
@@ -204,7 +225,7 @@ test('title admin retry/acknowledgement uses scoped evidence and preserves cance
   assert.equal(await f.models.Operation.count({ where: { operationType: 'winner_awards' } }), 1)
 })
 
-test('winner role permission check requires fresh hierarchy/ManageRoles and excludes owner/managed roles', async () => {
+test('winner role permission checks awarded-role hierarchy and permits the owner', async () => {
   let manage = true, managed = false, position = 1, owner = 'owner'
   const calls = []
   const guild = { id: 'guild', get ownerId() { return owner }, members: {
@@ -216,7 +237,7 @@ test('winner role permission check requires fresh hierarchy/ManageRoles and excl
   manage = false; assert.equal(await checkTitleRolePermission(guild, alice, settings.treat.roleId), false)
   manage = true; managed = true; assert.equal(await checkTitleRolePermission(guild, alice, settings.treat.roleId), false)
   managed = false; position = 0; assert.equal(await checkTitleRolePermission(guild, alice, settings.treat.roleId), false)
-  position = 1; owner = alice; assert.equal(await checkTitleRolePermission(guild, alice, settings.treat.roleId), false)
+  position = 1; owner = alice; assert.equal(await checkTitleRolePermission(guild, alice, settings.treat.roleId), true)
 })
 
 test('award failure isolation preserves completed maintenance and propagates root cleanup failure', async () => {

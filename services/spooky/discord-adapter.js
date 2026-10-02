@@ -12,8 +12,9 @@ function createDiscordAdapter(getGuild) {
       if (guard && !await guard.isCurrent()) return false
       if (member.roles.cache.has(roleId) === present) return true
       const role = roles.get(roleId)
-      if (!role || role.managed || role.id === guild.id || member.id === guild.ownerId || !bot.permissions.has(PermissionFlagsBits.ManageRoles) ||
-        bot.roles.highest.comparePositionTo(role) <= 0 || bot.roles.highest.comparePositionTo(member.roles.highest) <= 0) throw new Error('Role permissions/hierarchy unavailable')
+      // Unlike nickname edits, role grants can target the owner or a higher-ranked member.
+      if (!role || role.managed || role.id === guild.id || !bot.permissions.has(PermissionFlagsBits.ManageRoles) ||
+        bot.roles.highest.comparePositionTo(role) <= 0) throw new Error('Role permissions/hierarchy unavailable')
       return present ? member.roles.add(roleId) : member.roles.remove(roleId)
     },
     setNickname: async (id, userId, nickname, guard) => {

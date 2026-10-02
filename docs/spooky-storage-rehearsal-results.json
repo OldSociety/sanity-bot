@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "generatedAt": "2026-10-02T04:06:57.258Z",
+  "generatedAt": "2026-10-02T22:15:35.465Z",
   "syntheticStorageOnly": true,
   "discordAccessed": false,
   "sqliteVersion": "3.44.2",
@@ -19,8 +19,8 @@
     "20261001000003-create-permanent-badges.js": "32e4220147a67fb3f8d88197c6573be580d865dc948d44e7ad96a2405bf95f7c"
   },
   "spookyTables": 8,
-  "baselineHash": "0dc04f4acdc8850e4c68115f14467eb29dac92d66ac513118575d46d65d5a9df",
-  "populatedHash": "115cd85605f301f7b85771d95babf4fd134a05f6aeaefe0bbb9de7b5eb3049df",
+  "baselineHash": "a0b339580f0a96f9fe87200e647b453bcfbd258aa31ebe2a7ce673b94d49d4c5",
+  "populatedHash": "fe1b6877ea08cce7f9f6dfc2418e91de2149a3485db1312e86728f8b7847c965",
   "beforeRestoreMatches": true,
   "populatedRestoreMatches": true,
   "schemaRollbackPreservesExistingData": true,

@@ -72,7 +72,7 @@ function createAdminResolution({ models, economy, event, scope, checkAccess, rea
         (evidence.content || '') !== (row.payload.content || '') || !contains(require('./token-art').evidenceEmbeds(row.payload, evidence), row.payload.embeds || [])) throw new Error('Message evidence does not match the saved bot notification')
     }
     if (wanted.target === 'delivery' && wanted.action !== 'cancel') {
-      if (!['nickname', 'curse_role', 'sweet_tooth_role', 'final_treat_role', 'final_trick_role'].includes(row.kind) ||
+      if (!['nickname', 'curse_role', 'sweet_tooth_role', 'final_treat_role', 'final_trick_role', 'final_overall_role'].includes(row.kind) ||
         (row.kind !== 'nickname' && (typeof row.payload.roleId !== 'string' || !row.payload.roleId || typeof row.payload.present !== 'boolean')) ||
         (row.kind === 'nickname' && !(row.payload.nickname === null || (typeof row.payload.nickname === 'string' && row.payload.nickname.length <= 32)))) throw new Error('Invalid projection payload; inspect or cancel')
       if (!readMember) throw new Error('Trusted member evidence adapter is required')

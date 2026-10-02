@@ -4,6 +4,7 @@ const { PermissionFlagsBits } = require('discord.js')
 function validateSettings(settings) {
   if (typeof settings?.enabled !== 'boolean' || !settings.roles || Object.keys(settings.roles).some(key => !badges.some(badge => badge.characterId === key))) throw new Error('Invalid badge access configuration')
   const ids = badges.map(badge => settings.roles[badge.characterId]).filter(id => id !== null)
+  if (settings.botDisplayRoleId !== undefined && settings.botDisplayRoleId !== null) ids.push(settings.botDisplayRoleId)
   if (ids.some(id => typeof id !== 'string' || !/^\d{17,20}$/.test(id)) || new Set(ids).size !== ids.length) throw new Error('Badge access requires distinct configured role IDs or null')
   return settings
 }
@@ -14,7 +15,12 @@ function accessRole(role, guild, bot, channels) {
     role.permissions.bitfield === 0n && bot.roles.highest.comparePositionTo(role) > 0 &&
     ![...channels.values()].some(channel => channel?.permissionOverwrites?.cache.has(role.id)))
 }
-function createBadgeAccess({ service, getGuild, guildId, settings = defaults }) {
+function settingsForGuild(guildId, { environment = require('../config/runtime').resolveRuntime(process.env.NODE_ENV).env,
+  configuredGuildId = process.env.GUILDID } = {}) {
+  const dev = defaults.development
+  return environment === 'development' && guildId === configuredGuildId && guildId === dev?.guildId ? dev : defaults
+}
+function createBadgeAccess({ service, getGuild, guildId, settings = settingsForGuild(guildId) }) {
   validateSettings(settings)
   const queues = new Map()
   async function reconcile(id, userId) {
@@ -52,13 +58,15 @@ function createBadgeAccess({ service, getGuild, guildId, settings = defaults }) 
   }
   return { reconcileUser }
 }
-async function configureEmojiAccess(guild, settings = defaults) {
+async function configureEmojiAccess(guild, settings = settingsForGuild(guild.id)) {
   validateSettings(settings)
   if (!settings.enabled) throw new Error('Badge access configuration must be explicitly enabled')
   const [bot, roles, emojis, channels] = await Promise.all([guild.members.fetchMe({ force: true }), guild.roles.fetch(), guild.emojis.fetch(), guild.channels.fetch()])
   if (!bot.permissions.has(PermissionFlagsBits.ManageGuildExpressions)) throw new Error('Emoji restriction setup requires ManageGuildExpressions')
-  const botRole = bot.roles.botRole
-  if (!botRole || !botRole.managed) throw new Error('Dedicated managed bot role required for badge display')
+  const botRole = settings.botDisplayRoleId ? roles.get(settings.botDisplayRoleId) : bot.roles.botRole
+  if (!botRole || (settings.botDisplayRoleId ? !accessRole(botRole, guild, bot, channels) || !bot.roles.cache.has(botRole.id) : !botRole.managed)) {
+    throw new Error('Dedicated bot display role required for badge display')
+  }
   const changes = []
   for (const badge of badges) {
     const roleId = settings.roles[badge.characterId]
@@ -76,7 +84,7 @@ async function configureEmojiAccess(guild, settings = defaults) {
   return changes.map(change => ({ emojiId: change.emoji.id, roles: change.roles }))
 }
 async function reconcileGuildUser(guild, userId, sequelize) {
-  if (!defaults.enabled) return { disabled: true }
+  if (!settingsForGuild(guild.id).enabled) return { disabled: true }
   return createBadgeAccess({ service: createBadges({ sequelize }), getGuild: async () => guild, guildId: guild.id }).reconcileUser(guild.id, userId)
 }
-module.exports = { validateSettings, createBadgeAccess, configureEmojiAccess, reconcileGuildUser }
+module.exports = { validateSettings, createBadgeAccess, configureEmojiAccess, reconcileGuildUser, settingsForGuild }

@@ -11,7 +11,7 @@ function fixture() {
     add: async id => { held.add(id); writes.push(['add', id]) }, remove: async id => { held.delete(id); writes.push(['remove', id]) } } }
   const bot = { permissions: { has: permission => [PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ManageGuildExpressions].includes(permission) },
     roles: { highest: { comparePositionTo: () => 1 }, botRole: { id: botId, managed: true } } }
-  const emoji = { id: '444444444444444444', name: 'selene_badge', managed: false, available: true,
+  const emoji = { id: '444444444444444444', name: 'spooky_selene_badge', managed: false, available: true,
     edit: async options => restrictions.push(options.roles) }
   const guild = { id: guildId, roles: { fetch: async () => new Map([[roleId, role]]) },
     members: { fetch: async () => member, fetchMe: async () => bot }, emojis: { fetch: async () => new Map([[emoji.id, emoji]]) }, channels: { fetch: async () => new Map() } }
@@ -20,6 +20,20 @@ function fixture() {
   const access = createBadgeAccess({ service, getGuild: async () => guild, guildId, settings: settings() })
   return { guild, role, member, bot, emoji, access, held, writes, restrictions, setOwned: value => { owned = value } }
 }
+
+test('explicit bot-only renderer role permits badge embeds when a managed bot role is absent', async () => {
+  const f = fixture()
+  f.bot.roles.botRole = null
+  const renderer = { id: botId, managed: false, hoist: false, mentionable: false, permissions: { bitfield: 0n } }
+  f.bot.roles.cache = { has: id => id === botId }
+  f.guild.roles.fetch = async () => new Map([[roleId, f.role], [botId, renderer]])
+  const config = { ...settings(), botDisplayRoleId: botId }
+  await configureEmojiAccess(f.guild, config)
+  assert.deepEqual(f.restrictions, [[roleId, botId]])
+  renderer.permissions.bitfield = 8n
+  await assert.rejects(() => configureEmojiAccess(f.guild, config), /display role/)
+  assert.equal(f.restrictions.length, 1)
+})
 test('disabled projection never fetches Discord or ownership; config requires separate exact role IDs', async () => {
   const disabled = createBadgeAccess({ guildId, getGuild: async () => { throw new Error('network forbidden') }, service: { owned: async () => { throw new Error('DB forbidden') } } })
   assert.deepEqual(await disabled.reconcileUser(guildId, 'alice'), { disabled: true })

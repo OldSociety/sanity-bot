@@ -1,0 +1,62 @@
+{
+  "scope": "synthetic SQLite/Discord only",
+  "fixesVerified": true,
+  "configVersion": 8,
+  "realDatabaseOpened": false,
+  "discordContacted": false,
+  "observations": {
+    "curseRestoration": {
+      "originalOwned": true,
+      "reapplicationBlocked": true,
+      "finalIntent": {
+        "roleId": "curse",
+        "present": false
+      },
+      "finalStatus": "pending"
+    },
+    "nicknameRestoration": {
+      "actualOriginal": "Bob",
+      "reapplicationBlocked": true,
+      "finalRestoration": "Bob"
+    },
+    "notificationCancellation": {
+      "sendsBeforeCancel": 0,
+      "sendsAfterCancel": 0,
+      "finalStatus": "cancelled",
+      "allSent": false
+    },
+    "playerQueueFilter": {
+      "allNotifications": 1,
+      "ownedPlayerNotifications": 1
+    },
+    "displayNameMarkdown": {
+      "description": "**\\[Discord prize](https://example.invalid)** spotted a glimmer in the Halloween gloom and found **1 🧿 Evil Eye**!",
+      "rawMaskedLinkPresent": false
+    },
+    "legacyAchievementBank": {
+      "beforeAchievement": 95,
+      "afterAchievement": 100,
+      "afterCrown": 100,
+      "crownCredit": 0
+    },
+    "closedMaintenance": {
+      "distinctTicks": 3,
+      "committedMaintenanceRows": 1,
+      "subsequentIdleOperations": 0
+    }
+  },
+  "hashes": {
+    "config/spooky-2026.json": "f3becb8b886df3ac7ece7dc3abcde07b2b8521fa53de0c2e63ab798e8f278f6c",
+    "config/spooky-winners.json": "d994014f60d2b063e5725ca43c3b62ef517103a7dfd85a2f0bef235889d38fa9",
+    "services/spooky/playful.js": "837069fcb8ccbf6ab4fb7a9890054cf19b566eb9dd7f2467f3a9e952b7e0a86f",
+    "services/spooky/notifications.js": "63d8d01d5315788dbda9032ce8ffe4a2db964114878e23c8d82750d284e2b3bb",
+    "services/spooky/admin.js": "085916027cc29ac82169ecb813f2234e7e095ad833d1b1fb43351f16d5940e4a",
+    "services/spooky/presentation.js": "0c7f7b577c81a494e43f023ff6f7f110ecd8f329b14c292512615c73126ee736",
+    "services/spooky/lifecycle.js": "912f4d8af61e8ff4c5221ac477f97333ac70871faea035f87d0e609b7b33cf52",
+    "services/spooky/flavor.js": "bd4f794d4a279b4bfe25a25bcc4ff586a78b42f649e66b02c77e7173c6166d9e",
+    "services/display-name.js": "f285dcaed0c106a3c1b2866325f6617316b726e656f690293f96a2dc129d9804",
+    "services/fate-wallet.js": "2e521a93cb40abb05a055f7c8191b27cbb80a5cdea979d33919bffb108249092",
+    "commands/Achievements/Achievements.js": "556d2803fb2b9c159ad4a2b1e65b25002e11b0b70a6faf3c0ac2f97d642a5850",
+    "scripts/spooky-launch-audit-probes.js": "ba01d3b59d30e558f62267d4af661a794d47871f1d11f3562a4b4c87afe92c76"
+  }
+}

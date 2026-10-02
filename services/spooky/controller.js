@@ -7,7 +7,7 @@ const { createTheft } = require('./theft')
 const { createPlayful } = require('./playful')
 const { createProgression } = require('./progression')
 const { createFatePurchases } = require('./fate-purchases')
-const { actionMessages, privateScreen, helpScreen } = require('./presentation')
+const { actionMessages, privateScreen, helpScreen, registrationScreen, withBalances } = require('./presentation')
 
 function createController({ sequelize, User, models, delivery, fetchMembers, roleIds, event = defaultConfig,
   clock = () => new Date(), random = Math.random, allowedChannelIds = [], notifications = null, badges = null, badgeAccess = null }) {
@@ -30,7 +30,17 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
     const input = { eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id, interactionId: interaction.id }
     if (!interaction.guildId) throw new Error('Spooky requires a server')
     if (allowedChannelIds.length && !allowedChannelIds.includes(interaction.channelId)) throw new Error('Use the configured Spooky or bot-test channel')
-    if (['help','welcome'].includes(subcommand)) return interaction.editReply(helpScreen())
+    if (subcommand === 'help') {
+      const player = await balanceSnapshot(input)
+      return interaction.editReply(withBalances(helpScreen(), player || {}, clock(), event))
+    }
+    if (subcommand === 'leaderboard') {
+      const page = interaction.options.getInteger?.('page') ?? 1
+      const leaders = await require('./leaderboard').createLeaderboard({ models, economy, User, badges })({ eventId: event.eventId, guildId: input.guildId }, page)
+      const emojis = interaction.guild?.emojis?.fetch ? [...(await interaction.guild.emojis.fetch()).values()] : []
+      const text = leaders.map(row => `**#${row.rank} ${require('../display-name').safeName(row.name)}**\n${require('../badges').renderBadges(row.badges, emojis)}`).join('\n\n')
+      return interaction.editReply(withBalances(privateScreen(`👻 SCREAM SUPREME • Rankings ${page}`, text || 'No tricks or treats have been scored yet.'), await balanceSnapshot(input) || {}, clock(), event))
+    }
     if (subcommand === 'register') {
       const result = await economy.execute({ ...input, operationType: 'spooky_register' }, async ctx => {
         let user = await User.findByPk(input.actorId, { transaction: ctx.transaction })
@@ -39,30 +49,40 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
           await ctx.record({ userId: input.actorId, resource: 'fate_account', delta: 0, metadata: { reason: 'registration_account' } })
         }
         const prepared = await participants.prepare(ctx, input.actorId, { register: true })
-        return { candy: prepared.participant.candy, newlyRegistered: prepared.newlyRegistered }
+        return { candy: prepared.participant.candy, eyes: prepared.participant.eyes, newlyRegistered: prepared.newlyRegistered }
       })
-      return interaction.editReply(privateScreen('🎃 Spooky Registration', `${result.receipt.newlyRegistered ? 'Welcome!' : 'Already registered.'} **${result.receipt.candy} candy**. Use /spooky help for rules.`))
+      return interaction.editReply(withBalances(registrationScreen(result.receipt, interaction.user), result.receipt, clock(), event))
     }
-    if (['status','collection'].includes(subcommand)) {
+    if (subcommand === 'collection') {
       if (event.enabled && getEventState(clock(), event) === 'ACTIVE') await participants.refill({ ...input, workerKey: undefined })
       const player = await models.Participant.findOne({ where: { eventId: event.eventId, guildId: input.guildId, userId: input.actorId } })
       if (!player?.registeredAt) return interaction.editReply(privateScreen('🎃 Join Spooky', 'Use /spooky register to join.'))
-      if (subcommand === 'status') return interaction.editReply(privateScreen('🎃 Your Spooky Status', `**Candy:** ${player.candy}/80\n**Evil Eyes:** ${player.eyes}\nRefill: +10 every three hours.\nUse /spooky collection to view quarters.`))
       const rows = await models.Inventory.findAll({ where: { participantId: player.id } })
+      const emojiMap = interaction.guild?.emojis?.fetch ? [...(await interaction.guild.emojis.fetch()).values()] : []
       const text = [...new Set(pieces.map(piece => piece.characterId))].map(id => {
         const character = pieces.filter(piece => piece.characterId === id)
-        return `**${character[0].characterName}:** ${character.filter(piece => rows.some(row => row.pieceId === piece.id)).length}/4`
+        const count = character.filter(piece => rows.some(row => row.pieceId === piece.id)).length
+        const badge = require('../badges').badges.find(badge => badge.characterId === id)
+        const emoji = emojiMap.find(emoji => emoji.name === badge?.emojiName && emoji.available !== false)
+        const icon = count < 4 ? '❔' : emoji ? `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}>` : '🏅'
+        return `${icon} **${character[0].characterName}:** ${count}/4`
       }).join('\n')
-      return interaction.editReply(privateScreen('🧩 Your Collection', text))
+      const duplicates = rows.reduce((sum, row) => sum + row.quantity - 1, 0)
+      return interaction.editReply(withBalances(privateScreen('🧩 Your Collection', `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`), player, clock(), event))
     }
     if (!['trick','treat','fate'].includes(subcommand)) throw new Error('Unknown spooky command')
     // Discord fetches occur before any root database transaction; failures abort.
     const snapshot = await fetchMembers(interaction.guildId, { actorId: input.actorId, actorOnly: subcommand === 'fate' })
     if (!Array.isArray(snapshot) || !snapshot.some(member => member.userId === input.actorId)) throw new Error('Complete membership snapshot unavailable')
     const finalizeReceipt = async (ctx, receipt) => {
+      const player = await models.Participant.findOne({ where: { ...ctx.scope, userId: input.actorId }, transaction: ctx.transaction })
+      receipt = { ...receipt, candy: player.candy, eyes: player.eyes }
       const registered = await models.Participant.findAll({ where: ctx.scope, transaction: ctx.transaction })
       const messages = actionMessages(receipt, { actorId: input.actorId, members: snapshot,
-        registeredIds: new Set(registered.filter(row => row.registeredAt).map(row => row.userId)) })
+        registeredIds: new Set(registered.filter(row => row.registeredAt).map(row => row.userId)),
+        variantKey: ctx.operationId, timestamp: ctx.now.toISOString(),
+        avatarURL: typeof interaction.user.displayAvatarURL === 'function' ? interaction.user.displayAvatarURL() : undefined })
+        .map(message => ({ ...message, payload: withBalances(message.payload, receipt, ctx.now, event) }))
       if (notifications) await notifications.enqueue(ctx, interaction.channelId, messages)
       return { ...receipt, messages }
     }
@@ -89,18 +109,37 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
       getCurseState: effects.getCurseState, finalizeReceipt }).execute({ ...input, action: subcommand })
     // Root operation retains exact visibility/mention/render plan on replay.
     const messages = result.receipt.messages
+    const personal = messages.find(message => !message.public)
     await require('./post-commit').finishSaved({ interaction, result, badgeAccess, userId: input.actorId,
-      payload: messages.find(message => !message.public)?.payload || privateScreen('🎃 Action Recorded', `Your event result is saved and queued for the channel. **Operation: ${result.operationId}**`),
+      payload: personal?.payload || privateScreen('🎃 Trick or Treat!', 'Your Halloween mischief is heading into the channel…'),
+      hideAfterPublish: !personal,
       publish: async () => {
-      if (notifications) await notifications.deliver(result.operationId, interaction.channel)
+      if (notifications) return notifications.deliver(result.operationId, interaction.channel)
       else for (let index = 0; index < messages.length; index++) if (messages[index].public) await interaction.channel.send({ ...require('./token-art').preparePayload(messages[index].payload), nonce: `${interaction.id}:${index}`, enforceNonce: true })
     } })
   }
   async function execute(interaction) {
     // Prevent two deliveries for the same interaction in this process.
     if (locks.has(interaction.id)) return locks.get(interaction.id)
-    const work = executeCommand(interaction).catch(async error => {
-      const payload = privateScreen('🎃 Spooky Unavailable', error.message)
+    const work = (async () => {
+      if (!interaction.deferred) await interaction.deferReply({ ephemeral: true })
+      const input = { eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id }
+      let nudge = false
+      if (interaction.guildId && (!allowedChannelIds.length || allowedChannelIds.includes(interaction.channelId))) {
+        try { nudge = await require('./private-nudges').claimNudge({ economy, models, input, event, now: clock() }) }
+        catch (error) { console.error('Spooky private nudge failed:', error.message) }
+      }
+      await executeCommand(interaction)
+      if (nudge && typeof interaction.followUp === 'function') {
+        const player = await balanceSnapshot(input)
+        if (!player || (nudge === 'bucket' ? player.candy < event.candy.capacity : player.candy < 50 || player.candy >= event.candy.capacity)) return
+        await interaction.followUp({ ...withBalances(privateScreen(nudge === 'bucket' ? '🍬 Your Candy Bucket Is Overflowing!' : '🍬 A Sweet Welcome Back!',
+          nudge === 'bucket' ? 'Your bucket is brimming with candy! Enjoy a trick or treat before more sweets tumble into the shadows.' :
+          'Nice to see you! You have a lovely stash of sweets ready for some Halloween mischief. Enjoy a trick or treat whenever you feel like it.'), player || {}, clock(), event), ephemeral: true }).catch(() => {})
+      }
+    })().catch(async error => {
+      const player = await balanceSnapshot({ eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id }).catch(() => null)
+      const payload = withBalances(privateScreen('🎃 Spooky Unavailable', error.message), player || {}, clock(), event)
       if (interaction.deferred) await interaction.editReply(payload).catch(() => {})
       else await interaction.reply({ ...payload, ephemeral: true }).catch(() => {})
     })
@@ -109,6 +148,15 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
     // Adapter lifetime must be bounded per request/session. Economy replay and
     // Discord enforced nonce handle durable mutation and public delivery retries.
     return work
+  }
+  async function balanceSnapshot(input) {
+    return economy.read(async transaction => {
+      const player = await models.Participant.findOne({ where: { eventId: input.eventId, guildId: input.guildId, userId: input.actorId }, transaction })
+      if (!player?.registeredAt) return null
+      const candy = event.enabled && getEventState(clock(), event) === 'ACTIVE'
+        ? require('./participants').calculateRefill({ candy: player.candy, refillAnchor: player.refillAnchor, now: clock(), event }).candy : player.candy
+      return { candy, eyes: player.eyes }
+    })
   }
   return { execute }
 }

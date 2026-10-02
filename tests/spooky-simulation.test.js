@@ -21,6 +21,7 @@ test('population adapter matches a seeded actual SQLite gameplay trajectory', as
   t.after(() => sequelize.close())
   const User = defineUser(sequelize, Sequelize.DataTypes); await User.sync()
   await migration.up(sequelize.getQueryInterface())
+  await require('../migrations/20261001000001-create-spooky-delivery').up(sequelize.getQueryInterface())
   const models = defineSpookyModels(sequelize), event = { ...config, enabled: true }
   let now = Date.parse(config.startsAt), key = 0
   const economy = createEconomy({ sequelize, models, configVersion: config.version, clock: () => new Date(now) })

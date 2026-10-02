@@ -13,7 +13,7 @@ async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false } = 
   if (actor) { if (!members.has(actor.id)) throw new Error('Actor missing from complete directory'); members.set(actor.id, actor) }
   return [...members.values()].map(member => {
     const canRole = roleId => bot.permissions.has(PermissionFlagsBits.ManageRoles) && roles.get(roleId)?.editable === true
-      && member.id !== guild.ownerId && bot.roles.highest.comparePositionTo(member.roles.highest) > 0
+      // Role grants compare the awarded role with the bot, not the recipient's roles.
     return { userId: member.id, bot: member.user.bot, displayName: member.displayName, nickname: member.nickname,
       roleIds: [...member.roles.cache.keys()], canManageCurse: canRole(roleIds.curse), canManageSweetTooth: canRole(roleIds.sweetTooth),
       canManageNickname: member.manageable && bot.permissions.has(PermissionFlagsBits.ManageNicknames) }
@@ -27,8 +27,8 @@ function runtime(client) {
   const { defineSpookyModels } = require('./models')
   const models = defineSpookyModels(sequelize)
   const economy = require('./economy').createEconomy({ sequelize, models, configVersion: config.version })
-  const roleIds = { curse: process.env.CURSEDROLEID, sweetTooth: process.env.SWEETTOOTHROLEID, unwanted: process.env.UNWANTEDROLEID }
-  const channels = [process.env.SPOOKYCHANNELID, process.env.BOTTESTCHANNELID].filter(Boolean)
+  const roleIds = { curse: process.env.CURSEDROLEID, sweetTooth: (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID), unwanted: process.env.UNWANTEDROLEID }
+  const channels = require('./channels').allowedChannels()
   if (!channels.length || Object.values(roleIds).some(id => !id)) throw new Error('Spooky channels/roles are not configured')
   const guildId = process.env.GUILDID
   const guild = async id => {
@@ -53,6 +53,14 @@ function runtime(client) {
   const lifecycle = require('./lifecycle').createLifecycle({ models, economy, playful, delivery, guildId, winnerSnapshots })
   const reminders = require('./reminders').createReminders({ models, economy, notifications, guildId,
     getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
+  const fateReminders = require('./reminders').createReminders({ models, economy, notifications, guildId,
+    namespace: 'fate-reminder', operationType: 'fate_reminder',
+    settings: require('./reminder-settings').fateReminderSettings({ channelId: channels[0], roleId: roleIds.unwanted }),
+    payload: settings => ({ content: `<@&${roleIds.unwanted}>`,
+      allowedMentions: { parse: [], users: [], roles: settings.roleIds, repliedUser: false },
+      embeds: [{ title: '🔮 Turn Your Fate Into a Find!', color: 0x9B59B6,
+        description: 'Don’t forget: **10 banked Fate Points** buy a random token quarter with **/spooky fate**! You can trade throughout October, with no daily limit.' }] }),
+    getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
   const reminderMaintenance = require('./reminders').withReminders(key => lifecycle.maintain(key), reminders,
     error => console.error('Spooky reminder failed:', error.message))
   // Defer optional configuration validation into the isolated award step. A bad
@@ -65,6 +73,8 @@ function runtime(client) {
     scope: { eventId: config.eventId, guildId }, getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
   const maintenance = async key => {
     const result = await awardMaintenance(key)
+    try { await fateReminders.tick() }
+    catch (error) { console.error('Spooky Fate reminder failed:', error.message) }
     try { return { ...result, pendingNotifications: await pending.tick() } }
     catch (error) { console.error('Spooky notification recovery failed:', error.message); return result }
   }
@@ -75,7 +85,11 @@ function runtime(client) {
 
 async function execute(interaction) {
   const subcommand = interaction.options.getSubcommand()
-  if (!config.enabled) return interaction.reply({ ...(['help','welcome'].includes(subcommand) ? helpScreen() : privateScreen('🎃 Spooky Not Enabled', 'The redesigned event is not enabled yet.')), ephemeral: true })
+  // Reject off-channel commands before constructing DB services or maintenance,
+  // including help while disabled. Replies to rejections are always private.
+  const restricted = require('./channels').channelRestriction(interaction)
+  if (restricted) return interaction.deferred ? interaction.editReply(restricted) : interaction.reply({ ...restricted, ephemeral: true })
+  if (!config.enabled) return interaction.reply({ ...(subcommand === 'help' ? helpScreen() : privateScreen('🎃 Spooky Not Enabled', 'The redesigned event is not enabled yet.')), ephemeral: true })
   try {
     const service = runtime(interaction.client)
     if (interaction.guildId !== process.env.GUILDID) throw new Error('Use the configured Spooky server')
@@ -98,9 +112,15 @@ async function handleMessage(message) {
   if (!await service.effects.active({ scope, now: new Date() }, message.author.id, 'curse')) return
   const result = await service.economy.execute({ ...scope, actorId: message.author.id, workerKey: `message:${message.id}`, operationType: 'cursed_message' }, async ctx => {
     const plan = require('./cursed-messages').planCursedMessage({ content: message.content, username: message.author.username,
+      avatarURL: message.author.displayAvatarURL?.(),
       cursed: Boolean(await service.effects.active(ctx, message.author.id, 'curse')), hasAttachments: message.attachments.size > 0,
       isReply: Boolean(message.reference), now: ctx.now })
-    if (plan) await service.notifications.enqueue(ctx, message.channelId, [{ public: true, payload: plan.payload }])
+    if (plan) {
+      const player = await service.models.Participant.findOne({ where: { ...ctx.scope, userId: message.author.id }, transaction: ctx.transaction })
+      const balances = player ? { candy: require('./participants').calculateRefill({ candy: player.candy, refillAnchor: player.refillAnchor, now: ctx.now, event: config }).candy, eyes: player.eyes } : {}
+      await service.notifications.enqueue(ctx, message.channelId, [{ public: true,
+        payload: require('./presentation').withBalances(plan.payload, balances, ctx.now, config) }])
+    }
     return { transformed: Boolean(plan) }
   })
   await deliverCursedMessage(service, result, message)

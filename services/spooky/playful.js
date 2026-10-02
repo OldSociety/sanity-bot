@@ -33,6 +33,12 @@ function createPlayful({ models, participants, effects, collection, delivery, li
   async function curse(ctx, member) {
     if (member.canManageCurse !== true) return { noEffect: 'role_permission' }
     const old = await effects.active(ctx, member.userId, 'curse')
+    // A cleared effect can still own a pending Discord restoration. Never
+    // overwrite that intent or reinterpret our still-attached role as theirs.
+    const restoration = !old && await models.Delivery.findOne({ where: {
+      ...ctx.scope, userId: member.userId, kind: 'curse_role', status: { [Op.in]: ['pending', 'conflict'] },
+    }, transaction: ctx.transaction })
+    if (restoration?.payload?.present === false) return { noEffect: 'restoration_pending' }
     const metadata = old ? { ...old.metadata, roleId: await originalCurseRole(models, ctx, member.userId, old.metadata) }
       : { botOwnedRole: !(member.roleIds || []).includes(roleIds.curse), roleId: roleIds.curse }
     await effects.put(ctx, member.userId, 'curse', { expiresAt: event.endsAt, metadata })
@@ -58,6 +64,29 @@ function createPlayful({ models, participants, effects, collection, delivery, li
       }
     }
     return removed
+  }
+  async function goodwill(ctx, plan, result) {
+    if (plan.action !== 'treat' || !(result.deliveredCandy > 0)) return result
+    const active = await effects.active(ctx, plan.actorId, 'curse')
+    if (!active) return result
+    const metadata = { ...active.metadata }
+    if (metadata.goodwillGoal === undefined) {
+      const roll = random()
+      if (!Number.isFinite(roll) || roll < 0 || roll >= 1) throw new Error('Invalid curse goodwill roll')
+      metadata.goodwillGoal = 10 + Math.floor(roll * 21)
+      metadata.goodwillGiven = 0
+    }
+    if (!Number.isSafeInteger(metadata.goodwillGoal) || metadata.goodwillGoal < 10 || metadata.goodwillGoal > 30 ||
+      !Number.isSafeInteger(metadata.goodwillGiven) || metadata.goodwillGiven < 0) throw new Error('Invalid curse goodwill metadata')
+    metadata.goodwillGiven += result.deliveredCandy
+    await ctx.record({ userId: plan.actorId, resource: 'curse_goodwill', delta: 0,
+      metadata: { delivered: result.deliveredCandy, given: metadata.goodwillGiven, goal: metadata.goodwillGoal } })
+    if (metadata.goodwillGiven >= metadata.goodwillGoal) {
+      await clearCurse(ctx, plan.actorId)
+      return { ...result, goodwillFreedUserId: plan.actorId }
+    }
+    await active.update({ metadata }, { transaction: ctx.transaction })
+    return result
   }
   async function cleanup(ctx) {
     if (ctx.scope.eventId !== event.eventId) throw new Error('Effect event mismatch')
@@ -89,9 +118,11 @@ function createPlayful({ models, participants, effects, collection, delivery, li
     }
     return { cleared }
   }
-  return { cleanup, handlers: {
-    lost_candy: async () => ({ noEffect: 'lost_candy' }),
-    caught_stealing: async () => ({ noEffect: 'caught_stealing' }),
+  const handlers = {
+    // Normal losing outcomes consume the one action candy already charged.
+    // They are gameplay results, not unavailable effects or a second penalty.
+    lost_candy: async () => ({ failure: 'lost_candy' }),
+    caught_stealing: async () => ({ failure: 'caught_stealing' }),
     standard_gift: (ctx, plan) => gift(ctx, plan.actorId, 1),
     double_gift: (ctx, plan) => gift(ctx, plan.actorId, 1, 2),
     curse_distribute_three: (ctx, plan) => gift(ctx, plan.actorId, 3),
@@ -132,6 +163,12 @@ function createPlayful({ models, participants, effects, collection, delivery, li
       const previous = await effects.active(ctx, target.userId, 'reversed_nickname')
       // Repeated hits preserve the first original and do not reverse back to normal.
       if (previous) return { reversedUserId: target.userId, alreadyReversed: true }
+      // Clearing the seasonal row does not mean the original nickname has
+      // reached Discord. Keep outstanding/conflicting restoration intact.
+      if (await models.Delivery.findOne({ where: { ...ctx.scope, userId: target.userId,
+        kind: 'nickname', status: { [Op.in]: ['pending', 'conflict'] } }, transaction: ctx.transaction })) {
+        return { noEffect: 'restoration_pending' }
+      }
       if (target.nickname !== null && typeof target.nickname !== 'string') throw new Error('Missing nickname snapshot')
       const originalNickname = target.nickname
       const appliedNickname = transformMessage(originalNickname || target.displayName || target.userId, 'reverse')
@@ -144,21 +181,28 @@ function createPlayful({ models, participants, effects, collection, delivery, li
       const all = await members(ctx), caller = all.find(member => member.userId === plan.actorId)
       if (!caller || !Array.isArray(caller.roleIds)) throw new Error('Missing caller role snapshot')
       const hasRole = caller.roleIds.includes(roleIds.sweetTooth)
-      const [target] = hasRole ? randomTargets(all.filter(member => member.userId !== plan.actorId && member.canManageSweetTooth === true && !(member.roleIds || []).includes(roleIds.sweetTooth)), 1, random) : [caller]
+      const reset = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_reset' },
+        order: [['id', 'DESC']], transaction: ctx.transaction })
+      const wonBefore = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_award',
+        ...(reset ? { id: { [Op.gt]: reset.id } } : {}) }, transaction: ctx.transaction })
+      const target = !hasRole && !wonBefore ? caller : null
       let awardedUserId = null
       if (target?.canManageSweetTooth === true) {
         await delivery.enqueue(ctx, target.userId, 'sweet_tooth_role', { roleId: roleIds.sweetTooth, present: true })
         awardedUserId = target.userId
+        await ctx.record({ userId: plan.actorId, resource: 'crown_award', delta: 1, before: 0, after: 1 })
       }
       let candyReward = 0
-      if (hasRole) {
+      if (awardedUserId) {
         const { participant } = await participants.prepare(ctx, plan.actorId)
-        candyReward = Math.min(5, event.candy.capacity - participant.candy)
+        candyReward = Math.min(event.crown.candyBonus, event.candy.capacity - participant.candy)
         if (candyReward) await ctx.changeBalance(plan.actorId, 'candy', candyReward, { metadata: { reason: 'sweet_tooth_generosity' } })
       }
-      return { awardedUserId, candyReward, ...(awardedUserId ? {} : { noEffect: 'no_role_recipient' }) }
+      return { awardedUserId, crownWon: Boolean(awardedUserId), candyReward, ...(awardedUserId ? {} : { noEffect: 'no_role_recipient' }) }
     },
-  } }
+  }
+  return { cleanup, handlers: Object.fromEntries(Object.entries(handlers).map(([name, handler]) =>
+    [name, async (ctx, plan) => goodwill(ctx, plan, await handler(ctx, plan))])) }
 }
 
 module.exports = { createPlayful }

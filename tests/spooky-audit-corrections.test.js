@@ -79,6 +79,26 @@ test('actual Discord adapter checks intent after its final async fetch and prese
   assert.equal(writes, 0)
 })
 
+test('role adapter grants and removes below-bot roles for owners but rejects inaccessible roles', async () => {
+  let writes = 0, manage = true, managed = false, position = 1
+  const member = { id: 'owner', roles: { cache: new Map(), highest: { targetHigherThanBot: true },
+    add: async () => ++writes, remove: async () => ++writes } }
+  const role = { id: 'role', get managed() { return managed } }
+  const guild = { id: 'guild', ownerId: 'owner', members: { fetch: async () => member,
+    fetchMe: async () => ({ permissions: { has: () => manage }, roles: { highest: { comparePositionTo: other => {
+      assert.equal(other, role); return position
+    } } } }) }, roles: { fetch: async () => new Map([['role', role]]) } }
+  const adapter = require('../services/spooky/discord-adapter').createDiscordAdapter(async () => guild)
+  await adapter.setRole('guild', 'owner', 'role', true)
+  member.roles.cache.set('role', role)
+  await adapter.setRole('guild', 'owner', 'role', false)
+  member.roles.cache.clear()
+  manage = false; await assert.rejects(adapter.setRole('guild', 'owner', 'role', true), /permissions/)
+  manage = true; managed = true; await assert.rejects(adapter.setRole('guild', 'owner', 'role', true), /permissions/)
+  managed = false; position = 0; await assert.rejects(adapter.setRole('guild', 'owner', 'role', true), /hierarchy/)
+  assert.equal(writes, 2)
+})
+
 test('curse restoration retains original role through configuration drift and safely rejects lost provenance', async t => {
   const f = await fixture(t)
   const delivery = require('../services/spooky/delivery').createDelivery({ models: f.models, adapter: {} })
@@ -127,9 +147,9 @@ test('partial Sweet Tooth still displays committed fate and candy rewards', () =
     result: { noEffect: 'no_role_recipient', fateBonus: 1, candyReward: 5 } }, {
     actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }], registeredIds: new Set(['alice']),
   })[0]
-  assert.match(message.payload.embeds[0].description, /Banked fate bonus:\*\* \+1/)
+  assert.match(message.payload.embeds[0].description, /\+1 FATE POINT.*consolation prize/)
   assert.match(message.payload.embeds[0].description, /Candy reward:\*\* \+5/)
-  assert.match(message.payload.embeds[0].description, /no role recipient/)
+  assert.match(message.payload.embeds[0].description, /Sweet Tooth.*didn't fit/)
 })
 
 test('simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue', async t => {

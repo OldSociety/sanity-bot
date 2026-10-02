@@ -1,5 +1,11 @@
 # Permanent badges — Selene first artwork
 
+Marq badge update (October 2): supplied assets/badges/SPOOKY_MARQ_BADGE.png copied unchanged and mapped in config/badges.json (spooky_marq_badge). Completion renders it as the main image with full token thumbnail. 23/23 affected badge/access/art/launch-fix tests and offline preflight pass; prior full suite remains 304/304. Five other badge artworks use accepted placeholders. Native Marq emoji upload/collector-role configuration is not performed by this artwork integration; collection falls back to medal unless that emoji exists, and earned ownership remains durable. Production remains stopped/disabled; human acceptance, production permission/storage/registry checks and finale time/channel are outstanding.
+
+
+Current continuation: development test reset, combined completion/badge thumbnail and Selene emoji access are implemented. Historical entries below remain evidence. See [current fixes and exact acceptance steps](spooky-launch-fixes.md). Production still waits for human acceptance, balance and finale configuration.
+
+
 Task 9a core ownership/rendering is implemented offline on feature/S-1-spooky. The user supplied selene_badge.png and says it already exists in the server as :selene_badge:. assets/badges/selene_badge.png is a byte-preserved project copy; no emoji upload/login/server query has occurred. Live emoji existence/permissions remain unverified.
 
 Audit corrections are complete offline; current full suite **244/244**. Independent ownership reads share the economy connection queue, while supplied transaction reads stay in their root operation. Repair receipts contain retained/current badge IDs; reacquisition of a corrected quarter reports an already-owned permanent badge. Public reward publication precedes optional cosmetic role repair and cannot be suppressed by a failed private reply. See [correction evidence](spooky-audit-fixes.md). Dated verification counts below are historical; six artworks/live access remain pending.

@@ -16,7 +16,7 @@ function transformMessage(content, mode, random = Math.random) {
   }
   return words.join(' ')
 }
-function planCursedMessage({ content, username, cursed, bot = false, hasAttachments = false,
+function planCursedMessage({ content, username, avatarURL, cursed, bot = false, hasAttachments = false,
   isReply = false, event = defaultConfig, now = new Date(), random = Math.random }) {
   // Preserve richer messages intact until an adapter can retain their context.
   if (!event.enabled || now < new Date(event.startsAt) || now >= new Date(event.endsAt)
@@ -26,8 +26,9 @@ function planCursedMessage({ content, username, cursed, bot = false, hasAttachme
   const transformed = transformMessage(content, mode, random)
   if (!transformed.trim() || transformed.length > 4096) return null
   return { mode, payload: { allowedMentions: { parse: [], users: [], roles: [], repliedUser: false },
-    embeds: [{ title: 'Cursed Message!', description: transformed, color: 0xff0000,
-      footer: { text: `${String(username || 'A player').replace(/[\r\n]/g, ' ').slice(0, 100)} is cursed` } }] } }
+    embeds: [{ title: '🦇 Cursed Message!', description: transformed, color: 0xff0000, timestamp: now.toISOString(),
+      author: { name: `${String(username || 'A player').replace(/[\r\n]/g, ' ').slice(0, 100)} is cursed and trying to say something…`, ...(avatarURL ? { icon_url: avatarURL } : {}) },
+      footer: { text: 'The curse will last until they are freed or October ends…' } }] } }
 }
 
 async function deliverCursedMessage({ plan, sendReplacement, deleteOriginal }) {

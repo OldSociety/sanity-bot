@@ -54,16 +54,53 @@ test('award ownership is captured at each acquisition and survives later invento
   assert.deepEqual(replay.receipt.awards[0].ownedPositions, ['tr', 'bl'])
 })
 
+test('rarity update preserves owned IDs and old acquisition receipts while new grants use current metadata', async t => {
+  const f = await fixture(t)
+  const oldEconomy = createEconomy({ sequelize: f.models.Participant.sequelize, models: f.models, configVersion: 4, clock: () => new Date(config.startsAt) })
+  const historical = await oldEconomy.execute(f.input('old-bottom-left'), async ctx => {
+    const player = await f.models.Participant.findOne({ where: { userId: 'alice' }, transaction: ctx.transaction })
+    await f.models.Inventory.create({ participantId: player.id, pieceId: 'had_bl', quantity: 1 }, { transaction: ctx.transaction })
+    await ctx.record({ userId: 'alice', resource: 'quarter:had_bl', delta: 1, before: 0, after: 1, metadata: { rarity: 'rare' } })
+    return { awards: [{ id: 'had_bl', rarity: 'rare', color: '#9B59B6' }] }
+  })
+  const replay = await f.run('old-bottom-left', () => { throw new Error('Never regenerate an old award') })
+  assert.deepEqual(replay.receipt, historical.receipt)
+  const next = await f.run('new-bottom-left', ctx => f.collection.grantQuarter(ctx, 'alice', 'had_bl'))
+  assert.equal(next.receipt.awards[0].rarity, 'common')
+  assert.equal(next.receipt.awards[0].color, '#3498DB')
+  assert.equal(next.receipt.awards[0].duplicate, true)
+  assert.equal((await f.models.Inventory.findOne({ where: { pieceId: 'had_bl' } })).quantity, 2)
+  const entries = await f.models.Ledger.findAll({ where: { resource: 'quarter:had_bl' }, order: [['id','ASC']] })
+  assert.deepEqual(entries.map(row => row.configVersion), [4, config.version])
+})
+
 test('ordinary rarity boundaries and within-rarity endpoints use approved weights', async t => {
   const values = [0, 0, .699999, .999999, .70, 0, .919999, .999999, .92, 0, .999999, .999999]
   const f = await fixture(t, () => values.shift())
   const awards = []
   for (let i = 0; i < 6; i++) awards.push((await f.run(`draw${i}`, ctx => f.collection.drawQuarter(ctx, 'alice'))).receipt.awards[0])
   assert.deepEqual(awards.map(piece => piece.rarity), ['common', 'common', 'rare', 'rare', 'legendary', 'legendary'])
-  assert.deepEqual(awards.map(piece => piece.id), ['had_tl', 'sel_tr', 'had_bl', 'sel_bl', 'had_br', 'sel_br'])
+  assert.deepEqual(awards.map(piece => piece.id), ['had_tl', 'sel_br', 'had_br', 'qam_br', 'hfm_br', 'nik_br'])
 })
 
-test('fifth mixed duplicate automatically consumes only five extras and awards an unowned legendary', async t => {
+test('every character-specific piece is reachable through its current ordinary rarity bucket', async t => {
+  const values = [], expected = []
+  for (const [rarity, rarityRoll] of [['common', 0.2], ['rare', 0.8], ['legendary', 0.95]]) {
+    const pool = pieces.filter(piece => piece.rarity === rarity)
+    pool.forEach((piece, index) => { expected.push(piece); values.push(rarityRoll, (index + 0.5) / pool.length) })
+  }
+  const f = await fixture(t, () => values.shift())
+  for (const piece of expected) {
+    const result = await f.run('reach-' + piece.id, ctx => f.collection.drawQuarter(ctx, 'alice'))
+    assert.equal(result.receipt.awards[0].id, piece.id)
+    assert.equal(result.receipt.awards[0].rarity, piece.rarity)
+    assert.equal(result.receipt.awards[0].color, piece.color)
+  }
+  assert.equal(await f.models.Inventory.count(), 28)
+  assert.equal(values.length, 0)
+})
+
+test('fifth mixed duplicate automatically consumes only five extras and awards an unowned piece', async t => {
   const f = await fixture(t, () => .999999)
   await f.seed({ had_tl: 3, hfm_tr: 2, mrq_bl: 2 })
   const result = await f.run('fifth', ctx => f.collection.grantQuarter(ctx, 'alice', 'had_tl'))
@@ -179,4 +216,16 @@ test('failed duplicate reward restores consumed extras and retries safely', asyn
   assert.equal(result.receipt.awards.length, 1)
   const replay = await f.run('exchange-retry', () => { throw new Error('reroll') })
   assert.deepEqual(replay.receipt, result.receipt)
+})
+
+
+test('duplicate award snapshots fifth extra before exchange and replays that count', async t => {
+  const f = await fixture(t)
+  await f.seed({ sel_tl: 5 })
+  const result = await f.run('fifth-extra', ctx => f.collection.grantQuarter(ctx, 'alice', 'sel_tl'))
+  assert.equal(result.receipt.awards[0].duplicates, 5)
+  assert.equal(result.receipt.awards[0].duplicate, true)
+  assert.equal(result.receipt.duplicates, 0)
+  const replay = await f.run('fifth-extra', () => { throw new Error('must replay') })
+  assert.equal(replay.receipt.awards[0].duplicates, 5)
 })

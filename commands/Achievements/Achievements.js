@@ -594,19 +594,12 @@ module.exports = {
               confirmationCollector.on('collect', async (btnInteraction) => {
                 if (btnInteraction.customId === 'confirm-achievement') {
                   if (subcommand === 'award') {
-                    await UserAchievement.create({
-                      // link user ↔ achievement
-                      userId: user.id,
-                      achievementId: achievement.id,
-                    })
-
                     const delta = achievement.secret ? 20 : 10
-                    const oldBank = userData.bank
-
-                    await userData.increment('bank', { by: delta }) // safer than +=
-                    await userData.reload() // get new balance
-
                     await btnInteraction.update({ components: [] }) // tidy ephemerals
+                    const award = await require('../../services/fate-wallet').awardAchievement(User, UserAchievement,
+                      { userId: user.id, achievementId: achievement.id, amount: delta })
+                    if (!award.awarded) { confirmationCollector.stop(); return }
+                    const oldBank = award.before
 
                     const label = achievement.secret
                       ? 'Secret Achievement'
@@ -618,15 +611,14 @@ module.exports = {
                       )
                       .addFields({
                         name: 'Bank',
-                        value: `${oldBank} → ${userData.bank}`,
+                        value: `${oldBank} → ${award.bank}`,
                         inline: true,
                       })
 
                     await interaction.channel.send({ embeds: [embed] })
                   } else if (subcommand === 'remove') {
-                    await UserAchievement.destroy({
-                      where: { userId: user.id, achievementId: achievement.id },
-                    })
+                    await require('../../services/fate-wallet').removeAchievement(UserAchievement,
+                      { userId: user.id, achievementId: achievement.id })
                     await btnInteraction.update({
                       content: `Achievement **${achievement.name}** has been removed from ${user.username}.`,
                       components: [],

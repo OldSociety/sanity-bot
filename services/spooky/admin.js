@@ -3,7 +3,7 @@ const { config: defaultConfig, pieces, getEventState } = require('./config')
 
 function createAdmin({ sequelize, models, User, economy, authorize, guildId,
   event = defaultConfig, environment, clock = () => new Date(), random = Math.random, finalizeRepair = null,
-  delivery = null, roleIds = {}, developmentStorage, readMessage = null, readMember = null, badges = null }) {
+  delivery = null, roleIds = {}, developmentStorage, readMessage = null, readMember = null, badges = null, fateReminderSettings = null }) {
   if (!guildId || typeof authorize !== 'function') throw new Error('Trusted admin authorization and guild are required')
   if (User.sequelize !== sequelize) throw new Error('Admin account and seasonal database must match')
   if (!['development', 'production', 'test'].includes(environment)) throw new Error('Explicit runtime environment is required')
@@ -34,7 +34,9 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
         const frozen = await models.Operation.findByPk(snapshotOperationId(scope.eventId, scope.guildId), { transaction })
         if (frozen && (frozen.eventId !== scope.eventId || frozen.guildId !== scope.guildId || frozen.operationType !== 'winner_snapshot')) throw new Error('Winner snapshot scope mismatch')
         return { environment, lifecycle: getEventState(clock(), event),
-          configuration: event, reminders: require('../../config/spooky-reminders.json'), winners: require('../../config/spooky-winners.json'),
+          configuration: event, pieceRarities: pieces.map(({ id, rarity, color }) => ({ id, rarity, color })), reminders: require('../../config/spooky-reminders.json'),
+          fateReminders: { ...(fateReminderSettings || require('./reminder-settings').fateReminderSettings({})), eventEnabled: event.enabled },
+          winners: require('./winner-awards').winnerConfig,
           winnerSnapshot: frozen?.receipt ?? null, persistedState: plain(state), badgeService: badges ? 'permanent ownership enabled' : 'not configured',
           badgeCatalog: require('../../config/badges.json'), badgeAccess: require('../../config/badge-access.json') }
       }
@@ -56,7 +58,14 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
           limit, order: [['id', 'DESC']], transaction })
         const operationIds = [...new Set(rows.map(row => row.operationId))]
         const operations = operationIds.length ? await models.Operation.findAll({ where: { ...scope, operationId: { [Op.in]: operationIds } }, transaction }) : []
-        return { ledger: rows.map(plain), operations: operations.map(plain),
+        const actors = operations.length ? await User.findAll({ where: { user_id: { [Op.in]: [...new Set(operations.map(operation => operation.actorId))] } }, attributes: ['user_id', 'user_name'], transaction }) : []
+        const activity = operations.filter(operation => ['spooky_trick', 'spooky_treat', 'fate_quarter_purchase', 'spooky_register'].includes(operation.operationType))
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .map(operation => ({ actorId: operation.actorId, actorName: actors.find(actor => actor.user_id === operation.actorId)?.user_name ?? null,
+            command: `/spooky ${operation.operationType === 'fate_quarter_purchase' ? 'fate' : operation.operationType.replace('spooky_', '')}`,
+            outcome: operation.receipt?.outcome ?? null, candySpent: operation.receipt?.candySpent ?? 0,
+            candyAfter: operation.receipt?.candy ?? null, operationId: operation.operationId, interactionId: operation.interactionId, timestamp: operation.createdAt }))
+        return { activity, ledger: rows.map(plain), operations: operations.map(plain),
           nextBeforeId: rows.length === limit ? rows[rows.length - 1].id : null }
       }
       const deliveries = await models.Delivery.findAll({ where: { ...scope, ...(id && { id }), ...(input.userId && { userId: input.userId }) },
@@ -66,7 +75,7 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
       const notifications = await sequelize.query(`SELECT n.* FROM SpookyNotifications n
         INNER JOIN SpookyOperations o ON o.operationId = n.operationId
         WHERE o.eventId = :eventId AND o.guildId = :guildId
-          ${input.userId ? 'AND o.actorId = :userId' : ''}
+          ${input.userId ? "AND COALESCE(NULLIF(json_extract(o.receipt, '$.notificationOwnerUserId'), ''), NULLIF(json_extract(o.receipt, '$.request.userId'), ''), o.actorId) = :userId" : ''}
           ${id ? 'AND n.id < :beforeId' : ''}
         ORDER BY n.id DESC LIMIT :limit`, { replacements: { ...scope, userId: input.userId ?? null,
           beforeId: input.beforeId ?? null, limit }, type: QueryTypes.SELECT, transaction })

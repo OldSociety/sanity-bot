@@ -39,9 +39,9 @@ test('completing a character awards once atomically, survives reconstruction and
   assert.deepEqual(await f.badges.owned('other', 'alice'), [])
 })
 test('shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji', () => {
-  const emoji = { name: 'selene_badge', id: '123456789012345678' }
+  const emoji = { name: 'spooky_selene_badge', id: '123456789012345678' }
   assert.equal(renderBadges([], [emoji]), '❔ ❔ ❔ ❔ ❔ ❔ ❔')
-  assert.equal(renderBadges(['spooky-2026:sel'], [emoji]), '❔ ❔ ❔ ❔ ❔ ❔ <:selene_badge:123456789012345678>')
+  assert.equal(renderBadges(['spooky-2026:sel'], [emoji]), '❔ ❔ ❔ ❔ ❔ ❔ <:spooky_selene_badge:123456789012345678>')
   assert.equal(renderBadges(['spooky-2026:had','spooky-2026:sel'], []), '🏅 ❔ ❔ ❔ ❔ ❔ 🏅')
   assert.ok(renderBadges(['spooky-2026:sel'], [{ ...emoji, available: false }]).endsWith('🏅'))
 })
@@ -52,7 +52,7 @@ test('badge leaderboard and profile field use permanent ownership independent of
   assert.equal(rows[0].userId, 'alice'); assert.equal(rows[0].badgeCount, 1)
   assert.deepEqual(await f.badges.leaders('other'), [])
   await assert.rejects(() => f.badges.leaders('guild', 0), /page/)
-  const field = await badgeField({ id: 'guild', emojis: { fetch: async () => new Map([['sel', { name: 'selene_badge', id: '123456789012345678' }]]) } }, 'alice', f.sequelize)
-  assert.match(field.value, /selene_badge/); assert.match(field.value, /1\/7/)
+  const field = await badgeField({ id: 'guild', emojis: { fetch: async () => new Map([['sel', { name: 'spooky_selene_badge', id: '123456789012345678' }]]) } }, 'alice', f.sequelize)
+  assert.match(field.value, /spooky_selene_badge/); assert.match(field.value, /1\/7/)
   assert.deepEqual(require('../commands/Achievements/Badges').data.toJSON().options.map(option => option.name), ['view','leaderboard'])
 })

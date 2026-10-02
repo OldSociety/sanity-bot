@@ -1,4 +1,26 @@
 {
   "enabled": false,
-  "roles": { "had": null, "hfm": null, "mrq": null, "max": null, "nik": null, "qam": null, "sel": null }
+  "roles": {
+    "had": null,
+    "hfm": null,
+    "mrq": null,
+    "max": null,
+    "nik": null,
+    "qam": null,
+    "sel": null
+  },
+  "development": {
+    "enabled": true,
+    "guildId": "684459745167671453",
+    "roles": {
+      "had": null,
+      "hfm": null,
+      "mrq": null,
+      "max": null,
+      "nik": null,
+      "qam": null,
+      "sel": "1555701816296079381"
+    },
+    "botDisplayRoleId": "1555701812374405211"
+  }
 }

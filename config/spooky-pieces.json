@@ -1,18 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
   "characters": [
-    { "id": "had", "name": "Hadley" },
-    { "id": "hfm", "name": "Hellfed Marq" },
-    { "id": "mrq", "name": "Marq" },
-    { "id": "max", "name": "Maxim" },
-    { "id": "nik", "name": "Niklaus" },
-    { "id": "qam", "name": "Qam" },
-    { "id": "sel", "name": "Selene" }
+    { "id": "had", "name": "Hadley", "rarities": ["common", "common", "common", "rare"] },
+    { "id": "hfm", "name": "Hellfed Marq", "rarities": ["common", "rare", "rare", "legendary"] },
+    { "id": "mrq", "name": "Marq", "rarities": ["common", "common", "common", "common"] },
+    { "id": "max", "name": "Maxim", "rarities": ["common", "rare", "legendary", "legendary"] },
+    { "id": "nik", "name": "Niklaus", "rarities": ["common", "rare", "rare", "legendary"] },
+    { "id": "qam", "name": "Qam", "rarities": ["common", "common", "common", "rare"] },
+    { "id": "sel", "name": "Selene", "rarities": ["common", "common", "common", "common"] }
   ],
   "positions": [
-    { "id": "tl", "rarity": "common", "color": "#3498DB" },
-    { "id": "tr", "rarity": "common", "color": "#3498DB" },
-    { "id": "bl", "rarity": "rare", "color": "#9B59B6" },
-    { "id": "br", "rarity": "legendary", "color": "#FFD700" }
-  ]
+    { "id": "tl" }, { "id": "tr" }, { "id": "bl" }, { "id": "br" }
+  ],
+  "rarityColors": { "common": "#3498DB", "rare": "#9B59B6", "legendary": "#FFD700" }
 }

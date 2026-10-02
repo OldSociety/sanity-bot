@@ -28,6 +28,46 @@ async function fixture(t, { eligible = true, bank = 0, random = () => .2 } = {})
   const run = (key, fn) => economy.execute({ ...input(key), operationType: 'progression_test' }, fn)
   return { User, models, event, participants, progression, actions, user, input, run }
 }
+
+test('caller crown win credits five fate for any registered player, caps bank and adds ten prestige once', async t => {
+  const f = await fixture(t, { eligible: false, bank: 98 })
+  const handlers = f.progression.wrapHandlers({ sweet_tooth: async () => ({ crownWon: true, awardedUserId: 'alice' }) })
+  const result = await f.run('new-crown', ctx => handlers.sweet_tooth(ctx, { actorId: 'alice', action: 'treat', outcome: 'sweet_tooth' }))
+  assert.equal(result.receipt.fateBonus, 2); assert.equal((await f.user.reload()).bank, 100)
+  assert.equal(result.receipt.prestige.delta, 12)
+  assert.equal(result.receipt.bankBefore, 98)
+  assert.equal(result.receipt.bank, 100)
+  assert.equal(result.receipt.fatePoints, 99)
+  await f.user.update({ bank: 50, fate_points: 60 })
+  const replay = await f.run('new-crown', () => { throw new Error('no second award') })
+  assert.equal(replay.receipt.bankBefore, 98)
+  assert.equal(replay.receipt.bank, 100)
+  assert.equal(replay.receipt.fatePoints, 99)
+  assert.equal(replay.receipt.prestige.delta, 12)
+  assert.equal((await f.models.Participant.findOne()).treatPrestige, 12)
+})
+
+test('successful Great Heist gets a five-point boost; failed heist cannot gain it', async t => {
+  const f = await fixture(t)
+  const plan = { actorId: 'alice', action: 'trick', outcome: 'great_heist' }
+  const win = await f.run('heist-win', ctx => f.progression.prestige(ctx, plan, { stolen: 1 }))
+  assert.equal(win.receipt.delta, 7)
+  const miss = await f.run('heist-miss', ctx => f.progression.prestige(ctx, plan, { noEffect: 'no_funded_candy_target' }))
+  assert.equal(miss.receipt.delta, 0)
+})
+
+test('Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points', async t => {
+  const f = await fixture(t)
+  await f.run('rank-treat', ctx => f.progression.prestige(ctx, { actorId: 'alice', action: 'treat', outcome: 'sweet_tooth' }, { crownWon: true }))
+  await f.run('rank-trick', ctx => f.progression.prestige(ctx, { actorId: 'alice', action: 'trick', outcome: 'great_heist' }, { stolen: 1 }))
+  const read = require('../services/spooky/leaderboard').createLeaderboard({ models: f.models,
+    economy: require('../services/spooky/economy').createEconomy({ sequelize: f.User.sequelize, models: f.models }), User: f.User })
+  const rows = await read({ eventId: f.event.eventId, guildId: 'guild' })
+  assert.equal(rows[0].rank, 1); assert.equal(rows[0].name, 'Alice')
+  assert.equal(rows[0].score, undefined); assert.equal(rows[0].points, undefined)
+  assert.deepEqual(rows[0].badges, [])
+  assert.deepEqual(await read({ eventId: f.event.eventId, guildId: 'other' }), [])
+})
 test('Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once', async t => {
   const f = await fixture(t)
   const results = await Promise.all(Array.from({ length: 10 }, () => f.actions.execute(f.input('sweet'))))

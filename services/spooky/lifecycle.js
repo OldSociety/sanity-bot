@@ -8,6 +8,21 @@ function createLifecycle({ models, economy, playful, delivery, guildId, event = 
   async function maintain(key) {
     if (!event.enabled) return { skipped: 'disabled' }
     if (typeof key !== 'string' || !key.trim()) throw new Error('Maintenance key is required')
+    const idle = await economy.read(async transaction => {
+      const state = await models.EventState.findOne({ where: scope, transaction })
+      if (!state?.archivedAt) return null
+      const previous = await models.Operation.findByPk(`worker:${scope.eventId}:${scope.guildId}:maintenance:${key}`, { transaction })
+      if (previous) return null // Preserve ordinary receipt replay for existing keys.
+      const players = await models.Participant.findAll({ attributes: ['id'], where: scope, transaction })
+      if (players.length && await models.Effect.count({ where: { participantId: players.map(row => row.id) }, transaction })) return null
+      if (winnerSnapshots && !await models.Operation.findByPk(require('./winner-snapshot').snapshotOperationId(scope.eventId, scope.guildId), { transaction })) return null
+      // Reuse and validate the frozen proof; never recompute closed scores.
+      const winnerSnapshot = winnerSnapshots ? await winnerSnapshots.freeze({ scope, transaction, now: new Date(event.endsAt) }) : null
+      return { phase: 'CLOSED', newlyArchived: false, archivedAt: state.archivedAt, cleared: [], ...(winnerSnapshot && { winnerSnapshot }) }
+    })
+    // Keep projection/final-award workers running after closure, without
+    // writing another maintenance operation for each empty minute.
+    if (idle) return { skipped: 'closed_idle', replayed: false, receipt: idle, deliveries: await delivery.reconcile(scope) }
     // Check the clock inside the transaction; a queued pre-close request must
     // close if it actually starts after the boundary. Slot keys may differ, but
     // the archive write itself is idempotent and always audited exactly once.

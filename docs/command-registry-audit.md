@@ -1,5 +1,7 @@
 # Offline command registry review
 
+Latest onboarding update: /spooky has seven subcommands; register includes welcome, separate welcome removed. Refreshed offline report and reviewed development GET agree after one authorized update preserving /game. Full suite 253/253. Earlier eight-subcommand counts below are milestone evidence.
+
 **Live development update (2026-10-02):** Fourteen commands registered and inspected: thirteen source definitions plus preserved live-only /game. Initial verification omitted Discord's equivalent empty-list/false-default normalization; fixed with regression and GET verified without repeating PUT. Future default bulk plans still propose /game removal: do not approve it silently. See [session evidence](spooky-development-live-session.md). Earlier no-registration claims below are historical; production registry unchanged.
 
 Run `node scripts/command-registry-audit.js` from the repository root. It accepts no arguments or target overrides, reads working-tree command sources and local Git HEAD, and prints a JSON report. [Saved results](command-registry-audit-results.json) include complete definitions and their SHA-256 hashes, baseline commit and branch.

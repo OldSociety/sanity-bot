@@ -15,11 +15,16 @@ function calculateRefill({ candy, refillAnchor, now, event = defaultConfig }) {
   const eligibleNow = Math.min(timestamp(now), timestamp(event.endsAt))
   const start = Math.max(anchor, timestamp(event.startsAt))
   if (eligibleNow <= start) return { candy, delta: 0, refillAnchor: new Date(anchor) }
-  const intervals = Math.floor((eligibleNow - start) / refillIntervalMs)
+  const origin = timestamp(event.startsAt)
+  const intervals = event.candy.sharedRefill
+    ? Math.floor((eligibleNow - origin) / refillIntervalMs) - Math.floor((start - origin) / refillIntervalMs)
+    : Math.floor((eligibleNow - start) / refillIntervalMs)
   const after = Math.min(capacity, candy + intervals * refillAmount)
   return {
     candy: after, delta: after - candy,
-    refillAnchor: new Date(after === capacity ? eligibleNow : start + intervals * refillIntervalMs),
+    refillAnchor: new Date(after === capacity ? eligibleNow : event.candy.sharedRefill
+      ? (intervals ? origin + Math.floor((eligibleNow - origin) / refillIntervalMs) * refillIntervalMs : start)
+      : start + intervals * refillIntervalMs),
   }
 }
 

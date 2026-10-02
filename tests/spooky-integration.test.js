@@ -91,10 +91,14 @@ test('notification migration reverses independently and preserves core operation
   assert.equal(await f.models.Notification.count(), 0)
 })
 
-test('wired slash command stays disabled without loading the real database runtime', async () => {
+test('wired slash command stays disabled in an allowed channel without loading the real database runtime', async t => {
   let response
-  assert.deepEqual(liveCommand.data.toJSON().options.map(option => option.name), ['welcome','help','register','status','collection','trick','treat','fate'])
-  await liveCommand.execute({ options: { getSubcommand: () => 'trick' }, reply: async payload => { response = payload } })
+  const keys = ['GUILDID', 'SPOOKYCHANNELID', 'BOTTESTCHANNELID'], saved = Object.fromEntries(keys.map(key => [key, process.env[key]]))
+  Object.assign(process.env, { GUILDID: '100000000000000001', SPOOKYCHANNELID: '100000000000000002', BOTTESTCHANNELID: '100000000000000003' })
+  t.after(() => { for (const key of keys) if (saved[key] === undefined) delete process.env[key]; else process.env[key] = saved[key] })
+  assert.deepEqual(liveCommand.data.toJSON().options.map(option => option.name), ['help','register','collection','leaderboard','trick','treat','fate'])
+  await liveCommand.execute({ guildId: process.env.GUILDID, channelId: process.env.SPOOKYCHANNELID,
+    options: { getSubcommand: () => 'trick' }, reply: async payload => { response = payload } })
   assert.equal(response.ephemeral, true)
   assert.ok(response.embeds[0].title.includes('Not Enabled'))
 })
