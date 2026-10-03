@@ -29,7 +29,18 @@ test('expired private reply and hung cosmetic access cannot strand a saved fate 
     options: { getSubcommand: () => command }, deferReply: async function () { this.deferred = true }, editReply: async () => {},
     channel: { id: 'channel', guildId: 'guild', send: async payload => { sent.push(payload); return { id: 'message' } } } })
   await controller.execute(interaction('register', 'register')); await f.User.update({ bank: 10 }, { where: { user_id: 'alice' } })
-  const failed = interaction('draw', 'fate'); failed.editReply = async () => { throw new Error('Expired webhook') }
+  const failed = interaction('draw', 'spend-fate')
+  let edits = 0
+  // A visible offer and acknowledged confirmation precede this simulated
+  // webhook failure. Failure to show an offer must never charge the wallet.
+  failed.editReply = async () => { if (++edits > 2) throw new Error('Expired webhook') }
+  failed.fetchReply = async () => ({ createMessageComponentCollector: () => {
+    const collector = new (require('node:events').EventEmitter)()
+    collector.stop = reason => collector.emit('end', [], reason)
+    queueMicrotask(() => collector.emit('collect', { customId: 'spooky-spend-fate:draw:confirm', user: failed.user,
+      guildId: failed.guildId, channelId: failed.channelId, deferUpdate: async () => {}, reply: async () => {} }))
+    return collector
+  } })
   await controller.execute(failed); await controller.execute(failed)
   assert.equal((await f.User.findByPk('alice')).bank, 0); assert.equal(sent.length, 1)
   assert.equal((await f.models.Notification.findOne()).status, 'sent')

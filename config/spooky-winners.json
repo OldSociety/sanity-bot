@@ -2,8 +2,21 @@
   "enabled": false,
   "mode": "overall",
   "announcementAt": null,
-  "overall": { "name": "SCREAM SUPREME", "roleId": null },
+  "overall": {
+    "name": "SCREAM SUPREME",
+    "roleId": null
+  },
   "channelId": null,
-  "treat": { "name": null, "roleId": null },
-  "trick": { "name": null, "roleId": null }
+  "treat": {
+    "name": null,
+    "roleId": null
+  },
+  "trick": {
+    "name": null,
+    "roleId": null
+  },
+  "production": {
+    "enabled": true,
+    "announcementAt": "2026-11-01T20:00:00.000Z"
+  }
 }

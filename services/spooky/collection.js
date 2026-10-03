@@ -8,12 +8,12 @@ function createCollection({ models, participants, event = defaultConfig, random 
     return value
   }
   function select(list) { return list[Math.floor(roll() * list.length)] }
-  function ordinaryPiece() {
+  function ordinaryPiece(percent = event.ordinaryRarity.percent) {
     requireApprovedRarity(event)
     const value = roll() * 100
     let threshold = 0
     for (const rarity of ['common', 'rare', 'legendary']) {
-      threshold += event.ordinaryRarity.percent[rarity]
+      threshold += percent[rarity]
       if (value < threshold) return select(pieces.filter(piece => piece.rarity === rarity))
     }
     throw new Error('Invalid ordinary rarity weights')
@@ -96,6 +96,12 @@ function createCollection({ models, participants, event = defaultConfig, random 
     const award = await add(ctx, participant, owned, ordinaryPiece(), 'ordinary_draw')
     return summary(owned, [award, ...await exchange(ctx, participant, owned)])
   }
+  async function drawFateQuarter(ctx, userId) {
+    requireApprovedRarity(event)
+    const participant = await player(ctx, userId), owned = await inventory(ctx, participant)
+    const award = await add(ctx, participant, owned, ordinaryPiece(event.fate.rarityPercent), 'fate_draw')
+    return summary(owned, [award, ...await exchange(ctx, participant, owned)])
+  }
   async function creditEyes(ctx, userId, amount, { fromUserId = null, metadata = {} } = {}) {
     if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Eye credit must be a positive integer')
     requireApprovedRarity(event)
@@ -120,7 +126,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
   }
   // Internal transaction APIs: callers authorize and charge actions/fate/grants.
   // No nested execute or Discord calls; caller persists this result in its receipt.
-  return { creditEyes, drawQuarter, grantQuarter, exchangeDuplicates }
+  return { creditEyes, drawQuarter, drawFateQuarter, grantQuarter, exchangeDuplicates }
 }
 
 module.exports = { createCollection }

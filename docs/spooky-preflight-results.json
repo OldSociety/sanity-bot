@@ -1,6 +1,6 @@
 {
   "scope": "offline Spooky definitions/configuration only",
-  "configVersion": 8,
+  "configVersion": 9,
   "databaseOpened": false,
   "discordContacted": false,
   "environmentCredentialsRead": false,
@@ -68,7 +68,7 @@
         "leaderboard",
         "trick",
         "treat",
-        "fate"
+        "spend-fate"
       ]
     },
     {
@@ -89,13 +89,13 @@
     ]
   },
   "gates": [
-    "Published balance results are historical; version 8 needs measurement before public launch.",
-    "Six badge artworks/emoji names remain pending; Selene is configured and generic medals represent other earned badges.",
-    "Offline full registry review passed (see command-registry-audit-results.json); compare live server-only commands before any bulk registration.",
-    "Development storage/registration/startup completed; human interaction and recovery acceptance remain open (see live-session guide).",
-    "Gameplay is disabled in this environment; development uses its explicit override.",
-    "Badge emoji access is disabled or partially configured; dedicated cosmetic roles and explicit emoji restriction setup are pending.",
-    "Reminder activation/channel/Resident roles/Pacific time are pending.",
-    "Winner activation, Scream Supreme role, November announcement time and channel are pending."
+    "Published population results are historical and do not measure version 9; current rules were accepted for live observation.",
+    "Selene and Marq artwork/native emoji are configured; five other badges use accepted placeholders.",
+    "Compare the live registry before bulk registration; preserve server-only commands.",
+    "This offline check does not attest live permissions, process health or interaction acceptance; see production-launch guide.",
+    "Global/test gameplay remains disabled; selected development/production runtimes use explicit activation overrides.",
+    "Badge access uses guild-pinned development/production overrides; remaining five cosmetic roles/artworks are pending.",
+    "Resident recruitment reminders stay disabled; weekly Fate reminders use the separate event runtime.",
+    "Finale uses the production-only override and selected environment role/channel; development finale stays disabled."
   ]
 }

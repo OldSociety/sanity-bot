@@ -1,5 +1,8 @@
 # Badge emoji access — individual native unlocks
 
+Production launch authorized and completed from feature/S-1-spooky (unmerged). Read [production launch evidence and continuation](spooky-production-launch.md) first; it supersedes all historical production-disabled/no-live-operations statements below. Human development acceptance and five badge placeholders accepted. Production uses a verified preserved legacy-data copy at config/prod.sqlite, four backed-up atomic migrations and thirteen reviewed commands. Selene/Marq native emoji access is configured in both servers. Explicit productionEnabled=true; test/global default stays disabled, version 8/economy unchanged. Winner announcement: November 1 noon Pacific to SERVERANNOUNCEMENTSID with SCREAMSUPREMEID. Do not migrate/replace storage with online writers, reset production, merge or switch branches. Exact next is human live observation and scoped fixes; no automatic monitoring or merge was scheduled.
+
+
 Current continuation: development test reset, combined completion/badge thumbnail and Selene emoji access are implemented. Historical entries below remain evidence. See [current fixes and exact acceptance steps](spooky-launch-fixes.md). Production still waits for human acceptance, balance and finale configuration.
 
 

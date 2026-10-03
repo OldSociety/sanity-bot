@@ -1,129 +1,356 @@
 const { pieces } = require('./config')
 const { tokenImage } = require('./token-art')
 const noMentions = { parse: [], users: [], roles: [], repliedUser: false }
-const pieceNumber = position => ['tl', 'tr', 'bl', 'br'].indexOf(position) + 1
-function balanceFooter(receipt, now = new Date(), event = require('./config').config) {
+const pieceNumber = (position) => ['tl', 'tr', 'bl', 'br'].indexOf(position) + 1
+function balanceFooter(
+  receipt,
+  now = new Date(),
+  event = require('./config').config,
+) {
   const values = [`🍬 ${receipt.candy ?? '—'}`, `🧿 ${receipt.eyes ?? '—'}`]
-  if (receipt.candy === 0 && event.enabled && require('./config').getEventState(new Date(now), event) === 'ACTIVE') {
-    const interval = event.candy.refillIntervalMs, origin = Date.parse(event.startsAt)
+  if (
+    receipt.candy === 0 &&
+    event.enabled &&
+    require('./config').getEventState(new Date(now), event) === 'ACTIVE'
+  ) {
+    const interval = event.candy.refillIntervalMs,
+      origin = Date.parse(event.startsAt)
     const remaining = interval - ((new Date(now).getTime() - origin) % interval)
     values.push(`Candy refill in: ${Math.ceil(remaining / 60000)} minutes`)
   }
   return { text: `Available: ${values.join(' • ')}` }
 }
 function withBalances(payload, receipt, now, event) {
-  return { ...payload, embeds: payload.embeds?.map(embed => {
-    const { timestamp, ...rest } = embed
-    return { ...rest, footer: balanceFooter(receipt, now, event) }
-  }) }
+  return {
+    ...payload,
+    embeds: payload.embeds?.map((embed) => {
+      const { timestamp, ...rest } = embed
+      return { ...rest, footer: balanceFooter(receipt, now, event) }
+    }),
+  }
 }
 const { safeName } = require('../display-name')
 function fateBalanceFields(result) {
-  const valid = value => Number.isSafeInteger(value) && value >= 0
+  const valid = (value) => Number.isSafeInteger(value) && value >= 0
   if (!valid(result.bank)) return []
   const before = valid(result.bankBefore) ? result.bankBefore : null
-  const bank = { name: 'Bank', value: before === null ? `${result.bank}` : `${before} → ${result.bank}`, inline: true }
+  const bank = {
+    name: 'Bank',
+    value: before === null ? `${result.bank}` : `${before} → ${result.bank}`,
+    inline: true,
+  }
   if (!valid(result.fatePoints)) return [bank] // Older receipts lack the Fate snapshot.
-  const total = result.fatePoints + result.bank, oldTotal = result.fatePoints + before
-  if (!Number.isSafeInteger(total) || (before !== null && !Number.isSafeInteger(oldTotal))) return [bank]
-  return [{ name: 'Fate', value: `${result.fatePoints}`, inline: true }, bank,
-    { name: 'Total', value: before === null ? `${total}` : `${oldTotal} → ${total}`, inline: true }]
+  const fateBefore = valid(result.fateBefore)
+    ? result.fateBefore
+    : result.fatePoints
+  const total = result.fatePoints + result.bank,
+    oldTotal = fateBefore + before
+  if (
+    !Number.isSafeInteger(total) ||
+    (before !== null && !Number.isSafeInteger(oldTotal))
+  )
+    return [bank]
+  return [
+    {
+      name: 'Fate',
+      value: valid(result.fateBefore)
+        ? `${result.fateBefore} → ${result.fatePoints}`
+        : `${result.fatePoints}`,
+      inline: true,
+    },
+    bank,
+    {
+      name: 'Total',
+      value: before === null ? `${total}` : `${oldTotal} → ${total}`,
+      inline: true,
+    },
+  ]
 }
 function targetIds(result, actorId) {
-  return [...new Set([
-    ...(result.victims || []).map(target => target.userId), ...(result.gifts || []).map(target => target.userId),
-    ...(result.shielded || []), result.cursedUserId, result.freedUserId, result.reversedUserId, result.awardedUserId,
-  ].filter(id => id && id !== actorId))]
+  return [
+    ...new Set(
+      [
+        ...(result.victims || []).map((target) => target.userId),
+        ...(result.gifts || []).map((target) => target.userId),
+        ...(result.shielded || []),
+        result.cursedUserId,
+        result.freedUserId,
+        result.reversedUserId,
+        result.awardedUserId,
+      ].filter((id) => id && id !== actorId),
+    ),
+  ]
 }
-function actionMessages(receipt, { actorId, members, registeredIds, variantKey, avatarURL, timestamp }) {
+function actionMessages(
+  receipt,
+  { actorId, members, registeredIds, variantKey, avatarURL, timestamp },
+) {
   const result = receipt.result || receipt
-  const ids = targetIds(result, actorId), allowed = ids.filter(id => registeredIds.has(id))
-  const label = id => registeredIds.has(id) ? `<@${id}>` : safeName(members.find(member => member.userId === id)?.displayName)
-  const actor = `**${safeName(members.find(member => member.userId === actorId)?.displayName)}**`
-  const flavor = require('./flavor').outcomeFlavor(receipt, { actor, targets: ids.map(label), variantKey })
+  const ids = targetIds(result, actorId),
+    allowed = ids.filter((id) => registeredIds.has(id))
+  const label = (id) =>
+    registeredIds.has(id)
+      ? `<@${id}>`
+      : safeName(members.find((member) => member.userId === id)?.displayName)
+  const actor = `**${safeName(
+    members.find((member) => member.userId === actorId)?.displayName,
+  )}**`
+  const flavor = require('./flavor').outcomeFlavor(receipt, {
+    actor,
+    targets: ids.map(label),
+    variantKey,
+  })
   const details = []
-  if (result.fateBonus && !(receipt.outcome === 'sweet_tooth' && result.noEffect)) details.push(`**Banked fate bonus:** +${result.fateBonus}.`)
-  if (result.candyReward) details.push(`**Candy reward:** +${result.candyReward}.`)
-  if (result.goodwillFreedUserId) details.push(`**${actor}'s good will broke the curse!**`)
-  const text = require('./flavor').currencyWords([flavor.description, ...details].join('\n'))
-  const decoration = { ...(avatarURL ? { thumbnail: { url: avatarURL } } : {}), footer: balanceFooter(receipt, timestamp) }
+  if (
+    result.fateBonus &&
+    !(receipt.outcome === 'sweet_tooth' && result.noEffect)
+  )
+    details.push(`**Banked fate bonus:** +${result.fateBonus}.`)
+  if (result.candyReward)
+    details.push(`**Candy reward:** +${result.candyReward}.`)
+  if (result.goodwillFreedUserId)
+    details.push(`**${actor}'s good will broke the curse!**`)
+  const text = require('./flavor').currencyWords(
+    [flavor.description, ...details].join('\n'),
+  )
+  const decoration = {
+    ...(avatarURL ? { thumbnail: { url: avatarURL } } : {}),
+    footer: balanceFooter(receipt, timestamp),
+  }
   // Discoveries and earned wins belong in the channel, including personal finds.
   // No actor ping is needed; recipient pings retain registration-only rules.
-  const rewardWin = (receipt.outcome === 'find_eye' && !result.noEffect) || result.found > 0 || result.fateBonus > 0 ||
-    result.candyReward > 0 || Boolean(result.awardedUserId) || Boolean(result.goodwillFreedUserId) || result.awards?.length > 0 || result.newlyCompletedCharacters?.length > 0
-  const revealOnly = !receipt.action && (result.awards?.length > 0 || result.newlyCompletedCharacters?.length > 0)
-  const messages = !revealOnly ? [{ public: ids.length > 0 || Boolean(rewardWin), payload: {
-    ...(allowed.length ? { content: allowed.map(id => `<@${id}>`).join(' ') } : {}),
-    allowedMentions: { ...noMentions, users: allowed },
-    embeds: [{ title: flavor.title, description: text, color: flavor.color, ...decoration,
-      ...(fateBalanceFields(result).length ? { fields: fateBalanceFields(result) } : {}),
-      }],
-  } }] : []
+  const rewardWin =
+    (receipt.outcome === 'find_eye' && !result.noEffect) ||
+    result.found > 0 ||
+    result.fateBonus > 0 ||
+    result.candyReward > 0 ||
+    Boolean(result.awardedUserId) ||
+    Boolean(result.goodwillFreedUserId) ||
+    result.awards?.length > 0 ||
+    result.newlyCompletedCharacters?.length > 0
+  const revealOnly =
+    !receipt.action &&
+    (result.awards?.length > 0 || result.newlyCompletedCharacters?.length > 0)
+  const messages = !revealOnly
+    ? [
+        {
+          public: ids.length > 0 || Boolean(rewardWin),
+          payload: {
+            ...(allowed.length
+              ? { content: allowed.map((id) => `<@${id}>`).join(' ') }
+              : {}),
+            allowedMentions: { ...noMentions, users: allowed },
+            embeds: [
+              {
+                title: flavor.title,
+                description: text,
+                color: flavor.color,
+                ...decoration,
+                ...(fateBalanceFields(result).length
+                  ? { fields: fateBalanceFields(result) }
+                  : {}),
+              },
+            ],
+          },
+        },
+      ]
+    : []
   // Public reveals use committed ownership snapshots, never current inventory.
   for (const award of result.awards || []) {
     // The completion reveal includes the finishing quarter: do not announce
     // the same character twice for its fourth piece in this root operation.
-    if ((result.newlyCompletedCharacters || []).includes(award.characterId)) continue
+    if ((result.newlyCompletedCharacters || []).includes(award.characterId))
+      continue
     // Old saved receipts predate ownership snapshots; show their acquired piece
     // rather than querying current inventory and changing a historical reveal.
-    const image = tokenImage(award.characterId, award.ownedPositions || [award.position])
-    messages.push({ public: true, payload: { allowedMentions: noMentions,
-    ...(image ? { files: [{ tokenAsset: image, name: image }] } : {}),
-    embeds: [{ title: award.duplicate ? '**🧩 DUPLICATE PIECE FOUND!**' : '**🧩 QUARTER COLLECTED!**', color: parseInt(award.color.slice(1), 16), ...decoration,
-      ...(revealOnly && messages.length === 0 && fateBalanceFields(result).length ? { fields: fateBalanceFields(result) } : {}),
-      ...(image ? { [award.duplicate ? 'thumbnail' : 'image']: { url: `attachment://${image}` } } : {}),
-      description: `**${safeName(members.find(member => member.userId === actorId)?.displayName)} collected ${safeName(award.characterName)} #${pieceNumber(award.position)}!**\n**${award.rarity.toUpperCase()}**\n${award.duplicate ? `Every 5 duplicates will grant you a new unowned piece!\n**Current Duplicates: ${award.duplicates ?? '—'}/5**` : `**Character collection: ${(award.ownedPositions || [award.position]).length}/4**`}${award.source === 'duplicate_exchange' ? '\nFive extras exchanged for a missing piece.' : ''}` }] } })
+    const image = tokenImage(
+      award.characterId,
+      award.ownedPositions || [award.position],
+    )
+    messages.push({
+      public: true,
+      payload: {
+        allowedMentions: noMentions,
+        ...(image ? { files: [{ tokenAsset: image, name: image }] } : {}),
+        embeds: [
+          {
+            title: award.duplicate
+              ? '**DUPLICATE PIECE FOUND!**'
+              : '**NEW PIECE COLLECTED!**',
+            color: parseInt(award.color.slice(1), 16),
+            ...decoration,
+            ...(revealOnly &&
+            messages.length === 0 &&
+            fateBalanceFields(result).length
+              ? { fields: fateBalanceFields(result) }
+              : {}),
+            ...(image
+              ? {
+                  [award.duplicate ? 'thumbnail' : 'image']: {
+                    url: `attachment://${image}`,
+                  },
+                }
+              : {}),
+            description: `${safeName(
+              members.find((member) => member.userId === actorId)?.displayName,
+            )} collected **${safeName(award.characterName)} #${pieceNumber(
+              award.position,
+            )}**!\nThis is a **${award.rarity.toUpperCase()} **piece.\n${
+              award.duplicate
+                ? `Every 5 duplicates will grant you a new unowned piece!\n**Current Duplicates: ${
+                    award.duplicates ?? '—'
+                  }/5**`
+                : `**Total Found: ${
+                    (award.ownedPositions || [award.position]).length
+                  }/4**`
+            }${
+              award.source === 'duplicate_exchange'
+                ? '\nFive extras exchanged for a missing piece.'
+                : ''
+            }`,
+          },
+        ],
+      },
+    })
   }
   for (const characterId of result.newlyCompletedCharacters || []) {
-    const name = pieces.find(piece => piece.characterId === characterId)?.characterName || characterId
+    const name =
+      pieces.find((piece) => piece.characterId === characterId)
+        ?.characterName || characterId
     const image = tokenImage(characterId, ['tl', 'tr', 'bl', 'br'])
-    const badge = require('../badges').badges.find(item => item.characterId === characterId)
-    const files = [{ tokenAsset: image, name: image }, ...(badge?.imageAsset ? [{ badgeAsset: badge.imageAsset, name: badge.imageAsset }] : [])]
-    const finishing = (result.awards || []).find(award => award.characterId === characterId && !award.duplicate && award.ownedPositions?.length === 4)
+    const badge = require('../badges').badges.find(
+      (item) => item.characterId === characterId,
+    )
+    const files = [
+      { tokenAsset: image, name: image },
+      ...(badge?.imageAsset
+        ? [{ badgeAsset: badge.imageAsset, name: badge.imageAsset }]
+        : []),
+    ]
+    const finishing = (result.awards || []).find(
+      (award) =>
+        award.characterId === characterId &&
+        !award.duplicate &&
+        award.ownedPositions?.length === 4,
+    )
     const { thumbnail: avatar, ...completionDecoration } = decoration
-    messages.push({ public: true, payload: { allowedMentions: noMentions,
-      files, embeds: [{ title: `**🎉 ${safeName(name)} Complete!**`, color: 0xffd700, ...completionDecoration,
-      ...(badge?.imageAsset ? { image: { url: `attachment://${badge.imageAsset}` } } : {}),
-      ...(revealOnly && messages.length === 0 && fateBalanceFields(result).length ? { fields: fateBalanceFields(result) } : {}),
-      thumbnail: { url: `attachment://${image}` },
-      description: `**${safeName(members.find(member => member.userId === actorId)?.displayName)} — Congratulations! You have collected all four pieces of ${safeName(name)}!**${finishing ? `\nFinishing piece: **#${pieceNumber(finishing.position)} • ${finishing.rarity.toUpperCase()}**` : ''}\n${(result.newlyAwardedBadges || []).includes(`spooky-2026:${characterId}`) ? `**You have unlocked the SPOOKY ${safeName(name).toUpperCase()} BADGE!**` : (result.alreadyOwnedBadges || []).includes(`spooky-2026:${characterId}`) ? '**Permanent badge already unlocked.**' : 'Permanent badge ownership is unavailable in this saved result.'}\nSee your full collection with **/spooky collection**.` }] } })
+    messages.push({
+      public: true,
+      payload: {
+        allowedMentions: noMentions,
+        files,
+        embeds: [
+          {
+            title: `**🎉 ${safeName(name)} Complete!**`,
+            color: 0xffd700,
+            ...completionDecoration,
+            ...(badge?.imageAsset
+              ? { image: { url: `attachment://${badge.imageAsset}` } }
+              : {}),
+            ...(revealOnly &&
+            messages.length === 0 &&
+            fateBalanceFields(result).length
+              ? { fields: fateBalanceFields(result) }
+              : {}),
+            thumbnail: { url: `attachment://${image}` },
+            description: `**${safeName(
+              members.find((member) => member.userId === actorId)?.displayName,
+            )} — Congratulations! You have collected all four pieces of ${safeName(
+              name,
+            )}!**${
+              finishing
+                ? `\nFinishing piece: **#${pieceNumber(
+                    finishing.position,
+                  )} • ${finishing.rarity.toUpperCase()}**`
+                : ''
+            }\n${
+              (result.newlyAwardedBadges || []).includes(
+                `spooky-2026:${characterId}`,
+              )
+                ? `**You have unlocked the SPOOKY ${safeName(
+                    name,
+                  ).toUpperCase()} BADGE!**`
+                : (result.alreadyOwnedBadges || []).includes(
+                    `spooky-2026:${characterId}`,
+                  )
+                ? '**Permanent badge already unlocked.**'
+                : 'Permanent badge ownership is unavailable in this saved result.'
+            }\nSee your full collection with **/spooky collection**.`,
+          },
+        ],
+      },
+    })
   }
   return messages
 }
 function privateScreen(title, description, fields = []) {
   const decorate = require('./flavor').currencyWords
   // Preserve private JSON inspection evidence byte-for-byte inside its fence.
-  return { allowedMentions: noMentions, embeds: [{ title: decorate(title), description: description.startsWith('```') ? description : decorate(description), fields, color: 0x9b59b6 }] }
+  return {
+    allowedMentions: noMentions,
+    embeds: [
+      {
+        title: decorate(title),
+        description: description.startsWith('```')
+          ? description
+          : decorate(description),
+        fields,
+        color: 0x9b59b6,
+      },
+    ],
+  }
 }
 function registrationScreen(receipt, user) {
-  const payload = privateScreen(receipt.newlyRegistered ? '🎃 Welcome to Spooky Season!' : '🎃 Welcome Back to Spooky Season!', [
-    receipt.newlyRegistered ? 'You have joined the fun!' : 'You are already registered. Your collection and balances are kept.',
-    '**Play:** `/spooky treat` or `/spooky trick` — each costs **1 🍬 candy**.',
-    '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random quarter. Complete a character to unlock its permanent badge!',
-    '**Check in:** `/spooky collection` for quarters, badges and balances.',
-    '**More:** `/spooky fate` buys a quarter for **10 banked fate**. `/spooky help` explains the full rules.',
-    'Candy refills **+1 every 18 minutes**. Keep spending so your bucket has room for more!',
-  ].join('\n\n'))
+  const payload = privateScreen(
+    receipt.newlyRegistered
+      ? '🎃 Welcome to Spooky Season!'
+      : '🎃 Welcome Back to Spooky Season!',
+    [
+      receipt.newlyRegistered
+        ? 'You have joined the fun!'
+        : 'You are already registered. Your collection and balances are kept.',
+      '**Play:** `/spooky treat` or `/spooky trick` — each costs **1 🍬 candy**.',
+      '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random quarter. Complete a character to unlock its permanent badge!',
+      '**Check in:** `/spooky collection` for quarters, badges and balances.',
+      '**More:** `/spooky spend-fate` buys a quarter for **10 Fate Points (Bank first, then Fate)**. `/spooky help` explains the full rules.',
+      'Candy refills **+1 every 18 minutes**. Keep spending so your bucket has room for more!',
+    ].join('\n\n'),
+  )
   const embed = payload.embeds[0]
   embed.color = 0x00ff00
   // Display committed registration balances. Old receipts did not capture Eyes;
   // show an unknown value rather than claiming a fabricated zero on replay.
-  embed.footer = { text: `Available: 🍬 ${receipt.candy} • 🧿 ${receipt.eyes ?? '—'}` }
-  if (typeof user?.displayAvatarURL === 'function') embed.thumbnail = { url: user.displayAvatarURL() }
+  embed.footer = {
+    text: `Available: 🍬 ${receipt.candy} • 🧿 ${receipt.eyes ?? '—'}`,
+  }
+  if (typeof user?.displayAvatarURL === 'function')
+    embed.thumbnail = { url: user.displayAvatarURL() }
   return payload
 }
 function helpScreen() {
-  return privateScreen('🎃 Spooky — Help', [
-    '**Play:** `/spooky register`, `/spooky trick`, `/spooky treat`.',
-    '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
-    '**Extra quarter:** `/spooky fate` spends **10 banked fate**; no daily limit.',
-    'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
-    'Five 🧿 Evil Eyes automatically award a quarter. Five extra copies automatically become a missing piece. First copies stay safe.',
-    'Tricks randomly steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
-    'One-hour protection covers giver and recipient. Effects involving another player are public; registered targets are tagged.',
-    'Quarter reveals are public. Personal screens are private. Play throughout October in Pacific time; no post-October redemption.',
-    'Complete a character to earn a permanent badge. See your badges in `/spooky collection`. Tricks and treats both build your Scream Supreme standing; scoring details stay hidden.',
-  ].join('\n'))
+  return privateScreen(
+    '🎃 Spooky — Help',
+    [
+      '**Play:** `/spooky register`, `/spooky trick`, `/spooky treat`.',
+      '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
+      '**Extra quarter:** `/spooky spend-fate` lets you confirm spending **10 Fate Points**, using **Bank first, then Fate**; no daily limit.',
+      'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
+      'Five 🧿 Evil Eyes automatically award a quarter. Five extra copies automatically become a missing piece. First copies stay safe.',
+      'Tricks randomly steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
+      'One-hour protection covers giver and recipient. Effects involving another player are public; registered targets are tagged.',
+      'Quarter reveals are public. Personal screens are private. Play throughout October in Pacific time; no post-October redemption.',
+      'Complete a character to earn a permanent badge. See your badges in `/spooky collection`. Tricks and treats both build your Scream Supreme standing; scoring details stay hidden.',
+    ].join('\n'),
+  )
 }
 
-module.exports = { actionMessages, targetIds, privateScreen, helpScreen, registrationScreen, balanceFooter, withBalances }
+module.exports = {
+  actionMessages,
+  targetIds,
+  privateScreen,
+  helpScreen,
+  registrationScreen,
+  balanceFooter,
+  withBalances,
+  fateBalanceFields,
+}

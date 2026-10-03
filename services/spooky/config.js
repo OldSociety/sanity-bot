@@ -27,7 +27,9 @@ function validateEvent(config) {
   if (config.eyes.dailyDrawLimit !== null || config.fate.dailyDrawLimit !== null) throw new Error('Hard daily draw limits are disabled')
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
-  if (config.fate.paymentResource !== 'bank') throw new Error('Fate purchases must use bank only')
+  if (config.fate.paymentResource !== 'bank-then-fate') throw new Error('Fate purchases must spend Bank first, then Fate')
+  validateOutcomes(Object.entries(config.fate.rarityPercent || {}).map(([id, percent]) => ({ id, percent })), 'Fate rarity')
+  if (Object.keys(config.fate.rarityPercent).sort().join(',') !== 'common,legendary,rare') throw new Error('Invalid Fate rarity categories')
   for (const [key, value] of Object.entries(config.crown || {})) requirePositiveInteger(value, `crown.${key}`)
   for (const [key, value] of Object.entries(config.prestigeBonuses || {})) requirePositiveInteger(value, `prestigeBonuses.${key}`)
   if (config.prestige) {
@@ -66,9 +68,11 @@ function deepFreeze(value) {
 }
 function selectEvent(data, environment) {
   if (data.developmentEnabled !== undefined && typeof data.developmentEnabled !== 'boolean') throw new Error('Invalid development activation flag')
+  if (data.productionEnabled !== undefined && typeof data.productionEnabled !== 'boolean') throw new Error('Invalid production activation flag')
   // Development activation must not enable a future production PM2 process
   // reading this same checkout. Economy rules/version stay identical.
-  return validateEvent({ ...data, enabled: data.enabled || (environment === 'development' && data.developmentEnabled === true) })
+  return validateEvent({ ...data, enabled: data.enabled || (environment === 'development' && data.developmentEnabled === true) ||
+    (environment === 'production' && data.productionEnabled === true) })
 }
 const config = deepFreeze(selectEvent(eventData, process.env.NODE_ENV))
 const pieces = deepFreeze(createPieces(manifestData))

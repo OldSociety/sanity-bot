@@ -5,7 +5,7 @@ const manifest = require('../config/spooky-pieces.json')
 const copy = value => JSON.parse(JSON.stringify(value))
 test('development activation leaves production/test disabled and approved economy unchanged', () => {
   const { selectEvent } = require('../services/spooky/config')
-  const data = require('../config/spooky-2026.json')
+  const data = { ...require('../config/spooky-2026.json'), productionEnabled: false }
   for (const environment of ['production', 'test', undefined]) assert.equal(selectEvent(data, environment).enabled, false)
   assert.equal(selectEvent(data, 'development').enabled, true)
   assert.equal(data.enabled, false)
@@ -79,4 +79,24 @@ test('simulation weights cannot be used for live acquisition and configuration i
   assert.equal(config.artworkIntegration, false)
   assert.ok(Object.isFrozen(config.treatOutcomes[0]))
   assert.ok(Object.isFrozen(pieces[0]))
+})
+
+
+test('explicit production activation cannot enable test and leaves economy/version unchanged', () => {
+  const { selectEvent } = require('../services/spooky/config'), raw = require('../config/spooky-2026.json')
+  const production = selectEvent({ ...raw, enabled: false, productionEnabled: true }, 'production')
+  assert.equal(production.enabled, true)
+  assert.equal(selectEvent({ ...raw, enabled: false, productionEnabled: true }, 'test').enabled, false)
+  assert.deepEqual(production.candy, raw.candy); assert.deepEqual(production.ordinaryRarity, raw.ordinaryRarity); assert.equal(production.version, raw.version)
+  assert.throws(() => selectEvent({ ...raw, productionEnabled: 'true' }, 'production'), /activation/)
+})
+
+test('production finale selects only production announcement channel/activation with the environment role', () => {
+  const { selectWinnerConfig, validateWinners } = require('../services/spooky/winner-awards')
+  const configured = { enabled:false, channelId:null, mode:'overall', announcementAt:null, overall:{name:'SCREAM SUPREME',roleId:null}, treat:{name:null,roleId:null}, trick:{name:null,roleId:null}, production:{enabled:true,announcementAt:'2026-11-01T20:00:00.000Z'} }
+  const env = {SERVERANNOUNCEMENTSID:'111111111111111111',SCREAMSUPREMEID:'222222222222222222'}
+  const production = validateWinners(selectWinnerConfig('production',env,configured))
+  assert.equal(production.channelId,env.SERVERANNOUNCEMENTSID); assert.equal(production.overall.roleId,env.SCREAMSUPREMEID); assert.equal(production.enabled,true)
+  const development = selectWinnerConfig('development',env,configured)
+  assert.equal(development.enabled,false); assert.equal(development.channelId,null)
 })

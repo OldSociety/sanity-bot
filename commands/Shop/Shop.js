@@ -116,9 +116,7 @@ module.exports = {
     console.log(`Received /shop command: ${interaction.options.getSubcommand()}`)
 
     const member = interaction.member
-    const isAdmin = member.roles.cache.has(
-      process.env.ADMINROLEID || process.env.MODERATORROLEID
-    )
+    const isAdmin = require('../../utils/botAdmin').isBotAdmin(interaction)
     const subcommand = interaction.options.getSubcommand()
 
     try {

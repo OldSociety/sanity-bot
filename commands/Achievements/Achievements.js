@@ -94,6 +94,7 @@ module.exports = {
     console.log(`Subcommand triggered: ${subcommand}`)
     // Check permissions for all subcommands except 'view'
     if (subcommand !== 'view') {
+      if (!await require('../../utils/botAdmin').requireBotAdmin(interaction)) return
       const permissionGranted = await checkPermissions(
         interaction,
         process.env.ADMINROLEID // Admin role ID for permission checking
@@ -156,9 +157,7 @@ module.exports = {
           })
 
           // Get all secret achievements if the user is an admin
-          const isAdmin = interaction.member.roles.cache.has(
-            process.env.ADMINROLEID
-          )
+          const isAdmin = require('../../utils/botAdmin').isBotAdmin(interaction)
 
           let secretAchievements = []
           if (isAdmin) {

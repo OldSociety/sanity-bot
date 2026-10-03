@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "eventId": "spooky-2026",
   "enabled": false,
   "developmentEnabled": true,
@@ -7,38 +7,137 @@
   "startsAt": "2026-10-01T07:00:00.000Z",
   "endsAt": "2026-11-01T07:00:00.000Z",
   "redemptionEndsAt": "2026-11-01T07:00:00.000Z",
-  "candy": { "starting": 10, "capacity": 80, "refillAmount": 1, "refillIntervalMs": 1080000, "sharedRefill": true, "actionCost": 1 },
-  "eyes": { "quarterCost": 5, "automaticConversion": true, "dailyDrawLimit": null },
-  "fate": { "quarterCost": 10, "paymentResource": "bank", "dailyDrawLimit": null, "sweetToothBonus": 1, "bankCapacity": 100, "requiresUnwantedRoleForBonus": true },
-  "duplicates": { "exchangeCost": 5, "automaticConversion": true, "selection": "uniform-missing-piece", "retainAfterCompletion": true },
-  "protection": { "theftDurationMs": 3600000, "eyeVictimActivityWindowMs": null, "dailyVictimLossLimit": null },
-  "curse": { "overridePercent": 10, "treatSpreadPercent": 20, "messageTransformPercent": 20, "messageReversePercent": 50 },
+  "candy": {
+    "starting": 10,
+    "capacity": 80,
+    "refillAmount": 1,
+    "refillIntervalMs": 1080000,
+    "sharedRefill": true,
+    "actionCost": 1
+  },
+  "eyes": {
+    "quarterCost": 5,
+    "automaticConversion": true,
+    "dailyDrawLimit": null
+  },
+  "fate": {
+    "quarterCost": 10,
+    "paymentResource": "bank-then-fate",
+    "dailyDrawLimit": null,
+    "sweetToothBonus": 1,
+    "bankCapacity": 100,
+    "requiresUnwantedRoleForBonus": true,
+    "rarityPercent": {
+      "common": 50,
+      "rare": 35,
+      "legendary": 15
+    }
+  },
+  "duplicates": {
+    "exchangeCost": 5,
+    "automaticConversion": true,
+    "selection": "uniform-missing-piece",
+    "retainAfterCompletion": true
+  },
+  "protection": {
+    "theftDurationMs": 3600000,
+    "eyeVictimActivityWindowMs": null,
+    "dailyVictimLossLimit": null
+  },
+  "curse": {
+    "overridePercent": 10,
+    "treatSpreadPercent": 20,
+    "messageTransformPercent": 20,
+    "messageReversePercent": 50
+  },
   "treatOutcomes": [
-    { "id": "lost_candy", "percent": 20 },
-    { "id": "sweet_tooth", "percent": 1 },
-    { "id": "double_gift", "percent": 15 },
-    { "id": "temporary_immunity", "percent": 10 },
-    { "id": "break_curse", "percent": 5 },
-    { "id": "standard_gift", "percent": 36 },
-    { "id": "find_eye", "percent": 13 }
+    {
+      "id": "lost_candy",
+      "percent": 20
+    },
+    {
+      "id": "sweet_tooth",
+      "percent": 1
+    },
+    {
+      "id": "double_gift",
+      "percent": 15
+    },
+    {
+      "id": "temporary_immunity",
+      "percent": 10
+    },
+    {
+      "id": "break_curse",
+      "percent": 5
+    },
+    {
+      "id": "standard_gift",
+      "percent": 36
+    },
+    {
+      "id": "find_eye",
+      "percent": 13
+    }
   ],
   "trickOutcomes": [
-    { "id": "steal_candy", "percent": 25 },
-    { "id": "great_heist", "percent": 10 },
-    { "id": "reverse_nickname", "percent": 10 },
-    { "id": "curse_target", "percent": 5 },
-    { "id": "curse_backfire", "percent": 5 },
-    { "id": "caught_stealing", "percent": 32 },
-    { "id": "steal_or_find_eye", "percent": 13 }
+    {
+      "id": "steal_candy",
+      "percent": 25
+    },
+    {
+      "id": "great_heist",
+      "percent": 10
+    },
+    {
+      "id": "reverse_nickname",
+      "percent": 10
+    },
+    {
+      "id": "curse_target",
+      "percent": 5
+    },
+    {
+      "id": "curse_backfire",
+      "percent": 5
+    },
+    {
+      "id": "caught_stealing",
+      "percent": 32
+    },
+    {
+      "id": "steal_or_find_eye",
+      "percent": 13
+    }
   ],
   "ordinaryRarity": {
     "status": "approved",
-    "percent": { "common": 70, "rare": 22, "legendary": 8 },
+    "percent": {
+      "common": 70,
+      "rare": 22,
+      "legendary": 8
+    },
     "withinRaritySelection": "uniform-piece"
   },
-  "prestige": { "version": 1, "status": "approved", "success": 2, "failure": -1, "curseReplacement": 1, "noEffect": 0,
-    "adminEligible": true, "ties": "shared", "allowBothTitles": true },
-  "crown": { "fateBonus": 5, "candyBonus": 5, "prestigeBonus": 10 },
-  "prestigeBonuses": { "great_heist": 5 },
-  "artworkIntegration": false
+  "prestige": {
+    "version": 1,
+    "status": "approved",
+    "success": 2,
+    "failure": -1,
+    "curseReplacement": 1,
+    "noEffect": 0,
+    "adminEligible": true,
+    "ties": "shared",
+    "allowBothTitles": true
+  },
+  "crown": {
+    "fateBonus": 5,
+    "candyBonus": 5,
+    "prestigeBonus": 10
+  },
+  "prestigeBonuses": {
+    "great_heist": 5
+  },
+  "artworkIntegration": false,
+  "productionEnabled": true
 }

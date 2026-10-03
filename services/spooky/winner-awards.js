@@ -31,7 +31,14 @@ function validateWinners(settings, reservedRoleIds = []) {
 }
 // Validate when constructing the optional award worker, rather than at import:
 // malformed operational settings must not prevent cleanup/archive from running.
-const winnerConfig = Object.freeze({ ...defaults, overall: Object.freeze({ ...defaults.overall, roleId: process.env.SCREAMSUPREMEID || defaults.overall.roleId }), treat: Object.freeze({ ...defaults.treat }), trick: Object.freeze({ ...defaults.trick }) })
+function selectWinnerConfig(environment, env = process.env, configured = defaults) {
+  const selected = environment === 'production' ? { ...configured, ...configured.production } : configured
+  return Object.freeze({ ...selected,
+    channelId: environment === 'production' ? env.SERVERANNOUNCEMENTSID || selected.channelId : selected.channelId,
+    overall: Object.freeze({ ...selected.overall, roleId: env.SCREAMSUPREMEID || selected.overall.roleId }),
+    treat: Object.freeze({ ...selected.treat }), trick: Object.freeze({ ...selected.trick }) })
+}
+const winnerConfig = selectWinnerConfig(process.env.NODE_ENV)
 const settingsSignature = settings => createHash('sha256').update(JSON.stringify(settings)).digest('hex')
 const awardOperationId = (eventId, guildId) => `worker:${eventId}:${guildId}:final-awards`
 
@@ -142,4 +149,4 @@ function withWinnerAwards(maintain, awards, onError = () => {}) {
     catch (error) { onError(error); return { ...result, winnerAwards: { failed: true } } }
   }
 }
-module.exports = { winnerConfig, titleKinds, validateWinners, settingsSignature, awardOperationId, winnerMessages, createTitleGuard, createWinnerAwards, withWinnerAwards }
+module.exports = { winnerConfig, selectWinnerConfig, titleKinds, validateWinners, settingsSignature, awardOperationId, winnerMessages, createTitleGuard, createWinnerAwards, withWinnerAwards }

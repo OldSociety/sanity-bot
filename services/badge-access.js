@@ -17,8 +17,10 @@ function accessRole(role, guild, bot, channels) {
 }
 function settingsForGuild(guildId, { environment = require('../config/runtime').resolveRuntime(process.env.NODE_ENV).env,
   configuredGuildId = process.env.GUILDID } = {}) {
-  const dev = defaults.development
-  return environment === 'development' && guildId === configuredGuildId && guildId === dev?.guildId ? dev : defaults
+  const selected = defaults[environment]
+  if (['development', 'production'].includes(environment) && guildId === configuredGuildId && guildId === selected?.guildId) return selected
+  // A configured environment override must never grant access in another guild.
+  return defaults
 }
 function createBadgeAccess({ service, getGuild, guildId, settings = settingsForGuild(guildId) }) {
   validateSettings(settings)

@@ -1,5 +1,8 @@
 # Development storage tools — Task 20b complete offline
 
+Production launch authorized and completed from feature/S-1-spooky (unmerged). Read [production launch evidence and continuation](spooky-production-launch.md) first; it supersedes all historical production-disabled/no-live-operations statements below. Human development acceptance and five badge placeholders accepted. Production uses a verified preserved legacy-data copy at config/prod.sqlite, four backed-up atomic migrations and thirteen reviewed commands. Selene/Marq native emoji access is configured in both servers. Explicit productionEnabled=true; test/global default stays disabled, version 8/economy unchanged. Winner announcement: November 1 noon Pacific to SERVERANNOUNCEMENTSID with SCREAMSUPREMEID. Do not migrate/replace storage with online writers, reset production, merge or switch branches. Exact next is human live observation and scoped fixes; no automatic monitoring or merge was scheduled.
+
+
 **Live development update (2026-10-02):** All four migrations are now applied to the authorized development target with verified backup; see [session evidence](spooky-development-live-session.md). SB-development is running, so stopped-writer commands require stopping it first. Prior no-real-storage statements below are historical. Production storage remains unchanged.
 
 Work remains on `feature/S-1-spooky`. Status, backup, reviewed migration planning and apply/tracking are implemented and tested only on synthetic disposable storage. No real development/production database was opened, backed up, migrated or restored. Full Task 20 live acceptance remains open; event/reminder/winner flags are disabled.

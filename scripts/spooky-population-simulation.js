@@ -398,11 +398,11 @@ function memoryGuild(specs, options, random) {
   async function fate(id, now) {
     const ctx = context(now),
       wallet = wallets.get(id)
-    // Same bank-only price and collection service as fate-purchases; no external
+    // This diagnostic scenario spends only Bank; Fate starts at zero and no external
     // reward sources. The player chooses to spend every affordable banked draw.
     while (wallet.bank >= config.fate.quarterCost) {
       wallet.bank -= config.fate.quarterCost
-      awards(id, await collection.drawQuarter(ctx, id), now, 'fate')
+      awards(id, await collection.drawFateQuarter(ctx, id), now, 'fate')
     }
   }
   async function action(id, action, now) {

@@ -72,7 +72,7 @@ module.exports = {
     const userId = interaction.user.id
     const member = interaction.member
 
-    const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    const isAdmin = require('../../utils/botAdmin').isBotAdmin(interaction)
     const isBooster = member.roles.cache.has(process.env.BOOSTERROLEID)
     const hasUnwantedRole = member.roles.cache.has(process.env.UNWANTEDROLEID)
 
@@ -86,6 +86,7 @@ module.exports = {
     }
 
     const subcommand = interaction.options.getSubcommand()
+    if (subcommand === 'manage' && !await require('../../utils/botAdmin').requireBotAdmin(interaction)) return
 
     // Fetch or create user data
     let userData = await User.findOne({ where: { user_id: userId } })

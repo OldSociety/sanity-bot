@@ -24,10 +24,11 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
     const owned = new Set(rows.map(row => row.pieceId))
     return [...new Set(pieces.map(piece => piece.characterId))].filter(id => pieces.filter(piece => piece.characterId === id).every(piece => owned.has(piece.id)))
   }
-  async function executeCommand(interaction) {
+  async function executeCommand(interaction, purchaseApproval = null) {
     if (!interaction.deferred) await interaction.deferReply({ ephemeral: true })
     const subcommand = interaction.options.getSubcommand()
-    const input = { eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id, interactionId: interaction.id }
+    const input = { eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id, interactionId: interaction.id,
+      ...(purchaseApproval ? { expectedWallet: purchaseApproval } : {}) }
     if (!interaction.guildId) throw new Error('Spooky requires a server')
     if (allowedChannelIds.length && !allowedChannelIds.includes(interaction.channelId)) throw new Error('Use the configured Spooky or bot-test channel')
     if (subcommand === 'help') {
@@ -70,9 +71,33 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
       const duplicates = rows.reduce((sum, row) => sum + row.quantity - 1, 0)
       return interaction.editReply(withBalances(privateScreen('🧩 Your Collection', `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`), player, clock(), event))
     }
-    if (!['trick','treat','fate'].includes(subcommand)) throw new Error('Unknown spooky command')
+    if (subcommand === 'spend-fate' && !purchaseApproval) {
+      const saved = await economy.read(transaction => models.Operation.findByPk(`discord:${input.interactionId}`, { transaction }))
+      if (saved) {
+        // Re-deliver the original committed result even after the wallet is empty
+        // or October ends. Replay identity is checked by the economy; this path
+        // cannot make a new purchase or skip a fresh confirmation.
+        const result = await economy.execute({ ...input, operationType: 'fate_quarter_purchase' }, async () => { throw new Error('Purchase replay proof disappeared') })
+        return finishResult(interaction, input, result)
+      }
+      const quote = await economy.read(async transaction => {
+        if (!event.enabled || getEventState(clock(), event) !== 'ACTIVE') throw new Error('Spooky is not active')
+        const player = await models.Participant.findOne({ where: { eventId: input.eventId, guildId: input.guildId, userId: input.actorId }, transaction })
+        if (!player?.registeredAt) throw new Error('Use /spooky register to join first.')
+        const state = await models.EventState.findOne({ where: { eventId: input.eventId, guildId: input.guildId }, transaction })
+        if (state?.actionsPaused || state?.archivedAt) throw new Error('Spooky actions are paused or closed')
+        const user = await User.findByPk(input.actorId, { transaction })
+        if (!user) throw new Error('Fate account does not exist')
+        const wallet = { bank: user.bank, fatePoints: user.fate_points }
+        return { ...await balanceSnapshotInTransaction(input, transaction), wallet,
+          payment: require('./fate-purchases').planFatePayment(user.bank, user.fate_points, event.fate.quarterCost) }
+      })
+      return require('./fate-confirmation').showConfirmation(interaction, { quote, event,
+        onConfirm: () => executeCommand(interaction, quote.wallet) })
+    }
+    if (!['trick','treat','spend-fate'].includes(subcommand)) throw new Error('Unknown spooky command')
     // Discord fetches occur before any root database transaction; failures abort.
-    const snapshot = await fetchMembers(interaction.guildId, { actorId: input.actorId, actorOnly: subcommand === 'fate' })
+    const snapshot = await fetchMembers(interaction.guildId, { actorId: input.actorId, actorOnly: subcommand === 'spend-fate' })
     if (!Array.isArray(snapshot) || !snapshot.some(member => member.userId === input.actorId)) throw new Error('Complete membership snapshot unavailable')
     const finalizeReceipt = async (ctx, receipt) => {
       const player = await models.Participant.findOne({ where: { ...ctx.scope, userId: input.actorId }, transaction: ctx.transaction })
@@ -99,14 +124,17 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
       return { ...result, newlyCompletedCharacters: (result.completeCharacters || []).filter(id => !before.includes(id)) }
     }]))
     let result
-    if (subcommand === 'fate') {
-      const wrapped = { drawQuarter: async (ctx, userId) => {
-        const before = await completed(ctx, userId), reward = await collection.drawQuarter(ctx, userId)
+    if (subcommand === 'spend-fate') {
+      const wrapped = { drawFateQuarter: async (ctx, userId) => {
+        const before = await completed(ctx, userId), reward = await collection.drawFateQuarter(ctx, userId)
         return { ...reward, newlyCompletedCharacters: reward.completeCharacters.filter(id => !before.includes(id)) }
       } }
       result = await createFatePurchases({ User, models, economy, collection: wrapped, event, finalizeReceipt }).purchase(input)
     } else result = await require('./actions').createActions({ models, economy, participants, event, random, handlers,
       getCurseState: effects.getCurseState, finalizeReceipt }).execute({ ...input, action: subcommand })
+    return finishResult(interaction, input, result)
+  }
+  async function finishResult(interaction, input, result) {
     // Root operation retains exact visibility/mention/render plan on replay.
     const messages = result.receipt.messages
     const personal = messages.find(message => !message.public)
@@ -139,7 +167,7 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
       }
     })().catch(async error => {
       const player = await balanceSnapshot({ eventId: event.eventId, guildId: interaction.guildId, actorId: interaction.user.id }).catch(() => null)
-      const payload = withBalances(privateScreen('🎃 Spooky Unavailable', error.message), player || {}, clock(), event)
+      const payload = { ...withBalances(privateScreen('🎃 Spooky Unavailable', error.message), player || {}, clock(), event), components: [] }
       if (interaction.deferred) await interaction.editReply(payload).catch(() => {})
       else await interaction.reply({ ...payload, ephemeral: true }).catch(() => {})
     })
@@ -150,13 +178,14 @@ function createController({ sequelize, User, models, delivery, fetchMembers, rol
     return work
   }
   async function balanceSnapshot(input) {
-    return economy.read(async transaction => {
+    return economy.read(transaction => balanceSnapshotInTransaction(input, transaction))
+  }
+  async function balanceSnapshotInTransaction(input, transaction) {
       const player = await models.Participant.findOne({ where: { eventId: input.eventId, guildId: input.guildId, userId: input.actorId }, transaction })
       if (!player?.registeredAt) return null
       const candy = event.enabled && getEventState(clock(), event) === 'ACTIVE'
         ? require('./participants').calculateRefill({ candy: player.candy, refillAnchor: player.refillAnchor, now: clock(), event }).candy : player.candy
       return { candy, eyes: player.eyes }
-    })
   }
   return { execute }
 }

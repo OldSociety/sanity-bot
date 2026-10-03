@@ -1,0 +1,153 @@
+{
+  "environment": "production",
+  "passed": true,
+  "guildId": "1259991510410334219",
+  "applicationId": "1286400654985658368",
+  "roleChecks": [
+    {
+      "kind": "curse",
+      "id": "1296523839551045693",
+      "exists": true,
+      "manageable": true
+    },
+    {
+      "kind": "sweetTooth",
+      "id": "1555713513031213126",
+      "exists": true,
+      "manageable": true
+    },
+    {
+      "kind": "unwanted",
+      "id": "1262472426399469590",
+      "exists": true,
+      "manageable": true
+    },
+    {
+      "kind": "winner",
+      "id": "1295846839198941285",
+      "exists": true,
+      "manageable": true
+    }
+  ],
+  "channelChecks": [
+    {
+      "id": "1296160672547213364",
+      "valid": true,
+      "permissions": [
+        {
+          "name": "ViewChannel",
+          "allowed": true
+        },
+        {
+          "name": "SendMessages",
+          "allowed": true
+        },
+        {
+          "name": "EmbedLinks",
+          "allowed": true
+        },
+        {
+          "name": "AttachFiles",
+          "allowed": true
+        },
+        {
+          "name": "ReadMessageHistory",
+          "allowed": true
+        },
+        {
+          "name": "ManageMessages",
+          "allowed": true
+        }
+      ]
+    },
+    {
+      "id": "1262485722275905596",
+      "valid": true,
+      "permissions": [
+        {
+          "name": "ViewChannel",
+          "allowed": true
+        },
+        {
+          "name": "SendMessages",
+          "allowed": true
+        },
+        {
+          "name": "EmbedLinks",
+          "allowed": true
+        },
+        {
+          "name": "AttachFiles",
+          "allowed": true
+        },
+        {
+          "name": "ReadMessageHistory",
+          "allowed": true
+        },
+        {
+          "name": "ManageMessages",
+          "allowed": true
+        }
+      ]
+    },
+    {
+      "id": "1267921560203694160",
+      "valid": true,
+      "permissions": [
+        {
+          "name": "ViewChannel",
+          "allowed": true
+        },
+        {
+          "name": "SendMessages",
+          "allowed": true
+        },
+        {
+          "name": "EmbedLinks",
+          "allowed": true
+        },
+        {
+          "name": "AttachFiles",
+          "allowed": true
+        },
+        {
+          "name": "ReadMessageHistory",
+          "allowed": true
+        },
+        {
+          "name": "ManageMessages",
+          "allowed": true
+        }
+      ]
+    }
+  ],
+  "guildPermissions": [
+    {
+      "name": "ManageRoles",
+      "allowed": true
+    },
+    {
+      "name": "ManageNicknames",
+      "allowed": true
+    },
+    {
+      "name": "ManageGuildExpressions",
+      "allowed": true
+    }
+  ],
+  "intents": [
+    {
+      "name": "GatewayGuildMembers",
+      "enabled": true
+    },
+    {
+      "name": "GatewayMessageContent",
+      "enabled": true
+    },
+    {
+      "name": "GatewayPresence",
+      "enabled": true
+    }
+  ],
+  "databaseOpened": false
+}

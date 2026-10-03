@@ -64,38 +64,18 @@ function preflight(args = []) {
     badgeCommand.options.map((option) => option.name),
     ['view', 'leaderboard'],
   )
+  // This offline report reads configuration only, never credentials or live
+  // permissions. Production launch/registry evidence is recorded separately.
   const gates = [
-    'Published balance results are historical; version 8 needs measurement before public launch.',
-    'Six badge artworks/emoji names remain pending; Selene is configured and generic medals represent other earned badges.',
-    'Offline full registry review passed (see command-registry-audit-results.json); compare live server-only commands before any bulk registration.',
-    'Development storage/registration/startup completed; human interaction and recovery acceptance remain open (see live-session guide).',
+    `Published population results are historical and do not measure version ${config.version}; current rules were accepted for live observation.`,
+    'Selene and Marq artwork/native emoji are configured; five other badges use accepted placeholders.',
+    'Compare the live registry before bulk registration; preserve server-only commands.',
+    'This offline check does not attest live permissions, process health or interaction acceptance; see production-launch guide.',
   ]
-  if (!config.enabled) gates.push('Gameplay is disabled in this environment; development uses its explicit override.')
-  if (
-    !badgeAccess.enabled ||
-    Object.values(badgeAccess.roles).some((id) => !id)
-  )
-    gates.push(
-      'Badge emoji access is disabled or partially configured; dedicated cosmetic roles and explicit emoji restriction setup are pending.',
-    )
-  if (
-    !reminders.enabled ||
-    !reminders.channelId ||
-    !reminders.roleIds.length ||
-    !reminders.localTime
-  )
-    gates.push(
-      'Reminder activation/channel/Resident roles/Pacific time are pending.',
-    )
-  if (
-    !winners.enabled ||
-    !winners.channelId ||
-    (winners.mode === 'overall' ? !winners.overall?.roleId || !winners.announcementAt :
-      !winners.treat.name || !winners.treat.roleId || !winners.trick.name || !winners.trick.roleId)
-  )
-    gates.push(
-      'Winner activation, Scream Supreme role, November announcement time and channel are pending.',
-    )
+  if (!config.enabled) gates.push('Global/test gameplay remains disabled; selected development/production runtimes use explicit activation overrides.')
+  if (!badgeAccess.enabled) gates.push('Badge access uses guild-pinned development/production overrides; remaining five cosmetic roles/artworks are pending.')
+  if (!reminders.enabled) gates.push('Resident recruitment reminders stay disabled; weekly Fate reminders use the separate event runtime.')
+  if (!winners.enabled) gates.push('Finale uses the production-only override and selected environment role/channel; development finale stays disabled.')
   return {
     scope: 'offline Spooky definitions/configuration only',
     configVersion: config.version,

@@ -46,14 +46,15 @@ async function verifyTarget(target) {
   const identity = validatedTargets.get(target)
   if (identity && identity.ino !== 0 && (identity.ino !== stat.ino || identity.dev !== stat.dev)) throw new Error('Storage target was replaced; select and review it again')
   if (await fs.realpath(target.databasePath) !== target.databasePath) throw new Error('Storage target resolves outside its configured path')
-  const production = await fs.stat(path.join(target.root, 'config', 'prod.sqlite')).catch(error => {
+  const otherFile = target.environment === 'production' ? 'dev.sqlite' : 'prod.sqlite'
+  const production = await fs.stat(path.join(target.root, 'config', otherFile)).catch(error => {
     if (error.code === 'ENOENT') return null
     throw error
   })
   if (production && stat.ino !== 0 && stat.ino === production.ino && stat.dev === production.dev) throw new Error('Development and production storage refer to the same file')
   for (const suffix of ['-wal', '-shm', '-journal']) {
     const sidecar = await regularPath(`${target.databasePath}${suffix}`).catch(error => { if (error.code === 'ENOENT') return null; throw error })
-    const other = await fs.stat(path.join(target.root, 'config', `prod.sqlite${suffix}`)).catch(error => { if (error.code === 'ENOENT') return null; throw error })
+    const other = await fs.stat(path.join(target.root, 'config', `${otherFile}${suffix}`)).catch(error => { if (error.code === 'ENOENT') return null; throw error })
     if (sidecar && other && sidecar.ino !== 0 && sidecar.ino === other.ino && sidecar.dev === other.dev) throw new Error('Development and production storage sidecars refer to the same file')
   }
   return stat
@@ -63,10 +64,19 @@ async function verifyTarget(target) {
 // Credentials select the authoritative environment but never enter the report.
 async function selectDevelopmentTarget({ environment, root = path.resolve(__dirname, '..', '..') } = {}) {
   if (environment !== 'development') throw new Error('Storage tools support explicit development only')
+  return selectTarget(environment, root)
+}
+// Separate explicit production entry point: the development CLI remains unable
+// to select it. Both targets retain the same identity/backup/atomic-plan guards.
+async function selectProductionTarget({ environment, root = path.resolve(__dirname, '..', '..') } = {}) {
+  if (environment !== 'production') throw new Error('Production storage requires explicit production')
+  return selectTarget(environment, root)
+}
+async function selectTarget(environment, root) {
   const actualRoot = await fs.realpath(root)
-  const runtime = loadDiscordEnvironment('development', { root: actualRoot, target: {} })
+  const runtime = loadDiscordEnvironment(environment, { root: actualRoot, target: {} })
   if (runtime.productionGuildComparison !== 'distinct') throw new Error('A distinct configured production guild is required')
-  const target = Object.freeze({ environment: 'development', root: actualRoot, databasePath: runtime.database.storage,
+  const target = Object.freeze({ environment, root: actualRoot, databasePath: runtime.database.storage,
     applicationId: runtime.clientId, guildId: runtime.guildId })
   validatedTargets.set(target, null)
   const identity = await verifyTarget(target)
@@ -268,4 +278,4 @@ async function applyMigrations(target, { confirmStopped = false, planHash, adopt
   } finally { await db.close() }
 }
 
-module.exports = { migrationGroups, selectDevelopmentTarget, inspectDatabase, createBackup, createMigrationPlan, applyMigrations }
+module.exports = { migrationGroups, selectDevelopmentTarget, selectProductionTarget, inspectDatabase, createBackup, createMigrationPlan, applyMigrations }

@@ -29,6 +29,13 @@ async function fixture(t, options = {}) {
       deferred: false, replies, sent, order,
       deferReply: async function (payload) { this.deferred = true; order.push('defer'); replies.push(payload) },
       editReply: async payload => { order.push('edit'); replies.push(payload) }, reply: async payload => replies.push(payload),
+      fetchReply: async () => ({ createMessageComponentCollector: () => {
+        const collector = new (require('node:events').EventEmitter)()
+        collector.stop = reason => collector.emit('end', [], reason)
+        queueMicrotask(() => collector.emit('collect', { user: { id: userId }, guildId: 'guild', channelId: 'spooky',
+          customId: 'spooky-spend-fate:' + id + ':confirm', deferUpdate: async () => {}, reply: async () => {} }))
+        return collector
+      } }),
       channel: { send: async payload => { order.push('send'); if (options.failSend) throw new Error('send failed'); sent.push(payload); return { id: 'message' } } } }
   }
   return { User, models, members, controller, interaction, settings }
@@ -137,12 +144,12 @@ test('fate purchase publicly reveals quarter; replay retains render plan and deb
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register', 'register'))
   await f.User.update({ bank: 10 }, { where: { user_id: 'alice' } })
-  const fate = f.interaction('fate', 'fate'); await f.controller.execute(fate)
+  const fate = f.interaction('fate', 'spend-fate'); await f.controller.execute(fate)
   assert.equal(fate.sent.length, 1)
-  assert.ok(fate.sent[0].embeds[0].title.includes('QUARTER COLLECTED'))
+  assert.ok(fate.sent[0].embeds[0].title.includes('NEW PIECE COLLECTED'))
   assert.equal(fate.sent[0].embeds[0].footer.text, 'Available: 🍬 10 • 🧿 0')
   assert.equal(fate.sent[0].embeds[0].timestamp, undefined)
-  const fresh = createController(f.settings), replay = f.interaction('fate', 'fate')
+  const fresh = createController(f.settings), replay = f.interaction('fate', 'spend-fate')
   await fresh.execute(replay)
   assert.deepEqual(replay.sent, fate.sent)
   assert.equal(replay.sent[0].enforceNonce, true)
@@ -180,7 +187,7 @@ test('all effect recipient fields route publicly, with safe names and no false p
 test('slash definitions match help and route the authenticated interaction to the controller', async () => {
   let seen
   const command = spookyCommand({ execute: async interaction => { seen = interaction } })
-  assert.deepEqual(command.data.toJSON().options.map(option => option.name), ['help','register','collection','leaderboard','trick','treat','fate'])
+  assert.deepEqual(command.data.toJSON().options.map(option => option.name), ['help','register','collection','leaderboard','trick','treat','spend-fate'])
   const interaction = { id: 'test' }; await command.execute(interaction)
   assert.equal(seen, interaction)
 })
@@ -191,9 +198,9 @@ test('a newly completed character gets one prominent notification; later draws d
   const player = await f.models.Participant.findOne()
   for (const pieceId of ['had_tr','had_bl','had_br']) await f.models.Inventory.create({ participantId: player.id, pieceId, quantity: 1 })
   await f.User.update({ bank: 20 }, { where: { user_id: 'alice' } })
-  const first = f.interaction('first', 'fate'); await f.controller.execute(first)
+  const first = f.interaction('first', 'spend-fate'); await f.controller.execute(first)
   assert.equal(first.sent.filter(message => message.embeds[0].title.includes('Complete!')).length, 1)
-  const next = f.interaction('next', 'fate'); await f.controller.execute(next)
+  const next = f.interaction('next', 'spend-fate'); await f.controller.execute(next)
   assert.equal(next.sent.filter(message => message.embeds[0].title.includes('Complete!')).length, 0)
 })
 

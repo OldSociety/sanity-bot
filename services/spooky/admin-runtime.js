@@ -1,15 +1,13 @@
-const { PermissionFlagsBits } = require('discord.js')
 const { config } = require('./config')
 const { privateScreen } = require('./presentation')
 const { resolveRuntime } = require('../../config/runtime')
 const instances = new WeakMap()
 
-async function authorize(client, guildId, actorId, configuredGuildId, adminRoleId) {
-  if (!configuredGuildId || guildId !== configuredGuildId) return false
+async function authorize(client, guildId, actorId, configuredGuildId, botAdminId) {
+  if (!/^\d{17,20}$/.test(botAdminId || '') || !configuredGuildId || guildId !== configuredGuildId || actorId !== botAdminId) return false
   const guild = await client.guilds.fetch(guildId)
   const member = await guild.members.fetch({ user: actorId, force: true })
-  return member.id === actorId && !member.user.bot &&
-    (member.permissions.has(PermissionFlagsBits.Administrator) || Boolean(adminRoleId && member.roles.cache.has(adminRoleId)))
+  return member.id === actorId && !member.user.bot
 }
 function runtime(client) {
   if (instances.has(client)) return instances.get(client)
@@ -48,7 +46,7 @@ function runtime(client) {
     environment: resolveRuntime(process.env.NODE_ENV).env,
     developmentStorage: resolveRuntime('development').database.storage, delivery,
     roleIds: { curse: process.env.CURSEDROLEID, sweetTooth: (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID) },
-    authorize: input => authorize(client, input.guildId, input.actorId, guildId, process.env.ADMINROLEID),
+    authorize: input => authorize(client, input.guildId, input.actorId, guildId, process.env.BOTADMINID),
     readMember: async input => {
       const value = await member(input.guildId, input.userId)
       return { nickname: value.nickname, roleIds: [...value.roles.cache.keys()] }
@@ -74,8 +72,8 @@ async function execute(interaction) {
   await interaction.deferReply({ ephemeral: true })
   try {
     // Gate before importing the global database or reading any seasonal state.
-    if (!await authorize(interaction.client, interaction.guildId, interaction.user.id, process.env.GUILDID, process.env.ADMINROLEID)) {
-      return interaction.editReply(privateScreen('🎃 Admin Access Denied', 'Administrator permission is required in the configured server.'))
+    if (!await authorize(interaction.client, interaction.guildId, interaction.user.id, process.env.GUILDID, process.env.BOTADMINID)) {
+      return interaction.editReply(privateScreen('🎃 Admin Access Denied', 'Only the configured bot administrator can use these commands.'))
     }
     const restricted = require('./channels').channelRestriction(interaction)
     if (restricted) return interaction.editReply(restricted)

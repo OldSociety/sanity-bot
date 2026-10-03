@@ -1,0 +1,5 @@
+Environment: production; guild: 1259991510410334219; application: 1286400654985658368
+Desired commands: 1:achievement, 1:badges, 1:birthday, 1:fate, 1:throw, 1:slots, 1:spooky-admin, 1:spooky, 1:report, 1:server, 1:user, 1:shop, 1:timestamp
+Commands removed by replacement: none
+Review SHA-256: a9cb70e1c285d97ca01141f3388c2deb8b741f83885b5daf98801b92a6aeaef8
+Registry snapshot: C:\Users\headm\code\sanity-bot-dev\artifacts\command-registry\review-1790988370834-ae76d433-44d9-45f5-9d2c-6f1b16058d85.json

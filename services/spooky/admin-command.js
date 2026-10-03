@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
+const { SlashCommandBuilder } = require('discord.js')
 const { privateScreen, actionMessages } = require('./presentation')
 
 function adminCommand(controller) {
@@ -60,9 +60,9 @@ function adminCommand(controller) {
     if (target === 'notification') command.addStringOption(option => option.setName('message').setDescription('Observed bot message ID, required for acknowledge.').setMaxLength(20))
     return command
   })
-  // Custom admin roles can be allowed in server command permissions; fresh
-  // runtime authorization remains required independently of picker visibility.
-  data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+  // Hide by default. Discord Administrators still bypass picker restrictions,
+  // so the runtime separately permits only the configured BOTADMINID.
+  data.setDefaultMemberPermissions(0n)
   const commands = [...data.options]
   data.options = []
   const groups = { inspect: ['player', 'config', 'transactions', 'deliveries'],

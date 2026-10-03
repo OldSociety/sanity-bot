@@ -7,7 +7,7 @@ function spookyCommand(controller) {
     collection: 'View your character quarters and balances.',
     leaderboard: 'View the Spooky rankings for Scream Supreme.',
     trick: 'Spend one candy on a random trick.', treat: 'Spend one candy on a random treat.',
-    fate: 'Spend ten banked fate on a random quarter.',
+    'spend-fate': 'Review and confirm spending ten Fate Points on a random quarter.',
   }
   for (const [name, description] of Object.entries(subcommands)) data.addSubcommand(command => {
     command.setName(name).setDescription(description)

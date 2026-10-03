@@ -2,7 +2,7 @@
   "checksPassed": true,
   "scope": "offline full working-tree registry versus local HEAD",
   "branch": "feature/S-1-spooky",
-  "baselineCommit": "746cb989fa25d1c7338cb2264ed868e56446831f",
+  "baselineCommit": "fb90db2f8a0b2fbe7acaa537576564bc552417e7",
   "databaseOpened": false,
   "discordContacted": false,
   "environmentCredentialsRead": false,
@@ -873,14 +873,14 @@
         ],
         "name": "spooky-admin",
         "description": "Inspect and repair Spooky event state.",
-        "default_member_permissions": "8",
+        "default_member_permissions": "0",
         "dm_permission": false,
         "type": 1
       },
       "substitutes": [
         "../../services/spooky/admin-runtime"
       ],
-      "definitionSha256": "62b203f1b380a667179ac3ea1d86baa8dcc9a61165b34a6aafae8f0a5ea62fa8"
+      "definitionSha256": "e2716652b08e9296f43c6199696771245f641a87261aa284c173779c45b60fc4"
     },
     {
       "file": "commands/Holiday/TrickorTreat.js",
@@ -934,8 +934,8 @@
           },
           {
             "type": 1,
-            "name": "fate",
-            "description": "Spend ten banked fate on a random quarter.",
+            "name": "spend-fate",
+            "description": "Review and confirm spending ten Fate Points on a random quarter.",
             "options": []
           }
         ],
@@ -946,7 +946,7 @@
       "substitutes": [
         "../../services/spooky/runtime"
       ],
-      "definitionSha256": "a1eeb0bbeb04bc53eed1e226d434930607ed02cedff903c835863ce77a2d849d"
+      "definitionSha256": "0613fc5f94d8274746a29093a7b30f628cd98bfbc59fd33df3820113a3c20309"
     },
     {
       "file": "commands/Report/Report.js",

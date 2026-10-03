@@ -1,5 +1,8 @@
 # Spooky development acceptance and storage recovery
 
+Production launch authorized and completed from feature/S-1-spooky (unmerged). Read [production launch evidence and continuation](spooky-production-launch.md) first; it supersedes all historical production-disabled/no-live-operations statements below. Human development acceptance and five badge placeholders accepted. Production uses a verified preserved legacy-data copy at config/prod.sqlite, four backed-up atomic migrations and thirteen reviewed commands. Selene/Marq native emoji access is configured in both servers. Explicit productionEnabled=true; test/global default stays disabled, version 8/economy unchanged. Winner announcement: November 1 noon Pacific to SERVERANNOUNCEMENTSID with SCREAMSUPREMEID. Do not migrate/replace storage with online writers, reset production, merge or switch branches. Exact next is human live observation and scoped fixes; no automatic monitoring or merge was scheduled.
+
+
 **Live setup completed (2026-10-02):** Human authorized migrations/registration/development PM2 startup. Four migrations, verified backup, permissions/intents and fourteen registered commands pass; SB-development online with development-only gameplay. Production and optional workers/access unchanged. See [session evidence](spooky-development-live-session.md). Hands-on player matrix remains pending; earlier no-live-operation statements describe prior preparation. Do not execute stopped-writer storage commands while the bot is running.
 
 Latest full isolated suite **252/252 pass**; live setup is verified, player interaction/visibility/recovery acceptance still needs human testing.

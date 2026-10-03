@@ -62,7 +62,7 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
         const activity = operations.filter(operation => ['spooky_trick', 'spooky_treat', 'fate_quarter_purchase', 'spooky_register'].includes(operation.operationType))
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
           .map(operation => ({ actorId: operation.actorId, actorName: actors.find(actor => actor.user_id === operation.actorId)?.user_name ?? null,
-            command: `/spooky ${operation.operationType === 'fate_quarter_purchase' ? 'fate' : operation.operationType.replace('spooky_', '')}`,
+            command: `/spooky ${operation.operationType === 'fate_quarter_purchase' ? 'spend-fate' : operation.operationType.replace('spooky_', '')}`,
             outcome: operation.receipt?.outcome ?? null, candySpent: operation.receipt?.candySpent ?? 0,
             candyAfter: operation.receipt?.candy ?? null, operationId: operation.operationId, interactionId: operation.interactionId, timestamp: operation.createdAt }))
         return { activity, ledger: rows.map(plain), operations: operations.map(plain),

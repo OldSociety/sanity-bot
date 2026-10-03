@@ -137,17 +137,20 @@ test('read snapshot serializes with economy writes and survives failed reads', a
   await assert.rejects(() => f.economy.read(async () => { throw new Error('read failure') }), /read failure/)
   await f.inspect('config'); assert.equal(await f.models.Operation.count(), 1)
 })
-test('fresh member authorization permits administrators/configured role, rejects forged identities/bots and wrong guild', async () => {
-  const calls = []
-  let member = { id: 'admin', user: { bot: false }, permissions: { has: flag => flag === PermissionFlagsBits.Administrator }, roles: { cache: new Map() } }
+test('fresh member authorization is BOTADMIN-only even for administrators and configured roles', async () => {
+  const calls = [], owner = '123456789012345678'
+  let member = { id: owner, user: { bot: false }, permissions: { has: () => true }, roles: { cache: new Map([['role', {}]]) } }
   const client = { guilds: { fetch: async id => { calls.push(id); return { members: { fetch: async request => { assert.equal(request.force, true); return member } } } } } }
-  assert.equal(await authorize(client, 'guild', 'admin', 'guild', 'role'), true)
-  member.permissions.has = () => false; member.roles.cache.set('role', {})
-  assert.equal(await authorize(client, 'guild', 'admin', 'guild', 'role'), true)
-  member.user.bot = true; assert.equal(await authorize(client, 'guild', 'admin', 'guild', 'role'), false)
-  member.user.bot = false; member.id = 'forged'; assert.equal(await authorize(client, 'guild', 'admin', 'guild', 'role'), false)
+  assert.equal(await authorize(client, 'guild', owner, 'guild', owner), true)
+  member.permissions.has = () => false; member.roles.cache.clear()
+  assert.equal(await authorize(client, 'guild', owner, 'guild', owner), true)
+  member.user.bot = true; assert.equal(await authorize(client, 'guild', owner, 'guild', owner), false)
+  member.user.bot = false; member.id = 'forged'; assert.equal(await authorize(client, 'guild', owner, 'guild', owner), false)
   const before = calls.length
-  assert.equal(await authorize(client, 'other', 'admin', 'guild', 'role'), false); assert.equal(calls.length, before)
+  for (const [guild, actor, configuredOwner] of [['other', owner, owner], ['guild', 'moderator', owner], ['guild', owner, ''], ['guild', owner, 'role']]) {
+    assert.equal(await authorize(client, guild, actor, 'guild', configuredOwner), false)
+  }
+  assert.equal(calls.length, before)
 })
 test('admin adapter defers privately, enforces channels, suppresses mentions and bounds pages', async () => {
   let calls = 0, reply
@@ -164,7 +167,7 @@ test('admin adapter defers privately, enforces channels, suppresses mentions and
   assert.throws(() => inspectionScreen('config', {}, 2), /Page/)
   assert.deepEqual(command.data.toJSON().options.map(option => option.name), ['inspect', 'repair', 'event', 'queue'])
   assert.equal(command.data.toJSON().options.flatMap(group => group.options).length, 15)
-  assert.equal(command.data.toJSON().default_member_permissions, String(PermissionFlagsBits.Administrator))
+  assert.equal(command.data.toJSON().default_member_permissions, '0')
   assert.equal(command.data.toJSON().dm_permission, false)
   // The wired entry point rejects a DM before importing the real connection.
   const modelPath = require.resolve('../Models/model')
