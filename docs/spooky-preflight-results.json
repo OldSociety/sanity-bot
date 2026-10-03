@@ -1,6 +1,6 @@
 {
   "scope": "offline Spooky definitions/configuration only",
-  "configVersion": 9,
+  "configVersion": 11,
   "databaseOpened": false,
   "discordContacted": false,
   "environmentCredentialsRead": false,
@@ -89,7 +89,7 @@
     ]
   },
   "gates": [
-    "Published population results are historical and do not measure version 9; current rules were accepted for live observation.",
+    "Published population results are historical and do not measure version 11; current rules were accepted for live observation.",
     "Selene and Marq artwork/native emoji are configured; five other badges use accepted placeholders.",
     "Compare the live registry before bulk registration; preserve server-only commands.",
     "This offline check does not attest live permissions, process health or interaction acceptance; see production-launch guide.",

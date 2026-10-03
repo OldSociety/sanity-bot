@@ -244,7 +244,7 @@ if (hasCursedRole && cursedRoll) {
         .setColor(0xff4500)
         .setTimestamp();
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: false });
     }
 
     spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive);
@@ -300,7 +300,7 @@ if (hasCursedRole && cursedRoll) {
         .setColor(0xff4500)
         .setTimestamp();
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: false });
     }
 
     spookyStat.treats = Math.max(0, spookyStat.treats - candiesToGive);
@@ -364,7 +364,6 @@ if (hasCursedRole && cursedRoll) {
         // 25% chance the treat is lost
         return interaction.reply({
           content: `🎃 Oops! You dropped the candy, and it was lost! 🎃\nTotal Candies🍬: ${spookyStat.treats}`,
-          ephemeral: true,
         })
       }
 
@@ -482,7 +481,7 @@ if (hasCursedRole && cursedRoll) {
             console.error('❌ Error applying the backfire curse:', error)
             return interaction.reply({
               content: '❌ The curse backfired, but something went wrong.',
-              ephemeral: true,
+              ephemeral: false,
             })
           }
         }

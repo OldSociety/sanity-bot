@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 11,
   "eventId": "spooky-2026",
   "enabled": false,
   "developmentEnabled": true,
@@ -139,5 +139,12 @@
     "great_heist": 5
   },
   "artworkIntegration": false,
-  "productionEnabled": true
+  "productionEnabled": true,
+  "recipientMentions": {
+    "windowMs": 259200000,
+    "unregisteredLimit": 1,
+    "registeredLimit": 4,
+    "registeredMinIntervalMs": 64800000,
+    "chancePercent": 20
+  }
 }

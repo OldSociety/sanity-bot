@@ -32,7 +32,8 @@ test('legacy treat variants keep recipient safety, committed balances and avatar
     const payload = messages[0].payload
     titles.add(payload.embeds[0].title)
     assert.deepEqual(messages, actionMessages(receipt, options))
-    assert.deepEqual(payload.allowedMentions.users, ['bob'])
+    assert.deepEqual(payload.allowedMentions.users, [])
+    assert.equal(payload.content, undefined)
     assert.match(payload.embeds[0].description, /<@bob>/)
     assert.equal(payload.embeds[0].footer.text, 'Available: 🍬 7 • 🧿 2')
     assert.equal(payload.embeds[0].thumbnail.url, context.avatarURL)

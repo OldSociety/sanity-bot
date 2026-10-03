@@ -21,7 +21,7 @@ async function fixture(t, options = {}) {
   const delivery = createDelivery({ models, adapter: {} })
   const settings = { sequelize, User, models, delivery, fetchMembers: options.fetchMembers || (async () => members),
     roleIds: { curse: 'curse', sweetTooth: 'sweet', unwanted: 'unwanted' },
-    event: { ...config, enabled: options.enabled ?? true }, clock: () => new Date(config.startsAt), random: () => options.roll ?? 0 }
+    event: { ...config, enabled: options.enabled ?? true }, clock: () => new Date(config.startsAt), mentionRoll: () => 0, random: () => options.roll ?? 0 }
   const controller = createController(settings)
   const interaction = (id, subcommand, userId = 'alice') => {
     const replies = [], sent = [], order = []
@@ -86,8 +86,9 @@ test('registered targets are publicly tagged with strict user allowlist', async 
   const action = f.interaction('trick', 'trick'); await f.controller.execute(action)
   assert.equal(action.order[0], 'defer')
   assert.equal(action.sent.length, 1)
-  assert.deepEqual(action.sent[0].allowedMentions.users, ['bob'])
-  assert.equal(action.sent[0].content, '<@bob>')
+  assert.deepEqual(action.sent[0].allowedMentions.users, [])
+  assert.equal(action.sent[0].content, undefined)
+  assert.match(action.sent[0].embeds[0].description, /<@bob>/)
   assert.equal(JSON.stringify(action.sent).includes('prestige'), false)
 })
 
@@ -128,13 +129,18 @@ test('successful public results remove the private acknowledgement; failed deliv
   assert.equal(failed.replies.at(-1).embeds[0].title, '🎃 Action Saved')
   assert.equal(JSON.stringify(failed.replies).includes('Operation:'), false)
 })
-test('nonregistered targets remain public but untagged; actor-only effects stay private', async t => {
+test('nonregistered targets get one embed mention per 72h; later effects stay public without pinging', async t => {
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register', 'register'))
   const trick = f.interaction('trick', 'trick'); await f.controller.execute(trick)
   assert.equal(trick.sent.length, 1)
   assert.deepEqual(trick.sent[0].allowedMentions.users, [])
   assert.equal(trick.sent[0].content, undefined)
+  assert.match(trick.sent[0].embeds[0].description, /<@bob>/)
+  const second = f.interaction('second-trick', 'trick'); await f.controller.execute(second)
+  assert.deepEqual(second.sent[0].allowedMentions.users, [])
+  assert.equal(second.sent[0].content, undefined)
+  assert.doesNotMatch(second.sent[0].embeds[0].description, /<@bob>/)
   assert.equal((await f.models.Participant.findOne({ where: { userId: 'bob' } })).registeredAt, null)
   const treat = f.interaction('lost', 'treat'); await f.controller.execute(treat)
   assert.equal(treat.sent.length, 0)
@@ -212,4 +218,19 @@ test('collection shows total duplicate progress across characters', async t => {
   for (const [pieceId, quantity] of [['sel_tl',2], ['mrq_tr',3]]) await f.models.Inventory.create({ participantId: player.id, pieceId, quantity })
   const view = f.interaction('view-duplicates', 'collection'); await f.controller.execute(view)
   assert.match(JSON.stringify(view), /Current Duplicates: 3\/5/)
+})
+
+test('registered recipient references are spaced out; repeated immediate actions use names', async t => {
+  const f = await fixture(t)
+  await f.controller.execute(f.interaction('join-alice', 'register'))
+  await f.controller.execute(f.interaction('join-bob', 'register', 'bob'))
+  for (let i=0;i<5;i++) {
+    const interaction = f.interaction('daily-trick-'+i, 'trick'); await f.controller.execute(interaction)
+    assert.equal(interaction.sent.length, 1)
+    assert.deepEqual(interaction.sent[0].allowedMentions.users, [])
+    assert.equal(interaction.sent[0].content, undefined)
+    assert.equal(interaction.sent[0].embeds[0].description.includes('<@bob>'), i === 0)
+    assert.equal('_spookyMentions' in interaction.sent[0], false)
+  }
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'recipient_mention', userId: 'bob' } }), 1)
 })

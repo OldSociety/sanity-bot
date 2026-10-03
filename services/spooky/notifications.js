@@ -1,7 +1,7 @@
 const { createHash } = require('node:crypto')
 const { preparePayload } = require('./token-art')
 const { serialize } = require('./economy')
-function createNotifications({ models }) {
+function createNotifications({ models, clock = () => new Date() }) {
   // Projection SQL shares the root queue, but network calls never hold it.
   // Otherwise another message/action could roll back our send acknowledgement.
   const store = work => serialize(models.Notification.sequelize, work)
@@ -40,7 +40,7 @@ function createNotifications({ models }) {
         const dispatch = await store(async () => {
           const current = await models.Notification.findByPk(row.id)
           if (current?.status !== 'sending') return null
-          return { response: channel.send({ ...preparePayload(row.payload), nonce, enforceNonce: true }) }
+          return { response: channel.send({ ...preparePayload(row.payload, { operationId, ordinal: row.ordinal, now: clock() }), nonce, enforceNonce: true }) }
         })
         if (!dispatch) { allSent = false; continue }
         const message = await dispatch.response

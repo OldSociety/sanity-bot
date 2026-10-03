@@ -24,6 +24,8 @@ function validateEvent(config) {
   for (const key of ['starting', 'capacity', 'refillAmount', 'refillIntervalMs', 'actionCost']) requirePositiveInteger(config.candy[key], `candy.${key}`)
   if (config.candy.starting > config.candy.capacity || config.candy.refillAmount > config.candy.capacity) throw new Error('Candy exceeds capacity')
   if (config.candy.actionCost !== 1) throw new Error('Every action costs exactly one candy')
+  for (const key of ['windowMs', 'registeredLimit', 'unregisteredLimit', 'registeredMinIntervalMs', 'chancePercent']) requirePositiveInteger(config.recipientMentions?.[key], `recipientMentions.${key}`)
+  if (config.recipientMentions.chancePercent > 100 || config.recipientMentions.registeredMinIntervalMs > config.recipientMentions.windowMs) throw new Error('Invalid recipient mention cadence')
   if (config.eyes.dailyDrawLimit !== null || config.fate.dailyDrawLimit !== null) throw new Error('Hard daily draw limits are disabled')
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)

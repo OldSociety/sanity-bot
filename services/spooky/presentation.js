@@ -83,13 +83,13 @@ function targetIds(result, actorId) {
 }
 function actionMessages(
   receipt,
-  { actorId, members, registeredIds, variantKey, avatarURL, timestamp },
+  { actorId, members, registeredIds, mentionIds, variantKey, avatarURL, timestamp },
 ) {
   const result = receipt.result || receipt
   const ids = targetIds(result, actorId),
-    allowed = ids.filter((id) => registeredIds.has(id))
+    allowed = ids.filter((id) => (mentionIds || registeredIds).has(id))
   const label = (id) =>
-    registeredIds.has(id)
+    allowed.includes(id)
       ? `<@${id}>`
       : safeName(members.find((member) => member.userId === id)?.displayName)
   const actor = `**${safeName(
@@ -118,7 +118,7 @@ function actionMessages(
     footer: balanceFooter(receipt, timestamp),
   }
   // Discoveries and earned wins belong in the channel, including personal finds.
-  // No actor ping is needed; recipient pings retain registration-only rules.
+  // No actor ping is needed; the root transaction supplies capped recipients.
   const rewardWin =
     (receipt.outcome === 'find_eye' && !result.noEffect) ||
     result.found > 0 ||
@@ -136,10 +136,9 @@ function actionMessages(
         {
           public: ids.length > 0 || Boolean(rewardWin),
           payload: {
-            ...(allowed.length
-              ? { content: allowed.map((id) => `<@${id}>`).join(' ') }
-              : {}),
-            allowedMentions: { ...noMentions, users: allowed },
+            // Recipient references belong inside the embed only. Discord does
+            // not notify embed mentions; explicitly block all notification pings.
+            allowedMentions: noMentions,
             embeds: [
               {
                 title: flavor.title,

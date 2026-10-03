@@ -23,7 +23,8 @@ function validateFiles(files) {
   }
   return files
 }
-function preparePayload(payload) {
+function preparePayload(payload, deliveryContext) {
+  payload = require('./mentions').prepareMentionPayload(payload, deliveryContext)
   if (!payload.files) return payload
   return { ...payload, files: validateFiles(payload.files).map(file => ({
     attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', file.badgeAsset)
