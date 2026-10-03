@@ -107,16 +107,22 @@ function createController({
             )}**\n${require('../badges').renderBadges(row.badges, emojis)}`,
         )
         .join('\n\n')
+      const latestBadge = badges?.latest ? await badges.latest(input.guildId) : require('../badges').badges.find(badge => badge.characterId === 'sel')
+      const badgeEmoji = emojis.find(emoji => emoji.available !== false &&
+        [latestBadge?.emojiName, `${latestBadge?.characterId === 'sel' ? 'selene' : latestBadge?.name?.toLowerCase()}_badge`].includes(emoji.name?.toLowerCase()))
+      const fallbackBadge = latestBadge?.imageAsset ? latestBadge : require('../badges').badges.find(badge => badge.characterId === 'sel')
+      const badgeThumbnail = badgeEmoji ? `https://cdn.discordapp.com/emojis/${badgeEmoji.id}.${badgeEmoji.animated ? 'gif' : 'png'}?size=128`
+        : `attachment://${fallbackBadge.imageAsset}`
+      const rankingScreen = privateScreen(`👻 SCREAM SUPREME • Rankings ${page}`, text || 'No tricks or treats have been scored yet.')
+      rankingScreen.embeds[0].thumbnail = { url: badgeThumbnail }
+      if (!badgeEmoji) rankingScreen.files = [{ name: fallbackBadge.imageAsset, badgeAsset: fallbackBadge.imageAsset }]
       return interaction.editReply(
-        withBalances(
-          privateScreen(
-            `👻 SCREAM SUPREME • Rankings ${page}`,
-            text || 'No tricks or treats have been scored yet.',
-          ),
+        require('./token-art').preparePayload(withBalances(
+          rankingScreen,
           (await balanceSnapshot(input)) || {},
           clock(),
           event,
-        ),
+        )),
       )
     }
     if (subcommand === 'register') {
@@ -418,6 +424,7 @@ function createController({
           },
           handlers,
           getCurseState: effects.getCurseState,
+          getCrownHolder: playful.crownHolder,
           finalizeReceipt,
         })
         .execute({ ...input, action: subcommand })

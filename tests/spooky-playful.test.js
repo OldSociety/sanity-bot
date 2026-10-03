@@ -26,6 +26,7 @@ async function fixture(t, random = () => 0) {
     nickname: null, roleIds: [], canManageCurse: true, canManageNickname: true, canManageSweetTooth: true }))
   let failure = false, networkCalls = 0
   const adapter = {
+    getRoleHolders: async (_guild, roleId) => members.filter(member => member.roleIds.includes(roleId)).map(member => member.userId),
     getMember: async (_guild, id) => members.find(member => member.userId === id),
     setRole: async (_guild, id, role, present) => { networkCalls++; if (failure) throw new Error('permission denied'); const member = members.find(member => member.userId === id); member.roleIds = member.roleIds.filter(value => value !== role); if (present) member.roleIds.push(role) },
     setNickname: async (_guild, id, value) => { networkCalls++; if (failure) throw new Error('permission denied'); members.find(member => member.userId === id).nickname = value },
@@ -36,7 +37,7 @@ async function fixture(t, random = () => 0) {
   const scope = { eventId: config.eventId, guildId: 'guild' }
   const run = (key, callback) => economy.execute({ ...scope, actorId: 'alice', interactionId: key, operationType: 'playful_test' }, callback)
   const invoke = (key, outcome) => run(key, ctx => playful.handlers[outcome](ctx, { actorId: 'alice', outcome }))
-  return { sequelize, models, participants, effects, playful, delivery, members, scope, run, invoke, adapter,
+  return { sequelize, models, economy, participants, effects, playful, delivery, members, scope, run, invoke, adapter,
     time: value => { now = new Date(value) }, fail: value => { failure = value }, calls: () => networkCalls }
 }
 
@@ -129,6 +130,10 @@ test('readable appearance has one wrapper and respects Discord nickname length',
   assert.equal(project('Hadley', 'fallback', ['reversed_nickname', 'theft_protection', 'curse']), '☠ Hadley ☠')
   assert.equal(project('Hadley', 'fallback', ['reversed_nickname', 'theft_protection']), '✨( Hadley )✨')
   assert.equal(project('Hadley', 'fallback', ['reversed_nickname']), 'yeldaH')
+  assert.equal(project('A'.repeat(26), 'fallback', ['theft_protection']), `✨( ${'A'.repeat(26)} )✨`)
+  assert.equal(project('A'.repeat(27), 'fallback', ['theft_protection']), `✨${'A'.repeat(27)}`)
+  assert.equal(project('A'.repeat(32), 'fallback', ['theft_protection']), `✨${'A'.repeat(31)}`)
+  assert.equal(project(null, 'A'.repeat(27), ['theft_protection']), `✨${'A'.repeat(27)}`)
   for (const type of ['curse', 'theft_protection']) {
     const value = project('🎃'.repeat(16), 'fallback', [type])
     assert.ok(value.length <= 32)
@@ -253,6 +258,7 @@ test('failed curse removal survives another hit and eventually removes only the 
 
 test('pending/conflicting nickname restoration cannot be overwritten by a new reversal', async t => {
   const f = await fixture(t)
+  f.members[2].canManageNickname = false; f.members[3].canManageNickname = false
   f.members[1].nickname = 'Bob'
   await f.invoke('reverse', 'reverse_nickname'); await f.delivery.reconcile(f.scope)
   await f.run('clear', async ctx => {
@@ -263,15 +269,39 @@ test('pending/conflicting nickname restoration cannot be overwritten by a new re
   })
   f.fail(true); await f.delivery.reconcile(f.scope)
   const row = await f.models.Delivery.findOne(), revision = row.revision
-  assert.equal((await f.invoke('again', 'reverse_nickname')).receipt.noEffect, 'restoration_pending')
+  await assert.rejects(f.invoke('again', 'reverse_nickname'), /Nothing was spent/)
   assert.equal(await f.models.Effect.count(), 0)
   assert.equal((await row.reload()).revision, revision); assert.equal(row.payload.nickname, 'Bob')
   f.members[1].nickname = 'Manual'; f.fail(false); await f.delivery.reconcile(f.scope)
   assert.equal((await row.reload()).status, 'conflict')
-  assert.equal((await f.invoke('conflict-hit', 'reverse_nickname')).receipt.noEffect, 'restoration_pending')
+  await assert.rejects(f.invoke('conflict-hit', 'reverse_nickname'), /Nothing was spent/)
   f.members[1].nickname = 'boB'; await row.update({ status: 'pending' }); await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].nickname, 'Bob')
   assert.equal((await f.invoke('after-restore', 'reverse_nickname')).receipt.reversedUserId, 'bob')
+})
+
+test('reversal skips existing spells and restores each newly selected original at closure', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Hadley'; f.members[2].nickname = 'Selene'; f.members[3].nickname = 'Maxim'
+  await f.invoke('shield-first', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
+  await f.invoke('curse-second', 'curse_target'); await f.delivery.reconcile(f.scope)
+  assert.equal((await f.invoke('reverse-third', 'reverse_nickname')).receipt.reversedUserId, 'dan')
+  await f.delivery.reconcile(f.scope)
+  await assert.rejects(f.invoke('no-more-targets', 'reverse_nickname'), /Nothing was spent/)
+  f.time(config.endsAt); await f.run('end-all', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.deepEqual(f.members.slice(1).map(member => member.nickname), ['Hadley', 'Selene', 'Maxim'])
+})
+
+test('no eligible reversal rolls back the action candy and operation', async t => {
+  const f = await fixture(t)
+  await f.participants.register({ ...f.scope, actorId: 'alice', interactionId: 'register-refund' })
+  f.members.forEach(member => { member.canManageNickname = false })
+  const actions = require('../services/spooky/actions').createActions({ models: f.models, economy: f.economy,
+    participants: f.participants, event: { ...config, enabled: true }, random: () => .36, handlers: f.playful.handlers, getCurseState: () => false })
+  await assert.rejects(actions.execute({ ...f.scope, actorId: 'alice', interactionId: 'refund-reverse', action: 'trick' }), /Nothing was spent/)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 10)
+  assert.equal(await f.models.Operation.findByPk('discord:refund-reverse'), null)
+  assert.equal(await f.models.Delivery.count(), 0)
 })
 
 test('ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties', async t => {
@@ -315,7 +345,7 @@ test('nickname applies once and October cleanup restores null original; independ
   await f.invoke('nickname', 'reverse_nickname')
   await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].nickname, 'bob')
-  assert.equal((await f.invoke('repeat', 'reverse_nickname')).receipt.alreadyReversed, true)
+  assert.equal((await f.invoke('repeat', 'reverse_nickname')).receipt.reversedUserId, 'carol')
   f.time(config.endsAt)
   await f.run('cleanup', ctx => f.playful.cleanup(ctx))
   await f.delivery.reconcile(f.scope)
@@ -328,6 +358,37 @@ test('nickname applies once and October cleanup restores null original; independ
   await changed.run('cleanup', ctx => changed.playful.cleanup(ctx))
   assert.equal((await changed.delivery.reconcile(changed.scope))[0].status, 'conflict')
   assert.equal(changed.members[1].nickname, 'chosen by user')
+})
+
+test('reversal restores at twelve hours and legacy month-long timers are shortened without baseline changes', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Hadley'
+  await f.invoke('timed-reverse', 'reverse_nickname'); await f.delivery.reconcile(f.scope)
+  const row = await f.models.Effect.findOne({ where: { effectType: 'reversed_nickname' } })
+  assert.equal(new Date(row.expiresAt).getTime(), Date.parse(config.startsAt) + 43200000)
+  // Model an old deployed row whose metadata/ledger preserves its application.
+  await row.update({ expiresAt: new Date(config.endsAt), metadata: { ...row.metadata, appliedAt: undefined } })
+  f.time(Date.parse(config.startsAt) + 43200000 - 1)
+  await f.run('before-expiry', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'yeldaH')
+  assert.equal((await row.reload()).metadata.originalNickname, 'Hadley')
+  f.time(Date.parse(config.startsAt) + 43200000)
+  await f.run('at-expiry', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Hadley')
+  assert.equal(await f.models.Effect.count(), 0)
+})
+
+test('Crown can be stolen and recaptured but first-win candy is not farmed', async t => {
+  const f = await fixture(t)
+  await f.invoke('find-crown', 'sweet_tooth'); await f.delivery.reconcile(f.scope)
+  const stolen = await f.run('bob-steals', ctx => f.playful.handlers.steal_crown(ctx, { actorId: 'bob', action: 'trick', outcome: 'steal_crown' }))
+  assert.equal(stolen.receipt.crownStolenFrom, 'alice'); assert.equal(stolen.receipt.crownFirstWin, true)
+  await f.delivery.reconcile(f.scope)
+  assert.deepEqual(f.members.filter(member => member.roleIds.includes('sweet-role')).map(member => member.userId), ['bob'])
+  const recaptured = await f.invoke('take-back', 'steal_crown'); await f.delivery.reconcile(f.scope)
+  assert.equal(recaptured.receipt.crownFirstWin, false); assert.equal(recaptured.receipt.candyReward, 0)
+  assert.equal(await f.models.Ledger.count({ where: { userId: 'alice', resource: 'crown_award' } }), 1)
+  assert.deepEqual(f.members.filter(member => member.roleIds.includes('sweet-role')).map(member => member.userId), ['alice'])
 })
 
 test('failed Discord delivery survives reconstruction and retry is idempotent', async t => {
@@ -347,7 +408,7 @@ test('Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer i
   const f = await fixture(t)
   await f.invoke('sweet', 'sweet_tooth'); await f.delivery.reconcile(f.scope)
   assert.ok(f.members[0].roleIds.includes('sweet-role'))
-  assert.equal((await f.invoke('again', 'sweet_tooth')).receipt.candyReward, 0)
+  await assert.rejects(f.invoke('again', 'sweet_tooth'), /already held/)
   await f.delivery.reconcile(f.scope)
   assert.ok(!f.members[1].roleIds.includes('sweet-role'))
   await f.models.Participant.update({ registeredAt: new Date(config.startsAt), eyes: 4 }, { where: { userId: 'alice' } })
@@ -357,7 +418,7 @@ test('Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer i
 test('permission failures do not claim effects, existing roles are not removed and root failure rolls back intent', async t => {
   const f = await fixture(t)
   f.members.forEach(member => { member.canManageNickname = false })
-  assert.equal((await f.invoke('unmanageable', 'reverse_nickname')).receipt.noEffect, 'no_manageable_target')
+  await assert.rejects(f.invoke('unmanageable', 'reverse_nickname'), /Nothing was spent/)
   await assert.rejects(() => f.run('rollback', async ctx => {
     await f.playful.handlers.curse_target(ctx, { actorId: 'alice' }); throw new Error('later failure')
   }), /later failure/)

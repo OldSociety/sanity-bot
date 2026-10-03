@@ -40,14 +40,22 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
     await participant.update({ [resource]: after }, { transaction: ctx.transaction })
     await ctx.record({ userId: plan.actorId, resource, delta, before, after,
       metadata: { outcome: plan.outcome, scoringVersion: score.version, participantId: participant.id, ...(bonus && { bonus, base }) } })
-    return { delta, score: after, track: plan.action }
+    const earned = delta - (result.crownWon ? bonus : 0)
+    const crownBonusTenths = plan.crownHolderBefore === plan.actorId && earned > 0 ? earned : 0
+    if (crownBonusTenths) await ctx.record({ userId: plan.actorId, resource: 'crownPrestigeTenths', delta: crownBonusTenths,
+      metadata: { participantId: participant.id, track: plan.action, outcome: plan.outcome, scoringVersion: score.version,
+        baseDelta: earned, holderId: plan.actorId, holderOperationId: plan.crownHolderOperationId } })
+    return { delta, score: after, track: plan.action, ...(crownBonusTenths ? { crownBonusTenths } : {}) }
   }
   function wrapHandlers(handlers) {
     return Object.fromEntries(Object.entries(handlers).map(([outcome, handler]) => [outcome, async (ctx, plan) => {
       if (ctx.scope.eventId !== event.eventId) throw new Error('Progression event mismatch')
+      const holder = await models.Ledger.findOne({ where: { ...ctx.scope, resource: 'crown_holder' }, order: [['id', 'DESC']], transaction: ctx.transaction })
+      plan = { ...plan, crownHolderBefore: holder?.metadata?.holderId || null, crownHolderOperationId: holder?.operationId }
       const result = await handler(ctx, plan)
-      const bonus = outcome === 'sweet_tooth' && plan.action === 'treat' && !plan.overridden
-        ? await sweetToothBonus(ctx, plan.actorId, result.crownWon === true) : {}
+      const crownOutcome = outcome === 'sweet_tooth' && plan.action === 'treat' || outcome === 'steal_crown' && plan.action === 'trick'
+      const bonus = crownOutcome && !plan.overridden && (result.crownFirstWin !== false || !result.crownWon)
+        ? outcome === 'steal_crown' && !result.crownWon ? {} : await sweetToothBonus(ctx, plan.actorId, result.crownWon === true) : {}
       // Receipt data is for audit/admin consumers; player rendering hides exact weights.
       return { ...result, ...bonus, prestige: await prestige(ctx, plan, result) }
     }]))
@@ -59,8 +67,10 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
       const entries = await models.Ledger.findAll({ where: { ...ctx.scope, resource }, transaction: ctx.transaction })
       const activeIds = new Set(entries.map(entry => entry.userId))
       const eligible = participants.filter(player => player.registeredAt && activeIds.has(player.userId))
-      const score = eligible.length ? Math.max(...eligible.map(player => player[resource])) : null
-      result[track] = { score, userIds: eligible.filter(player => player[resource] === score).map(player => player.userId).sort() }
+      const bonuses = await models.Ledger.findAll({ where: { ...ctx.scope, resource: 'crownPrestigeTenths' }, transaction: ctx.transaction })
+      const points = player => player[resource] * 10 + bonuses.filter(row => row.userId === player.userId && row.metadata?.participantId === player.id && row.metadata.track === track).reduce((sum, row) => sum + row.delta, 0)
+      const scoreTenths = eligible.length ? Math.max(...eligible.map(points)) : null
+      result[track] = { score: scoreTenths === null ? null : scoreTenths / 10, userIds: eligible.filter(player => points(player) === scoreTenths).map(player => player.userId).sort() }
     }
     return result
   }

@@ -26,6 +26,10 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
         let status = 'done', lastError = null
         const isCurrent = async () => {
           const current = await read(transaction => models.Delivery.findByPk(row.id, { transaction }))
+          if (current?.kind === 'sweet_tooth_role' && current.payload.exclusive && current.payload.present) {
+            const holder = await read(transaction => models.Ledger.findOne({ where: { eventId: row.eventId, guildId: row.guildId, resource: 'crown_holder' }, order: [['id', 'DESC']], transaction }))
+            if (holder?.metadata?.holderId !== row.userId || holder.metadata.roleId !== row.payload.roleId) return false
+          }
           return Boolean(current?.status === 'pending' && current.revision === row.revision &&
             JSON.stringify(current.payload) === JSON.stringify(row.payload) && await canDeliver(current) === true)
         }
@@ -42,6 +46,16 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
             }
           } else {
             if (!row.payload.roleId) throw new Error('Missing role ID')
+            if (row.kind === 'sweet_tooth_role' && row.payload.present && row.payload.exclusive) {
+              if (!adapter.getRoleHolders) throw new Error('Exclusive Crown role scan unavailable')
+              const holders = await adapter.getRoleHolders(row.guildId, row.payload.roleId)
+              if (!Array.isArray(holders) || holders.some(id => typeof id !== 'string')) throw new Error('Invalid Crown role scan')
+              for (const holderId of holders.filter(id => id !== row.userId)) {
+                if (!await isCurrent()) throw new Error('Crown transfer was superseded')
+                if (await adapter.setRole(row.guildId, holderId, row.payload.roleId, false, { isCurrent }) === false) throw new Error('Crown removal was superseded')
+              }
+              if ((await adapter.getRoleHolders(row.guildId, row.payload.roleId)).some(id => id !== row.userId)) throw new Error('Previous Crown removal is not confirmed')
+            }
             const has = current.roleIds.includes(row.payload.roleId)
             if (has !== row.payload.present) {
               if (['final_treat_role', 'final_trick_role', 'final_overall_role'].includes(row.kind) &&
@@ -51,7 +65,10 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
               if (await adapter.setRole(row.guildId, row.userId, row.payload.roleId, row.payload.present, { isCurrent }) === false) status = 'superseded'
             }
           }
-        } catch (error) { status = error.code === 'NICKNAME_CONFLICT' ? 'conflict' : 'pending'; lastError = String(error.message).slice(0, 500) }
+        } catch (error) {
+          if (error.code === 10007 && row.kind !== 'nickname' && row.payload.present === false) status = 'done'
+          else { status = error.code === 'NICKNAME_CONFLICT' ? 'conflict' : 'pending'; lastError = String(error.message).slice(0, 500) }
+        }
         // A newer intent arriving during network delivery stays pending for reconciliation.
         if (status !== 'superseded') await store(() => models.Delivery.update({ status, lastError }, { where: { id: row.id, revision: row.revision, status: 'pending' } }))
         results.push({ userId: row.userId, kind: row.kind, status })

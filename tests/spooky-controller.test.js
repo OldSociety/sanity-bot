@@ -71,6 +71,20 @@ test('leaderboard is public while collection and help remain private', async t =
   }
 })
 
+test('public leaderboard uses latest earned badge emoji and defaults to supplied Selene art', async t => {
+  const f = await fixture(t)
+  const initial = f.interaction('initial-board', 'leaderboard')
+  await f.controller.execute(initial)
+  assert.equal(initial.replies.at(-1).embeds[0].thumbnail.url, 'attachment://SPOOKY_SELENE_BADGE.png')
+  assert.ok(initial.replies.at(-1).files[0].attachment.endsWith('SPOOKY_SELENE_BADGE.png'))
+  const controller = createController({ ...f.settings, badges: { latest: async () => ({ characterId: 'mrq', name: 'Marq', emojiName: 'spooky_marq_badge' }) } })
+  const next = f.interaction('marq-board', 'leaderboard')
+  next.guild = { emojis: { fetch: async () => new Map([['123456789012345678', { id: '123456789012345678', name: 'spooky_marq_badge', available: true }]]) } }
+  await controller.execute(next)
+  assert.equal(next.replies.at(-1).embeds[0].thumbnail.url, 'https://cdn.discordapp.com/emojis/123456789012345678.png?size=128')
+  assert.equal(next.replies.at(-1).files, undefined)
+})
+
 test('GIF rotation reads durable root history, charges once and preserves saved replay', async t => {
   const f = await fixture(t, { roll: 0.7, notifications: true, gifPercent: 100 })
   await f.controller.execute(f.interaction('rotation-join', 'register'))

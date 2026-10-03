@@ -1,6 +1,21 @@
 const { PermissionFlagsBits } = require('discord.js')
 function createDiscordAdapter(getGuild) {
   return {
+    getRoleHolders: async (id, roleId) => {
+      const guild = await getGuild(id), holders = []
+      let after
+      // Full gateway fetches compete with gameplay's directory and can wait
+      // 120 seconds after opcode-8 throttling. REST pages are fresh role evidence
+      // without issuing gateway membership requests or trusting a partial cache.
+      for (;;) {
+        const page = await guild.members.list({ limit: 1000, after, cache: false })
+        for (const member of page.values()) if (member.roles.cache.has(roleId)) holders.push(member.id)
+        if (page.size < 1000) return holders
+        const next = [...page.keys()].at(-1)
+        if (!next || next === after) throw new Error('Crown membership pagination did not advance')
+        after = next
+      }
+    },
     checkRolePermission: async (id, userId, roleId) => require('./delivery').checkTitleRolePermission(await getGuild(id), userId, roleId),
     getMember: async (id, userId) => {
       const member = await (await getGuild(id)).members.fetch({ user: userId, force: true })

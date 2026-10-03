@@ -26,7 +26,7 @@ async function fixture(t, { eligible = true, bank = 0, random = () => .2 } = {})
   await participants.register(input('register'))
   const user = await User.create({ user_id: 'alice', user_name: 'Alice', bank, fate_points: 99 })
   const run = (key, fn) => economy.execute({ ...input(key), operationType: 'progression_test' }, fn)
-  return { User, models, event, participants, progression, actions, user, input, run }
+  return { User, models, economy, event, participants, progression, actions, user, input, run }
 }
 
 test('caller crown win credits five fate for any registered player, caps bank and adds ten prestige once', async t => {
@@ -121,4 +121,30 @@ test('ties share each track, a player may lead both, and inactive registrants do
   const leaders = await f.run('leaders', ctx => f.progression.leaders(ctx))
   assert.deepEqual(leaders.receipt.treat.userIds, ['alice','bob'])
   assert.deepEqual(leaders.receipt.trick.userIds, ['alice'])
+})
+
+test('Crown earns exact tenths on positive actions only; live rankings and frozen overall proof agree', async t => {
+  const f = await fixture(t)
+  await f.participants.register({ ...f.input('bob'), actorId: 'bob' })
+  await f.User.create({ user_id: 'bob', user_name: 'Bob' })
+  await f.run('hold', async ctx => {
+    await ctx.record({ userId: 'alice', resource: 'crown_holder', delta: 0, metadata: { holderId: 'alice', roleId: 'sweet' } }); return {}
+  })
+  const handlers = f.progression.wrapHandlers({ standard_gift: async () => ({ deliveredCandy: 1 }),
+    great_heist: async () => ({ stolen: 1 }), lost_candy: async () => ({ failure: 'lost_candy' }) })
+  for (const userId of ['alice', 'bob']) await f.run(`gift-${userId}`, ctx => handlers.standard_gift(ctx, { action: 'treat', outcome: 'standard_gift', actorId: userId }))
+  const aliceBonus = await f.models.Ledger.findOne({ where: { resource: 'crownPrestigeTenths' } })
+  assert.equal(aliceBonus.delta, 2)
+  const ranked = await require('../services/spooky/leaderboard').createLeaderboard({ models: f.models, economy: f.economy, User: f.User })({ eventId: config.eventId, guildId: 'guild' })
+  assert.deepEqual(ranked.map(row => [row.userId, row.rank]), [['alice', 1], ['bob', 2]])
+  await f.run('heist-with-crown', ctx => handlers.great_heist(ctx, { action: 'trick', outcome: 'great_heist', actorId: 'alice' }))
+  await f.run('loss-with-crown', ctx => handlers.lost_candy(ctx, { action: 'treat', outcome: 'lost_candy', actorId: 'alice' }))
+  assert.equal(await f.models.Ledger.sum('delta', { where: { resource: 'crownPrestigeTenths' } }), 9)
+  const snapshot = require('../services/spooky/winner-snapshot').createWinnerSnapshot({ models: f.models, event: f.event })
+  await f.run('freeze', ctx => snapshot.freeze({ ...ctx, now: new Date(config.endsAt) }))
+  const proof = (await f.models.Operation.findByPk(require('../services/spooky/winner-snapshot').snapshotOperationId(config.eventId, 'guild'))).receipt
+  assert.equal(proof.tracks.overall.score, 8.9)
+  assert.equal(proof.tracks.overall.entrants[0].scoreTenths, 89)
+  assert.deepEqual(proof.tracks.overall.userIds, ['alice'])
+  await f.run('reuse-proof', ctx => snapshot.freeze({ ...ctx, now: new Date(config.endsAt) }))
 })

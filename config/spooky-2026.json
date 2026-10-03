@@ -1,5 +1,7 @@
 {
-  "version": 16,
+  "version": 18,
+  "nickname": { "reversalDurationMs": 43200000 },
+  "actionBuffer": { "specialWeightPercent": 50 },
   "gifs": { "routinePercent": 10 },
   "eventId": "spooky-2026",
   "enabled": false,
@@ -94,7 +96,7 @@
     },
     {
       "id": "reverse_nickname",
-      "percent": 10
+      "percent": 5
     },
     {
       "id": "curse_target",
@@ -106,7 +108,11 @@
     },
     {
       "id": "caught_stealing",
-      "percent": 32
+      "percent": 36
+    },
+    {
+      "id": "steal_crown",
+      "percent": 1
     },
     {
       "id": "steal_or_find_eye",

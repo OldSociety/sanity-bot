@@ -43,6 +43,7 @@ test('population adapter matches a seeded actual SQLite gameplay trajectory', as
   const theft = createTheft({ models, participants, collection, listMembers, event, random })
   const progression = createProgression({ User, models, event, isUnwanted: async () => true })
   const actions = createActions({ models, economy, participants, event, random,
+    getCrownHolder: playful.crownHolder,
     handlers: progression.wrapHandlers({ ...playful.handlers, ...theft.handlers }), getCurseState: effects.getCurseState })
   const fate = createFatePurchases({ User, models, economy, collection, event })
   const scope = { eventId: config.eventId, guildId: 'simulation' }
@@ -67,9 +68,17 @@ test('population adapter matches a seeded actual SQLite gameplay trajectory', as
   for (let i = 0; i < 400; i++) {
     now = Date.parse(config.startsAt) + i * 3600000
     const id = String(i % 4), action = i % 3 ? 'treat' : 'trick'
-    const result = await actions.execute({ ...input(id), action })
-    outcomes.add(result.receipt.outcome)
-    assert.equal(await fast.action(id, action, now), true)
+    let succeeded = true
+    try {
+      const result = await actions.execute({ ...input(id), action })
+      outcomes.add(result.receipt.outcome)
+    } catch (error) {
+      if (error.code !== 'NO_REVERSAL_TARGET') throw error
+      succeeded = false
+    }
+    assert.equal(await fast.action(id, action, now), succeeded)
+    const current = await models.Participant.findOne({ where: { userId: id } })
+    assert.equal(fast.players.get(id).candy, current.candy, `candy parity at action ${i}`)
     await buy(id)
   }
   assert.ok(outcomes.has('great_heist') && outcomes.has('steal_or_find_eye') && outcomes.has('sweet_tooth'))

@@ -11,6 +11,16 @@ test('GIF rate is stable near 10%; committed selection never consumes gameplay r
   assert.match(first[0].payload.embeds[0].image.url, /^https:\/\/media\.giphy\.com\/media\/\w+\/giphy\.gif$/)
   assert.equal(withActionGif(receipt, message(), { operationId: 'discord:none', routinePercent: 0 })[0].payload.embeds[0].image, undefined)
 })
+
+test('successful Crown theft always uses Rihanna; private/error/art messages never receive it', () => {
+  const receipt = { action: 'trick', outcome: 'steal_crown', result: { crownWon: true, crownStolenFrom: 'bob' } }
+  const options = { operationId: 'discord:crown', routinePercent: 0, excludedIds: pools.steal_crown }
+  assert.equal(withActionGif(receipt, message(), options)[0].payload.embeds[0].image.url, 'https://media.giphy.com/media/FrnpqArQZtti8/giphy.gif')
+  assert.equal(withActionGif(receipt, message(false), options)[0].payload.embeds[0].image, undefined)
+  const image = { url: 'attachment://badge.png' }
+  assert.deepEqual(withActionGif(receipt, message(true, image), options)[0].payload.embeds[0].image, image)
+  assert.equal(withActionGif({ ...receipt, result: { noEffect: 'failed' } }, message(), options)[0].payload.embeds[0].image, undefined)
+})
 test('recent channel GIFs are avoided using the root transaction and durable outbox', async () => {
   const { withRecentActionGif } = require('../services/spooky/gifs')
   const receipt = { action: 'treat', outcome: 'standard_gift', result: { deliveredCandy: 1 } }
@@ -34,7 +44,7 @@ test('recent channel GIFs are avoided using the root transaction and durable out
   await withRecentActionGif(receipt, message(false), options, { models, ctx, channelId: 'spooky-channel' })
   await withRecentActionGif(receipt, message(true, { url: 'attachment://badge.png' }), options, { models, ctx, channelId: 'spooky-channel' })
   assert.equal(queries, 2)
-  assert.ok(Object.values(pools).every(pool => new Set(pool).size >= 4))
+  assert.ok(Object.entries(pools).filter(([key]) => key !== 'steal_crown').every(([, pool]) => new Set(pool).size >= 4))
 })
 
 test('cancelled GIFs and non-GIF artwork do not occupy recent rotation slots', async () => {

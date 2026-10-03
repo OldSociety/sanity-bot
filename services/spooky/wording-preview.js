@@ -11,6 +11,8 @@ function wordingPages() {
     reverse_nickname: { reversedUserId: 'recipient' }, curse_target: { cursedUserId: 'recipient' },
     curse_backfire: { cursedUserId: 'actor' }, caught_stealing: {},
     steal_or_find_eye: { stolen: 1, victims: [{ userId: 'recipient' }] },
+    steal_crown: { awardedUserId: 'actor', crownWon: true, crownStolenFrom: 'recipient', crownFirstWin: true,
+      fateBonus: 5, candyReward: 5, bankBefore: 71, bank: 76, fatePoints: 100 },
   }
   const add = (receipt, variantKey) => {
     const payload = actionMessages({ candy: 50, eyes: 2, ...receipt }, { actorId: 'actor',
@@ -25,7 +27,7 @@ function wordingPages() {
   add({ action: 'trick', outcome: 'steal_or_find_eye', result: { found: 1 } })
   add({ action: 'treat', outcome: 'temporary_immunity', result: { shielded: ['recipient'] } })
   add({ action: 'trick', outcome: 'curse_backfire', result: { noEffect: 'already_cursed' } })
-  add({ action: 'trick', outcome: 'reverse_nickname', result: { reversedUserId: 'recipient', alreadyReversed: true } })
+  add({ action: 'trick', outcome: 'steal_crown', result: { awardedUserId: 'actor', crownWon: true, crownStolenFrom: 'recipient', crownFirstWin: false } })
   for (const action of ['trick', 'treat']) add({ action, outcome: 'curse_distribution', overridden: true, result: { gifts: [{ userId: 'recipient' }], deliveredCandy: action === 'treat' ? 3 : 2 } })
   add({ action: 'treat', outcome: 'curse_spread', overridden: true, result: { cursedUserId: 'recipient' } })
   add({ action: 'treat', outcome: 'standard_gift', result: { gifts: [{ userId: 'recipient' }], deliveredCandy: 1, goodwillFreedUserId: 'actor' } })

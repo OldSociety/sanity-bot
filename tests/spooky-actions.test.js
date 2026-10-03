@@ -27,7 +27,7 @@ test('every normal table interval is reachable with exact boundaries and no inde
     for (const outcome of config[`${action}Outcomes`]) {
       for (const value of [boundary / 100, (boundary + outcome.percent / 2) / 100, (boundary + outcome.percent) / 100 - 1e-10]) {
         let calls = 0
-        assert.equal(selectAction({ action, random: () => { calls++; return value } }).outcome, outcome.id)
+        assert.equal(selectAction({ action, crownHolderId: action === 'trick' ? 'bob' : null, actorId: 'alice', random: () => { calls++; return value } }).outcome, outcome.id)
         assert.equal(calls, 1)
       }
       boundary += outcome.percent
@@ -43,6 +43,39 @@ test('curse override boundary preserves 10%, 20/80 treat split and normal table 
   assert.equal(select('treat', [.1, .99]).outcome, 'find_eye')
   assert.equal(select('trick', [.1, .99]).outcome, 'steal_or_find_eye')
   for (const value of [-1, 1, NaN]) assert.throws(() => selectAction({ action: 'treat', random: () => value }), /Random value/)
+})
+
+test('non-candy buffer halves special weights with one roll and clears after candy', () => {
+  const special = new Set(['reverse_nickname', 'curse_target', 'curse_backfire', 'temporary_immunity', 'break_curse', 'sweet_tooth', 'steal_crown', 'find_eye', 'steal_or_find_eye'])
+  for (const action of ['trick', 'treat']) {
+    let count = 0, calls = 0
+    for (let i = 0; i < 10000; i++) {
+      const result = selectAction({ action, crownHolderId: action === 'trick' ? 'bob' : null, actorId: 'alice', previousOutcome: 'reverse_nickname', random: () => { calls++; return (i + .5) / 10000 } })
+      if (special.has(result.outcome)) count++
+    }
+    const baseline = config[`${action}Outcomes`].filter(row => special.has(row.id)).reduce((sum, row) => sum + row.percent, 0)
+    assert.ok(Math.abs(count / 10000 - (baseline / 2) / (100 - baseline / 2)) < .001)
+    assert.equal(calls, 10000)
+    assert.deepEqual(selectAction({ action, previousOutcome: 'steal_candy', random: () => .4 }), selectAction({ action, random: () => .4 }))
+  }
+})
+
+test('committed action history buffers across trick/treat, ignores screens and survives reconstruction/replay', async t => {
+  let calls = 0
+  const f = await fixture(t, { random: () => { calls++; return .36 }, handlers: { reverse_nickname: async () => ({ reversedUserId: 'bob' }),
+    break_curse: async () => ({ freedUserId: 'bob' }), standard_gift: async () => ({ deliveredCandy: 1 }) } })
+  assert.equal((await f.service.execute(f.input('100'))).receipt.outcome, 'reverse_nickname')
+  await f.economy.execute({ ...f.input('101'), operationType: 'collection_screen' }, async () => ({}))
+  const reconstructed = createActions({ models: f.models, economy: f.economy, participants: f.participants, event: { ...config, enabled: true },
+    random: () => { calls++; return .505 }, getCurseState: () => false,
+    handlers: { standard_gift: async () => ({ deliveredCandy: 1 }) } })
+  const input = { ...f.input('102'), action: 'treat' }
+  assert.equal((await reconstructed.execute(input)).receipt.outcome, 'standard_gift')
+  assert.equal((await reconstructed.execute(input)).replayed, true)
+  assert.equal(calls, 2)
+  const unbuffered = createActions({ models: f.models, economy: f.economy, participants: f.participants, event: { ...config, enabled: true },
+    random: () => .505, getCurseState: () => false, handlers: { break_curse: async () => ({ freedUserId: 'bob' }) } })
+  assert.equal((await unbuffered.execute({ ...f.input('103'), action: 'treat' })).receipt.outcome, 'break_curse')
 })
 
 test('successful theft spends candy before credit, records activity and concurrent replay runs once', async t => {
@@ -106,7 +139,7 @@ test('choice wait holds no transaction; pause, depleted candy and changed curse 
     let rolls = 0, cursed = false
     const service = createActions({ models: f.models, economy: f.economy, participants: f.participants,
       event: { ...config, enabled: true }, clock: () => new Date(config.startsAt),
-      random: () => { rolls++; return 0.45 }, getCurseState: async () => cursed,
+      random: () => { rolls++; return 0.4 }, getCurseState: async () => cursed,
       handlers: { curse_target: async () => ({ cursedUserId: 'bob' }) },
       prepareChoice: {
         candidates: async () => [{ userId: 'bob' }],

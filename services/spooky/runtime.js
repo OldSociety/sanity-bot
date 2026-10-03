@@ -72,6 +72,15 @@ function runtime(client) {
   const pending = require('./pending-notifications').createPendingNotifications({ models, economy, notifications,
     scope: { eventId: config.eventId, guildId }, getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
   const maintenance = async key => {
+    // Adopt existing/pending Crown awards once, outside SQLite for the full
+    // Discord scan. Bootstrap rechecks inside the serialized root transaction.
+    const crownScope = { eventId: config.eventId, guildId }
+    const initialized = await economy.read(transaction => models.Ledger.findOne({ where: { ...crownScope, resource: 'crown_holder' }, transaction }))
+    if (!initialized && require('./config').getEventState(new Date(), config) === 'ACTIVE') {
+      const holders = await adapter.getRoleHolders(guildId, roleIds.sweetTooth)
+      await economy.execute({ ...crownScope, actorId: 'system', workerKey: 'crown-exclusive-bootstrap-v18', operationType: 'crown_bootstrap' },
+        ctx => require('./crown').createCrown({ models, delivery, roleId: roleIds.sweetTooth }).bootstrap(ctx, holders))
+    }
     const result = await awardMaintenance(key)
     try { await fateReminders.tick() }
     catch (error) { console.error('Spooky Fate reminder failed:', error.message) }
@@ -98,7 +107,10 @@ async function execute(interaction) {
     await service.maintenance(`before:${interaction.id}`)
     await service.controller.execute(interaction)
     await service.maintenance(`after:${interaction.id}`)
-  } catch {
+  } catch (error) {
+    // Keep player errors simple, but never discard the diagnostic that explains
+    // why an acknowledged command could not complete.
+    console.error('Spooky command failed:', error.code || error.name || 'Error', String(error.message).slice(0, 500))
     const payload = privateScreen('🎃 Spooky Unavailable', 'Check event configuration, migrations, and bot permissions. Your completed rewards remain saved.')
     if (interaction.deferred) await interaction.editReply(payload)
     else await interaction.reply({ ...payload, ephemeral: true })

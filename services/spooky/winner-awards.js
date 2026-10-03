@@ -47,7 +47,7 @@ function winnerMessages(proof, settings) {
   for (const track of awardTracks(settings)) {
     const data = track === 'overall' ? require('./winner-snapshot').overallTrack(proof.tracks) : proof.tracks[track]
     const ids = data.userIds
-    const stats = track === 'overall' ? `\n\n**October totals:** ${data.entrants.reduce((n, row) => n + row.treats, 0)} treats • ${data.entrants.reduce((n, row) => n + row.tricks, 0)} tricks • ${data.entrants.reduce((n, row) => n + row.score, 0)} prestige points.\n${ids.length ? `**Winning prestige:** ${data.score}.` : ''}` : ''
+    const stats = track === 'overall' ? `\n\n**October totals:** ${data.entrants.reduce((n, row) => n + row.treats, 0)} treats • ${data.entrants.reduce((n, row) => n + row.tricks, 0)} tricks • ${data.entrants.reduce((n, row) => n + (row.scoreTenths ?? row.score * 10), 0) / 10} prestige points.\n${ids.length ? `**Winning prestige:** ${data.score}.` : ''}` : ''
     if (ids.some(id => !/^\d{17,20}$/.test(id))) throw new Error('Invalid winner Discord identity')
     // Bounded pages support every shared tie, including large guilds, without
     // exceeding embed text or mention allowlists. Never expose score weights.

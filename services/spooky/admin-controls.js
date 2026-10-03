@@ -131,7 +131,10 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       for (const row of rows) cleared.push(await clear(ctx, player, row.effectType))
       const curseIntent = await models.Delivery.findOne({ where: { ...ctx.scope, userId: player.userId, kind: 'curse_role' }, transaction: ctx.transaction })
       if (curseIntent?.payload.present === true) await cancelIntent(ctx, player.userId, 'curse_role')
-      if (testReset) await delivery.enqueue(ctx, player.userId, 'sweet_tooth_role', { roleId: roleIds.sweetTooth, present: false })
+      if (testReset) {
+        await require('./crown').createCrown({ models, delivery, roleId: roleIds.sweetTooth }).release(ctx, player.userId)
+        await delivery.enqueue(ctx, player.userId, 'sweet_tooth_role', { roleId: roleIds.sweetTooth, present: false })
+      }
       else await cancelIntent(ctx, player.userId, 'sweet_tooth_role')
       // Reset cancels unapplied awards only. In-flight/ambiguous messages cannot
       // safely be recalled or resent, so preserve and expose them for inspection.

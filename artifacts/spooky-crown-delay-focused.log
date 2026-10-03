@@ -1,0 +1,99 @@
+TAP version 13
+# Spooky reply pending (discord:draw): Expired webhook
+# Spooky reply pending (discord:draw): Expired webhook
+# Subtest: expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+ok 1 - expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+  ---
+  duration_ms: 3584.8389
+  ...
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Subtest: restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+ok 2 - restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+  ---
+  duration_ms: 170.0967
+  ...
+# Subtest: cancel or supersede during member fetch prevents old role and nickname writes
+ok 3 - cancel or supersede during member fetch prevents old role and nickname writes
+  ---
+  duration_ms: 160.9206
+  ...
+# Subtest: actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+ok 4 - actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+  ---
+  duration_ms: 4.7272
+  ...
+# Subtest: role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+ok 5 - role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+  ---
+  duration_ms: 0.9936
+  ...
+# Subtest: curse restoration retains original role through configuration drift and safely rejects lost provenance
+ok 6 - curse restoration retains original role through configuration drift and safely rejects lost provenance
+  ---
+  duration_ms: 277.2899
+  ...
+# Subtest: admin repair receipts and reacquisition reveals reflect retained permanent ownership
+ok 7 - admin repair receipts and reacquisition reveals reflect retained permanent ownership
+  ---
+  duration_ms: 224.5978
+  ...
+# Subtest: partial Sweet Tooth still displays committed fate and candy rewards
+ok 8 - partial Sweet Tooth still displays committed fate and candy rewards
+  ---
+  duration_ms: 1.9623
+  ...
+# Subtest: simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+ok 9 - simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+  ---
+  duration_ms: 46.5893
+  ...
+# Error handling haiku: Synthetic haiku failure
+# Error updating chat progression: Synthetic XP failure
+# Error handling haiku: Synthetic haiku failure
+# Level-up badges unavailable: Synthetic badge failure
+# Error updating chat progression: Synthetic send failure
+# Subtest: message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+ok 10 - message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+  ---
+  duration_ms: 31.1404
+  ...
+# Subtest: projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+ok 11 - projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+  ---
+  duration_ms: 62.5627
+  ...
+# Subtest: live Crown scan uses fresh REST pages without gateway member requests
+ok 12 - live Crown scan uses fresh REST pages without gateway member requests
+  ---
+  duration_ms: 1455.5708
+  ...
+# Subtest: Crown finding/theft are mutually exclusive and each has the same 1% base interval
+ok 13 - Crown finding/theft are mutually exclusive and each has the same 1% base interval
+  ---
+  duration_ms: 1.5383
+  ...
+# Subtest: failed old-holder removal never adds a second Crown; reconstruction retries safely
+ok 14 - failed old-holder removal never adds a second Crown; reconstruction retries safely
+  ---
+  duration_ms: 472.5605
+  ...
+# Subtest: legacy multiple holders keep the most recently awarded wearer without new rewards
+ok 15 - legacy multiple holders keep the most recently awarded wearer without new rewards
+  ---
+  duration_ms: 75.7533
+  ...
+# Subtest: superseded grants cannot reclaim the Crown; release is holder-scoped
+ok 16 - superseded grants cannot reclaim the Crown; release is holder-scoped
+  ---
+  duration_ms: 152.5806
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7849.2514

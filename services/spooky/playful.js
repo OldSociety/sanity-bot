@@ -20,6 +20,7 @@ function createPlayful({
     models,
     delivery,
   })
+  const crown = require('./crown').createCrown({ models, delivery, roleId: roleIds.sweetTooth })
   async function members(ctx) {
     const snapshot = await listMembers(ctx)
     if (!Array.isArray(snapshot)) throw new Error('Invalid membership snapshot')
@@ -298,6 +299,20 @@ function createPlayful({
         }
       }
     }
+    // Shorten legacy month-long reversals using their original application
+    // ledger entry, never a fresh nickname baseline or a renewed timer.
+    if (!closed) for (const row of allRows.filter(row => row.effectType === 'reversed_nickname')) {
+      const participant = byId.get(row.participantId)
+      const applied = await models.Ledger.findOne({ where: { ...ctx.scope, userId: participant.userId,
+        resource: 'effect:reversed_nickname', delta: 1 }, order: [['id', 'DESC']], transaction: ctx.transaction })
+      const start = row.metadata?.appliedAt || applied?.timestamp
+      const limit = start ? Math.min(Date.parse(event.endsAt), new Date(start).getTime() + event.nickname.reversalDurationMs)
+        : Math.min(Date.parse(event.endsAt), ctx.now.getTime() + event.nickname.reversalDurationMs)
+      if (new Date(row.expiresAt).getTime() > limit) {
+        await row.update({ expiresAt: new Date(limit), metadata: { ...row.metadata, appliedAt: start ? new Date(start).toISOString() : ctx.now.toISOString() } }, { transaction: ctx.transaction })
+        await ctx.record({ userId: participant.userId, resource: 'reversal_timer', delta: 0, metadata: { expiresAt: new Date(limit).toISOString() } })
+      }
+    }
     const rows = allRows.filter(row => closed || new Date(row.expiresAt) <= ctx.now)
     for (const row of rows) {
       const participant = byId.get(row.participantId)
@@ -444,29 +459,32 @@ function createPlayful({
       }
     },
     reverse_nickname: async (ctx, plan) => {
-      const [target] = await recipients(
-        ctx,
-        plan.actorId,
-        1,
-        (member) => member.canManageNickname === true,
-      )
-      if (!target) return { noEffect: 'no_manageable_target' }
-      const previous = await effects.active(
-        ctx,
-        target.userId,
-        'reversed_nickname',
-      )
-      // Repeated hits preserve the first original and do not reverse back to normal.
-      if (previous)
-        return { reversedUserId: target.userId, alreadyReversed: true }
+      const eligible = []
+      for (const member of await members(ctx)) {
+        if (member.userId === plan.actorId || !member.canManageNickname) continue
+        const player = await models.Participant.findOne({ where: { ...ctx.scope, userId: member.userId }, transaction: ctx.transaction })
+        // Pending/expired effects still own the baseline. Also avoid a reversal
+        // hidden beneath an active spell: the chosen target must visibly benefit.
+        if (player && await models.Effect.findOne({ where: { participantId: player.id,
+          effectType: { [Op.in]: ['reversed_nickname', 'curse', 'theft_protection'] } }, transaction: ctx.transaction })) continue
+        if (await models.Delivery.findOne({ where: { ...ctx.scope, userId: member.userId, kind: 'nickname',
+          status: { [Op.in]: ['pending', 'conflict'] } }, transaction: ctx.transaction })) continue
+        eligible.push(member)
+      }
+      const target = randomTargets(eligible, 1, random)[0]
+      if (!target) {
+        const error = new Error('No player can receive the backwards-name spell right now. Nothing was spent; try again.')
+        error.code = 'NO_REVERSAL_TARGET'
+        throw error
+      }
       // The same nickname owner composes reversal with curse and shield, so
       // each removal preserves the remaining costume and the original name.
       const metadata = await nicknames.apply(ctx, target, 'reversed_nickname')
       if (!Object.hasOwn(metadata, 'originalNickname'))
         return { noEffect: 'restoration_pending' }
       await effects.put(ctx, target.userId, 'reversed_nickname', {
-        expiresAt: event.endsAt,
-        metadata,
+        expiresAt: new Date(ctx.now.getTime() + event.nickname.reversalDurationMs),
+        metadata: { ...metadata, appliedAt: ctx.now.toISOString() },
       })
       return { reversedUserId: target.userId }
     },
@@ -475,7 +493,7 @@ function createPlayful({
         caller = all.find((member) => member.userId === plan.actorId)
       if (!caller || !Array.isArray(caller.roleIds))
         throw new Error('Missing caller role snapshot')
-      const hasRole = caller.roleIds.includes(roleIds.sweetTooth)
+      if (await crown.state(ctx, all)) throw new Error('The Sweet Tooth Crown is already held. Nothing was spent; try again.')
       const reset = await models.Ledger.findOne({
         where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_reset' },
         order: [['id', 'DESC']],
@@ -490,15 +508,12 @@ function createPlayful({
         },
         transaction: ctx.transaction,
       })
-      const target = !hasRole && !wonBefore ? caller : null
+      const target = caller
       let awardedUserId = null
       if (target?.canManageSweetTooth === true) {
-        await delivery.enqueue(ctx, target.userId, 'sweet_tooth_role', {
-          roleId: roleIds.sweetTooth,
-          present: true,
-        })
+        await crown.capture(ctx, target.userId, null)
         awardedUserId = target.userId
-        await ctx.record({
+        if (!wonBefore) await ctx.record({
           userId: plan.actorId,
           resource: 'crown_award',
           delta: 1,
@@ -507,7 +522,7 @@ function createPlayful({
         })
       }
       let candyReward = 0
-      if (awardedUserId) {
+      if (awardedUserId && !wonBefore) {
         const { participant } = await participants.prepare(ctx, plan.actorId)
         candyReward = Math.min(
           event.crown.candyBonus,
@@ -521,13 +536,33 @@ function createPlayful({
       return {
         awardedUserId,
         crownWon: Boolean(awardedUserId),
+        crownFirstWin: Boolean(awardedUserId && !wonBefore),
         candyReward,
         ...(awardedUserId ? {} : { noEffect: 'no_role_recipient' }),
       }
     },
+    steal_crown: async (ctx, plan) => {
+      const all = await members(ctx), holderId = await crown.state(ctx, all),
+        caller = all.find(member => member.userId === plan.actorId)
+      if (!holderId || holderId === plan.actorId) throw new Error('There is no other Crown holder to steal from. Nothing was spent.')
+      if (!caller?.canManageSweetTooth) throw new Error('The Crown cannot change hands right now. Nothing was spent.')
+      const reset = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_reset' }, order: [['id', 'DESC']], transaction: ctx.transaction })
+      const wonBefore = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_award',
+        ...(reset ? { id: { [Op.gt]: reset.id } } : {}) }, transaction: ctx.transaction })
+      await crown.capture(ctx, plan.actorId, holderId)
+      let candyReward = 0
+      if (!wonBefore) {
+        await ctx.record({ userId: plan.actorId, resource: 'crown_award', delta: 1, before: 0, after: 1 })
+        const { participant } = await participants.prepare(ctx, plan.actorId)
+        candyReward = Math.min(event.crown.candyBonus, event.candy.capacity - participant.candy)
+        if (candyReward) await ctx.changeBalance(plan.actorId, 'candy', candyReward, { metadata: { reason: 'sweet_tooth_generosity' } })
+      }
+      return { awardedUserId: plan.actorId, crownWon: true, crownFirstWin: !wonBefore, crownStolenFrom: holderId, candyReward }
+    },
   }
   return {
     cleanup,
+    crownHolder: async ctx => crown.state(ctx, await members(ctx)),
     choiceCandidates,
     handlers: Object.fromEntries(
       Object.entries(handlers).map(([name, handler]) => [

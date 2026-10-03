@@ -28,12 +28,18 @@ function createBadges({ sequelize }) {
     const read = () => Ownership.findAll({ where: { guildId, userId }, order: [['badgeId', 'ASC']], transaction })
     return (await (transaction ? read() : serialize(sequelize, read))).map(row => row.get({ plain: true }))
   }
+  async function latest(guildId, transaction) {
+    const read = () => Ownership.findAll({ where: { guildId, sourceEventId: catalog.collectionId },
+      order: [['awardedAt', 'DESC'], ['badgeId', 'ASC'], ['userId', 'ASC']], transaction })
+    return (await (transaction ? read() : serialize(sequelize, read))).map(row => badges.find(badge => badge.id === row.badgeId))
+      .find(Boolean) || badges.find(badge => badge.characterId === 'sel')
+  }
   async function leaders(guildId, page = 1) {
     if (!Number.isSafeInteger(page) || page < 1) throw new Error('Invalid badge leaderboard page')
     const [rows] = await serialize(sequelize, () => sequelize.query('SELECT userId, COUNT(*) AS badgeCount FROM BadgeOwnership WHERE guildId = :guildId GROUP BY userId ORDER BY badgeCount DESC, userId ASC LIMIT 10 OFFSET :offset', { replacements: { guildId, offset: (page - 1) * 10 } }))
     return Promise.all(rows.map(async row => ({ ...row, badges: await owned(guildId, row.userId) })))
   }
-  return { award, owned, leaders, details }
+  return { award, owned, leaders, details, latest }
 }
 function renderBadges(ownedIds, emojis = []) {
   const owned = new Set(ownedIds)

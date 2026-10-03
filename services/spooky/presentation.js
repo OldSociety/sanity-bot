@@ -77,6 +77,7 @@ function targetIds(result, actorId) {
         result.freedUserId,
         result.reversedUserId,
         result.awardedUserId,
+        result.crownStolenFrom,
       ].filter((id) => id && id !== actorId),
     ),
   ]
@@ -341,6 +342,7 @@ function helpScreen() {
       'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',
       'Protection lasts one hour, usually shielding the recipient and sometimes the giver too. Shields block curses; protection cast on a cursed player breaks their curse instead. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',
       'Effects involving another player are public; occasional recipient links appear inside the embed without notification pings. `/spooky leaderboard` shows public rankings.',
+      'Backwards-name spells last 12 hours, then restore the original name. Only one player wears the Sweet Tooth Crown: Treats can find it while unclaimed, and a rare Trick can steal it from its holder.',
       'Quarter reveals are public. Personal screens are private. Play throughout October in Pacific time; no post-October redemption.',
       'Complete a character to earn a permanent badge. See your badges in `/spooky collection`. Tricks and treats both build your Scream Supreme standing; scoring details stay hidden.',
     ].join('\n'),

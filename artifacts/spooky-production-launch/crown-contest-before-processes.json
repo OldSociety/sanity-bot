@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-03T20:21:24.455Z",
+  "branch": "feature/S-1-spooky",
+  "configVersion": 18,
+  "processes": [
+    {
+      "name": "SB-production",
+      "status": "online",
+      "environment": "production",
+      "restarts": 25,
+      "pid": 16552,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-03T20:19:35.816Z"
+    },
+    {
+      "name": "SB-development",
+      "status": "online",
+      "environment": "development",
+      "restarts": 25,
+      "pid": 30096,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-03T07:32:11.196Z"
+    }
+  ],
+  "logs": [
+    {
+      "name": "SB-production",
+      "errorBytes": 2835954,
+      "lastErrorWrite": "2026-10-03T20:19:35.795Z",
+      "lastOutputWrite": "2026-10-03T20:21:00.780Z",
+      "readyLines": [
+        "Environment: production",
+        "Ready! Logged in as sanity-bot#9046"
+      ]
+    },
+    {
+      "name": "SB-development",
+      "errorBytes": 35694,
+      "lastErrorWrite": "2026-09-08T13:00:00.924Z",
+      "lastOutputWrite": "2026-10-03T20:21:00.060Z",
+      "readyLines": [
+        "Environment: development",
+        "Ready! Logged in as Sanity Bot [DEV]#8984"
+      ]
+    }
+  ]
+}

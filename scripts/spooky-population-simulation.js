@@ -3,6 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
+const { Op } = require('sequelize')
 const { config, pieces } = require('../services/spooky/config')
 const { calculateRefill } = require('../services/spooky/participants')
 const { selectAction } = require('../services/spooky/actions')
@@ -118,7 +119,7 @@ function memoryGuild(specs, options, random) {
     inventory = [],
     effectRows = [],
     crownAwards = [],
-    wallets = new Map()
+    wallets = new Map(), previousOutcomes = new Map()
   const totals = {
     candySeeded: 0,
     candyRefilled: 0,
@@ -130,7 +131,10 @@ function memoryGuild(specs, options, random) {
     candyTransferred: 0,
   }
   const matches = (row, where = {}) =>
-    Object.entries(where).every(([k, v]) => row[k] === v)
+    Object.entries(where).every(([k, v]) => {
+      if (v && typeof v === 'object' && Object.hasOwn(v, Op.in)) return v[Op.in].includes(row[k])
+      return row[k] === v
+    })
   const row = (values) =>
     Object.assign(values, {
       async update(values) {
@@ -176,7 +180,7 @@ function memoryGuild(specs, options, random) {
     // outstanding restoration intents in this adapter (outages use DB tests).
     Delivery: { async findOne() { return null } },
     Participant,
-    Ledger: { async findOne({ where }) { return crownAwards.find(row => matches(row, where)) || null } },
+    Ledger: { async findOne({ where }) { return crownAwards.filter(row => matches(row, where)).at(-1) || null } },
     EventState: {
       async findOne() {
         return null
@@ -326,7 +330,7 @@ function memoryGuild(specs, options, random) {
       async record(entry) {
         // Only crown ownership is queried by gameplay. Retain its durable
         // marker without storing millions of unrelated simulation audit rows.
-        if (entry.resource === 'crown_award') crownAwards.push({ ...ctx.scope, ...entry })
+        if (['crown_award', 'crown_holder'].includes(entry.resource)) crownAwards.push({ id: crownAwards.length + 1, ...ctx.scope, ...entry })
         if (entry.resource === 'candy' && entry.delta > 0)
           totals.candyMinted += entry.delta
       },
@@ -409,6 +413,8 @@ function memoryGuild(specs, options, random) {
     }
   }
   async function action(id, action, now) {
+    const before = players.get(id), snapshot = before && { candy: before.candy, refillAnchor: before.refillAnchor },
+      refillTotal = totals.candyRefilled
     const ctx = context(now),
       { participant: p } = await participants.prepare(ctx, id)
     if (!p.registeredAt) throw new Error('Unregistered simulated action')
@@ -417,11 +423,19 @@ function memoryGuild(specs, options, random) {
       return false
     }
     const cursed = Boolean(await effects.active(ctx, id, 'curse'))
-    const plan = { ...selectAction({ action, cursed, random }), actorId: id }
+    const plan = { ...selectAction({ action, cursed, crownHolderId: await playful.crownHolder(ctx), actorId: id, previousOutcome: previousOutcomes.get(id), random }), actorId: id }
     await ctx.changeBalance(id, 'candy', -1, {
       metadata: { reason: 'action_cost' },
     })
-    const result = await handlers[plan.outcome](ctx, plan)
+    let result
+    try { result = await handlers[plan.outcome](ctx, plan) }
+    catch (error) {
+      if (error.code !== 'NO_REVERSAL_TARGET') throw error
+      // This specific rejection occurs before any handler write. Model only
+      // the action-cost rollback; arbitrary partial failures need real SQLite.
+      Object.assign(p, snapshot); totals.candyRefilled = refillTotal; totals.candySpent--; return false
+    }
+    previousOutcomes.set(id, plan.outcome)
     const s = stats.get(id)
     s.actions++
     s.cursedActions += Number(cursed)

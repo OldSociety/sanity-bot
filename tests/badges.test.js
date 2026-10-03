@@ -38,6 +38,17 @@ test('completing a character awards once atomically, survives reconstruction and
   assert.deepEqual(await createBadges({ sequelize: f.sequelize }).owned('guild', 'alice'), ['spooky-2026:sel'])
   assert.deepEqual(await f.badges.owned('other', 'alice'), [])
 })
+
+test('latest Spooky badge is guild-scoped, persistent, and defaults to Selene', async t => {
+  const f = await fixture(t)
+  assert.equal((await f.badges.latest('guild')).characterId, 'sel')
+  const Ownership = f.sequelize.models.BadgeOwnership
+  await Ownership.create({ guildId: 'guild', userId: 'alice', badgeId: 'spooky-2026:mrq', sourceEventId: config.eventId, awardedAt: new Date(config.startsAt) })
+  await Ownership.create({ guildId: 'other', userId: 'bob', badgeId: 'spooky-2026:sel', sourceEventId: config.eventId, awardedAt: new Date(Date.parse(config.startsAt) + 2000) })
+  assert.equal((await f.badges.latest('guild')).characterId, 'mrq')
+  await Ownership.create({ guildId: 'guild', userId: 'bob', badgeId: 'spooky-2026:sel', sourceEventId: config.eventId, awardedAt: new Date(Date.parse(config.startsAt) + 1000) })
+  assert.equal((await createBadges({ sequelize: f.sequelize }).latest('guild')).characterId, 'sel')
+})
 test('shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji', () => {
   const emoji = { name: 'spooky_selene_badge', id: '123456789012345678' }
   assert.equal(renderBadges([], [emoji]), '❔ ❔ ❔ ❔ ❔ ❔ ❔')

@@ -14,7 +14,11 @@ function project(original, displayName, types) {
   // Effects can coexist mechanically, but their appearance never stacks.
   // Always project from the saved baseline: curse > protection > reversal.
   if (types.includes('curse')) return `☠ ${truncate(base, 28)} ☠`
-  if (types.includes('theft_protection')) return `✨( ${truncate(base, 24)} )✨`
+  if (types.includes('theft_protection')) {
+    const wrapped = `✨( ${base} )✨`
+    // Keep long names readable; only trim if even the single-star prefix exceeds 32.
+    return wrapped.length <= 32 ? wrapped : `✨${truncate(base, 31)}`
+  }
   if (types.includes('reversed_nickname')) name = transformMessage(name, 'reverse')
   return truncate(name, 32)
 }

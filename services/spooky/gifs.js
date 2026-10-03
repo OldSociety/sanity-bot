@@ -7,10 +7,11 @@ function withActionGif(receipt, messages, { operationId, routinePercent = 10, ex
   const outcome = result.goodwillFreedUserId || result.protectionBrokeCurse ? 'break_curse' : result.found ? 'find_eye' : receipt.outcome
   // Empty-target break-curse is a normal gift; a fallback never claims a win.
   const category = outcome === 'break_curse' && !result.freedUserId && !result.goodwillFreedUserId ? 'standard_gift' : outcome
-  const pool = pools[category]?.filter(id => !excludedIds.includes(id))
+  const crownCapture = receipt.outcome === 'steal_crown' && result.crownWon === true
+  const pool = pools[category]?.filter(id => crownCapture || !excludedIds.includes(id))
   // All eligible results share the rate, including significant wins: a busy
   // channel must not bypass the animation budget whenever curses are rolled.
-  if (!pool?.length || sample(`spooky-gif:chance:${operationId}`) >= routinePercent / 100) return messages
+  if (!pool?.length || !crownCapture && sample(`spooky-gif:chance:${operationId}`) >= routinePercent / 100) return messages
   const id = pool[Math.floor(sample(`spooky-gif:asset:${operationId}`) * pool.length)]
   if (!/^[a-zA-Z0-9]+$/.test(id)) throw new Error('Invalid configured GIF asset')
   // Only the primary public gameplay embed. Art reveals and private screens
@@ -22,6 +23,7 @@ function withActionGif(receipt, messages, { operationId, routinePercent = 10, ex
 }
 async function withRecentActionGif(receipt, messages, options, { models, ctx, channelId }) {
   const candidate = withActionGif(receipt, messages, options)
+  if (receipt.outcome === 'steal_crown' && (receipt.result || receipt).crownWon) return candidate
   if (!models?.Notification || !candidate[0]?.payload?.embeds?.[0]?.image || messages[0]?.payload?.embeds?.[0]?.image) return candidate
   // Read committed/reserved presentations in the same serialized root
   // transaction. No in-memory cooldown, extra gameplay RNG or Discord call.
