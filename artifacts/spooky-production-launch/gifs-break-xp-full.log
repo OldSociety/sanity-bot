@@ -1,0 +1,1737 @@
+
+> sanity-bot@1.0.0 test
+> cross-env NODE_ENV=test node --test --test-concurrency=1 tests/*.test.js
+
+TAP version 13
+# Subtest: explicit bot-only renderer role permits badge embeds when a managed bot role is absent
+ok 1 - explicit bot-only renderer role permits badge embeds when a managed bot role is absent
+  ---
+  duration_ms: 6.5408
+  ...
+# Subtest: disabled projection never fetches Discord or ownership; config requires separate exact role IDs
+ok 2 - disabled projection never fetches Discord or ownership; config requires separate exact role IDs
+  ---
+  duration_ms: 2.8343
+  ...
+# Subtest: ownership grants exact badge role, replay is no-op, missing ownership removes only its configured role
+ok 3 - ownership grants exact badge role, replay is no-op, missing ownership removes only its configured role
+  ---
+  duration_ms: 1.2488
+  ...
+# Subtest: role failure is retryable from durable ownership; dangerous roles and permission failures never write
+ok 4 - role failure is retryable from durable ownership; dangerous roles and permission failures never write
+  ---
+  duration_ms: 1.5432
+  ...
+# Subtest: explicit emoji setup allows only collector and managed bot role; invalid setup makes no edit
+ok 5 - explicit emoji setup allows only collector and managed bot role; invalid setup makes no edit
+  ---
+  duration_ms: 1.2889
+  ...
+# Subtest: completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+ok 6 - completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+  ---
+  duration_ms: 315.6038
+  ...
+# Subtest: shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+ok 7 - shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+  ---
+  duration_ms: 1.078
+  ...
+# Subtest: badge leaderboard and profile field use permanent ownership independent of seasonal registration
+ok 8 - badge leaderboard and profile field use permanent ownership independent of seasonal registration
+  ---
+  duration_ms: 1621.5785
+  ...
+# Subtest: owner guard rejects moderators/administrators/bots/foreign guild and missing configuration
+ok 9 - owner guard rejects moderators/administrators/bots/foreign guild and missing configuration
+  ---
+  duration_ms: 4.084
+  ...
+# Subtest: stale Fate confirmation clicks are acknowledged without loading database models
+ok 10 - stale Fate confirmation clicks are acknowledged without loading database models
+  ---
+  duration_ms: 1380.6425
+  ...
+# Subtest: legacy shop, Fate management and achievement writes deny other admins before touching storage
+ok 11 - legacy shop, Fate management and achievement writes deny other admins before touching storage
+  ---
+  duration_ms: 378.3818
+  ...
+# Subtest: Discord omissions preserve false defaults and empty lists while enforcing supplied constraints
+ok 12 - Discord omissions preserve false defaults and empty lists while enforcing supplied constraints
+  ---
+  duration_ms: 3.8262
+  ...
+# Subtest: strict deployment arguments reject typos, mixtures and missing hashes before environment or REST
+ok 13 - strict deployment arguments reject typos, mixtures and missing hashes before environment or REST
+  ---
+  duration_ms: 2.4745
+  ...
+# Subtest: actual registry builders fail closed for incomplete exports, duplicate names and unreviewed inactive files
+ok 14 - actual registry builders fail closed for incomplete exports, duplicate names and unreviewed inactive files
+  ---
+  duration_ms: 1659.4848
+  ...
+# Subtest: default deployment plans and snapshots live-only removals; apply binds definitions and live versions
+ok 15 - default deployment plans and snapshots live-only removals; apply binds definitions and live versions
+  ---
+  duration_ms: 4.2557
+  ...
+# Subtest: malformed registries or snapshot failures never send a bulk overwrite; unexpected response reports saved state
+ok 16 - malformed registries or snapshot failures never send a bulk overwrite; unexpected response reports saved state
+  ---
+  duration_ms: 2.2989
+  ...
+# Subtest: full offline registry keeps active HEAD commands and includes new badge and Spooky definitions
+ok 17 - full offline registry keeps active HEAD commands and includes new badge and Spooky definitions
+  ---
+  duration_ms: 2142.1557
+  ...
+# Subtest: offline loader rejects unexpected imports and attempts to execute model helpers
+ok 18 - offline loader rejects unexpected imports and attempts to execute model helpers
+  ---
+  duration_ms: 4.3718
+  ...
+# Subtest: registry validation rejects duplicate commands and duplicate options
+ok 19 - registry validation rejects duplicate commands and duplicate options
+  ---
+  duration_ms: 1.3111
+  ...
+# Subtest: default is development; database paths are independent of working directory
+ok 20 - default is development; database paths are independent of working directory
+  ---
+  duration_ms: 3.3933
+  ...
+# Subtest: unknown environments fail closed
+ok 21 - unknown environments fail closed
+  ---
+  duration_ms: 0.6746
+  ...
+# Subtest: test environment is always memory-only and cannot load Discord credentials
+ok 22 - test environment is always memory-only and cannot load Discord credentials
+  ---
+  duration_ms: 0.6809
+  ...
+# Subtest: selected file overrides inherited credentials and removes other-environment keys
+ok 23 - selected file overrides inherited credentials and removes other-environment keys
+  ---
+  duration_ms: 23.7118
+  ...
+# Subtest: missing selected credentials cannot fall back to inherited values
+ok 24 - missing selected credentials cannot fall back to inherited values
+  ---
+  duration_ms: 5.4819
+  ...
+# Subtest: development and production cannot use the same guild
+ok 25 - development and production cannot use the same guild
+  ---
+  duration_ms: 6.4807
+  ...
+# Subtest: missing files and conflicting file environments fail before mutation
+ok 26 - missing files and conflicting file environments fail before mutation
+  ---
+  duration_ms: 6.1512
+  ...
+# Subtest: actual Sequelize adapter uses disposable memory databases with isolated state
+ok 27 - actual Sequelize adapter uses disposable memory databases with isolated state
+  ---
+  duration_ms: 544.0328
+  ...
+# Subtest: Spooky channel and threads award no XP/Fate while cursed messages still run
+ok 28 - Spooky channel and threads award no XP/Fate while cursed messages still run
+  ---
+  duration_ms: 1342.5181
+  ...
+# Subtest: slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+ok 29 - slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+  ---
+  duration_ms: 8.9709
+  ...
+# Subtest: ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+ok 30 - ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+  ---
+  duration_ms: 17.4046
+  ...
+# Subtest: every normal table interval is reachable with exact boundaries and no independent Eye roll
+ok 31 - every normal table interval is reachable with exact boundaries and no independent Eye roll
+  ---
+  duration_ms: 4.3378
+  ...
+# Subtest: curse override boundary preserves 10%, 20/80 treat split and normal table selection
+ok 32 - curse override boundary preserves 10%, 20/80 treat split and normal table selection
+  ---
+  duration_ms: 0.7262
+  ...
+# Subtest: successful theft spends candy before credit, records activity and concurrent replay runs once
+ok 33 - successful theft spends candy before credit, records activity and concurrent replay runs once
+  ---
+  duration_ms: 233.6135
+  ...
+# Subtest: break curse and cursed distributions each cost one regardless of delivered gifts
+ok 34 - break curse and cursed distributions each cost one regardless of delivered gifts
+  ---
+  duration_ms: 59.9307
+  ...
+# Subtest: effect failure, no-target rejection and missing handler refund all writes without rerolling
+ok 35 - effect failure, no-target rejection and missing handler refund all writes without rerolling
+  ---
+  duration_ms: 50.0318
+  ...
+# Subtest: explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+ok 36 - explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+  ---
+  duration_ms: 40.9264
+  ...
+# Subtest: choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+ok 37 - choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+  ---
+  duration_ms: 78.2723
+  ...
+# Subtest: recompute awards once atomically, audits private reason and queues only new public completion
+ok 38 - recompute awards once atomically, audits private reason and queues only new public completion
+  ---
+  duration_ms: 1398.1692
+  ...
+# Subtest: closed archived eligibility can be repaired; existing badges survive missing inventory
+ok 39 - closed archived eligibility can be repaired; existing badges survive missing inventory
+  ---
+  duration_ms: 44.8783
+  ...
+# Subtest: authorization, confirmation, registration and invalid inventory reject without writes
+ok 40 - authorization, confirmation, registration and invalid inventory reject without writes
+  ---
+  duration_ms: 35.3633
+  ...
+# Subtest: outbox failure rolls back ownership and operation; retry safely awards
+ok 41 - outbox failure rolls back ownership and operation; retry safely awards
+  ---
+  duration_ms: 40.4225
+  ...
+# Subtest: development reset preserves permanent badge and wallet, cancels repair announcement and replay preserves new participant
+ok 42 - development reset preserves permanent badge and wallet, cancels repair announcement and replay preserves new participant
+  ---
+  duration_ms: 67.9211
+  ...
+# Subtest: admin controller defers privately, projects after commit and replay never resends completion
+ok 43 - admin controller defers privately, projects after commit and replay never resends completion
+  ---
+  duration_ms: 40.6678
+  ...
+# Subtest: admin access fails closed for every view and mismatched guild before database reads
+ok 44 - admin access fails closed for every view and mismatched guild before database reads
+  ---
+  duration_ms: 221.4805
+  ...
+# Subtest: transaction activity identifies who acted, command, outcome and charged candy without mutating state
+ok 45 - transaction activity identifies who acted, command, outcome and charged candy without mutating state
+  ---
+  duration_ms: 42.2885
+  ...
+# Subtest: inspection works with disabled play and validates explicit environment, limits, cursors and required player
+ok 46 - inspection works with disabled play and validates explicit environment, limits, cursors and required player
+  ---
+  duration_ms: 30.9351
+  ...
+# Subtest: player inspection is complete stored state, reports eligibility without awarding or refilling
+ok 47 - player inspection is complete stored state, reports eligibility without awarding or refilling
+  ---
+  duration_ms: 33.6176
+  ...
+# Subtest: transaction inspection is scoped, filtered and cursor paginated without mutations
+ok 48 - transaction inspection is scoped, filtered and cursor paginated without mutations
+  ---
+  duration_ms: 37.8941
+  ...
+# Subtest: delivery inspection joins notification ownership before filtering and leaves ambiguous sends unchanged
+ok 49 - delivery inspection joins notification ownership before filtering and leaves ambiguous sends unchanged
+  ---
+  duration_ms: 30.346
+  ...
+# Subtest: read snapshot serializes with economy writes and survives failed reads
+ok 50 - read snapshot serializes with economy writes and survives failed reads
+  ---
+  duration_ms: 26.3933
+  ...
+# Subtest: fresh member authorization is BOTADMIN-only even for administrators and configured roles
+ok 51 - fresh member authorization is BOTADMIN-only even for administrators and configured roles
+  ---
+  duration_ms: 0.655
+  ...
+# Subtest: admin adapter defers privately, enforces channels, suppresses mentions and bounds pages
+ok 52 - admin adapter defers privately, enforces channels, suppresses mentions and bounds pages
+  ---
+  duration_ms: 6.7188
+  ...
+# Subtest: all controls require fresh authorization/reasons and explicit validated intent
+ok 53 - all controls require fresh authorization/reasons and explicit validated intent
+  ---
+  duration_ms: 22.9044
+  ...
+# Subtest: clear queues bot-owned role restoration before removing closed/disabled effects; replay retains one intent
+ok 54 - clear queues bot-owned role restoration before removing closed/disabled effects; replay retains one intent
+  ---
+  duration_ms: 36.5341
+  ...
+# Subtest: unowned curse roles survive clearing; stale add intent is cancelled without any role writes
+ok 55 - unowned curse roles survive clearing; stale add intent is cancelled without any role writes
+  ---
+  duration_ms: 38.6574
+  ...
+# Subtest: nickname clear restores null safely, preserves independent edits, and targeted reconciliation skips other users
+ok 56 - nickname clear restores null safely, preserves independent edits, and targeted reconciliation skips other users
+  ---
+  duration_ms: 50.7813
+  ...
+# Subtest: bad restoration metadata/missing delivery rolls back; post-commit role failure stays retryable
+ok 57 - bad restoration metadata/missing delivery rolls back; post-commit role failure stays retryable
+  ---
+  duration_ms: 48.0975
+  ...
+# Subtest: pause/resume is durable, replay-bound and blocks ordinary acquisition; archive never reopens
+ok 58 - pause/resume is durable, replay-bound and blocks ordinary acquisition; archive never reopens
+  ---
+  duration_ms: 29.4807
+  ...
+# Subtest: development reset rejects production/test/wrong storage and missing confirmation without deletion
+ok 59 - development reset rejects production/test/wrong storage and missing confirmation without deletion
+  ---
+  duration_ms: 34.2466
+  ...
+# Subtest: development reset preserves wallet/permanent sentinel/audit/other scopes, cancels pending awards and reports ambiguity
+ok 60 - development reset preserves wallet/permanent sentinel/audit/other scopes, cancels pending awards and reports ambiguity
+  ---
+  duration_ms: 80.78
+  ...
+# Subtest: failed reset restoration rolls back the entire participant, inventory, effects and projection changes
+ok 61 - failed reset restoration rolls back the entire participant, inventory, effects and projection changes
+  ---
+  duration_ms: 31.1007
+  ...
+# Subtest: control adapter defers privately and reconciles only after commit with the trusted target scope
+ok 62 - control adapter defers privately and reconciles only after commit with the trusted target scope
+  ---
+  duration_ms: 0.6618
+  ...
+# Subtest: every repair requires fresh authorization, exact scope, a reason and bounded validated input
+ok 63 - every repair requires fresh authorization, exact scope, a reason and bounded validated input
+  ---
+  duration_ms: 22.6852
+  ...
+# Subtest: candy corrections are bounded stored deltas, preserve partial anchors and discard full-cap surplus
+ok 64 - candy corrections are bounded stored deltas, preserve partial anchors and discard full-cap surplus
+  ---
+  duration_ms: 46.1052
+  ...
+# Subtest: Eye correction converts at five atomically, concurrent replay never rerolls and altered payloads reject
+ok 65 - Eye correction converts at five atomically, concurrent replay never rerolls and altered payloads reject
+  ---
+  duration_ms: 59.9729
+  ...
+# Subtest: grant correction exchanges exactly five extras, keeps first copies and replays one grant
+ok 66 - grant correction exchanges exactly five extras, keeps first copies and replays one grant
+  ---
+  duration_ms: 25.5133
+  ...
+# Subtest: quarter removal corrects one copy only; only-copy removal requires explicit intent and changes eligibility
+ok 67 - quarter removal corrects one copy only; only-copy removal requires explicit intent and changes eligibility
+  ---
+  duration_ms: 39.841
+  ...
+# Subtest: repair finalization/RNG failure rolls back debit, grant, exchange and audit; retry succeeds
+ok 68 - repair finalization/RNG failure rolls back debit, grant, exchange and audit; retry succeeds
+  ---
+  duration_ms: 58.402
+  ...
+# Subtest: repairs bypass disabled/pause only, never closure/archive or required registration
+ok 69 - repairs bypass disabled/pause only, never closure/archive or required registration
+  ---
+  duration_ms: 38.006
+  ...
+# Spooky public delivery pending (discord:ui-repair): timeout
+# Spooky public delivery pending (discord:ui-repair): Notification requires delivery inspection
+# Subtest: repair adapter queues big awards for the player, keeps reasons private and survives public send failure/replay
+ok 70 - repair adapter queues big awards for the player, keeps reasons private and survives public send failure/replay
+  ---
+  duration_ms: 44.067
+  ...
+# Subtest: burst consumers share one complete bootstrap; member events keep it current
+ok 71 - burst consumers share one complete bootstrap; member events keep it current
+  ---
+  duration_ms: 4.0153
+  ...
+# Subtest: incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+ok 72 - incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+  ---
+  duration_ms: 1.3811
+  ...
+# Subtest: rate-limit dispatch ends wait promptly and respects server retry_after seconds
+ok 73 - rate-limit dispatch ends wait promptly and respects server retry_after seconds
+  ---
+  duration_ms: 0.6063
+  ...
+# Subtest: unresponsive member fetch has a bounded deadline and removes listeners
+ok 74 - unresponsive member fetch has a bounded deadline and removes listeners
+  ---
+  duration_ms: 38.9391
+  ...
+# Subtest: personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+ok 75 - personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+  ---
+  duration_ms: 3.9052
+  ...
+# Subtest: /user defers publicly before DB/badge work and edits once
+ok 76 - /user defers publicly before DB/badge work and edits once
+  ---
+  duration_ms: 7.2906
+  ...
+# Spooky reply pending (discord:draw): Expired webhook
+# Spooky reply pending (discord:draw): Expired webhook
+# Subtest: expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+ok 77 - expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+  ---
+  duration_ms: 3446.6434
+  ...
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Subtest: restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+ok 78 - restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+  ---
+  duration_ms: 84.2698
+  ...
+# Subtest: cancel or supersede during member fetch prevents old role and nickname writes
+ok 79 - cancel or supersede during member fetch prevents old role and nickname writes
+  ---
+  duration_ms: 62.0825
+  ...
+# Subtest: actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+ok 80 - actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+  ---
+  duration_ms: 3.8697
+  ...
+# Subtest: role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+ok 81 - role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+  ---
+  duration_ms: 0.968
+  ...
+# Subtest: curse restoration retains original role through configuration drift and safely rejects lost provenance
+ok 82 - curse restoration retains original role through configuration drift and safely rejects lost provenance
+  ---
+  duration_ms: 113.4898
+  ...
+# Subtest: admin repair receipts and reacquisition reveals reflect retained permanent ownership
+ok 83 - admin repair receipts and reacquisition reveals reflect retained permanent ownership
+  ---
+  duration_ms: 135.2651
+  ...
+# Subtest: partial Sweet Tooth still displays committed fate and candy rewards
+ok 84 - partial Sweet Tooth still displays committed fate and candy rewards
+  ---
+  duration_ms: 1.1424
+  ...
+# Subtest: simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+ok 85 - simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+  ---
+  duration_ms: 28.0281
+  ...
+# Error handling haiku: Synthetic haiku failure
+# Error updating chat progression: Synthetic XP failure
+# Error handling haiku: Synthetic haiku failure
+# Level-up badges unavailable: Synthetic badge failure
+# Error updating chat progression: Synthetic send failure
+# Subtest: message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+ok 86 - message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+  ---
+  duration_ms: 25.5761
+  ...
+# Subtest: projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+ok 87 - projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+  ---
+  duration_ms: 39.9807
+  ...
+# Subtest: steady refill yields one candy at 18 minutes and 80/day without overflow surplus
+ok 88 - steady refill yields one candy at 18 minutes and 80/day without overflow surplus
+  ---
+  duration_ms: 2.3018
+  ...
+# Subtest: only registered full buckets are mentioned; weekly cooldown survives restarts and concurrent ticks
+ok 89 - only registered full buckets are mentioned; weekly cooldown survives restarts and concurrent ticks
+  ---
+  duration_ms: 293.3857
+  ...
+# Subtest: naturally full bucket materializes refill atomically without enrolling outsiders
+ok 90 - naturally full bucket materializes refill atomically without enrolling outsiders
+  ---
+  duration_ms: 54.6675
+  ...
+# Subtest: lookup failure retries pending reminder; spending before send cancels stale reminder
+ok 91 - lookup failure retries pending reminder; spending before send cancels stale reminder
+  ---
+  duration_ms: 71.7746
+  ...
+# Subtest: ambiguous sends never automatically resend; pause/closure/disable prevent messages
+ok 92 - ambiguous sends never automatically resend; pause/closure/disable prevent messages
+  ---
+  duration_ms: 57.8962
+  ...
+# Subtest: pending reminders cannot tag removed registration or send after event closes
+ok 93 - pending reminders cannot tag removed registration or send after event closes
+  ---
+  duration_ms: 43.9021
+  ...
+# Subtest: closure during channel lookup blocks delivery and next sweep cancels; different workers cannot duplicate
+ok 94 - closure during channel lookup blocks delivery and next sweep cancels; different workers cannot duplicate
+  ---
+  duration_ms: 91.6478
+  ...
+# Subtest: production channel policy permits only configured same-server Spooky/testing IDs
+ok 95 - production channel policy permits only configured same-server Spooky/testing IDs
+  ---
+  duration_ms: 1276.683
+  ...
+# Subtest: off-channel runtime commands reject privately before accessing global storage or Discord
+ok 96 - off-channel runtime commands reject privately before accessing global storage or Discord
+  ---
+  duration_ms: 5.6537
+  ...
+# Subtest: Eye credit automatically consumes each five, with remainder and replay without RNG
+ok 97 - Eye credit automatically consumes each five, with remainder and replay without RNG
+  ---
+  duration_ms: 227.1631
+  ...
+# Subtest: award ownership is captured at each acquisition and survives later inventory changes/replay
+ok 98 - award ownership is captured at each acquisition and survives later inventory changes/replay
+  ---
+  duration_ms: 63.5896
+  ...
+# Subtest: rarity update preserves owned IDs and old acquisition receipts while new grants use current metadata
+ok 99 - rarity update preserves owned IDs and old acquisition receipts while new grants use current metadata
+  ---
+  duration_ms: 55.0184
+  ...
+# Subtest: ordinary rarity boundaries and within-rarity endpoints use approved weights
+ok 100 - ordinary rarity boundaries and within-rarity endpoints use approved weights
+  ---
+  duration_ms: 108.113
+  ...
+# Subtest: every character-specific piece is reachable through its current ordinary rarity bucket
+ok 101 - every character-specific piece is reachable through its current ordinary rarity bucket
+  ---
+  duration_ms: 257.222
+  ...
+# Subtest: fifth mixed duplicate automatically consumes only five extras and awards an unowned piece
+ok 102 - fifth mixed duplicate automatically consumes only five extras and awards an unowned piece
+  ---
+  duration_ms: 32.0781
+  ...
+# Subtest: batch exchanges, completion and terminal extras retain first copies
+ok 103 - batch exchanges, completion and terminal extras retain first copies
+  ---
+  duration_ms: 51.4605
+  ...
+# Subtest: exchange samples all missing IDs uniformly without rarity weighting
+ok 104 - exchange samples all missing IDs uniformly without rarity weighting
+  ---
+  duration_ms: 235.5312
+  ...
+# Subtest: Eye theft transfers then converts atomically, and failed award restores both balances
+ok 105 - Eye theft transfers then converts atomically, and failed award restores both balances
+  ---
+  duration_ms: 62.1336
+  ...
+# Subtest: concurrent credits and duplicate grants resolve once without losing extras
+ok 106 - concurrent credits and duplicate grants resolve once without losing extras
+  ---
+  duration_ms: 247.1731
+  ...
+# Subtest: provisional odds block ordinary awards but not duplicate exchange; unknown inventory fails safely
+ok 107 - provisional odds block ordinary awards but not duplicate exchange; unknown inventory fails safely
+  ---
+  duration_ms: 30.5602
+  ...
+# Subtest: collection rejects nonregistered players and operational pause
+ok 108 - collection rejects nonregistered players and operational pause
+  ---
+  duration_ms: 25.9931
+  ...
+# Subtest: last missing piece stops batch exchange and retains remaining extras
+ok 109 - last missing piece stops batch exchange and retains remaining extras
+  ---
+  duration_ms: 32.6769
+  ...
+# Subtest: failed duplicate reward restores consumed extras and retries safely
+ok 110 - failed duplicate reward restores consumed extras and retries safely
+  ---
+  duration_ms: 34.4949
+  ...
+# Subtest: duplicate award snapshots fifth extra before exchange and replays that count
+ok 111 - duplicate award snapshots fifth extra before exchange and replays that count
+  ---
+  duration_ms: 22.9186
+  ...
+# Subtest: development activation leaves production/test disabled and approved economy unchanged
+ok 112 - development activation leaves production/test disabled and approved economy unchanged
+  ---
+  duration_ms: 4.5796
+  ...
+# Subtest: invalid probability edits and duplicated outcomes fail validation
+ok 113 - invalid probability edits and duplicated outcomes fail validation
+  ---
+  duration_ms: 1.0526
+  ...
+# Subtest: manifest provides unique durable quarter IDs and each character has required rarity positions
+ok 114 - manifest provides unique durable quarter IDs and each character has required rarity positions
+  ---
+  duration_ms: 2.0778
+  ...
+# Subtest: Pacific event opening/closing includes all October 31 and no redemption window
+ok 115 - Pacific event opening/closing includes all October 31 and no redemption window
+  ---
+  duration_ms: 28.3959
+  ...
+# Subtest: character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+ok 116 - character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+  ---
+  duration_ms: 0.8976
+  ...
+# Subtest: character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+ok 117 - character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+  ---
+  duration_ms: 0.5883
+  ...
+# Subtest: configuration cannot silently enable redemption, draw ceilings, or unbanked fate
+ok 118 - configuration cannot silently enable redemption, draw ceilings, or unbanked fate
+  ---
+  duration_ms: 0.6388
+  ...
+# Subtest: simulation weights cannot be used for live acquisition and configuration is immutable
+ok 119 - simulation weights cannot be used for live acquisition and configuration is immutable
+  ---
+  duration_ms: 0.4939
+  ...
+# Subtest: explicit production activation cannot enable test and leaves economy/version unchanged
+ok 120 - explicit production activation cannot enable test and leaves economy/version unchanged
+  ---
+  duration_ms: 1.127
+  ...
+# Subtest: production finale selects only production announcement channel/activation with the environment role
+ok 121 - production finale selects only production announcement channel/activation with the environment role
+  ---
+  duration_ms: 1484.0752
+  ...
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 122 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 222.7872
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 123 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 33.7245
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 124 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 125.2932
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 125 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 337.9166
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 126 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 32.788
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 127 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 63.9508
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 128 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 61.3043
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 129 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 104.7552
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 130 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 97.9589
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 131 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 44.6018
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 132 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 53.9837
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 133 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 35.677
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 134 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 0.9539
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 135 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 3.6114
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 136 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 54.2568
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 137 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 25.4825
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 138 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 171.8293
+  ...
+# Subtest: reversal preserves emoji/combining graphemes and shuffle preserves words
+ok 139 - reversal preserves emoji/combining graphemes and shuffle preserves words
+  ---
+  duration_ms: 3.3826
+  ...
+# Subtest: curse message probability and transformation boundaries are deterministic
+ok 140 - curse message probability and transformation boundaries are deterministic
+  ---
+  duration_ms: 2.3538
+  ...
+# Subtest: unsafe/context-rich, empty, disabled and closed messages stay intact
+ok 141 - unsafe/context-rich, empty, disabled and closed messages stay intact
+  ---
+  duration_ms: 6.0556
+  ...
+# Subtest: replacement is sent before original deletion; send failure never deletes or raw-falls-back
+ok 142 - replacement is sent before original deletion; send failure never deletes or raw-falls-back
+  ---
+  duration_ms: 1.0915
+  ...
+# Subtest: delete failure preserves original and reports delivered replacement without resending
+ok 143 - delete failure preserves original and reports delivered replacement without resending
+  ---
+  duration_ms: 0.2901
+  ...
+# Subtest: valid isolated settings pass without credentials or database/network imports
+ok 144 - valid isolated settings pass without credentials or database/network imports
+  ---
+  duration_ms: 22.8466
+  ...
+# Subtest: requires development and rejects target overrides before file access
+ok 145 - requires development and rejects target overrides before file access
+  ---
+  duration_ms: 0.7161
+  ...
+# Subtest: missing or malformed gameplay IDs fail; one valid channel is sufficient
+ok 146 - missing or malformed gameplay IDs fail; one valid channel is sufficient
+  ---
+  duration_ms: 6.4553
+  ...
+# Subtest: missing channels and colliding/everyone roles fail
+ok 147 - missing channels and colliding/everyone roles fail
+  ---
+  duration_ms: 6.1549
+  ...
+# Subtest: selected file gaps cannot be filled by inherited settings
+ok 148 - selected file gaps cannot be filled by inherited settings
+  ---
+  duration_ms: 8.1921
+  ...
+# Subtest: shared production target is rejected
+ok 149 - shared production target is rejected
+  ---
+  duration_ms: 5.682
+  ...
+# Subtest: migration up/down is reversible and leaves existing tables untouched
+ok 150 - migration up/down is reversible and leaves existing tables untouched
+  ---
+  duration_ms: 165.9098
+  ...
+# Subtest: database constraints reject duplicate identities, raw negative balances and invalid inventory
+ok 151 - database constraints reject duplicate identities, raw negative balances and invalid inventory
+  ---
+  duration_ms: 35.9689
+  ...
+# Subtest: a transfer persists zero-sum linked ledger entries and a durable receipt
+ok 152 - a transfer persists zero-sum linked ledger entries and a durable receipt
+  ---
+  duration_ms: 45.9094
+  ...
+# Subtest: repeated concurrent interactions run once, including across two service instances
+ok 153 - repeated concurrent interactions run once, including across two service instances
+  ---
+  duration_ms: 39.3243
+  ...
+# Subtest: failed second side of transfer rolls back balances, ledger and operation
+ok 154 - failed second side of transfer rolls back balances, ledger and operation
+  ---
+  duration_ms: 19.3274
+  ...
+# Subtest: callback failure is atomic and failed operation can be retried without partial awards
+ok 155 - callback failure is atomic and failed operation can be retried without partial awards
+  ---
+  duration_ms: 21.2566
+  ...
+# Subtest: competing transfers cannot steal the same last Eye twice
+ok 156 - competing transfers cannot steal the same last Eye twice
+  ---
+  duration_ms: 26.7865
+  ...
+# Subtest: balances are isolated by guild/event and worker keys do not collide across scopes
+ok 157 - balances are isolated by guild/event and worker keys do not collide across scopes
+  ---
+  duration_ms: 21.9522
+  ...
+# Subtest: invalid receipts/ledger deltas roll back and history survives participant removal
+ok 158 - invalid receipts/ledger deltas roll back and history survives participant removal
+  ---
+  duration_ms: 27.1603
+  ...
+# Subtest: independent SQLite connections serialize the same operation and replay a persisted receipt
+ok 159 - independent SQLite connections serialize the same operation and replay a persisted receipt
+  ---
+  duration_ms: 71.4571
+  ...
+# Subtest: durable effect renewal, replay, expiry and scope survive service reconstruction
+ok 160 - durable effect renewal, replay, expiry and scope survive service reconstruction
+  ---
+  duration_ms: 212.3791
+  ...
+# Subtest: effect expiry is clamped to event end and clearing preserves metadata for restoration
+ok 161 - effect expiry is clamped to event end and clearing preserves metadata for restoration
+  ---
+  duration_ms: 30.4457
+  ...
+# Subtest: curse resolver uses active database effects rather than permanent role claims; closure turns it off
+ok 162 - curse resolver uses active database effects rather than permanent role claims; closure turns it off
+  ---
+  duration_ms: 35.2691
+  ...
+# Subtest: invalid/paused writes and later callback failure roll back effects, participant seed and ledger
+ok 163 - invalid/paused writes and later callback failure roll back effects, participant seed and ledger
+  ---
+  duration_ms: 27.7483
+  ...
+# Subtest: confirmation displays exact Bank/Fate projections and spends nothing on cancel or timeout
+ok 164 - confirmation displays exact Bank/Fate projections and spends nothing on cancel or timeout
+  ---
+  duration_ms: 10.4624
+  ...
+# Subtest: other users/channels/guilds cannot confirm; simultaneous clicks acknowledge before one purchase
+ok 165 - other users/channels/guilds cannot confirm; simultaneous clicks acknowledge before one purchase
+  ---
+  duration_ms: 1.7971
+  ...
+# Subtest: failed acknowledgement cannot spend; failed purchase clears collector and buttons
+ok 166 - failed acknowledgement cannot spend; failed purchase clears collector and buttons
+  ---
+  duration_ms: 2.0856
+  ...
+# Subtest: bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged
+ok 167 - bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged
+  ---
+  duration_ms: 218.4499
+  ...
+# Subtest: insufficient combined wallet and missing/invalid accounts fail safely
+ok 168 - insufficient combined wallet and missing/invalid accounts fail safely
+  ---
+  duration_ms: 45.4426
+  ...
+# Subtest: authorization fails closed and cannot buy for a different actor
+ok 169 - authorization fails closed and cannot buy for a different actor
+  ---
+  duration_ms: 23.9087
+  ...
+# Subtest: any registered bank holder may purchase without Unwanted/admin role claims
+ok 170 - any registered bank holder may purchase without Unwanted/admin role claims
+  ---
+  duration_ms: 31.0563
+  ...
+# Subtest: same interaction replays one debit and award; distinct purchases have no daily ceiling
+ok 171 - same interaction replays one debit and award; distinct purchases have no daily ceiling
+  ---
+  duration_ms: 231.3061
+  ...
+# Subtest: concurrent purchases compete for the same final ten bank points
+ok 172 - concurrent purchases compete for the same final ten bank points
+  ---
+  duration_ms: 28.8767
+  ...
+# Subtest: award failure rolls back bank and ledger, and retry is safe
+ok 173 - award failure rolls back bank and ledger, and retry is safe
+  ---
+  duration_ms: 36.4143
+  ...
+# Subtest: fate draw triggering the fifth duplicate exchanges it in the same receipt
+ok 174 - fate draw triggering the fifth duplicate exchanges it in the same receipt
+  ---
+  duration_ms: 31.5338
+  ...
+# Subtest: disabled/closed/paused/unregistered/wrong guild purchases leave the shared bank untouched
+ok 175 - disabled/closed/paused/unregistered/wrong guild purchases leave the shared bank untouched
+  ---
+  duration_ms: 45.4219
+  ...
+# Subtest: mixed Bank/Fate payment and Fate-only payment debit ten exactly with matching ledger
+ok 176 - mixed Bank/Fate payment and Fate-only payment debit ten exactly with matching ledger
+  ---
+  duration_ms: 61.5935
+  ...
+# Subtest: wallet drift invalidates a confirmation instead of switching which balance pays
+ok 177 - wallet drift invalidates a confirmation instead of switching which balance pays
+  ---
+  duration_ms: 22.9235
+  ...
+# Subtest: failed quarter or receipt finalization rolls back both wallets, inventory and ledger
+ok 178 - failed quarter or receipt finalization rolls back both wallets, inventory and ledger
+  ---
+  duration_ms: 29.1575
+  ...
+# Subtest: Fate rarity thresholds differ from Eye draws without changing missing-piece exchange
+ok 179 - Fate rarity thresholds differ from Eye draws without changing missing-piece exchange
+  ---
+  duration_ms: 116.626
+  ...
+# Subtest: Fate rewards use the Fate/Bank/Total design with committed cap-aware transitions
+ok 180 - Fate rewards use the Fate/Bank/Total design with committed cap-aware transitions
+  ---
+  duration_ms: 7.2668
+  ...
+# Subtest: Fate-funded quarter shows its bank deduction once across duplicate reveals
+ok 181 - Fate-funded quarter shows its bank deduction once across duplicate reveals
+  ---
+  duration_ms: 1.3995
+  ...
+# Subtest: legacy treat variants keep recipient safety, committed balances and avatar
+ok 182 - legacy treat variants keep recipient safety, committed balances and avatar
+  ---
+  duration_ms: 22.1559
+  ...
+# Subtest: crown fallback is playful and promises only the committed fate consolation
+ok 183 - crown fallback is playful and promises only the committed fate consolation
+  ---
+  duration_ms: 1.5367
+  ...
+# Subtest: Eye finds and self rewards are public while unrewarded personal failures stay private
+ok 184 - Eye finds and self rewards are public while unrewarded personal failures stay private
+  ---
+  duration_ms: 2.2507
+  ...
+# Subtest: routine GIF rate is stable near 20%; committed selection never consumes gameplay randomness
+ok 185 - routine GIF rate is stable near 20%; committed selection never consumes gameplay randomness
+  ---
+  duration_ms: 66.0349
+  ...
+# Subtest: successful significant results get GIFs; private messages, fallbacks and art keep their design
+ok 186 - successful significant results get GIFs; private messages, fallbacks and art keep their design
+  ---
+  duration_ms: 0.6535
+  ...
+# Subtest: stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+ok 187 - stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+  ---
+  duration_ms: 189.5946
+  ...
+# Subtest: level-up overflow credits current bank atomically and preserves purchase debit
+ok 188 - level-up overflow credits current bank atomically and preserves purchase debit
+  ---
+  duration_ms: 20.3116
+  ...
+# Subtest: notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+ok 189 - notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+  ---
+  duration_ms: 34.0081
+  ...
+# Subtest: ambiguous notification failure stays uncertain and is not resent automatically
+ok 190 - ambiguous notification failure stays uncertain and is not resent automatically
+  ---
+  duration_ms: 23.5977
+  ...
+# Subtest: cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+ok 191 - cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+  ---
+  duration_ms: 0.6994
+  ...
+# Subtest: complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+ok 192 - complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+  ---
+  duration_ms: 2.6732
+  ...
+# Subtest: notification migration reverses independently and preserves core operation receipts
+ok 193 - notification migration reverses independently and preserves core operation receipts
+  ---
+  duration_ms: 19.3086
+  ...
+# Subtest: wired slash command stays disabled in an allowed channel without loading the real database runtime
+ok 194 - wired slash command stays disabled in an allowed channel without loading the real database runtime
+  ---
+  duration_ms: 6.0047
+  ...
+# Subtest: booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+ok 195 - booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+  ---
+  duration_ms: 19.4292
+  ...
+# Subtest: audited cancellation during delayed eligibility prevents API dispatch
+ok 196 - audited cancellation during delayed eligibility prevents API dispatch
+  ---
+  duration_ms: 296.3039
+  ...
+# Subtest: player queue filtering uses original ownership before cursor/limit and respects guild scope
+ok 197 - player queue filtering uses original ownership before cursor/limit and respects guild scope
+  ---
+  duration_ms: 86.2189
+  ...
+# Subtest: display names cannot inject masked links, Markdown or mentions into public results
+ok 198 - display names cannot inject masked links, Markdown or mentions into public results
+  ---
+  duration_ms: 1206.9027
+  ...
+# Subtest: achievement award and capped bank credit are atomic, concurrent-idempotent and preserve old over-cap balances
+ok 199 - achievement award and capped bank credit are atomic, concurrent-idempotent and preserve old over-cap balances
+  ---
+  duration_ms: 60.3118
+  ...
+# Subtest: idle closed maintenance validates proof and reconciles pending projections without creating operations
+ok 200 - idle closed maintenance validates proof and reconciles pending projections without creating operations
+  ---
+  duration_ms: 73.1466
+  ...
+# Subtest: full testing reset clears this event and Crown eligibility, preserves other badges/wallet/history, and replays safely
+ok 201 - full testing reset clears this event and Crown eligibility, preserves other badges/wallet/history, and replays safely
+  ---
+  duration_ms: 109.2526
+  ...
+# Subtest: full testing reset rolls back registration and badge deletion if the badge write fails
+ok 202 - full testing reset rolls back registration and badge deletion if the badge write fails
+  ---
+  duration_ms: 55.1275
+  ...
+# Subtest: finishing Selene emits one completion with main badge, token thumbnail and bank transition; duplicate is clearly labeled
+ok 203 - finishing Selene emits one completion with main badge, token thumbnail and bank transition; duplicate is clearly labeled
+  ---
+  duration_ms: 7.0757
+  ...
+# Subtest: development badge settings never enable production or another guild and reset stays under the admin event group
+ok 204 - development badge settings never enable production or another guild and reset stays under the admin event group
+  ---
+  duration_ms: 13.9428
+  ...
+# Subtest: shared bank rewards and level overflow do not silently clamp existing above-cap balances
+ok 205 - shared bank rewards and level overflow do not silently clamp existing above-cap balances
+  ---
+  duration_ms: 31.1176
+  ...
+# Subtest: Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+ok 206 - Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+  ---
+  duration_ms: 285.9402
+  ...
+# Subtest: startup after downtime restores owned effects; committed replay retries pending delivery
+ok 207 - startup after downtime restores owned effects; committed replay retries pending delivery
+  ---
+  duration_ms: 89.0034
+  ...
+# Subtest: active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+ok 208 - active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+  ---
+  duration_ms: 63.4876
+  ...
+# Subtest: cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+ok 209 - cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+  ---
+  duration_ms: 52.7369
+  ...
+# Subtest: cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+ok 210 - cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+  ---
+  duration_ms: 56.3362
+  ...
+# Subtest: queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+ok 211 - queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+  ---
+  duration_ms: 44.3819
+  ...
+# Subtest: scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+ok 212 - scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+  ---
+  duration_ms: 0.9494
+  ...
+# Subtest: unregistered recipient gets one embed reference per rolling 72h across simultaneous actors, never self-pings
+ok 213 - unregistered recipient gets one embed reference per rolling 72h across simultaneous actors, never self-pings
+  ---
+  duration_ms: 264.3961
+  ...
+# Subtest: registered mentions are spaced 18h with four combined slots per 72h; guilds are separate
+ok 214 - registered mentions are spaced 18h with four combined slots per 72h; guilds are separate
+  ---
+  duration_ms: 80.0416
+  ...
+# Subtest: cosmetic chance may skip eligible actions without spending allowance; replay cannot reroll
+ok 215 - cosmetic chance may skip eligible actions without spending allowance; replay cannot reroll
+  ---
+  duration_ms: 24.5967
+  ...
+# Subtest: reservation rolls back with failed action; replay delivers once without adding a slot
+ok 216 - reservation rolls back with failed action; replay delivers once without adding a slot
+  ---
+  duration_ms: 35.4233
+  ...
+# Subtest: registration and midnight never reset earlier reservations, including the previous daily policy
+ok 217 - registration and midnight never reset earlier reservations, including the previous daily policy
+  ---
+  duration_ms: 32.4989
+  ...
+# Subtest: expired messages and admin resend copies use names; old top-level tag lines are stripped
+ok 218 - expired messages and admin resend copies use names; old top-level tag lines are stripped
+  ---
+  duration_ms: 25.8868
+  ...
+# Subtest: uncertain delivery cannot release its reserved reference or automatically repeat it
+ok 219 - uncertain delivery cannot release its reserved reference or automatically repeat it
+  ---
+  duration_ms: 28.1357
+  ...
+# Subtest: refill boundaries, partial intervals, downtime and capped surplus are deterministic
+ok 220 - refill boundaries, partial intervals, downtime and capped surplus are deterministic
+  ---
+  duration_ms: 2.8088
+  ...
+# Subtest: nonparticipant first touch and later registration reuse balances without catch-up or starter duplication
+ok 221 - nonparticipant first touch and later registration reuse balances without catch-up or starter duplication
+  ---
+  duration_ms: 239.3833
+  ...
+# Subtest: concurrent refill and interaction replay credit a due interval only once
+ok 222 - concurrent refill and interaction replay credit a due interval only once
+  ---
+  duration_ms: 91.9581
+  ...
+# Subtest: disabled, upcoming, closed, archived and paused registration fail without writes; pause permits refill
+ok 223 - disabled, upcoming, closed, archived and paused registration fail without writes; pause permits refill
+  ---
+  duration_ms: 34.7559
+  ...
+# Subtest: guild scopes are isolated, event mismatch rolls back and registration cannot enroll another actor
+ok 224 - guild scopes are isolated, event mismatch rolls back and registration cannot enroll another actor
+  ---
+  duration_ms: 30.0737
+  ...
+# Subtest: prepare joins the root transaction so later failure rolls back seed, refill and registration
+ok 225 - prepare joins the root transaction so later failure rolls back seed, refill and registration
+  ---
+  duration_ms: 16.0515
+  ...
+# Subtest: spending after downtime at capacity starts a fresh interval and receipts replay after closure
+ok 226 - spending after downtime at capacity starts a fresh interval and receipts replay after closure
+  ---
+  duration_ms: 35.473
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 227 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 322.5283
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 228 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 100.2616
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 229 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 132.2777
+  ...
+# Subtest: curse/shield nicknames compose and restore the original at break, expiry and closure
+ok 230 - curse/shield nicknames compose and restore the original at break, expiry and closure
+  ---
+  duration_ms: 135.1141
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 231 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 114.638
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 232 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 136.098
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 233 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 73.1692
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 234 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 72.6547
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 235 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 109.8807
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 236 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 150.2235
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 237 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 79.1912
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 238 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 25.1893
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 239 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 38.0568
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 240 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 68.3522
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 241 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 11.2026
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 242 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 24.4039
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 243 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 47.3459
+  ...
+# Subtest: shared candy clock aligns new and returning players without starter catch-up or cap surplus
+ok 244 - shared candy clock aligns new and returning players without starter catch-up or cap surplus
+  ---
+  duration_ms: 2.4308
+  ...
+# Subtest: every reward embed has balances, no embed timestamp, and zero candy gets shared refill countdown
+ok 245 - every reward embed has balances, no embed timestamp, and zero candy gets shared refill countdown
+  ---
+  duration_ms: 1.258
+  ...
+# Subtest: private nudge eligibility excludes unregistered/inactive/recent callers, but full buckets need no recent play
+ok 246 - private nudge eligibility excludes unregistered/inactive/recent callers, but full buckets need no recent play
+  ---
+  duration_ms: 0.3711
+  ...
+# Subtest: private stash reminder cooldown persists for 48 hours and concurrent claims cannot nag twice
+ok 247 - private stash reminder cooldown persists for 48 hours and concurrent claims cannot nag twice
+  ---
+  duration_ms: 218.7039
+  ...
+# Subtest: wording gallery uses real renderer, contains all eight standard gifts and constrains every page
+ok 248 - wording gallery uses real renderer, contains all eight standard gifts and constrains every page
+  ---
+  duration_ms: 43.7291
+  ...
+# Subtest: preview buttons acknowledge before fresh authorization and end cleanly on permission loss
+ok 249 - preview buttons acknowledge before fresh authorization and end cleanly on permission loss
+  ---
+  duration_ms: 32.9922
+  ...
+# Subtest: production CLI requires explicit environment, target, stopped writers and reviewed hash
+ok 250 - production CLI requires explicit environment, target, stopped writers and reviewed hash
+  ---
+  duration_ms: 6.7818
+  ...
+# Subtest: production selection, backup and four-migration apply preserve legacy rows and never mutate development
+ok 251 - production selection, backup and four-migration apply preserve legacy rows and never mutate development
+  ---
+  duration_ms: 715.0115
+  ...
+# Subtest: caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+ok 252 - caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+  ---
+  duration_ms: 219.2715
+  ...
+# Subtest: successful Great Heist gets a five-point boost; failed heist cannot gain it
+ok 253 - successful Great Heist gets a five-point boost; failed heist cannot gain it
+  ---
+  duration_ms: 34.9194
+  ...
+# Subtest: Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+ok 254 - Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+  ---
+  duration_ms: 43.564
+  ...
+# Subtest: Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+ok 255 - Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+  ---
+  duration_ms: 45.6525
+  ...
+# Subtest: non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+ok 256 - non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+  ---
+  duration_ms: 98.6908
+  ...
+# Subtest: only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+ok 257 - only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+  ---
+  duration_ms: 27.7558
+  ...
+# Subtest: failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+ok 258 - failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+  ---
+  duration_ms: 86.612
+  ...
+# Subtest: ties share each track, a player may lead both, and inactive registrants do not win
+ok 259 - ties share each track, a player may lead both, and inactive registrants do not win
+  ---
+  duration_ms: 51.6104
+  ...
+# Subtest: weekly Fate reminders have independent identity and a strict Unwanted-only role mention
+ok 260 - weekly Fate reminders have independent identity and a strict Unwanted-only role mention
+  ---
+  duration_ms: 263.1503
+  ...
+# Subtest: reminder settings fail closed; payload mentions only configured Resident roles
+ok 261 - reminder settings fail closed; payload mentions only configured Resident roles
+  ---
+  duration_ms: 1.2118
+  ...
+# Subtest: latest due slot uses Pacific calendar days, local send time and exact October boundaries
+ok 262 - latest due slot uses Pacific calendar days, local send time and exact October boundaries
+  ---
+  duration_ms: 0.5868
+  ...
+# Subtest: one durable reminder per slot survives restarts/concurrent ticks without resources
+ok 263 - one durable reminder per slot survives restarts/concurrent ticks without resources
+  ---
+  duration_ms: 82.7473
+  ...
+# Subtest: crash after enqueue or channel lookup failure retries pending current slot; uncertain never retries
+ok 264 - crash after enqueue or channel lookup failure retries pending current slot; uncertain never retries
+  ---
+  duration_ms: 76.4444
+  ...
+# Subtest: downtime expires pending older reminders and queues only the latest slot; foreign guild rows untouched
+ok 265 - downtime expires pending older reminders and queues only the latest slot; foreign guild rows untouched
+  ---
+  duration_ms: 60.9937
+  ...
+# Subtest: paused/archived states suppress reminders without consuming due slot; disabled accesses no storage
+ok 266 - paused/archived states suppress reminders without consuming due slot; disabled accesses no storage
+  ---
+  duration_ms: 37.8025
+  ...
+# Subtest: slow channel lookup crossing end/pause skips before claim; closure cancels pending without sending
+ok 267 - slow channel lookup crossing end/pause skips before claim; closure cancels pending without sending
+  ---
+  duration_ms: 60.8166
+  ...
+# Subtest: wrong guild/channel fails before claim; changing configuration cancels pending old payload, never sends both
+ok 268 - wrong guild/channel fails before claim; changing configuration cancels pending old payload, never sends both
+  ---
+  duration_ms: 52.4195
+  ...
+# Subtest: delayed database claim crossing closure releases unsent claim and expires it safely
+ok 269 - delayed database claim crossing closure releases unsent claim and expires it safely
+  ---
+  duration_ms: 35.2984
+  ...
+# Subtest: outbox creation failure rolls back slot, ledger and notification; same-slot retry succeeds
+ok 270 - outbox creation failure rolls back slot, ledger and notification; same-slot retry succeeds
+  ---
+  duration_ms: 32.7009
+  ...
+# Subtest: reminder failure does not block committed lifecycle maintenance; lifecycle failures still propagate
+ok 271 - reminder failure does not block committed lifecycle maintenance; lifecycle failures still propagate
+  ---
+  duration_ms: 0.5456
+  ...
+# Subtest: token notification sends local files from durable descriptors and acknowledges fresh attachment evidence
+ok 272 - token notification sends local files from durable descriptors and acknowledges fresh attachment evidence
+  ---
+  duration_ms: 258.6483
+  ...
+# Subtest: resolution is authorized, owner scoped and explicitly validated without touching resources
+ok 273 - resolution is authorized, owner scoped and explicitly validated without touching resources
+  ---
+  duration_ms: 39.1452
+  ...
+# Subtest: acknowledgement requires fresh matching bot message evidence; replay needs no new evidence and rejects changed requests
+ok 274 - acknowledgement requires fresh matching bot message evidence; replay needs no new evidence and rejects changed requests
+  ---
+  duration_ms: 37.3358
+  ...
+# Subtest: pending retry sends one selected row only; uncertain resend creates an audited copy without rerolling
+ok 275 - pending retry sends one selected row only; uncertain resend creates an audited copy without rerolling
+  ---
+  duration_ms: 100.002
+  ...
+# Subtest: stale evidence rejects resolution; late send failure cannot undo an audited in-flight cancellation
+ok 276 - stale evidence rejects resolution; late send failure cannot undo an audited in-flight cancellation
+  ---
+  duration_ms: 36.7662
+  ...
+# Subtest: projection acknowledgement verifies observed state and cancellation invalidates the old revision
+ok 277 - projection acknowledgement verifies observed state and cancellation invalidates the old revision
+  ---
+  duration_ms: 28.6625
+  ...
+# Subtest: independent nickname changes and orphaned applications cannot retry; cancellation safely unblocks inspection/reset
+ok 278 - independent nickname changes and orphaned applications cannot retry; cancellation safely unblocks inspection/reset
+  ---
+  duration_ms: 31.7515
+  ...
+# Subtest: audited restoration retries after closure, retains source revision and reconciles only its selected row
+ok 279 - audited restoration retries after closure, retains source revision and reconciles only its selected row
+  ---
+  duration_ms: 28.8521
+  ...
+# Subtest: resolution adapter stays private, commits before dispatch and uses the saved source channel/row
+ok 280 - resolution adapter stays private, commits before dispatch and uses the saved source channel/row
+  ---
+  duration_ms: 3.2908
+  ...
+# Subtest: population adapter matches a seeded actual SQLite gameplay trajectory
+ok 281 - population adapter matches a seeded actual SQLite gameplay trajectory
+  ---
+  duration_ms: 7366.8876
+  ...
+# Subtest: milestone summaries count never reached separately from conditional timing
+ok 282 - milestone summaries count never reached separately from conditional timing
+  ---
+  duration_ms: 1.1333
+  ...
+# Subtest: apply CLI requires reviewed hash and stopped declaration, with explicit adoption mode
+ok 283 - apply CLI requires reviewed hash and stopped declaration, with explicit adoption mode
+  ---
+  duration_ms: 3.4165
+  ...
+# Subtest: fresh apply atomically records hashes and backup, preserves legacy rows, restart is no-op
+ok 284 - fresh apply atomically records hashes and backup, preserves legacy rows, restart is no-op
+  ---
+  duration_ms: 375.8619
+  ...
+# Subtest: matching untracked prefix requires adoption and does not rerun existing migration
+ok 285 - matching untracked prefix requires adoption and does not rerun existing migration
+  ---
+  duration_ms: 236.8096
+  ...
+# Subtest: failure at after_migration rolls back schema and tracking, retaining verified backup
+ok 286 - failure at after_migration rolls back schema and tracking, retaining verified backup
+  ---
+  duration_ms: 252.7518
+  ...
+# Subtest: failure at before_commit rolls back schema and tracking, retaining verified backup
+ok 287 - failure at before_commit rolls back schema and tracking, retaining verified backup
+  ---
+  duration_ms: 270.0425
+  ...
+# Subtest: stale plans fail before backup; changes after backup fail under lock without creating tracking
+ok 288 - stale plans fail before backup; changes after backup fail under lock without creating tracking
+  ---
+  duration_ms: 148.2365
+  ...
+# Subtest: tampered provenance fails closed even when seasonal DDL matches
+ok 289 - tampered provenance fails closed even when seasonal DDL matches
+  ---
+  duration_ms: 219.2323
+  ...
+# Subtest: adoption interruption preserves existing prefix without writing either tracking table
+ok 290 - adoption interruption preserves existing prefix without writing either tracking table
+  ---
+  duration_ms: 187.1944
+  ...
+# Subtest: competing reviewed runners cannot duplicate tracking or reapply migrations
+ok 291 - competing reviewed runners cannot duplicate tracking or reapply migrations
+  ---
+  duration_ms: 226.7404
+  ...
+# Subtest: disk/WAL backups restore economy receipts and ambiguous delivery state; reverse rollback preserves existing accounts
+ok 292 - disk/WAL backups restore economy receipts and ambiguous delivery state; reverse rollback preserves existing accounts
+  ---
+  duration_ms: 624.4517
+  ...
+# Subtest: backup/migration rehearsal failure closes SQLite handles and removes only generated artifacts
+ok 293 - backup/migration rehearsal failure closes SQLite handles and removes only generated artifacts
+  ---
+  duration_ms: 593.4515
+  ...
+# Subtest: parallel storage rehearsals use separate generated databases and both clean up
+ok 294 - parallel storage rehearsals use separate generated databases and both clean up
+  ---
+  duration_ms: 461.3719
+  ...
+# Subtest: CLI requires explicit development/stopped writers and rejects targets, apply/down and inherited production/test
+ok 295 - CLI requires explicit development/stopped writers and rejects targets, apply/down and inherited production/test
+  ---
+  duration_ms: 4.7968
+  ...
+# Subtest: target selection rejects missing, forged, production, symlink and hardlinked storage without creating a database
+ok 296 - target selection rejects missing, forged, production, symlink and hardlinked storage without creating a database
+  ---
+  duration_ms: 189.8382
+  ...
+# Subtest: readonly status classifies absent, matching prefix and complete schema without changing rows/tracking
+ok 297 - readonly status classifies absent, matching prefix and complete schema without changing rows/tracking
+  ---
+  duration_ms: 159.107
+  ...
+# Subtest: partial groups, non-prefix migrations, changed constraints and missing indexes require review
+ok 298 - partial groups, non-prefix migrations, changed constraints and missing indexes require review
+  ---
+  duration_ms: 287.9045
+  ...
+# Subtest: existing migration tracking is read and cross-checked; gaps/stale tracker never get adopted automatically
+ok 299 - existing migration tracking is read and cross-checked; gaps/stale tracker never get adopted automatically
+  ---
+  duration_ms: 112.9622
+  ...
+# Subtest: exclusive WAL backup from readonly source preserves existing data and writes a verified secret-free manifest
+ok 300 - exclusive WAL backup from readonly source preserves existing data and writes a verified secret-free manifest
+  ---
+  duration_ms: 249.1422
+  ...
+# Subtest: backup rejects linked directories and preserves an interrupted backup failure record without applying migrations
+ok 301 - backup rejects linked directories and preserves an interrupted backup failure record without applying migrations
+  ---
+  duration_ms: 104.8154
+  ...
+# Subtest: target is revalidated after selection and cannot later be redirected through a hardlink
+ok 302 - target is revalidated after selection and cannot later be redirected through a hardlink
+  ---
+  duration_ms: 71.0957
+  ...
+# Subtest: foreign-key violations block a backup before allocation and preserve the source for inspection
+ok 303 - foreign-key violations block a backup before allocation and preserve the source for inspection
+  ---
+  duration_ms: 99.5851
+  ...
+# Subtest: three choices enforce ownership and acknowledge one selection before finishing
+ok 304 - three choices enforce ownership and acknowledge one selection before finishing
+  ---
+  duration_ms: 11.4414
+  ...
+# Subtest: timeout uses a frozen displayed fallback; acknowledgement failure cannot select
+ok 305 - timeout uses a frozen displayed fallback; acknowledgement failure cannot select
+  ---
+  duration_ms: 2.9132
+  ...
+# Subtest: random sampling is without replacement and can select every candidate
+ok 306 - random sampling is without replacement and can select every candidate
+  ---
+  duration_ms: 3.3606
+  ...
+# Subtest: nonparticipant theft materializes only chosen victim, excludes self/bots, includes admin and strips mention text
+ok 307 - nonparticipant theft materializes only chosen victim, excludes self/bots, includes admin and strips mention text
+  ---
+  duration_ms: 223.1896
+  ...
+# Subtest: heist picks random distinct funded victims and limits credit to caller capacity
+ok 308 - heist picks random distinct funded victims and limits credit to caller capacity
+  ---
+  duration_ms: 91.2251
+  ...
+# Subtest: protection lasts exactly to expiry, includes both resources and ignores another guild effects
+ok 309 - protection lasts exactly to expiry, includes both resources and ignores another guild effects
+  ---
+  duration_ms: 46.6543
+  ...
+# Subtest: Eye victim needs registration/funds but no activity; theft converts at five and replay does not steal twice
+ok 310 - Eye victim needs registration/funds but no activity; theft converts at five and replay does not steal twice
+  ---
+  duration_ms: 59.9287
+  ...
+# Subtest: solo or protected-only Eye pool finds one; no candy target gives paid no-effect without minting candy
+ok 311 - solo or protected-only Eye pool finds one; no candy target gives paid no-effect without minting candy
+  ---
+  duration_ms: 99.592
+  ...
+# Subtest: concurrent last-Eye theft transfers once; next action finds rather than spending a nonexistent Eye
+ok 312 - concurrent last-Eye theft transfers once; next action finds rather than spending a nonexistent Eye
+  ---
+  duration_ms: 58.6698
+  ...
+# Subtest: membership or RNG/award errors roll back action cost and never mint a fallback Eye
+ok 313 - membership or RNG/award errors roll back action cost and never mint a fallback Eye
+  ---
+  duration_ms: 71.4592
+  ...
+# Subtest: lazy funding uses due refill but an exhausted victim is skipped without extra materialization
+ok 314 - lazy funding uses due refill but an exhausted victim is skipped without extra materialization
+  ---
+  duration_ms: 49.267
+  ...
+# Subtest: every nonempty ownership set maps to its shipped PNG, independent of input order
+ok 315 - every nonempty ownership set maps to its shipped PNG, independent of input order
+  ---
+  duration_ms: 384.2006
+  ...
+# Subtest: attachment resolution rejects arbitrary paths and leaves durable payload JSON portable
+ok 316 - attachment resolution rejects arbitrary paths and leaves durable payload JSON portable
+  ---
+  duration_ms: 0.9163
+  ...
+# Subtest: public reveal uses saved cumulative ownership; duplicate keeps circle, old award has single-piece fallback
+ok 317 - public reveal uses saved cumulative ownership; duplicate keeps circle, old award has single-piece fallback
+  ---
+  duration_ms: 5.4971
+  ...
+# Subtest: admin acknowledgement resolves attachment CDN URLs only against trusted matching filenames
+ok 318 - admin acknowledgement resolves attachment CDN URLs only against trusted matching filenames
+  ---
+  duration_ms: 1.2886
+  ...
+# Subtest: duplicate progress uses saved cumulative token thumbnail and numbered player labels
+ok 319 - duplicate progress uses saved cumulative token thumbnail and numbered player labels
+  ---
+  duration_ms: 2.4314
+  ...
+# Subtest: overall Scream Supreme combines both tracks, waits for announced time and awards only one title
+ok 320 - overall Scream Supreme combines both tracks, waits for announced time and awards only one title
+  ---
+  duration_ms: 307.3904
+  ...
+# Subtest: winner configuration is disabled/incomplete by default and rejects unsafe or reused titles/roles
+ok 321 - winner configuration is disabled/incomplete by default and rejects unsafe or reused titles/roles
+  ---
+  duration_ms: 1.2161
+  ...
+# Subtest: invalid optional winner settings block titles while preserving legacy delivery and completed maintenance
+ok 322 - invalid optional winner settings block titles while preserving legacy delivery and completed maintenance
+  ---
+  duration_ms: 0.5749
+  ...
+# Subtest: closure award operation grants shared titles/both tracks once from the saved proof, survives restart and deletion
+ok 323 - closure award operation grants shared titles/both tracks once from the saved proof, survives restart and deletion
+  ---
+  duration_ms: 133.7767
+  ...
+# Subtest: disabled/upcoming/active and missing snapshot/archive do not consume award identity or touch Discord
+ok 324 - disabled/upcoming/active and missing snapshot/archive do not consume award identity or touch Discord
+  ---
+  duration_ms: 13.3939
+  ...
+# Subtest: empty tracks announce no qualifying players without creating roles; pages bound large shared ties
+ok 325 - empty tracks announce no qualifying players without creating roles; pages bound large shared ties
+  ---
+  duration_ms: 42.9458
+  ...
+# Subtest: permission/member failures retry desired role safely; crash after applied role does not apply twice
+ok 326 - permission/member failures retry desired role safely; crash after applied role does not apply twice
+  ---
+  duration_ms: 77.5759
+  ...
+# Subtest: lookup failure retries pending announcement; ambiguous send requires inspection and never auto-resends
+ok 327 - lookup failure retries pending announcement; ambiguous send requires inspection and never auto-resends
+  ---
+  duration_ms: 48.1794
+  ...
+# Subtest: configuration drift/disable blocks all role paths without requeuing or overwriting frozen intents
+ok 328 - configuration drift/disable blocks all role paths without requeuing or overwriting frozen intents
+  ---
+  duration_ms: 74.6211
+  ...
+# Subtest: title guard rejects foreign or forged winner intents; channel owner is rechecked before send
+ok 329 - title guard rejects foreign or forged winner intents; channel owner is rechecked before send
+  ---
+  duration_ms: 52.034
+  ...
+# Subtest: corrupt proof/notification enqueue failure rolls back all award intents and corrected retry succeeds
+ok 330 - corrupt proof/notification enqueue failure rolls back all award intents and corrected retry succeeds
+  ---
+  duration_ms: 75.5884
+  ...
+# Subtest: title admin retry/acknowledgement uses scoped evidence and preserves cancellation through award replay
+ok 331 - title admin retry/acknowledgement uses scoped evidence and preserves cancellation through award replay
+  ---
+  duration_ms: 83.7031
+  ...
+# Subtest: winner role permission checks awarded-role hierarchy and permits the owner
+ok 332 - winner role permission checks awarded-role hierarchy and permits the owner
+  ---
+  duration_ms: 1.0185
+  ...
+# Subtest: award failure isolation preserves completed maintenance and propagates root cleanup failure
+ok 333 - award failure isolation preserves completed maintenance and propagates root cleanup failure
+  ---
+  duration_ms: 0.3537
+  ...
+# Subtest: delayed member/channel lookups recheck guards before external writes or announcements
+ok 334 - delayed member/channel lookups recheck guards before external writes or announcements
+  ---
+  duration_ms: 61.4995
+  ...
+# Subtest: combined closure proof retains actual action totals and approved crown/heist bonuses
+ok 335 - combined closure proof retains actual action totals and approved crown/heist bonuses
+  ---
+  duration_ms: 240.9563
+  ...
+# Subtest: closure freezes tied leaders/admins/both titles and excludes inactive registrants atomically
+ok 336 - closure freezes tied leaders/admins/both titles and excludes inactive registrants atomically
+  ---
+  duration_ms: 99.3924
+  ...
+# Subtest: empty tracks have no winner; zero/negative actual actors qualify over inactive zeroes
+ok 337 - empty tracks have no winner; zero/negative actual actors qualify over inactive zeroes
+  ---
+  duration_ms: 71.3356
+  ...
+# Subtest: frozen receipt survives restart/concurrent workers and later participant edits/deletion
+ok 338 - frozen receipt survives restart/concurrent workers and later participant edits/deletion
+  ---
+  duration_ms: 47.9049
+  ...
+# Subtest: snapshot failure rolls back cleanup and archive; corrected evidence succeeds with the same root key
+ok 339 - snapshot failure rolls back cleanup and archive; corrected evidence succeeds with the same root key
+  ---
+  duration_ms: 41.0644
+  ...
+# Subtest: generation identity excludes pre-reset actions even at the same timestamp; legacy entries remain readable
+ok 340 - generation identity excludes pre-reset actions even at the same timestamp; legacy entries remain readable
+  ---
+  duration_ms: 53.9418
+  ...
+# Subtest: foreign scope and post-October ledgers cannot qualify; corrupt scoring evidence fails safely
+ok 341 - foreign scope and post-October ledgers cannot qualify; corrupt scoring evidence fails safely
+  ---
+  duration_ms: 40.8598
+  ...
+# Subtest: disabled/active snapshot guards, invalid existing proof and late archive catch-up
+ok 342 - disabled/active snapshot guards, invalid existing proof and late archive catch-up
+  ---
+  duration_ms: 32.6192
+  ...
+1..342
+# tests 342
+# suites 0
+# pass 342
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 80243.3879

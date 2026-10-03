@@ -8,6 +8,7 @@ const { originalCurseRole } = require('./curse-role')
 function createAdminControls({ sequelize, models, economy, event, scope, checkAccess, environment,
   developmentStorage = resolveRuntime('development').database.storage, delivery, roleIds, badges = null }) {
   const effects = createEffects({ models, event })
+  const nicknames = require('./effect-nicknames').createEffectNicknames({ models, delivery })
   function request(input) {
     if (typeof input.reason !== 'string' || !input.reason.trim() || input.reason.trim().length > 500) throw new Error('A reason of 1–500 characters is required')
     if (typeof input.interactionId !== 'string' || !input.interactionId.trim()) throw new Error('Control interaction ID is required')
@@ -62,14 +63,10 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
         const roleId = await originalCurseRole(models, ctx, player.userId, metadata)
         await delivery.enqueue(ctx, player.userId, 'curse_role', { roleId, present: false })
       } else await cancelIntent(ctx, player.userId, 'curse_role')
-    } else if (effectType === 'reversed_nickname') {
+    }
+    if (effectType === 'reversed_nickname' || Object.hasOwn(metadata, 'originalNickname')) {
       if (!delivery) throw new Error('Discord restoration delivery is required')
-      if (!(metadata.originalNickname === null || typeof metadata.originalNickname === 'string') ||
-        typeof metadata.appliedNickname !== 'string' || metadata.appliedNickname.length > 32 ||
-        (metadata.originalNickname?.length ?? 0) > 32) throw new Error('Nickname restoration metadata is invalid')
-      await delivery.enqueue(ctx, player.userId, 'nickname', {
-        nickname: metadata.originalNickname, expectedNickname: metadata.appliedNickname,
-      })
+      await nicknames.remove(ctx, player.userId, effectType)
     }
     // Commit restoration intent and the original metadata with removal. Discord
     // projection runs later; permission failures leave durable pending work.
@@ -125,7 +122,7 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       const rows = await models.Effect.findAll({ where: { participantId: player.id }, transaction: ctx.transaction })
       const nicknameIntent = await models.Delivery.findOne({ where: { ...ctx.scope, userId: player.userId,
         kind: 'nickname', status: 'pending' }, transaction: ctx.transaction })
-      if (nicknameIntent && !rows.some(row => row.effectType === 'reversed_nickname')) {
+      if (nicknameIntent && !rows.some(row => Object.hasOwn(row.metadata || {}, 'originalNickname'))) {
         // With lost effect metadata we cannot safely infer whether this payload
         // applies or restores a nickname. Do not reset into an orphaned write.
         throw new Error('Pending nickname intent without an effect requires inspection before reset')

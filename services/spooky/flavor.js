@@ -9,7 +9,7 @@ function currencyWords(text) {
   return text.replace(/(?:🧿\s*)?\bEvil Eyes?\b/g, match => `🧿 ${match.replace(/^🧿\s*/, '')}`)
     .replace(/(?:🍬\s*)?\b(?:candy|candies)\b/gi, match => `🍬 ${match.replace(/^🍬\s*/, '')}`)
 }
-function outcomeFlavor(receipt, { actor, targets, variantKey }) {
+function outcomeFlavor(receipt, { actor, actorId, targets, variantKey }) {
   const result = receipt.result || receipt, target = targets.join(', ') || actor
   const say = (title, description, color = receipt.action === 'treat' ? 0x00ff00 : 0xff6347) => ({ title: currencyWords(title), description: currencyWords(description), color })
   if (receipt.outcome === 'lost_candy') return say('🎃 Oops! Candy Down!', `${actor} dropped the **1 candy used for this treat**, and it vanished into the shadows. No treat this time!`, 0xff6347)
@@ -30,6 +30,8 @@ function outcomeFlavor(receipt, { actor, targets, variantKey }) {
       candy_capacity: 'Your candy bag is already full!',
       no_funded_candy_target: 'Every candy stash was empty or safely protected.',
       restoration_pending: 'The last spell is still fading away. Give the Halloween magic a moment to settle!',
+      already_cursed: `${actor} is already haunted! The second curse fizzled without making it worse.`,
+      shield_blocks_curse: `${actor}'s sparkling shield turned the curse away! Their protection is still shining.`,
     }
     return say('🎃 Mischief Gone Sideways!', reasons[result.noEffect] || 'The Halloween magic fizzled this time.', 0xe67e22)
   }
@@ -49,10 +51,10 @@ function outcomeFlavor(receipt, { actor, targets, variantKey }) {
   }
   if (result.gifts && !result.deliveredCandy) return say('🍬 Sweet Thoughts!', `${actor} brought sweets for ${target}, but their candy bags are already full.`, 0x00ff00)
   if (receipt.overridden && result.gifts) return say('🎃 Your Curse Takes Over!', `${actor}'s curse turned their ${receipt.action} into a candy giveaway! **${result.deliveredCandy} candies** went to ${target}.`, 0xff6347)
-  if (result.shielded) return say('✨ A Sweet Shield!', `${actor} wrapped ${target === actor ? 'themself' : `themself and ${target}`} in Halloween magic. Their candy and Evil Eyes are protected from theft for **one hour**!`, 0x00ff00)
+  if (result.shielded) return say('✨ A Sweet Shield!', `${actor} wrapped ${result.shielded.includes(actorId) ? `themself and ${target}` : target} in Halloween magic. Their candy and Evil Eyes are protected from theft for **one hour**!`, 0x00ff00)
   if (result.cursedUserId && receipt.overridden) return say('🎃 Your Curse Spreads!', `${actor}'s curse spread to ${target}. Stop it before it gets worse!`, 0xff0000)
   if (result.cursedUserId) return say(receipt.outcome === 'curse_backfire' ? '🔮 The Curse Backfires!' : '🦇 A Wicked Curse!', `${actor}'s spell ${receipt.outcome === 'curse_backfire' ? 'bounced straight back! They are cursed' : `settled on ${target}! Watch out for their scrambled words`}. The curse lasts until broken or October ends.`, 0xff0000)
-  if (result.reversedUserId) return say('🙃 A Name Gone Backwards!', `${actor} put a backwards spell on ${target}'s name!${result.alreadyReversed ? ' It was already tangled, so the spell stays put.' : ''}`)
+  if (result.reversedUserId) return say('🙃 A Name Gone Backwards!', `${actor} put a backwards spell on ${target}'s name!${result.alreadyReversed ? `It was already tangled, so just laughed at ${target} instead.` : ''}`)
   if (result.awardedUserId) return say('🦷 SWEET TOOTH!', `${actor} found the exceptionally rare **Sweet Tooth Crown**! The **Sweet Tooth** role is theirs to wear. 🍬`, 0xffd700)
   if (result.stolen) return say(receipt.outcome === 'great_heist' ? '💰 The Great Candy Heist!' : receipt.outcome === 'steal_or_find_eye' ? '🧿 An Eye for Mischief!' : '🍬 Sticky Fingers!', `${actor} sneaked away with **${result.stolen} ${receipt.outcome === 'steal_or_find_eye' ? '🧿 Evil Eye' : '🍬 candy'}** from ${target}!`)
   if (receipt.outcome === 'find_eye' || result.found) return say('🧿 Something in the Shadows!', `${actor} spotted a glimmer in the Halloween gloom and found **1 Evil Eye**!`, 0x00ff00)

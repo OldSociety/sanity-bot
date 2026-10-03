@@ -4,6 +4,7 @@ const Sequelize = require('sequelize')
 const defineUser = require('../Models/User/User')
 const migration = require('../migrations/20261001000000-create-spooky-core')
 const deliveryMigration = require('../migrations/20261001000001-create-spooky-delivery')
+const notificationMigration = require('../migrations/20261001000002-create-spooky-notifications')
 const { defineSpookyModels } = require('../services/spooky/models')
 const { createDelivery } = require('../services/spooky/delivery')
 const { createController } = require('../services/spooky/controller')
@@ -19,9 +20,12 @@ async function fixture(t, options = {}) {
   const models = defineSpookyModels(sequelize), members = ['alice','bob'].map(userId => ({ userId, bot: false,
     displayName: userId, nickname: null, roleIds: [], canManageCurse: true, canManageNickname: true, canManageSweetTooth: true }))
   const delivery = createDelivery({ models, adapter: {} })
+  if (options.notifications) await notificationMigration.up(sequelize.getQueryInterface())
   const settings = { sequelize, User, models, delivery, fetchMembers: options.fetchMembers || (async () => members),
     roleIds: { curse: 'curse', sweetTooth: 'sweet', unwanted: 'unwanted' },
-    event: { ...config, enabled: options.enabled ?? true }, clock: () => new Date(config.startsAt), mentionRoll: () => 0, random: () => options.roll ?? 0 }
+    event: { ...config, enabled: options.enabled ?? true, gifs: { routinePercent: options.gifPercent ?? config.gifs.routinePercent } },
+    ...(options.notifications ? { notifications: require('../services/spooky/notifications').createNotifications({ models }) } : {}),
+    clock: () => new Date(config.startsAt), mentionRoll: () => 0, random: () => options.roll ?? 0 }
   const controller = createController(settings)
   const interaction = (id, subcommand, userId = 'alice') => {
     const replies = [], sent = [], order = []
@@ -33,7 +37,7 @@ async function fixture(t, options = {}) {
         const collector = new (require('node:events').EventEmitter)()
         collector.stop = reason => collector.emit('end', [], reason)
         queueMicrotask(() => collector.emit('collect', { user: { id: userId }, guildId: 'guild', channelId: 'spooky',
-          customId: 'spooky-spend-fate:' + id + ':confirm', deferUpdate: async () => {}, reply: async () => {} }))
+          customId: (subcommand === 'spend-fate' ? 'spooky-spend-fate:' + id + ':confirm' : 'spooky-target:' + id + ':0'), deferUpdate: async () => {}, reply: async () => {} }))
         return collector
       } }),
       channel: { send: async payload => { order.push('send'); if (options.failSend) throw new Error('send failed'); sent.push(payload); return { id: 'message' } } } }
@@ -56,6 +60,81 @@ test('private help/onboarding creates actual fate account atomically and never m
   assert.equal(introduction.footer.text, 'Available: 🍬 10 • 🧿 0')
   const status = f.interaction('collection', 'collection'); await f.controller.execute(status)
   assert.ok(status.replies.at(-1).embeds[0].footer.text.includes('🍬'))
+})
+
+test('leaderboard is public while collection and help remain private', async t => {
+  const f = await fixture(t)
+  for (const command of ['leaderboard', 'collection', 'help']) {
+    const interaction = f.interaction(`visibility-${command}`, command)
+    await f.controller.execute(interaction)
+    assert.equal(interaction.replies[0].ephemeral, command !== 'leaderboard')
+  }
+})
+
+test('GIF rotation reads durable root history, charges once and preserves saved replay', async t => {
+  const f = await fixture(t, { roll: 0.7, notifications: true, gifPercent: 100 })
+  await f.controller.execute(f.interaction('rotation-join', 'register'))
+  const first = f.interaction('rotation-first', 'treat')
+  await f.controller.execute(first)
+  const one = await f.models.Notification.findOne({ where: { operationId: 'discord:rotation-first' } })
+  const savedPayload = structuredClone(one.payload)
+  assert.ok(one.payload.embeds[0].image.url.includes('media.giphy.com'))
+  const second = f.interaction('rotation-second', 'treat')
+  await f.controller.execute(second)
+  const two = await f.models.Notification.findOne({ where: { operationId: 'discord:rotation-second' } })
+  assert.notEqual(two.payload.embeds[0].image.url, one.payload.embeds[0].image.url)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 8)
+  const replay = f.interaction('rotation-first', 'treat')
+  await createController({ ...f.settings, random: () => { throw Error('replay rerolled') } }).execute(replay)
+  assert.equal(await f.models.Notification.count({ where: { operationId: 'discord:rotation-first' } }), 1)
+  assert.deepEqual((await one.reload()).payload, savedPayload)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 8)
+})
+
+test('chosen shield recipient commits one action cost; replay skips the choice and random rolls', async t => {
+  const f = await fixture(t, { roll: 0.4 })
+  await f.controller.execute(f.interaction('join-choice', 'register'))
+  const first = f.interaction('shield-choice', 'treat')
+  await f.controller.execute(first)
+  assert.ok(first.replies.some(payload => payload.components?.[0]?.components[0]?.custom_id === 'spooky-target:shield-choice:0'))
+  assert.equal(first.replies.find(payload => payload.components?.length).embeds[0].footer.text, 'Available: 🍬 10 • 🧿 0')
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 9)
+  assert.deepEqual((await f.models.Operation.findByPk('discord:shield-choice')).receipt.result.shielded, ['bob'])
+  const replay = f.interaction('shield-choice', 'treat')
+  await createController({ ...f.settings, random: () => { throw Error('replay rerolled') } }).execute(replay)
+  assert.equal(replay.replies.some(payload => payload.components?.length), false)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 9)
+})
+
+test('break-curse skips a lone target, offers two/three choices and saves one paid result', async t => {
+  for (const count of [0, 1, 2, 3]) {
+    const f = await fixture(t, { roll: 0.48 })
+    f.members.push(...['carol','dan'].map(userId => ({ ...f.members[1], userId, displayName: userId })))
+    await f.controller.execute(f.interaction(`join-break-${count}`, 'register'))
+    for (const userId of ['bob','carol','dan'].slice(0, count)) {
+      await f.controller.execute(f.interaction(`join-${userId}`, 'register', userId))
+      const player = await f.models.Participant.findOne({ where: { userId } })
+      await f.models.Effect.create({ participantId: player.id, effectType: 'curse', expiresAt: config.endsAt,
+        metadata: { botOwnedRole: true, roleId: 'curse' } })
+    }
+    const action = f.interaction(`break-${count}`, 'treat')
+    await f.controller.execute(action)
+    const choice = action.replies.find(payload => payload.components?.length)
+    assert.equal(Boolean(choice), count >= 2)
+    if (choice) {
+      assert.equal(choice.components[0].components.length, count)
+      assert.match(choice.embeds[0].title, /Whose Curse/)
+    }
+    const saved = await f.models.Operation.findByPk(`discord:break-${count}`)
+    assert.equal(saved.receipt.candySpent, 1)
+    assert.equal(await f.models.Effect.count({ where: { effectType: 'curse' } }), Math.max(0, count - 1))
+    if (count) assert.ok(saved.receipt.result.freedUserId)
+    else assert.ok(saved.receipt.result.gifts.length)
+    const replay = f.interaction(`break-${count}`, 'treat')
+    await createController({ ...f.settings, random: () => { throw Error('replay rolled again') } }).execute(replay)
+    assert.equal(replay.replies.some(payload => payload.components?.length), false)
+    assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 9)
+  }
 })
 
 test('registration avatar and committed balances survive replay; re-registering grants no extra candy', async t => {

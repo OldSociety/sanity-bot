@@ -50,6 +50,19 @@ test('curse resolver uses active database effects rather than permanent role cla
   f.time(config.endsAt)
   assert.equal((await f.run('closed', async ctx => ({ cursed: await f.effects.getCurseState(ctx, 'alice') }))).receipt.cursed, false)
 })
+test('effect service prevents curse/protection overlap in either order', async t => {
+  for (const first of ['curse', 'theft_protection']) {
+    const f = await fixture(t)
+    const second = first === 'curse' ? 'theft_protection' : 'curse'
+    await f.run('first', ctx => f.effects.put(ctx, 'bob', first, { expiresAt: config.endsAt }))
+    const count = await f.models.Ledger.count()
+    await assert.rejects(f.run('opposite', ctx => f.effects.put(ctx, 'bob', second, { expiresAt: config.endsAt })), /mutually exclusive/)
+    assert.equal(await f.models.Effect.count(), 1)
+    assert.equal(await f.models.Ledger.count(), count)
+    assert.equal(await f.models.Operation.findByPk('discord:opposite'), null)
+  }
+})
+
 test('invalid/paused writes and later callback failure roll back effects, participant seed and ledger', async t => {
   const f = await fixture(t)
   await assert.rejects(() => f.run('bad', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.startsAt })), /expiry/)

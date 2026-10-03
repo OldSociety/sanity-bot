@@ -183,6 +183,9 @@ function memoryGuild(specs, options, random) {
       },
     },
     Effect: {
+      async findOne({ where }) {
+        return effectRows.find(r => matches(r, where)) || null
+      },
       async findAll({ where }) {
         return effectRows.filter((r) => matches(r, where))
       },

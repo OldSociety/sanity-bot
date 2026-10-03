@@ -35,8 +35,10 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
           if (row.kind === 'nickname') {
             const desired = row.payload.nickname
             if (current.nickname !== desired) {
-              if (current.nickname !== row.payload.expectedNickname) status = 'conflict'
-              else if (await adapter.setNickname(row.guildId, row.userId, desired, { isCurrent, expectedNickname: row.payload.expectedNickname }) === false) status = 'superseded'
+              const expected = current.nickname === row.payload.expectedNickname ? row.payload.expectedNickname :
+                Object.hasOwn(row.payload, 'alternateExpectedNickname') && current.nickname === row.payload.alternateExpectedNickname ? row.payload.alternateExpectedNickname : undefined
+              if (expected === undefined) status = 'conflict'
+              else if (await adapter.setNickname(row.guildId, row.userId, desired, { isCurrent, expectedNickname: expected }) === false) status = 'superseded'
             }
           } else {
             if (!row.payload.roleId) throw new Error('Missing role ID')

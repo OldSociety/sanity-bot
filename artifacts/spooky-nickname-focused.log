@@ -1,0 +1,327 @@
+TAP version 13
+# Subtest: admin access fails closed for every view and mismatched guild before database reads
+ok 1 - admin access fails closed for every view and mismatched guild before database reads
+  ---
+  duration_ms: 252.4413
+  ...
+# Subtest: transaction activity identifies who acted, command, outcome and charged candy without mutating state
+ok 2 - transaction activity identifies who acted, command, outcome and charged candy without mutating state
+  ---
+  duration_ms: 55.4592
+  ...
+# Subtest: inspection works with disabled play and validates explicit environment, limits, cursors and required player
+ok 3 - inspection works with disabled play and validates explicit environment, limits, cursors and required player
+  ---
+  duration_ms: 34.9409
+  ...
+# Subtest: player inspection is complete stored state, reports eligibility without awarding or refilling
+ok 4 - player inspection is complete stored state, reports eligibility without awarding or refilling
+  ---
+  duration_ms: 36.5269
+  ...
+# Subtest: transaction inspection is scoped, filtered and cursor paginated without mutations
+ok 5 - transaction inspection is scoped, filtered and cursor paginated without mutations
+  ---
+  duration_ms: 52.8724
+  ...
+# Subtest: delivery inspection joins notification ownership before filtering and leaves ambiguous sends unchanged
+ok 6 - delivery inspection joins notification ownership before filtering and leaves ambiguous sends unchanged
+  ---
+  duration_ms: 34.9021
+  ...
+# Subtest: read snapshot serializes with economy writes and survives failed reads
+ok 7 - read snapshot serializes with economy writes and survives failed reads
+  ---
+  duration_ms: 34.5781
+  ...
+# Subtest: fresh member authorization is BOTADMIN-only even for administrators and configured roles
+ok 8 - fresh member authorization is BOTADMIN-only even for administrators and configured roles
+  ---
+  duration_ms: 0.8075
+  ...
+# Subtest: admin adapter defers privately, enforces channels, suppresses mentions and bounds pages
+ok 9 - admin adapter defers privately, enforces channels, suppresses mentions and bounds pages
+  ---
+  duration_ms: 6.7938
+  ...
+# Subtest: all controls require fresh authorization/reasons and explicit validated intent
+ok 10 - all controls require fresh authorization/reasons and explicit validated intent
+  ---
+  duration_ms: 36.0908
+  ...
+# Subtest: clear queues bot-owned role restoration before removing closed/disabled effects; replay retains one intent
+ok 11 - clear queues bot-owned role restoration before removing closed/disabled effects; replay retains one intent
+  ---
+  duration_ms: 50.99
+  ...
+# Subtest: unowned curse roles survive clearing; stale add intent is cancelled without any role writes
+ok 12 - unowned curse roles survive clearing; stale add intent is cancelled without any role writes
+  ---
+  duration_ms: 50.3053
+  ...
+# Subtest: nickname clear restores null safely, preserves independent edits, and targeted reconciliation skips other users
+ok 13 - nickname clear restores null safely, preserves independent edits, and targeted reconciliation skips other users
+  ---
+  duration_ms: 69.4385
+  ...
+# Subtest: bad restoration metadata/missing delivery rolls back; post-commit role failure stays retryable
+ok 14 - bad restoration metadata/missing delivery rolls back; post-commit role failure stays retryable
+  ---
+  duration_ms: 67.1835
+  ...
+# Subtest: pause/resume is durable, replay-bound and blocks ordinary acquisition; archive never reopens
+ok 15 - pause/resume is durable, replay-bound and blocks ordinary acquisition; archive never reopens
+  ---
+  duration_ms: 38.6205
+  ...
+# Subtest: development reset rejects production/test/wrong storage and missing confirmation without deletion
+ok 16 - development reset rejects production/test/wrong storage and missing confirmation without deletion
+  ---
+  duration_ms: 39.6562
+  ...
+# Subtest: development reset preserves wallet/permanent sentinel/audit/other scopes, cancels pending awards and reports ambiguity
+ok 17 - development reset preserves wallet/permanent sentinel/audit/other scopes, cancels pending awards and reports ambiguity
+  ---
+  duration_ms: 85.9554
+  ...
+# Subtest: failed reset restoration rolls back the entire participant, inventory, effects and projection changes
+ok 18 - failed reset restoration rolls back the entire participant, inventory, effects and projection changes
+  ---
+  duration_ms: 34.852
+  ...
+# Subtest: control adapter defers privately and reconciles only after commit with the trusted target scope
+ok 19 - control adapter defers privately and reconciles only after commit with the trusted target scope
+  ---
+  duration_ms: 0.6581
+  ...
+# Subtest: every repair requires fresh authorization, exact scope, a reason and bounded validated input
+ok 20 - every repair requires fresh authorization, exact scope, a reason and bounded validated input
+  ---
+  duration_ms: 26.5227
+  ...
+# Subtest: candy corrections are bounded stored deltas, preserve partial anchors and discard full-cap surplus
+ok 21 - candy corrections are bounded stored deltas, preserve partial anchors and discard full-cap surplus
+  ---
+  duration_ms: 57.537
+  ...
+# Subtest: Eye correction converts at five atomically, concurrent replay never rerolls and altered payloads reject
+ok 22 - Eye correction converts at five atomically, concurrent replay never rerolls and altered payloads reject
+  ---
+  duration_ms: 78.9352
+  ...
+# Subtest: grant correction exchanges exactly five extras, keeps first copies and replays one grant
+ok 23 - grant correction exchanges exactly five extras, keeps first copies and replays one grant
+  ---
+  duration_ms: 35.0391
+  ...
+# Subtest: quarter removal corrects one copy only; only-copy removal requires explicit intent and changes eligibility
+ok 24 - quarter removal corrects one copy only; only-copy removal requires explicit intent and changes eligibility
+  ---
+  duration_ms: 51.7249
+  ...
+# Subtest: repair finalization/RNG failure rolls back debit, grant, exchange and audit; retry succeeds
+ok 25 - repair finalization/RNG failure rolls back debit, grant, exchange and audit; retry succeeds
+  ---
+  duration_ms: 76.5521
+  ...
+# Subtest: repairs bypass disabled/pause only, never closure/archive or required registration
+ok 26 - repairs bypass disabled/pause only, never closure/archive or required registration
+  ---
+  duration_ms: 49.3777
+  ...
+# Spooky public delivery pending (discord:ui-repair): timeout
+# Spooky public delivery pending (discord:ui-repair): Notification requires delivery inspection
+# Subtest: repair adapter queues big awards for the player, keeps reasons private and survives public send failure/replay
+ok 27 - repair adapter queues big awards for the player, keeps reasons private and survives public send failure/replay
+  ---
+  duration_ms: 62.8532
+  ...
+# Subtest: Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+ok 28 - Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+  ---
+  duration_ms: 352.9255
+  ...
+# Subtest: startup after downtime restores owned effects; committed replay retries pending delivery
+ok 29 - startup after downtime restores owned effects; committed replay retries pending delivery
+  ---
+  duration_ms: 103.7985
+  ...
+# Subtest: active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+ok 30 - active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+  ---
+  duration_ms: 78.2893
+  ...
+# Subtest: cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+ok 31 - cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+  ---
+  duration_ms: 64.8417
+  ...
+# Subtest: cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+ok 32 - cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+  ---
+  duration_ms: 60.0155
+  ...
+# Subtest: queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+ok 33 - queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+  ---
+  duration_ms: 53.7096
+  ...
+# Subtest: scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+ok 34 - scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+  ---
+  duration_ms: 0.9816
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 35 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 342.2318
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 36 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 92.4572
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 37 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 125.1316
+  ...
+# Subtest: curse/shield nicknames compose and restore the original at break, expiry and closure
+ok 38 - curse/shield nicknames compose and restore the original at break, expiry and closure
+  ---
+  duration_ms: 128.9781
+  ...
+# Subtest: baseline is captured on first mutation, shared across effects and restored after October
+ok 39 - baseline is captured on first mutation, shared across effects and restored after October
+  ---
+  duration_ms: 106.2418
+  ...
+# Subtest: null baseline remains null through curse and shield; removing shield reveals readable curse
+ok 40 - null baseline remains null through curse and shield; removing shield reveals readable curse
+  ---
+  duration_ms: 148.8887
+  ...
+# Subtest: readable appearance has one wrapper and respects Discord nickname length
+ok 41 - readable appearance has one wrapper and respects Discord nickname length
+  ---
+  duration_ms: 0.7522
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 42 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 113.6714
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 43 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 151.4531
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 44 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 86.4897
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 45 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 80.8034
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 46 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 129.1628
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 47 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 198.2296
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 48 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 75.4954
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 49 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 29.8748
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 50 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 48.9241
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 51 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 58.7854
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 52 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 9.654
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 53 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 23.1795
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 54 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 51.7495
+  ...
+# Subtest: token notification sends local files from durable descriptors and acknowledges fresh attachment evidence
+ok 55 - token notification sends local files from durable descriptors and acknowledges fresh attachment evidence
+  ---
+  duration_ms: 372.1669
+  ...
+# Subtest: resolution is authorized, owner scoped and explicitly validated without touching resources
+ok 56 - resolution is authorized, owner scoped and explicitly validated without touching resources
+  ---
+  duration_ms: 46.0496
+  ...
+# Subtest: acknowledgement requires fresh matching bot message evidence; replay needs no new evidence and rejects changed requests
+ok 57 - acknowledgement requires fresh matching bot message evidence; replay needs no new evidence and rejects changed requests
+  ---
+  duration_ms: 43.4512
+  ...
+# Subtest: pending retry sends one selected row only; uncertain resend creates an audited copy without rerolling
+ok 58 - pending retry sends one selected row only; uncertain resend creates an audited copy without rerolling
+  ---
+  duration_ms: 122.0528
+  ...
+# Subtest: stale evidence rejects resolution; late send failure cannot undo an audited in-flight cancellation
+ok 59 - stale evidence rejects resolution; late send failure cannot undo an audited in-flight cancellation
+  ---
+  duration_ms: 49.4027
+  ...
+# Subtest: projection acknowledgement verifies observed state and cancellation invalidates the old revision
+ok 60 - projection acknowledgement verifies observed state and cancellation invalidates the old revision
+  ---
+  duration_ms: 33.2886
+  ...
+# Subtest: independent nickname changes and orphaned applications cannot retry; cancellation safely unblocks inspection/reset
+ok 61 - independent nickname changes and orphaned applications cannot retry; cancellation safely unblocks inspection/reset
+  ---
+  duration_ms: 37.596
+  ...
+# Subtest: audited restoration retries after closure, retains source revision and reconciles only its selected row
+ok 62 - audited restoration retries after closure, retains source revision and reconciles only its selected row
+  ---
+  duration_ms: 35.8256
+  ...
+# Subtest: resolution adapter stays private, commits before dispatch and uses the saved source channel/row
+ok 63 - resolution adapter stays private, commits before dispatch and uses the saved source channel/row
+  ---
+  duration_ms: 4.1376
+  ...
+1..63
+# tests 63
+# suites 0
+# pass 63
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9470.9388

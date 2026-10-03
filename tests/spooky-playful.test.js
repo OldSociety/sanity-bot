@@ -12,7 +12,7 @@ const { createPlayful } = require('../services/spooky/playful')
 const { createDelivery } = require('../services/spooky/delivery')
 const { config } = require('../services/spooky/config')
 
-async function fixture(t) {
+async function fixture(t, random = () => 0) {
   const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
   t.after(() => sequelize.close())
   await migration.up(sequelize.getQueryInterface()); await deliveryMigration.up(sequelize.getQueryInterface())
@@ -32,13 +32,190 @@ async function fixture(t) {
   }
   const delivery = createDelivery({ models, adapter })
   const playful = createPlayful({ models, participants, effects, collection, delivery, listMembers: () => members,
-    roleIds: { curse: 'curse-role', sweetTooth: 'sweet-role' }, event, random: () => 0 })
+    roleIds: { curse: 'curse-role', sweetTooth: 'sweet-role' }, event, random })
   const scope = { eventId: config.eventId, guildId: 'guild' }
   const run = (key, callback) => economy.execute({ ...scope, actorId: 'alice', interactionId: key, operationType: 'playful_test' }, callback)
   const invoke = (key, outcome) => run(key, ctx => playful.handlers[outcome](ctx, { actorId: 'alice', outcome }))
-  return { sequelize, models, effects, playful, delivery, members, scope, run, invoke, adapter,
+  return { sequelize, models, participants, effects, playful, delivery, members, scope, run, invoke, adapter,
     time: value => { now = new Date(value) }, fail: value => { failure = value }, calls: () => networkCalls }
 }
+
+test('self curse cannot renew; target choices omit existing curses and shields', async t => {
+  const f = await fixture(t)
+  await f.invoke('self-first', 'curse_backfire')
+  const before = (await f.models.Effect.findOne()).get({ plain: true })
+  assert.equal((await f.invoke('self-again', 'curse_backfire')).receipt.noEffect, 'already_cursed')
+  assert.deepEqual((await f.models.Effect.findOne()).get({ plain: true }), before)
+  await f.delivery.reconcile(f.scope)
+  await f.invoke('curse-bob', 'curse_target'); await f.delivery.reconcile(f.scope)
+  const targets = await f.run('eligible', async ctx => ({ ids: (await f.playful.choiceCandidates(ctx, { actorId: 'alice', outcome: 'curse_target' })).map(member => member.userId) }))
+  assert.deepEqual(targets.receipt.ids, ['carol','dan'])
+})
+
+test('a chosen break-curse target is revalidated; vanished curse cannot become a different gift', async t => {
+  const f = await fixture(t)
+  await f.invoke('curse-for-choice', 'curse_target'); await f.delivery.reconcile(f.scope)
+  await f.invoke('already-freed', 'break_curse'); await f.delivery.reconcile(f.scope)
+  const before = await f.models.Ledger.count()
+  await assert.rejects(f.run('stale-break', ctx => f.playful.handlers.break_curse(ctx, {
+    actorId: 'alice', outcome: 'break_curse', targetUserId: 'bob' })), /already been broken/)
+  assert.equal(await f.models.Ledger.count(), before)
+  assert.equal(await f.models.Operation.findByPk('discord:stale-break'), null)
+})
+
+test('shield is recipient-only above 20%; repeat shared protection never renews caller', async t => {
+  const recipientOnly = await fixture(t, () => 0.2)
+  assert.equal((await recipientOnly.invoke('single', 'temporary_immunity')).receipt.shielded.length, 1)
+  const f = await fixture(t)
+  await f.invoke('shared', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
+  const player = await f.models.Participant.findOne({ where: { userId: 'alice' } })
+  const before = (await f.models.Effect.findOne({ where: { participantId: player.id, effectType: 'theft_protection' } })).get({ plain: true })
+  assert.deepEqual((await f.invoke('another-shield', 'temporary_immunity')).receipt.shielded, ['carol'])
+  assert.deepEqual((await f.models.Effect.findOne({ where: { participantId: player.id, effectType: 'theft_protection' } })).get({ plain: true }), before)
+})
+
+test('protection cures a cursed target; a fresh shield restores after exactly one hour', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Player'
+  await f.invoke('curse-name', 'curse_target'); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, '☠ Player ☠')
+  const cure = await f.run('shield-name', ctx => f.playful.handlers.temporary_immunity(ctx, { actorId: 'alice', outcome: 'temporary_immunity', targetUserId: 'bob' }))
+  await f.delivery.reconcile(f.scope)
+  assert.equal(cure.receipt.freedUserId, 'bob')
+  assert.equal(f.members[1].nickname, 'Player')
+  assert.equal(f.members[1].roleIds.includes('curse-role'), false)
+  assert.equal(await f.models.Effect.count(), 0)
+  await f.run('fresh-shield', ctx => f.playful.handlers.temporary_immunity(ctx, { actorId: 'alice', targetUserId: 'bob' }))
+  await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, '✨( Player )✨')
+  f.time(new Date(Date.parse(config.startsAt) + 3599999))
+  await f.run('not-expired', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, '✨( Player )✨')
+  f.time(new Date(Date.parse(config.startsAt) + 3600000))
+  await f.run('expire-name', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Player')
+})
+
+test('baseline is captured on first mutation, shared across effects and restored after October', async t => {
+  const f = await fixture(t)
+  await f.run('registration', async ctx => { await f.participants.prepare(ctx, 'bob', { register: true }); return {} })
+  f.members[1].nickname = 'Hadley ✨'
+  await f.invoke('first-mutation', 'reverse_nickname'); await f.delivery.reconcile(f.scope)
+  await f.run('curse-over-reversal', ctx => f.playful.handlers.curse_target(ctx, { actorId: 'alice', targetUserId: 'bob' }))
+  await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, '☠ Hadley ✨ ☠')
+  const player = await f.models.Participant.findOne({ where: { userId: 'bob' } })
+  const rows = await f.models.Effect.findAll({ where: { participantId: player.id } })
+  assert.equal(rows.length, 2)
+  assert.ok(rows.every(row => row.metadata.originalNickname === 'Hadley ✨'))
+  f.time(config.endsAt)
+  await f.run('restore-every-effect', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Hadley ✨')
+  assert.equal(await f.models.Effect.count(), 0)
+})
+
+test('pending curse cured by protection restores a null baseline without leaving a shield', async t => {
+  const f = await fixture(t)
+  await f.invoke('curse-null', 'curse_target')
+  await f.run('shield-null', ctx => f.playful.handlers.temporary_immunity(ctx, { actorId: 'alice', targetUserId: 'bob' }))
+  await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, null)
+  assert.equal(f.members[1].roleIds.includes('curse-role'), false)
+  assert.equal(await f.models.Effect.count(), 0)
+})
+
+test('readable appearance has one wrapper and respects Discord nickname length', () => {
+  const { project } = require('../services/spooky/effect-nicknames')
+  assert.equal(project('Hadley', 'fallback', ['reversed_nickname', 'theft_protection', 'curse']), '☠ Hadley ☠')
+  assert.equal(project('Hadley', 'fallback', ['reversed_nickname', 'theft_protection']), '✨( Hadley )✨')
+  assert.equal(project('Hadley', 'fallback', ['reversed_nickname']), 'yeldaH')
+  for (const type of ['curse', 'theft_protection']) {
+    const value = project('🎃'.repeat(16), 'fallback', [type])
+    assert.ok(value.length <= 32)
+    assert.equal(value.includes('\uFFFD'), false)
+  }
+})
+
+test('shield blocks targeted curses and self backfires without changing expiry or nickname', async t => {
+  const f = await fixture(t)
+  await f.invoke('shield', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
+  const before = (await f.models.Effect.findAll()).map(row => row.get({ plain: true }))
+  const targets = await f.run('unshielded-choices', async ctx => ({ ids: (await f.playful.choiceCandidates(ctx, { actorId: 'alice', outcome: 'curse_target' })).map(member => member.userId) }))
+  assert.deepEqual(targets.receipt.ids, ['carol', 'dan'])
+  assert.equal((await f.invoke('self-blocked', 'curse_backfire')).receipt.noEffect, 'shield_blocks_curse')
+  await assert.rejects(f.run('stale-choice', ctx => f.playful.handlers.curse_target(ctx, { actorId: 'alice', targetUserId: 'bob' })), /no longer eligible/)
+  assert.deepEqual((await f.models.Effect.findAll()).map(row => row.get({ plain: true })), before)
+  assert.equal(f.members[0].nickname, '✨( alice )✨')
+})
+
+test('maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Player'
+  await f.invoke('legacy-curse', 'curse_target'); await f.delivery.reconcile(f.scope)
+  const player = await f.models.Participant.findOne({ where: { userId: 'bob' } })
+  const curse = await f.models.Effect.findOne({ where: { participantId: player.id } })
+  await f.models.Effect.create({ participantId: player.id, effectType: 'theft_protection',
+    expiresAt: new Date(Date.parse(config.startsAt) + 3600000), metadata: { ...curse.metadata } })
+  const result = await f.run('normalize-overlap', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.ok(result.receipt.cleared.some(row => row.reason === 'protection_broke_curse'))
+  assert.equal(f.members[1].nickname, '✨( Player )✨')
+  assert.equal(f.members[1].roleIds.includes('curse-role'), false)
+  const shield = await f.models.Effect.findOne({ where: { participantId: player.id } })
+  f.members[1].nickname = '(( Player ))'
+  await shield.update({ metadata: { ...shield.metadata, appliedNickname: '(( Player ))' } })
+  await f.run('refresh-old-style', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, '✨( Player )✨')
+  const revision = (await f.models.Delivery.findOne({ where: { userId: 'bob', kind: 'nickname' } })).revision
+  await f.run('already-current', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal((await f.models.Delivery.findOne({ where: { userId: 'bob', kind: 'nickname' } })).revision, revision)
+  f.time(new Date(Date.parse(config.startsAt) + 3600000))
+  await f.run('expire-normalized', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Player')
+})
+
+test('old-style refresh and later cleanup never overwrite a manually chosen nickname', async t => {
+  const f = await fixture(t)
+  await f.invoke('shield', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
+  const player = await f.models.Participant.findOne({ where: { userId: 'bob' } })
+  const shield = await f.models.Effect.findOne({ where: { participantId: player.id } })
+  await shield.update({ metadata: { ...shield.metadata, appliedNickname: '(( bob ))' } })
+  f.members[1].nickname = 'My chosen name'
+  await f.run('refresh', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'My chosen name')
+  assert.equal((await f.models.Delivery.findOne({ where: { userId: 'bob', kind: 'nickname' } })).status, 'conflict')
+  f.time(config.endsAt)
+  await f.run('end', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'My chosen name')
+})
+
+test('legacy null baseline without a display snapshot is preserved until safe final restoration', async t => {
+  const f = await fixture(t)
+  await f.run('legacy', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.endsAt,
+    metadata: { botOwnedRole: true, roleId: 'curse-role', originalNickname: null, appliedNickname: 'B!$ 🦇' } }))
+  f.members[1].nickname = 'B!$ 🦇'; f.members[1].roleIds = ['curse-role']
+  await f.run('keep-proof', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'B!$ 🦇')
+  assert.equal(await f.models.Delivery.count(), 0)
+  f.time(config.endsAt)
+  await f.run('restore-null', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, null)
+  assert.deepEqual(f.members[1].roleIds, [])
+})
+
+test('unapplied combined nickname intents restore safely; manual edits are never overwritten', async t => {
+  const f = await fixture(t)
+  f.members[1].nickname = 'Player'
+  await f.invoke('pending-curse', 'curse_target')
+  f.time(config.endsAt)
+  await f.run('close-pending', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(f.members[1].nickname, 'Player')
+  const g = await fixture(t)
+  await g.invoke('manual-curse', 'curse_target'); await g.delivery.reconcile(g.scope)
+  g.members[1].nickname = 'My chosen name'
+  await g.invoke('manual-clear', 'break_curse'); await g.delivery.reconcile(g.scope)
+  assert.equal(g.members[1].nickname, 'My chosen name')
+  assert.equal((await g.models.Delivery.findOne({ where: { userId: 'bob', kind: 'nickname' } })).status, 'conflict')
+})
 
 test('cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role', async t => {
   const f = await fixture(t)
@@ -63,11 +240,11 @@ test('failed curse removal survives another hit and eventually removes only the 
   await f.invoke('curse', 'curse_target'); await f.delivery.reconcile(f.scope)
   f.fail(true)
   await f.invoke('break', 'break_curse'); await f.delivery.reconcile(f.scope)
-  const before = (await f.models.Delivery.findOne()).get({ plain: true })
+  const before = (await f.models.Delivery.findOne({ where: { kind: 'curse_role' } })).get({ plain: true })
   assert.equal(before.status, 'pending'); assert.equal(before.payload.present, false)
-  assert.equal((await f.invoke('again', 'curse_target')).receipt.noEffect, 'restoration_pending')
+  await assert.rejects(f.run('again', ctx => f.playful.handlers.curse_target(ctx, { actorId: 'alice', outcome: 'curse_target', targetUserId: 'bob' })), /no longer eligible/)
   assert.equal(await f.models.Effect.count(), 0)
-  const after = await f.models.Delivery.findOne()
+  const after = await f.models.Delivery.findOne({ where: { kind: 'curse_role' } })
   assert.equal(after.revision, before.revision); assert.deepEqual(after.payload, before.payload)
   f.time(config.endsAt); await f.run('close', ctx => f.playful.cleanup(ctx))
   f.fail(false); await f.delivery.reconcile(f.scope)
@@ -110,7 +287,7 @@ test('ordinary/double/cursed gifts use actual recipients, cap credits, and immun
   await f.models.Participant.update({ candy: 80 }, { where: { userId: 'bob' } })
   assert.equal((await f.invoke('cap', 'double_gift')).receipt.deliveredCandy, 0)
   await f.invoke('renew', 'temporary_immunity')
-  assert.equal(await f.models.Effect.count({ where: { effectType: 'theft_protection' } }), 2)
+  assert.equal(await f.models.Effect.count({ where: { effectType: 'theft_protection' } }), 3)
 })
 
 test('curse apply/spread/backfire are durable; break clears owned role with post-commit intent', async t => {
@@ -128,6 +305,8 @@ test('curse apply/spread/backfire are durable; break clears owned role with post
   await f.invoke('break-bob', 'break_curse')
   await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].roleIds.includes('curse-role'), false)
+  await f.invoke('break-carol', 'break_curse')
+  await f.delivery.reconcile(f.scope)
   assert.equal((await f.invoke('fallback', 'break_curse')).receipt.deliveredCandy, 1)
 })
 

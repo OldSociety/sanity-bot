@@ -76,7 +76,11 @@ test('startup after downtime restores owned effects; committed replay retries pe
     await f.effects.put(ctx, 'alice', 'curse', { expiresAt: config.endsAt, metadata: { botOwnedRole: true, roleId: 'curse-role' } })
     await f.effects.put(ctx, 'alice', 'reversed_nickname', { expiresAt: config.endsAt,
       metadata: { originalNickname: null, appliedNickname: 'ecilA' } })
-    await f.effects.put(ctx, 'alice', 'theft_protection', { expiresAt: new Date(ctx.now.getTime() + 3600000) })
+    // Persisted legacy overlap is still recoverable after downtime; new writes
+    // now reject this combination at the service boundary.
+    const player = await f.models.Participant.findOne({ where: { ...ctx.scope, userId: 'alice' }, transaction: ctx.transaction })
+    await f.models.Effect.create({ participantId: player.id, effectType: 'theft_protection',
+      expiresAt: new Date(ctx.now.getTime() + 3600000), metadata: {} }, { transaction: ctx.transaction })
     return {}
   })
   f.member.nickname = 'ecilA'; f.member.roleIds = ['curse-role', 'sweet-role']

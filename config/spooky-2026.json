@@ -1,5 +1,6 @@
 {
-  "version": 11,
+  "version": 16,
+  "gifs": { "routinePercent": 10 },
   "eventId": "spooky-2026",
   "enabled": false,
   "developmentEnabled": true,
@@ -40,6 +41,7 @@
     "retainAfterCompletion": true
   },
   "protection": {
+    "bothPercent": 20,
     "theftDurationMs": 3600000,
     "eyeVictimActivityWindowMs": null,
     "dailyVictimLossLimit": null
@@ -50,6 +52,7 @@
     "messageTransformPercent": 20,
     "messageReversePercent": 50
   },
+  "targetChoice": { "timeoutMs": 20000 },
   "treatOutcomes": [
     {
       "id": "lost_candy",

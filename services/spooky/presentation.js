@@ -96,6 +96,7 @@ function actionMessages(
     members.find((member) => member.userId === actorId)?.displayName,
   )}**`
   const flavor = require('./flavor').outcomeFlavor(receipt, {
+    actorId,
     actor,
     targets: ids.map(label),
     variantKey,
@@ -335,8 +336,11 @@ function helpScreen() {
       '**Extra quarter:** `/spooky spend-fate` lets you confirm spending **10 Fate Points**, using **Bank first, then Fate**; no daily limit.',
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
       'Five 🧿 Evil Eyes automatically award a quarter. Five extra copies automatically become a missing piece. First copies stay safe.',
-      'Tricks randomly steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
-      'One-hour protection covers giver and recipient. Effects involving another player are public; registered targets are tagged.',
+      'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
+      'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',
+      'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',
+      'Protection lasts one hour, usually shielding the recipient and sometimes the giver too. Shields block curses; protection cast on a cursed player breaks their curse instead. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',
+      'Effects involving another player are public; occasional recipient links appear inside the embed without notification pings. `/spooky leaderboard` shows public rankings.',
       'Quarter reveals are public. Personal screens are private. Play throughout October in Pacific time; no post-October redemption.',
       'Complete a character to earn a permanent badge. See your badges in `/spooky collection`. Tricks and treats both build your Scream Supreme standing; scoring details stay hidden.',
     ].join('\n'),

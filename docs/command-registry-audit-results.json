@@ -2,7 +2,7 @@
   "checksPassed": true,
   "scope": "offline full working-tree registry versus local HEAD",
   "branch": "feature/S-1-spooky",
-  "baselineCommit": "6e2375e335e0df3d8838e0ddb8848dae76869f4c",
+  "baselineCommit": "879fc143321ecb6b1d38f1f7c73b1024d1fb6927",
   "databaseOpened": false,
   "discordContacted": false,
   "environmentCredentialsRead": false,

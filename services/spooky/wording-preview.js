@@ -23,6 +23,8 @@ function wordingPages() {
     for (let i = 0; i < (outcome.id === 'standard_gift' ? 100 : 1); i++) add({ action, outcome: outcome.id, result: samples[outcome.id] }, String(i))
   }
   add({ action: 'trick', outcome: 'steal_or_find_eye', result: { found: 1 } })
+  add({ action: 'treat', outcome: 'temporary_immunity', result: { shielded: ['recipient'] } })
+  add({ action: 'trick', outcome: 'curse_backfire', result: { noEffect: 'already_cursed' } })
   add({ action: 'trick', outcome: 'reverse_nickname', result: { reversedUserId: 'recipient', alreadyReversed: true } })
   for (const action of ['trick', 'treat']) add({ action, outcome: 'curse_distribution', overridden: true, result: { gifts: [{ userId: 'recipient' }], deliveredCandy: action === 'treat' ? 3 : 2 } })
   add({ action: 'treat', outcome: 'curse_spread', overridden: true, result: { cursedUserId: 'recipient' } })

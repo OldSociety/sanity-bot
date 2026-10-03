@@ -1,0 +1,19 @@
+{
+  "standard_gift": ["l0MYDLbr0PaCAgwuY", "WdSMGOeNDeVRQx0v7s", "qzTjsnTf3JFxS", "B3fnEdcns0bD2", "8Pd4vvz00KoZa", "FALQSnocJzr3y"],
+  "double_gift": ["l3q2ZPQXFdd0zDDzO", "B6VEpUtkZVzvqlchyc", "qzTjsnTf3JFxS", "B3fnEdcns0bD2", "LrcrCHk4PXDRS"],
+  "lost_candy": ["3ohhwL3rxwYRKysMHm", "4Oo1AUB1VtSOk0hr13", "eomy8S00ljwjK", "O8ZHE5GefZAli", "UtEvubvQl0kAjNf4Wh"],
+  "sweet_tooth": ["paMx1FUETjdHPZ7uAO", "Z9o1CZDg5bIrquZDCS", "B3fnEdcns0bD2", "FALQSnocJzr3y", "10m8P1WznJjLK8"],
+  "temporary_immunity": ["RNZyaeQhJxFoSM3t9a", "11jokITGudhl8Q", "UePr0sPcSGPIY", "3o72EWnHXUDOG4X7Ec", "l2SpQot6b4MxmsqOs"],
+  "break_curse": ["T3owJ5YOPgt7XbZwRC", "11jokITGudhl8Q", "qiFb2m5kSfyQrcXfFj", "UePr0sPcSGPIY", "26BoCdWySqRcaupWw"],
+  "curse_target": ["TbOdCAtifvGH0X8eAG", "aEK2Ln4nChX4UWFXal", "t9xC86uywfQ1G", "KsKuFJ062kmAoLsi9D", "3o7TKSf6zEJCPq0Zwc", "wRsGJanSUAuha"],
+  "curse_spread": ["nqhEBdA3DOIF9LWWu3", "7GyFUKILrL9F7SR0hm", "FfpwDJ7m228GA", "MBUTbLepvhVD5cGnfz", "l2Sq22Pjha4pVTCYE", "a781MHjyuakcU"],
+  "curse_backfire": ["3ohhwL3rxwYRKysMHm", "dz0pg3NyxlCbKY7ZV8", "eomy8S00ljwjK", "NGDSQlPJiWImc", "l2SpKbJsLnFOfvTDW"],
+  "curse_distribute_two": ["gWOnlfSwXjbl0c603K", "l3q2ZPQXFdd0zDDzO", "qzTjsnTf3JFxS", "LrcrCHk4PXDRS", "B3fnEdcns0bD2"],
+  "curse_distribute_three": ["l3q2ZPQXFdd0zDDzO", "gWOnlfSwXjbl0c603K", "FfpwDJ7m228GA", "MBUTbLepvhVD5cGnfz", "R19DedSfkJdtv0VknG"],
+  "steal_candy": ["3ov9jDlf8D53HCwGNW", "10m8P1WznJjLK8", "lGXoEM0fcPxWE", "xT8qB72Dfmxd8nv9DO"],
+  "great_heist": ["3ov9jDlf8D53HCwGNW", "10m8P1WznJjLK8", "lGXoEM0fcPxWE", "3o72F6tBnEy0Zfx26Y"],
+  "reverse_nickname": ["Oq2P8eaKlC4ZFaoGZ9", "VetcZxt69UenPRTF1I", "O8ZHE5GefZAli", "UtEvubvQl0kAjNf4Wh", "26uf31buHdxb2fYcw"],
+  "caught_stealing": ["jznYjrSdaNrgJ2sTvD", "eomy8S00ljwjK", "69FmYZBku9m81vhGH3", "UtEvubvQl0kAjNf4Wh"],
+  "find_eye": ["gWOnlfSwXjbl0c603K", "l2SpQot6b4MxmsqOs", "26uf31buHdxb2fYcw", "qiFb2m5kSfyQrcXfFj", "122JKAK2BrDx8Q"],
+  "steal_or_find_eye": ["3ov9jDlf8D53HCwGNW", "gWOnlfSwXjbl0c603K", "10m8P1WznJjLK8", "lGXoEM0fcPxWE", "l2Sq22Pjha4pVTCYE"]
+}

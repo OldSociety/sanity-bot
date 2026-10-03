@@ -94,7 +94,7 @@ async function execute(interaction) {
     const service = runtime(interaction.client)
     if (interaction.guildId !== process.env.GUILDID) throw new Error('Use the configured Spooky server')
     // Cleanup before delivery prevents expired pending role intents being applied.
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
     await service.maintenance(`before:${interaction.id}`)
     await service.controller.execute(interaction)
     await service.maintenance(`after:${interaction.id}`)

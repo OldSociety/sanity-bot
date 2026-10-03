@@ -67,7 +67,7 @@ function createController({
     )
   }
   async function executeCommand(interaction, purchaseApproval = null) {
-    if (!interaction.deferred) await interaction.deferReply({ ephemeral: true })
+    if (!interaction.deferred) await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
     const subcommand = interaction.options.getSubcommand()
     const input = {
       eventId: event.eventId,
@@ -308,7 +308,7 @@ function createController({
           snapshot.map((member) => [member.userId, member.displayName]),
         ),
       })
-      const messages = actionMessages(receipt, {
+      const messages = (await require('./gifs').withRecentActionGif(receipt, actionMessages(receipt, {
         actorId: input.actorId,
         members: snapshot,
         registeredIds,
@@ -319,7 +319,8 @@ function createController({
           typeof interaction.user.displayAvatarURL === 'function'
             ? interaction.user.displayAvatarURL()
             : undefined,
-      }).map((message) => ({
+      }), { operationId: ctx.operationId, routinePercent: event.gifs.routinePercent },
+      { models: notifications ? models : null, ctx, channelId: interaction.channelId })).map((message) => ({
         ...message,
         payload: withBalances(message.payload, receipt, ctx.now, event),
       }))
@@ -408,6 +409,13 @@ function createController({
           participants,
           event,
           random,
+          clock,
+          prepareChoice: {
+            candidates: async (ctx, plan) => require('./theft').randomTargets(await playful.choiceCandidates(ctx, plan), 3, random),
+            choose: (selected, candidates, balances) => selected.outcome === 'break_curse' && candidates.length === 1 ? candidates[0].userId : require('./target-choice').chooseTarget(interaction, candidates, {
+              outcome: selected.outcome, timeoutMs: event.targetChoice.timeoutMs, random, balances, event,
+            }),
+          },
           handlers,
           getCurseState: effects.getCurseState,
           finalizeReceipt,
@@ -457,7 +465,7 @@ function createController({
     if (locks.has(interaction.id)) return locks.get(interaction.id)
     const work = (async () => {
       if (!interaction.deferred)
-        await interaction.deferReply({ ephemeral: true })
+        await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
       const input = {
         eventId: event.eventId,
         guildId: interaction.guildId,

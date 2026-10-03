@@ -55,6 +55,10 @@ module.exports = {
     // Handle Button Interactions
     else if (interaction.isButton()) {
       const customId = interaction.customId;
+      if (customId.startsWith('spooky-target:') && !require('../services/spooky/target-choice').hasSession(customId)) {
+        await interaction.reply({ content: 'This Halloween choice has ended. This click cannot spend candy or change its result.', ephemeral: true }).catch(() => {})
+        return
+      }
       if (customId.startsWith('spooky-spend-fate:') && !require('../services/spooky/fate-confirmation').hasSession(customId)) {
         await interaction.reply({ content: 'This confirmation expired. Nothing was spent by this click; use /spooky spend-fate to review a new purchase.', ephemeral: true }).catch(() => {})
         return

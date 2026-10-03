@@ -20,6 +20,11 @@ function createEffects({ models, participants, event = defaultConfig }) {
     const state = await models.EventState.findOne({ where: ctx.scope, transaction: ctx.transaction })
     if (state?.actionsPaused) throw new Error('Spooky actions are paused')
     const where = { participantId: participant.id, effectType }
+    if (effectType === 'curse' || effectType === 'theft_protection') {
+      const other = await models.Effect.findOne({ where: { participantId: participant.id,
+        effectType: effectType === 'curse' ? 'theft_protection' : 'curse' }, transaction: ctx.transaction })
+      if (other && new Date(other.expiresAt) > ctx.now) throw new Error('Curse and protection are mutually exclusive')
+    }
     const existing = await models.Effect.findOne({ where, transaction: ctx.transaction })
     // Reapplications update one durable row; callers decide renewal policy.
     if (existing) await existing.update({ expiresAt: expiry, metadata }, { transaction: ctx.transaction })

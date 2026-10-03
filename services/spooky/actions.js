@@ -22,10 +22,30 @@ function selectAction({ action, cursed = false, event = defaultConfig, random = 
 }
 
 function createActions({ models, economy, participants, handlers, getCurseState, event = defaultConfig,
-  random = Math.random, finalizeReceipt = async (_ctx, receipt) => receipt }) {
+  random = Math.random, prepareChoice = null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (typeof getCurseState !== 'function') throw new Error('Trusted curse state resolver is required')
   async function execute(input) {
     if (!['trick', 'treat'].includes(input.action)) throw new Error('Unknown spooky action')
+    let planned = null
+    if (prepareChoice) {
+      // Read/roll before the private choice, never hold SQLite's writer lock
+      // while a human or Discord responds. Nothing is charged until commit.
+      planned = await economy.read(async transaction => {
+        if (await models.Operation.findByPk(`discord:${input.interactionId}`, { transaction })) return null
+        const ctx = { transaction, scope: { eventId: input.eventId, guildId: input.guildId }, now: clock() }
+        if (!event.enabled || require('./config').getEventState(ctx.now, event) !== 'ACTIVE') throw new Error('Spooky is not active')
+        const participant = await models.Participant.findOne({ where: { ...ctx.scope, userId: input.actorId }, transaction })
+        const state = await models.EventState.findOne({ where: ctx.scope, transaction })
+        if (!participant?.registeredAt) throw new Error('Spooky action requires registration')
+        if (state?.actionsPaused || state?.archivedAt) throw new Error('Spooky actions are paused or closed')
+        const candy = require('./participants').calculateRefill({ ...participant.get({ plain: true }), now: ctx.now, event }).candy
+        if (candy < event.candy.actionCost) throw new Error('Insufficient candy')
+        const cursed = await getCurseState(ctx, input.actorId)
+        const selected = selectAction({ action: input.action, cursed, event, random })
+        return { selected, cursed, balances: { candy, eyes: participant.eyes }, candidates: await prepareChoice.candidates(ctx, { ...selected, actorId: input.actorId }) }
+      })
+      if (planned?.candidates.length) planned.selected.targetUserId = await prepareChoice.choose(planned.selected, planned.candidates, planned.balances)
+    }
     return economy.execute({ ...input, operationType: `spooky_${input.action}` }, async ctx => {
       const { participant } = await participants.prepare(ctx, input.actorId)
       if (!participant.registeredAt) throw new Error('Spooky action requires registration')
@@ -33,7 +53,9 @@ function createActions({ models, economy, participants, handlers, getCurseState,
       if (state?.actionsPaused) throw new Error('Spooky actions are paused')
       const baseCost = event.candy.actionCost
       if (participant.candy < baseCost) throw new Error('Insufficient candy')
-      const selected = selectAction({ action: input.action, cursed: await getCurseState(ctx, input.actorId), event, random })
+      const cursed = await getCurseState(ctx, input.actorId)
+      if (planned && planned.cursed !== cursed) throw new Error('Your curse changed during the choice. Nothing was spent; try again.')
+      const selected = planned?.selected || selectAction({ action: input.action, cursed, event, random })
       const handler = handlers?.[selected.outcome]
       if (typeof handler !== 'function') throw new Error(`Spooky outcome is not implemented: ${selected.outcome}`)
       const distributionLimit = selected.outcome === 'curse_distribute_three' ? 3 : selected.outcome === 'curse_distribute_two' ? 2 : 0

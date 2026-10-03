@@ -99,3 +99,32 @@ test('explicit paid no-effect outcome costs one; insufficient/paused/unregistere
   await assert.rejects(() => f.service.execute({ ...f.input('new'), actorId: 'bob' }), /registration/)
   assert.equal(await f.models.Participant.count(), 1)
 })
+
+test('choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll', async t => {
+  for (const change of ['pause', 'candy', 'curse']) {
+    const f = await fixture(t)
+    let rolls = 0, cursed = false
+    const service = createActions({ models: f.models, economy: f.economy, participants: f.participants,
+      event: { ...config, enabled: true }, clock: () => new Date(config.startsAt),
+      random: () => { rolls++; return 0.45 }, getCurseState: async () => cursed,
+      handlers: { curse_target: async () => ({ cursedUserId: 'bob' }) },
+      prepareChoice: {
+        candidates: async () => [{ userId: 'bob' }],
+        choose: async () => {
+          // A queued DB read succeeds here: no read/write transaction is held
+          // across the UI wait. Root validation still observes the new state.
+          await f.economy.read(async transaction => {
+            if (change === 'pause') await f.models.EventState.create({ eventId: config.eventId, guildId: 'guild', actionsPaused: true }, { transaction })
+            if (change === 'candy') await f.models.Participant.update({ candy: 0 }, { where: { userId: 'alice' }, transaction })
+          })
+          if (change === 'curse') cursed = true
+          return 'bob'
+        },
+      },
+    })
+    await assert.rejects(service.execute(f.input(`choice-${change}`)), /paused|Insufficient candy|curse changed/)
+    assert.equal(rolls, 1)
+    assert.equal(await f.models.Operation.count(), 1)
+    assert.equal(await f.models.Ledger.count({ where: { resource: 'candy', delta: -1 } }), 0)
+  }
+})

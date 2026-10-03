@@ -118,11 +118,11 @@ test('curse restoration retains original role through configuration drift and sa
   await f.run('curse', ctx => make('old-role').handlers.curse_target(ctx, { actorId: 'alice' }))
   assert.equal((await f.models.Effect.findOne()).metadata.roleId, 'old-role')
   await f.run('break', ctx => make('new-role').handlers.break_curse(ctx, { actorId: 'alice' }))
-  assert.deepEqual((await f.models.Delivery.findOne()).payload, { roleId: 'old-role', present: false })
+  assert.deepEqual((await f.models.Delivery.findOne({ where: { kind: 'curse_role' } })).payload, { roleId: 'old-role', present: false })
   // Legacy boolean-only effects recover from the saved intent, never the env.
   await f.run('legacy', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.endsAt, metadata: { botOwnedRole: true } }))
   await f.run('legacy-break', ctx => make('new-role').handlers.break_curse(ctx, { actorId: 'alice' }))
-  assert.equal((await f.models.Delivery.findOne()).payload.roleId, 'old-role')
+  assert.equal((await f.models.Delivery.findOne({ where: { kind: 'curse_role' } })).payload.roleId, 'old-role')
   await f.models.Delivery.destroy({ where: {} })
   await f.run('lost', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.endsAt, metadata: { botOwnedRole: true } }))
   await assert.rejects(f.run('unsafe-break', ctx => make('new-role').handlers.break_curse(ctx, { actorId: 'alice' })), /delivery inspection/)
