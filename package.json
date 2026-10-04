@@ -4,6 +4,7 @@
   "description": "custom roll for sanity bot",
   "main": "app.js",
   "scripts": {
+    "test:profile": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/profile-*.test.js",
     "test": "jest --verbose ./__tests__",
     "start": "nodemon app.js",
     "start:dev": "cross-env NODE_ENV=development nodemon app.js",
@@ -31,6 +32,7 @@
     "redis-server": "^1.2.2",
     "sanity-bot": "file:",
     "sequelize": "^6.37.3",
+    "sharp": "0.35.5",
     "sqlite3": "^5.1.7"
   }
 }

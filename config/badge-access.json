@@ -1,0 +1,40 @@
+{
+  "enabled": false,
+  "roles": {
+    "had": null,
+    "hfm": null,
+    "mrq": null,
+    "max": null,
+    "nik": null,
+    "qam": null,
+    "sel": null
+  },
+  "development": {
+    "enabled": true,
+    "guildId": "684459745167671453",
+    "roles": {
+      "had": null,
+      "hfm": null,
+      "mrq": "1555732548146036837",
+      "max": null,
+      "nik": null,
+      "qam": null,
+      "sel": "1555701816296079381"
+    },
+    "botDisplayRoleId": "1555701812374405211"
+  },
+  "production": {
+    "enabled": true,
+    "guildId": "1259991510410334219",
+    "roles": {
+      "had": null,
+      "hfm": null,
+      "mrq": "1555732571361517750",
+      "max": null,
+      "nik": null,
+      "qam": null,
+      "sel": "1555732559856668713"
+    },
+    "botDisplayRoleId": null
+  }
+}

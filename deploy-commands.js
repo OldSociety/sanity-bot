@@ -25,6 +25,7 @@ for (const folder of commandFolders) {
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file)
     const command = require(filePath)
+    if (!require('./services/command-environment').commandEnabled(command, env)) continue
     console.log(`Reading folder: ${folder}`)
     console.log(`Reading file: ${file}`)
     if ('data' in command && 'execute' in command) {
