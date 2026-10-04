@@ -1,0 +1,91 @@
+[
+  {
+    "environment": "development",
+    "guildId": "684459745167671453",
+    "botRoleId": "1295829113017335941",
+    "adminRoleId": "952394805135171605",
+    "configuredOwnerBadges": [
+      {
+        "guildId": "684459745167671453",
+        "userId": "138131238803210240",
+        "badgeId": "spooky-2026:mrq",
+        "sourceEventId": "spooky-2026",
+        "awardedAt": "2026-10-02 23:59:15.795 +00:00",
+        "user_name": "junkrabbit"
+      },
+      {
+        "guildId": "684459745167671453",
+        "userId": "138131238803210240",
+        "badgeId": "spooky-2026:sel",
+        "sourceEventId": "spooky-2026",
+        "awardedAt": "2026-10-02 23:01:56.027 +00:00",
+        "user_name": "junkrabbit"
+      }
+    ],
+    "ownership": [
+      {
+        "guildId": "684459745167671453",
+        "userId": "138131238803210240",
+        "badgeId": "spooky-2026:mrq",
+        "sourceEventId": "spooky-2026",
+        "awardedAt": "2026-10-02 23:59:15.795 +00:00",
+        "user_name": "junkrabbit"
+      },
+      {
+        "guildId": "684459745167671453",
+        "userId": "138131238803210240",
+        "badgeId": "spooky-2026:sel",
+        "sourceEventId": "spooky-2026",
+        "awardedAt": "2026-10-02 23:01:56.027 +00:00",
+        "user_name": "junkrabbit"
+      }
+    ],
+    "badgeAwardLedger": [
+      {
+        "resource": "badge:spooky-2026:mrq",
+        "timestamp": "2026-10-02 23:59:15.795 +00:00",
+        "metadata": "{\"reason\":\"character_complete\",\"adminReason\":\"test\",\"repairAction\":\"grant-quarter\"}",
+        "operationType": "admin_repair:051b31c5b4d67d9d59907fb1dd2960ac3f74b8699d2db293a426f454e79e1d41"
+      },
+      {
+        "resource": "badge:spooky-2026:sel",
+        "timestamp": "2026-10-02 23:01:56.027 +00:00",
+        "metadata": "{\"reason\":\"character_complete\",\"adminReason\":\"test\",\"repairAction\":\"grant-quarter\"}",
+        "operationType": "admin_repair:11287bd3dcff6c8c5ddddd397d6443da8a54fc0e8828de4ff20bb506a36f9b68"
+      },
+      {
+        "resource": "badge:spooky-2026:had",
+        "timestamp": "2026-10-02 22:56:36.194 +00:00",
+        "metadata": "{\"reason\":\"development_test_reset\",\"ownership\":{\"guildId\":\"684459745167671453\",\"userId\":\"138131238803210240\",\"badgeId\":\"spooky-2026:had\",\"sourceEventId\":\"spooky-2026\",\"awardedAt\":\"2026-10-02T21:10:05.967Z\"},\"adminReason\":\"test\",\"controlAction\":\"reset-testing\"}",
+        "operationType": "admin_control:451f09f2dda97094a5cddb0a5b0706b18e93f9031bb1542becd2502bcac1bc35"
+      },
+      {
+        "resource": "badge:spooky-2026:sel",
+        "timestamp": "2026-10-02 22:56:36.194 +00:00",
+        "metadata": "{\"reason\":\"development_test_reset\",\"ownership\":{\"guildId\":\"684459745167671453\",\"userId\":\"138131238803210240\",\"badgeId\":\"spooky-2026:sel\",\"sourceEventId\":\"spooky-2026\",\"awardedAt\":\"2026-10-02T21:11:47.923Z\"},\"adminReason\":\"test\",\"controlAction\":\"reset-testing\"}",
+        "operationType": "admin_control:451f09f2dda97094a5cddb0a5b0706b18e93f9031bb1542becd2502bcac1bc35"
+      },
+      {
+        "resource": "badge:spooky-2026:sel",
+        "timestamp": "2026-10-02 21:11:47.923 +00:00",
+        "metadata": "{\"reason\":\"character_complete\",\"adminReason\":\"test\",\"repairAction\":\"grant-quarter\"}",
+        "operationType": "admin_repair:9d195bcb56d7fc22fcf7030b8d923c1e90e1b9fac91ceeacd764ae64b69210e7"
+      },
+      {
+        "resource": "badge:spooky-2026:had",
+        "timestamp": "2026-10-02 21:10:05.967 +00:00",
+        "metadata": "{\"reason\":\"character_complete\",\"adminReason\":\"test\",\"repairAction\":\"grant-quarter\"}",
+        "operationType": "admin_repair:6c4a8cb464628fca531a165daaf16f1d1a63ce2eeae32cb545dbab02ea79857b"
+      }
+    ]
+  },
+  {
+    "environment": "production",
+    "guildId": "1259991510410334219",
+    "botRoleId": "1263612619387047947",
+    "adminRoleId": "1263612968730497044",
+    "configuredOwnerBadges": [],
+    "ownership": [],
+    "badgeAwardLedger": []
+  }
+]

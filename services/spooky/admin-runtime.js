@@ -1,0 +1,85 @@
+const { config } = require('./config')
+const { privateScreen } = require('./presentation')
+const { resolveRuntime } = require('../../config/runtime')
+const instances = new WeakMap()
+
+async function authorize(client, guildId, actorId, configuredGuildId, botAdminId) {
+  if (!/^\d{17,20}$/.test(botAdminId || '') || !configuredGuildId || guildId !== configuredGuildId || actorId !== botAdminId) return false
+  const guild = await client.guilds.fetch(guildId)
+  const member = await guild.members.fetch({ user: actorId, force: true })
+  return member.id === actorId && !member.user.bot
+}
+function runtime(client) {
+  if (instances.has(client)) return instances.get(client)
+  const sequelize = require('../../config/sequelize')
+  const { User } = require('../../Models/model')
+  const models = require('./models').defineSpookyModels(sequelize)
+  const economy = require('./economy').createEconomy({ sequelize, models, configVersion: config.version })
+  const guildId = process.env.GUILDID
+  const member = async (id, userId) => {
+    if (id !== guildId) throw new Error('Restoration guild mismatch')
+    return (await client.guilds.fetch(id)).members.fetch({ user: userId, force: true })
+  }
+  const delivery = require('./delivery').createDelivery({ models, read: economy.read,
+    canDeliver: require('./winner-awards').createTitleGuard({ models,
+      reservedRoleIds: [process.env.CURSEDROLEID, (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID), process.env.UNWANTEDROLEID].filter(Boolean),
+      onError: error => console.error('Spooky winner configuration failed:', error.message) }),
+    adapter: require('./discord-adapter').createDiscordAdapter(async id => {
+      if (id !== guildId) throw new Error('Projection guild mismatch')
+      return client.guilds.fetch(id)
+    }) })
+  const notifications = require('./notifications').createNotifications({ models })
+  const badges = require('../badges').createBadges({ sequelize })
+  const badgeAccess = require('../badge-access').createBadgeAccess({ service: badges, guildId, getGuild: async id => {
+    if (id !== guildId) throw new Error('Badge access guild mismatch')
+    return client.guilds.fetch(id)
+  } })
+  const fetchChannel = async channelId => {
+    const channel = await client.channels.fetch(channelId)
+    if (!channel || channel.guildId !== guildId) throw new Error('Notification channel owner mismatch')
+    return channel
+  }
+  const admin = require('./admin').createAdmin({ sequelize, User, models, economy, guildId,
+    badges,
+    fateReminderSettings: require('./reminder-settings').fateReminderSettings({ channelId: require('./channels').allowedChannels()[0],
+      roleId: process.env.UNWANTEDROLEID }),
+    environment: resolveRuntime(process.env.NODE_ENV).env,
+    developmentStorage: resolveRuntime('development').database.storage, delivery,
+    roleIds: { curse: process.env.CURSEDROLEID, sweetTooth: (process.env.SWEETTOOTHID || process.env.SWEETTOOTHROLEID) },
+    authorize: input => authorize(client, input.guildId, input.actorId, guildId, process.env.BOTADMINID),
+    readMember: async input => {
+      const value = await member(input.guildId, input.userId)
+      return { nickname: value.nickname, roleIds: [...value.roles.cache.keys()] }
+    },
+    readMessage: async input => {
+      const value = await (await fetchChannel(input.channelId)).messages.fetch({ message: input.messageId, force: true })
+      return { id: value.id, guildId: value.guildId, channelId: value.channelId,
+        isBotMessage: Boolean(client.user?.id && value.author.id === client.user.id), content: value.content,
+        embeds: value.embeds.map(embed => embed.toJSON()),
+        attachments: [...value.attachments.values()].map(attachment => ({ name: attachment.name, url: attachment.url })) }
+    },
+    finalizeRepair: async (ctx, receipt, input) => {
+      const messages = require('./admin-command').repairAwardMessages(receipt, input.displayName)
+      await notifications.enqueue(ctx, input.channelId, messages)
+      return { ...receipt, messages }
+    } })
+  const controller = require('./admin-command').createAdminController({ admin, notifications, delivery, fetchChannel, badgeAccess, scope: { eventId: config.eventId, guildId },
+    allowedChannelIds: require('./channels').allowedChannels() })
+  instances.set(client, controller)
+  return controller
+}
+async function execute(interaction) {
+  await interaction.deferReply({ ephemeral: true })
+  try {
+    // Gate before importing the global database or reading any seasonal state.
+    if (!await authorize(interaction.client, interaction.guildId, interaction.user.id, process.env.GUILDID, process.env.BOTADMINID)) {
+      return interaction.editReply(privateScreen('🎃 Admin Access Denied', 'Only the configured bot administrator can use these commands.'))
+    }
+    const restricted = require('./channels').channelRestriction(interaction)
+    if (restricted) return interaction.editReply(restricted)
+    return await runtime(interaction.client).execute(interaction)
+  } catch {
+    return interaction.editReply(privateScreen('🎃 Admin Inspection Unavailable', 'Check development configuration, migrations and permissions.'))
+  }
+}
+module.exports = { execute, authorize }

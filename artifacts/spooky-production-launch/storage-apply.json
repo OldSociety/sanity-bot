@@ -1,0 +1,132 @@
+{
+  "noOp": false,
+  "applied": [
+    "20261001000000-create-spooky-core.js",
+    "20261001000001-create-spooky-delivery.js",
+    "20261001000002-create-spooky-notifications.js",
+    "20261001000003-create-permanent-badges.js"
+  ],
+  "adopted": [],
+  "planHash": "f71429140e7fd704d7c7fc7f47d49d141ef4c9ee3b9ef00856810aa2b7a69136",
+  "backupPath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\spooky-ewGxRV\\dev.sqlite",
+  "atomicSchemaAndTracking": true,
+  "status": {
+    "environment": "production",
+    "root": "C:\\Users\\headm\\code\\sanity-bot-dev",
+    "databasePath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\prod.sqlite",
+    "applicationId": "1286400654985658368",
+    "guildId": "1259991510410334219",
+    "databaseOpenedReadOnly": true,
+    "databaseModified": false,
+    "discordContacted": false,
+    "classification": "complete",
+    "matchingPrefix": 4,
+    "migrations": [
+      {
+        "name": "20261001000000-create-spooky-core.js",
+        "sha256": "2e6db655091532f56ccdd759f15ac952d9fa0bf802f2a14f7857c85bd4263bc8",
+        "state": "matching",
+        "tablesPresent": [
+          "SpookyEventStates",
+          "SpookyParticipants",
+          "SpookyInventory",
+          "SpookyEffects",
+          "SpookyOperations",
+          "SpookyLedger"
+        ]
+      },
+      {
+        "name": "20261001000001-create-spooky-delivery.js",
+        "sha256": "316d43291e1e24c369fd51d2cbcd8cbb2249707dd04196789d95a2787423b333",
+        "state": "matching",
+        "tablesPresent": [
+          "SpookyDeliveries"
+        ]
+      },
+      {
+        "name": "20261001000002-create-spooky-notifications.js",
+        "sha256": "20a224c250eb8e1ce193a7750d2aa316b6f0b6359ca08e204557a2b0664465f5",
+        "state": "matching",
+        "tablesPresent": [
+          "SpookyNotifications"
+        ]
+      },
+      {
+        "name": "20261001000003-create-permanent-badges.js",
+        "sha256": "32e4220147a67fb3f8d88197c6573be580d865dc948d44e7ad96a2405bf95f7c",
+        "state": "matching",
+        "tablesPresent": [
+          "BadgeOwnership"
+        ]
+      }
+    ],
+    "problems": [],
+    "tracking": {
+      "tablePresent": true,
+      "names": [
+        "20261001000000-create-spooky-core.js",
+        "20261001000001-create-spooky-delivery.js",
+        "20261001000002-create-spooky-notifications.js",
+        "20261001000003-create-permanent-badges.js"
+      ],
+      "matchesSchema": true,
+      "nameAvailable": true,
+      "provenanceTablePresent": true,
+      "provenanceSchemaMatches": true,
+      "provenance": [
+        {
+          "name": "20261001000000-create-spooky-core.js",
+          "sha256": "2e6db655091532f56ccdd759f15ac952d9fa0bf802f2a14f7857c85bd4263bc8",
+          "appliedAt": "2026-10-03T00:11:36.907Z",
+          "backupPath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\spooky-ewGxRV\\dev.sqlite",
+          "source": "applied"
+        },
+        {
+          "name": "20261001000001-create-spooky-delivery.js",
+          "sha256": "316d43291e1e24c369fd51d2cbcd8cbb2249707dd04196789d95a2787423b333",
+          "appliedAt": "2026-10-03T00:11:36.909Z",
+          "backupPath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\spooky-ewGxRV\\dev.sqlite",
+          "source": "applied"
+        },
+        {
+          "name": "20261001000002-create-spooky-notifications.js",
+          "sha256": "20a224c250eb8e1ce193a7750d2aa316b6f0b6359ca08e204557a2b0664465f5",
+          "appliedAt": "2026-10-03T00:11:36.910Z",
+          "backupPath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\spooky-ewGxRV\\dev.sqlite",
+          "source": "applied"
+        },
+        {
+          "name": "20261001000003-create-permanent-badges.js",
+          "sha256": "32e4220147a67fb3f8d88197c6573be580d865dc948d44e7ad96a2405bf95f7c",
+          "appliedAt": "2026-10-03T00:11:36.911Z",
+          "backupPath": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\spooky-ewGxRV\\dev.sqlite",
+          "source": "applied"
+        }
+      ]
+    },
+    "schemaSha256": "1fd00d88b3add83f870febdbec87c597cd6e546c203bcba7cae71a81b2f147ab",
+    "tableCounts": {
+      "Achievements": 49,
+      "BadgeOwnership": 0,
+      "CensusAccounts": 1,
+      "CensusRuns": 2,
+      "HolidayStats": 9,
+      "Inventories": 10,
+      "SequelizeMeta": 32,
+      "SpookyDeliveries": 0,
+      "SpookyEffects": 0,
+      "SpookyEventStates": 0,
+      "SpookyInventory": 0,
+      "SpookyLedger": 0,
+      "SpookyNotifications": 0,
+      "SpookyOperations": 0,
+      "SpookyParticipants": 0,
+      "SpookySchemaMigrations": 4,
+      "SpookyStats": 0,
+      "UserAchievements": 39,
+      "Users": 79
+    },
+    "integrity": "ok",
+    "foreignKeyViolations": 0
+  }
+}

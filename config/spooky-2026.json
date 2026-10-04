@@ -1,0 +1,213 @@
+{
+  "version": 19,
+  "nickname": {
+    "reversalDurationMs": 43200000
+  },
+  "actionBuffer": {
+    "specialWeightPercent": 25,
+    "mode": "same-spell"
+  },
+  "gifs": {
+    "routinePercent": 10
+  },
+  "eventId": "spooky-2026",
+  "enabled": false,
+  "developmentEnabled": true,
+  "timezone": "America/Los_Angeles",
+  "startsAt": "2026-10-01T07:00:00.000Z",
+  "endsAt": "2026-11-01T07:00:00.000Z",
+  "redemptionEndsAt": "2026-11-01T07:00:00.000Z",
+  "candy": {
+    "starting": 10,
+    "capacity": 80,
+    "refillAmount": 1,
+    "refillIntervalMs": 1080000,
+    "sharedRefill": true,
+    "actionCost": 1
+  },
+  "eyes": {
+    "quarterCost": 5,
+    "automaticConversion": true,
+    "dailyDrawLimit": null
+  },
+  "fate": {
+    "quarterCost": 10,
+    "paymentResource": "bank-then-fate",
+    "dailyDrawLimit": null,
+    "sweetToothBonus": 1,
+    "bankCapacity": 100,
+    "requiresUnwantedRoleForBonus": true,
+    "rarityPercent": {
+      "common": 50,
+      "rare": 35,
+      "legendary": 15
+    }
+  },
+  "duplicates": {
+    "exchangeCost": 5,
+    "automaticConversion": true,
+    "selection": "uniform-missing-piece",
+    "retainAfterCompletion": true
+  },
+  "protection": {
+    "bothPercent": 20,
+    "theftDurationMs": 43200000,
+    "eyeVictimActivityWindowMs": null,
+    "dailyVictimLossLimit": null
+  },
+  "curse": {
+    "overridePercent": 10,
+    "treatSpreadPercent": 20,
+    "messageTransformPercent": 20,
+    "messageReversePercent": 50
+  },
+  "targetChoice": {
+    "timeoutMs": 20000
+  },
+  "treatOutcomes": [
+    {
+      "id": "lost_candy",
+      "percent": 20
+    },
+    {
+      "id": "sweet_tooth",
+      "percent": 1
+    },
+    {
+      "id": "double_gift",
+      "percent": 15
+    },
+    {
+      "id": "temporary_immunity",
+      "percent": 10
+    },
+    {
+      "id": "break_curse",
+      "percent": 5
+    },
+    {
+      "id": "standard_gift",
+      "percent": 36
+    },
+    {
+      "id": "find_eye",
+      "percent": 13
+    }
+  ],
+  "trickOutcomes": [
+    {
+      "id": "steal_candy",
+      "percent": 25
+    },
+    {
+      "id": "great_heist",
+      "percent": 10
+    },
+    {
+      "id": "reverse_nickname",
+      "percent": 5
+    },
+    {
+      "id": "curse_target",
+      "percent": 5
+    },
+    {
+      "id": "curse_backfire",
+      "percent": 5
+    },
+    {
+      "id": "caught_stealing",
+      "percent": 16
+    },
+    {
+      "id": "candy_raid",
+      "percent": 3
+    },
+    {
+      "id": "bag_swap",
+      "percent": 2
+    },
+    {
+      "id": "bag_explosion",
+      "percent": 2
+    },
+    {
+      "id": "sticky_fingers",
+      "percent": 3
+    },
+    {
+      "id": "reverse_robbery",
+      "percent": 2
+    },
+    {
+      "id": "candy_ransom",
+      "percent": 2
+    },
+    {
+      "id": "boo",
+      "percent": 2
+    },
+    {
+      "id": "candy_shakedown",
+      "percent": 2
+    },
+    {
+      "id": "trick_chain",
+      "percent": 1
+    },
+    {
+      "id": "marked_for_mischief",
+      "percent": 1
+    },
+    {
+      "id": "steal_crown",
+      "percent": 1
+    },
+    {
+      "id": "steal_or_find_eye",
+      "percent": 13
+    }
+  ],
+  "ordinaryRarity": {
+    "status": "approved",
+    "percent": {
+      "common": 70,
+      "rare": 22,
+      "legendary": 8
+    },
+    "withinRaritySelection": "uniform-piece"
+  },
+  "prestige": {
+    "version": 1,
+    "status": "approved",
+    "success": 2,
+    "failure": -1,
+    "curseReplacement": 1,
+    "noEffect": 0,
+    "adminEligible": true,
+    "ties": "shared",
+    "allowBothTitles": true
+  },
+  "crown": {
+    "fateBonus": 5,
+    "candyBonus": 5,
+    "prestigeBonus": 10
+  },
+  "prestigeBonuses": {
+    "great_heist": 5
+  },
+  "artworkIntegration": false,
+  "productionEnabled": true,
+  "recipientMentions": {
+    "windowMs": 259200000,
+    "unregisteredLimit": 1,
+    "registeredLimit": 4,
+    "registeredMinIntervalMs": 64800000,
+    "chancePercent": 20
+  },
+  "combat": {
+    "holeDurationMs": 43200000,
+    "holeBonusPercent": 25,
+    "holeBonusCap": 2
+  }
+}

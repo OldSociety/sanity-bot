@@ -1,21 +1,17 @@
 // app.js
 
-require('dotenv').config({
-  path:
-    process.env.NODE_ENV === 'development'
-      ? '.env.development'
-      : '.env.production',
-})
-console.log(`Environment: ${process.env.NODE_ENV}`)
+const { loadDiscordEnvironment } = require('./config/runtime')
+const runtime = loadDiscordEnvironment()
+console.log(`Environment: ${runtime.env}`)
 
 const fs = require('node:fs')
 const path = require('node:path')
 const sequelize = require('./config/sequelize')
-const { awardDailyTreats } = require('./handlers/dailyTreats')
+const awardSnowballs = require('./handlers/awardSnowballs')
 const cron = require('node-cron') // Import cron
 
 const { Client, Collection, GatewayIntentBits } = require('discord.js')
-const { User, SpookyStat } = require('./Models/model')
+const { User, HolidayStat } = require('./Models/model')
 
 
 // Create a new client instance
@@ -31,53 +27,36 @@ const client = new Client({
   ],
 })
 
-// HALLOWEEN EVENT
-// Daily treat reward
-// client.once('ready', async () => {
-//   console.log(`Ready! Logged in as ${client.user.tag}`)
-
-//   // Check daily treats every 3 hours
-//   cron.schedule('0 */3 * * *', async () => {
-//     try {
-//       const guild = await client.guilds.fetch(process.env.GUILDID)
-//       if (guild) {
-//         console.log('🎃 Running daily treat award...')
-//         await awardDailyTreats(guild)
-//         console.log('✅ Daily treats awarded successfully.')
-//       }
-//     } catch (error) {
-//       console.error('❌ Error during daily treat award:', error)
-//     }
-//   })
-
-//   console.log('🕰️ Daily treat schedule set for midnight.')
-// })
+// HOLIDAY EVENT
+client.once('ready', async () => {
+  // Check daily snowballs every hour
+  cron.schedule('*/300 * * * * *', async () => {
+    console.log('Cron scheduled:', cron.getTasks().size);
+    console.log(`[${new Date().toLocaleTimeString()}] tick`);
+    try {
+      const guild = await client.guilds.fetch(process.env.GUILDID)
+      if (guild) {
+        console.log('❄️ Running daily treat award...')
+        await awardSnowballs(guild)
+        console.log('✅ Hourly snow awarded successfully.')
+      }
+    } catch (error) {
+      console.error('❌ Error during daily treat award:', error)
+    }
+  })
+})
 
 global.client = client // Set global client after client initialization
 
+// Disabled Spooky creates no timer and opens no seasonal storage. When enabled,
+// startup catches up expired effects and the minute worker continues without play.
+client.once('ready', () => require('./services/spooky/runtime').startMaintenance(client))
+
 client.cooldowns = new Collection()
 client.commands = new Collection()
-const foldersPath = path.join(__dirname, 'commands')
-const commandFolders = fs.readdirSync(foldersPath)
-
-for (const folder of commandFolders) {
-  const commandsPath = path.join(foldersPath, folder)
-  const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter((file) => file.endsWith('.js'))
-
-  for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file)
-    const command = require(filePath)
-    if (!require('./services/command-environment').commandEnabled(command, process.env.NODE_ENV)) continue
-    if ('data' in command && 'execute' in command) {
-      client.commands.set(command.data.name, command)
-    } else {
-      console.log(
-        `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-      )
-    }
-  }
+for (const entry of require('./services/command-registry').loadRegistry(__dirname).active) {
+  if (!require('./services/command-environment').commandEnabled(entry.command, process.env.NODE_ENV)) continue
+  client.commands.set(entry.name, entry.command)
 }
 
 // Dynamically read event files

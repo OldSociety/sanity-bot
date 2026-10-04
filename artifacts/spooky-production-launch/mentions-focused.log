@@ -1,0 +1,182 @@
+TAP version 13
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 1 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 237.9569
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 2 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 46.6922
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 3 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 83.5892
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 4 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 64.999
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 5 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 123.4684
+  ...
+# Subtest: nonregistered targets are tagged once daily; later effects stay public without pinging
+ok 6 - nonregistered targets are tagged once daily; later effects stay public without pinging
+  ---
+  duration_ms: 97.8698
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 7 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 58.2729
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 8 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 55.8138
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 9 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 46.0792
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 10 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 2.0245
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 11 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 4.0225
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 12 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 92.602
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 13 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 34.7221
+  ...
+# Subtest: registered recipients are mentioned four times per day; fifth still shows public flavor without a ping
+ok 14 - registered recipients are mentioned four times per day; fifth still shows public flavor without a ping
+  ---
+  duration_ms: 155.7552
+  ...
+# Subtest: stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+ok 15 - stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+  ---
+  duration_ms: 191.7914
+  ...
+# Subtest: level-up overflow credits current bank atomically and preserves purchase debit
+ok 16 - level-up overflow credits current bank atomically and preserves purchase debit
+  ---
+  duration_ms: 20.5744
+  ...
+# Subtest: notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+ok 17 - notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+  ---
+  duration_ms: 58.9888
+  ...
+# Subtest: ambiguous notification failure stays uncertain and is not resent automatically
+ok 18 - ambiguous notification failure stays uncertain and is not resent automatically
+  ---
+  duration_ms: 25.2967
+  ...
+# Subtest: cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+ok 19 - cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+  ---
+  duration_ms: 0.6675
+  ...
+# Subtest: complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+ok 20 - complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+  ---
+  duration_ms: 2.7444
+  ...
+# Subtest: notification migration reverses independently and preserves core operation receipts
+ok 21 - notification migration reverses independently and preserves core operation receipts
+  ---
+  duration_ms: 20.3134
+  ...
+# Subtest: wired slash command stays disabled in an allowed channel without loading the real database runtime
+ok 22 - wired slash command stays disabled in an allowed channel without loading the real database runtime
+  ---
+  duration_ms: 5.7067
+  ...
+# Subtest: booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+ok 23 - booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+  ---
+  duration_ms: 19.4496
+  ...
+# Subtest: unregistered recipient gets one shared daily slot across simultaneous actors, never self-pings
+ok 24 - unregistered recipient gets one shared daily slot across simultaneous actors, never self-pings
+  ---
+  duration_ms: 243.2166
+  ...
+# Subtest: registered recipients get four combined trick/treat slots and guilds do not share caps
+ok 25 - registered recipients get four combined trick/treat slots and guilds do not share caps
+  ---
+  duration_ms: 52.1275
+  ...
+# Subtest: reservation rolls back with action failure and replay preserves its original decision
+ok 26 - reservation rolls back with action failure and replay preserves its original decision
+  ---
+  duration_ms: 29.9233
+  ...
+# Subtest: registration increases the allowance without forgetting earlier pings; midnight Pacific resets it
+ok 27 - registration increases the allowance without forgetting earlier pings; midnight Pacific resets it
+  ---
+  duration_ms: 49.0944
+  ...
+# Subtest: delayed outbox messages and admin resend copies keep the result but cannot reuse mention slots
+ok 28 - delayed outbox messages and admin resend copies keep the result but cannot reuse mention slots
+  ---
+  duration_ms: 33.0261
+  ...
+# Subtest: uncertain delivery does not release its slot or cause an automatic repeat ping
+ok 29 - uncertain delivery does not release its slot or cause an automatic repeat ping
+  ---
+  duration_ms: 24.0314
+  ...
+# Subtest: every nonempty ownership set maps to its shipped PNG, independent of input order
+ok 30 - every nonempty ownership set maps to its shipped PNG, independent of input order
+  ---
+  duration_ms: 424.8211
+  ...
+# Subtest: attachment resolution rejects arbitrary paths and leaves durable payload JSON portable
+ok 31 - attachment resolution rejects arbitrary paths and leaves durable payload JSON portable
+  ---
+  duration_ms: 0.9414
+  ...
+# Subtest: public reveal uses saved cumulative ownership; duplicate keeps circle, old award has single-piece fallback
+ok 32 - public reveal uses saved cumulative ownership; duplicate keeps circle, old award has single-piece fallback
+  ---
+  duration_ms: 6.1405
+  ...
+# Subtest: admin acknowledgement resolves attachment CDN URLs only against trusted matching filenames
+ok 33 - admin acknowledgement resolves attachment CDN URLs only against trusted matching filenames
+  ---
+  duration_ms: 1.4223
+  ...
+# Subtest: duplicate progress uses saved cumulative token thumbnail and numbered player labels
+ok 34 - duplicate progress uses saved cumulative token thumbnail and numbered player labels
+  ---
+  duration_ms: 2.4193
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8030.7646

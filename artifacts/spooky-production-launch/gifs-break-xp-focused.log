@@ -1,0 +1,281 @@
+TAP version 13
+# Subtest: Spooky channel and threads award no XP/Fate while cursed messages still run
+ok 1 - Spooky channel and threads award no XP/Fate while cursed messages still run
+  ---
+  duration_ms: 1329.6017
+  ...
+# Subtest: slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+ok 2 - slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+  ---
+  duration_ms: 8.159
+  ...
+# Subtest: ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+ok 3 - ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+  ---
+  duration_ms: 17.1707
+  ...
+# Spooky reply pending (discord:draw): Expired webhook
+# Spooky reply pending (discord:draw): Expired webhook
+# Subtest: expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+ok 4 - expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+  ---
+  duration_ms: 3477.8727
+  ...
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Subtest: restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+ok 5 - restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+  ---
+  duration_ms: 79.888
+  ...
+# Subtest: cancel or supersede during member fetch prevents old role and nickname writes
+ok 6 - cancel or supersede during member fetch prevents old role and nickname writes
+  ---
+  duration_ms: 56.3708
+  ...
+# Subtest: actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+ok 7 - actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+  ---
+  duration_ms: 3.1846
+  ...
+# Subtest: role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+ok 8 - role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+  ---
+  duration_ms: 0.7837
+  ...
+# Subtest: curse restoration retains original role through configuration drift and safely rejects lost provenance
+ok 9 - curse restoration retains original role through configuration drift and safely rejects lost provenance
+  ---
+  duration_ms: 115.8645
+  ...
+# Subtest: admin repair receipts and reacquisition reveals reflect retained permanent ownership
+ok 10 - admin repair receipts and reacquisition reveals reflect retained permanent ownership
+  ---
+  duration_ms: 136.7262
+  ...
+# Subtest: partial Sweet Tooth still displays committed fate and candy rewards
+ok 11 - partial Sweet Tooth still displays committed fate and candy rewards
+  ---
+  duration_ms: 1.0078
+  ...
+# Subtest: simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+ok 12 - simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+  ---
+  duration_ms: 30.655
+  ...
+# Error handling haiku: Synthetic haiku failure
+# Error updating chat progression: Synthetic XP failure
+# Error handling haiku: Synthetic haiku failure
+# Level-up badges unavailable: Synthetic badge failure
+# Error updating chat progression: Synthetic send failure
+# Subtest: message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+ok 13 - message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+  ---
+  duration_ms: 26.7915
+  ...
+# Subtest: projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+ok 14 - projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+  ---
+  duration_ms: 44.7575
+  ...
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 15 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 251.952
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 16 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 37.6192
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 17 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 138.0406
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 18 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 365.7002
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 19 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 33.8763
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 20 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 69.8629
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 21 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 67.864
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 22 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 109.8902
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 23 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 101.7003
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 24 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 44.2881
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 25 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 55.0462
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 26 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 35.8159
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 27 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 0.9853
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 28 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 3.8546
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 29 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 54.3174
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 30 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 27.1451
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 31 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 192.0624
+  ...
+# Subtest: routine GIF rate is stable near 20%; committed selection never consumes gameplay randomness
+ok 32 - routine GIF rate is stable near 20%; committed selection never consumes gameplay randomness
+  ---
+  duration_ms: 73.5703
+  ...
+# Subtest: successful significant results get GIFs; private messages, fallbacks and art keep their design
+ok 33 - successful significant results get GIFs; private messages, fallbacks and art keep their design
+  ---
+  duration_ms: 0.7295
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 34 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 338.5387
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 35 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 90.7611
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 36 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 111.4882
+  ...
+# Subtest: curse/shield nicknames compose and restore the original at break, expiry and closure
+ok 37 - curse/shield nicknames compose and restore the original at break, expiry and closure
+  ---
+  duration_ms: 120.08
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 38 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 103.6366
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 39 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 138.6023
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 40 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 74.4671
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 41 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 66.6144
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 42 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 115.5013
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 43 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 159.2439
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 44 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 79.1668
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 45 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 28.1672
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 46 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 39.1993
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 47 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 68.2425
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 48 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 11.5387
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 49 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 24.4561
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 50 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 47.9123
+  ...
+# Subtest: three choices enforce ownership and acknowledge one selection before finishing
+ok 51 - three choices enforce ownership and acknowledge one selection before finishing
+  ---
+  duration_ms: 10.3776
+  ...
+# Subtest: timeout uses a frozen displayed fallback; acknowledgement failure cannot select
+ok 52 - timeout uses a frozen displayed fallback; acknowledgement failure cannot select
+  ---
+  duration_ms: 3.1248
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13013.2577

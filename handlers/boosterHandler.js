@@ -1,6 +1,7 @@
 // handlers/boosterHandler.js
 
 const cron = require('node-cron')
+const { creditBank } = require('../services/fate-wallet')
 
 module.exports = (client, User) => {
   const boosterRoleId = process.env.BOOSTERROLEID
@@ -9,6 +10,7 @@ module.exports = (client, User) => {
 
   client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (
+      !oldMember.roles.cache.has(boosterRoleId) &&
       newMember.roles.cache.has(boosterRoleId) &&
       newMember.roles.cache.has(unwantedRoleId)
     ) {
@@ -28,9 +30,7 @@ module.exports = (client, User) => {
         })
       }
 
-      userData.bank = Math.min(userData.bank + 1, 100)
-      userData.boosterTotal = (userData.boosterTotal || 0) + 1
-      await userData.save()
+      userData = await creditBank(User, userId, 1, { countBoost: true })
 
       try {
         await newMember.send(
@@ -47,9 +47,9 @@ module.exports = (client, User) => {
       const guild = await client.guilds.fetch(guildId)
       if (!guild) return
 
-      await guild.members.fetch()
-      const qualifiedMembers = guild.members.cache.filter(
-        (member) =>
+      const roster = await require('../services/guild-members').memberDirectory(guild).get(guild, { fresh: true })
+      const qualifiedMembers = [...roster].filter(
+        ([_id, member]) =>
           member.roles.cache.has(boosterRoleId) &&
           member.roles.cache.has(unwantedRoleId)
       )
@@ -69,11 +69,10 @@ module.exports = (client, User) => {
           })
         }
 
-        const previousBank = userData.bank
-        userData.bank = Math.min(userData.bank + 1, 100)
+        const previousTotal = userData.boosterTotal
+        userData = await creditBank(User, memberId, 1, { countBoost: true })
 
-        if (userData.bank > previousBank) {
-          userData.boosterTotal = (userData.boosterTotal || 0) + 1
+        if (userData.boosterTotal > previousTotal) {
 
           if (userData.boosterTotal % 15 === 0) {
             const total = userData.boosterTotal
@@ -87,7 +86,6 @@ module.exports = (client, User) => {
           }
         }
 
-        await userData.save()
       }
 
       console.log(`Daily booster bank update completed.`)

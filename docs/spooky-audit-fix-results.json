@@ -1,0 +1,84 @@
+{
+  "checksPassed": true,
+  "scope": "positive offline audit regressions; synthetic SQLite and Discord/REST only",
+  "tests": 20,
+  "passed": 20,
+  "findings": [
+    {
+      "id": "A01",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A02",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A03",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A04",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A05",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A06",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A07",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A08",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    },
+    {
+      "id": "A09",
+      "status": "fixed with offline regression coverage; live acceptance pending"
+    }
+  ],
+  "realStorageAccessed": false,
+  "discordContacted": false,
+  "credentialsRead": false,
+  "sourceSha256": {
+    "services/guild-members.js": "fb7e6fe87217d58cd9f35d4f8a7ddf04067361930c5bc05a6e448ade120706a3",
+    "services/spooky/runtime.js": "f940985ccc627dd319a5d85c973a02590afcd576e3419ae61de8a524d144bbdd",
+    "services/spooky/controller.js": "693f39079ff4a6803104743a2c84bb189e774cd79799ff729013baf46139fb5e",
+    "services/spooky/delivery.js": "d8609429e0bfe20d8bb9207d93d9efee5674298f132bf9ae62bd6038f1378624",
+    "services/spooky/notifications.js": "f8264fafb394f4fb001fddf41a80b40f0e0a392088265630d76a15298a2a7b0c",
+    "services/spooky/pending-notifications.js": "00afd84cff93a45456941d4ed6fecda15e0e939ed43e8941eb6c011ad6eff07e",
+    "services/spooky/post-commit.js": "8def643f995475b074baf5d61997b39e777343316f9b4838bc1cab544b446de2",
+    "services/spooky/discord-adapter.js": "58d230eb81e3b6f965d54b491fd64466572cf1bb815d2113f36cec3e1f76e845",
+    "services/spooky/curse-role.js": "af900d04ff3efdaee83cf400f8d3a89d24811fef3472f8759d5dd7ed627ae4bb",
+    "services/spooky/playful.js": "44d83d47de56a4ab4c9b5bb55142b65ffb0e4ff645516da2a2020f89bbf1b465",
+    "services/spooky/admin-controls.js": "2fb3d85561d109a38578aa3b587d297ac61d6369ccb66e0510f286432122f81d",
+    "services/spooky/admin-repairs.js": "9e2c6b616296f6a01ff80b5a7b975480f5cedd79fec6851057e689817e6059b6",
+    "services/spooky/admin-command.js": "597bb4b68b06baa0b139a6d5f75d525443e9105599acd7c68bc38ed3f21ce3d8",
+    "services/spooky/admin-runtime.js": "979cd66967af57662a6aeb85b533829550f0720fef708d63dbcedc4beb7e4604",
+    "services/spooky/collection.js": "954ea8438979810e049a50bd9121b01979cff35800c6b888056ec83656c94af9",
+    "services/spooky/presentation.js": "b8477444a2d9939ca375271d1225217971339fb184ec949578117f1f1f9635a5",
+    "services/fate-wallet.js": "59dddd7ba47e9d01c077208447f342af88485dafe97f9881783adc767d079934",
+    "services/spooky/economy.js": "1894cde05c9e392d5a64b6bbdef9829b5e74f3cad617ef27a1ffdd7e8ba0b687",
+    "services/badges.js": "406e15e8389a10e3ce957cb63211cb1f8b86194b8f039d72e8b6c04b87647afb",
+    "services/command-registry.js": "25ab51cf5e9e39817eece2086a1350fe137bb855c95f1763fa6cf9164103e4eb",
+    "handlers/messageHandler.js": "7908a2db281f22edd69ce8cf0161bd0e6313b24a33e23559b1c9427a0bc3317a",
+    "handlers/boosterHandler.js": "04f459fb7e5260b85b8ed2889e208cc17139e266a23ef14acf5303fd5895f25f",
+    "commands/Server/User.js": "a88484c1208f37ad66501f577f768fc8cb52080ec480ee77d18109ee231b1b1b",
+    "commands/Holiday/Christmas.js": "7d25eb915d140f01f8b535f3e30da6e1648772c002311a1f796563d4413ce52f",
+    "Events/InteractionCreate.js": "5568513c946723ca2d2e62ae480377a3c616fbd880dc95f90c6e98b69cbcc233",
+    "app.js": "3c30012e1fb9ba3bd7f1e9558f2498afce3ee3abf7d9abe5fe2731d56eb0c04e",
+    "deploy-commands.js": "ba3d52a3bdf42eba492a8731a3327fb7d782a368829713ed73d821921780e526",
+    "scripts/command-registry-audit.js": "ecf5f5c99a43ffd9a0614e3acfbe78cf8343c7a37cf66db09e48e2e45cd89a1b",
+    "tests/spooky-audit-adapters.test.js": "fd66005dbe1f9a03bf8708f821f3dde496fc8e12d438f878b0b6635db5794965",
+    "tests/spooky-audit-corrections.test.js": "4f51561dcade9258102ac541ad443e3ac206e048ad8b50e182d403b6866f201d",
+    "tests/command-deployment.test.js": "a587b644f7f39f8b7ba0b2dd2cb13b41cc08a35de49a52615ed69c6edd53b031",
+    "config/spooky-2026.json": "ca36ad5eb7c9735a73eb4980389faeaf16bf9d4479ee9b0da2093e345f7a422c",
+    "config/spooky-reminders.json": "764455b7489ffcf0d7d64824b74f768827b836092724adb436cfa5bdd6c93cde",
+    "config/spooky-winners.json": "e38d42416c40bf365e346543d0312a08c436a90e5f21e0076b3476dd2686ac87",
+    "config/badge-access.json": "ec0a0993b1cb2a21e68e4070ed8dc3e3755ba77e8b95cd55a930cad102f0b437"
+  }
+}

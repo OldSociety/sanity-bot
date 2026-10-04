@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
 const { User } = require('../../Models/model.js')
+const { saveWallet } = require('../../services/fate-wallet')
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -71,7 +72,7 @@ module.exports = {
     const userId = interaction.user.id
     const member = interaction.member
 
-    const isAdmin = member.roles.cache.has(process.env.ADMINROLEID)
+    const isAdmin = require('../../utils/botAdmin').isBotAdmin(interaction)
     const isBooster = member.roles.cache.has(process.env.BOOSTERROLEID)
     const hasUnwantedRole = member.roles.cache.has(process.env.UNWANTEDROLEID)
 
@@ -85,6 +86,7 @@ module.exports = {
     }
 
     const subcommand = interaction.options.getSubcommand()
+    if (subcommand === 'manage' && !await require('../../utils/botAdmin').requireBotAdmin(interaction)) return
 
     // Fetch or create user data
     let userData = await User.findOne({ where: { user_id: userId } })
@@ -138,7 +140,7 @@ module.exports = {
 
       userData.fate_points = fatePoints
       userData.bank = bank
-      await userData.save()
+      await saveWallet(User, userData)
 
       let description = `You have added ${pointsToAdd} fate points.`
       if (excessPoints > 0 && (isBooster || isAdmin)) {
@@ -186,7 +188,7 @@ module.exports = {
         return
       }
 
-      await userData.save()
+      await saveWallet(User, userData)
 
       const rollEmbed = new EmbedBuilder()
         .setColor('#FFFF00') // Yellow for neutral informative messages
@@ -269,7 +271,7 @@ module.exports = {
           description = `Set ${targetUser.username}'s bank to ${targetData.bank}.`
         }
 
-        await targetData.save()
+        await saveWallet(User, targetData)
 
         if (capped) {
           description += `\nNote: The value was capped at 100.`

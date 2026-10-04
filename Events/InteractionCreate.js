@@ -44,15 +44,37 @@ module.exports = {
       }
 
       try {
+        if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
+          const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
+          if (require('../services/member-policy').excludedMember(member)) {
+            await interaction.reply({ content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            return
+          }
+          const target = interaction.options.getUser('player')
+          if (target && require('../services/member-policy').excludedMember(await interaction.guild.members.fetch({ user: target.id, force: true }))) {
+            await interaction.reply({ content: 'Bots cannot be selected for these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            return
+          }
+        }
         await command.execute(interaction)
       } catch (error) {
         console.error(`Error executing ${interaction.commandName}`)
         console.error(error)
+        const payload = { content: 'The command could not complete. Check your saved state before trying another paid action; completed rewards remain saved.', ephemeral: true, allowedMentions: { parse: [] } }
+        if (!interaction.replied && !interaction.deferred) await interaction.reply(payload).catch(() => {})
       }
     }
     // Handle Button Interactions
     else if (interaction.isButton()) {
       const customId = interaction.customId;
+      if (customId.startsWith('spooky-target:') && !require('../services/spooky/target-choice').hasSession(customId)) {
+        await interaction.reply({ content: 'This Halloween choice has ended. This click cannot spend candy or change its result.', ephemeral: true }).catch(() => {})
+        return
+      }
+      if (customId.startsWith('spooky-spend-fate:') && !require('../services/spooky/fate-confirmation').hasSession(customId)) {
+        await interaction.reply({ content: 'This confirmation expired. Nothing was spent by this click; use /spooky spend-fate to review a new purchase.', ephemeral: true }).catch(() => {})
+        return
+      }
 
       // Check for the roll button and pass the interaction to Sanity.js
       if (customId === 'roll') {

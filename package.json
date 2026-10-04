@@ -5,7 +5,11 @@
   "main": "app.js",
   "scripts": {
     "test:profile": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/profile-*.test.js",
-    "test": "jest --verbose ./__tests__",
+    "test": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/*.test.js",
+    "check:dev": "cross-env NODE_ENV=development node scripts/check-environment.js",
+    "spooky:check:dev": "cross-env NODE_ENV=development node scripts/spooky-development-check.js",
+    "check:prod": "cross-env NODE_ENV=production node scripts/check-environment.js",
+    "deploy:check:dev": "cross-env NODE_ENV=development node deploy-commands.js --check-target",
     "start": "nodemon app.js",
     "start:dev": "cross-env NODE_ENV=development nodemon app.js",
     "start:prod": "cross-env NODE_ENV=production nodemon app.js",
@@ -33,6 +37,7 @@
     "sanity-bot": "file:",
     "sequelize": "^6.37.3",
     "sharp": "0.35.5",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "syllable": "^5.0.1"
   }
 }

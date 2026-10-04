@@ -47,16 +47,9 @@ module.exports = (client) => {
                   await channel.send(`Happy Birthday <@${member.user.id}> 🎂!`)
                 } else if (channel && hasUnwantedRole) {
                   // Award 10 fate points
-                  const currentFate = user.bank || 0
-                  const updatedFate = currentFate + 10
-
-                  // Update the user's fate points in the database
-                  await User.update(
-                    { bank: updatedFate },
-                    { where: { user_id: user.user_id } }
-                  )
+                  await require('../services/fate-wallet').creditBank(User, user.user_id, 10)
                   await channel.send(
-                    `Happy Birthday <@${member.user.id}> 🎂! 10 Fate Points have been added to your bank.`
+                    `Happy Birthday <@${member.user.id}> 🎂! A bonus of up to 10 Fate Points has been added to your bank (100-point cap).`
                   )
                 }
               }

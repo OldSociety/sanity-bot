@@ -1,0 +1,75 @@
+{
+  "at": "2026-10-03T01:16:27.6999915Z",
+  "configVersion": 10,
+  "branch": "feature/S-1-spooky",
+  "files": [
+    {
+      "sha256": "14a49f177796dcf3d13aa107e6a9401b4c75689eb5d0a2aa6749368eb542eb77",
+      "path": "config/spooky-2026.json"
+    },
+    {
+      "sha256": "edae0d8b8a7ee83c609f62413add64b0b81d5b0e3bf2424f72148244792c110e",
+      "path": "services/spooky/mentions.js"
+    },
+    {
+      "sha256": "613f4f2be6df26813d60e29cde59fb8d1c7d9fe11af0ed324640bbbe29484c5d",
+      "path": "services/spooky/config.js"
+    },
+    {
+      "sha256": "273236633d60c52950c1ae303ebaff5b66f234bcff261a1bfd212d65d8fc3920",
+      "path": "services/spooky/controller.js"
+    },
+    {
+      "sha256": "7b4bc333d1e9c366a5c5b8002c7ef6e0af5a0c972fb4fefefd69312a77b8327e",
+      "path": "services/spooky/presentation.js"
+    },
+    {
+      "sha256": "30a2c5133df8887edf32e8131ccb0211ccc68e6512f387a5d150f504ac56d47d",
+      "path": "services/spooky/token-art.js"
+    },
+    {
+      "sha256": "102b386cb01c60be18963e334115999c82cd2abb1085ff8252667ed6a36f05c5",
+      "path": "services/spooky/notifications.js"
+    },
+    {
+      "sha256": "55d99950f0080dc8192eb34725fa04b3c8bf023cc3f024e3e7735f05f9e78d6e",
+      "path": "tests/spooky-mentions.test.js"
+    },
+    {
+      "sha256": "55daf5282e5cd88ee83090a6bbb3f0cba02548ae0f20fe3318f2e59b2f870ec9",
+      "path": "tests/spooky-controller.test.js"
+    },
+    {
+      "sha256": "615630474393267b883c9cdf7d05e3f5bc9470b9e428f2a43d8e7c842f7dd297",
+      "path": "README.md"
+    },
+    {
+      "sha256": "91706dfcd00ed928a7cbb89f2144e6c5493a9dd8e6379cda888e16126eb1a804",
+      "path": "AGENTS.md"
+    },
+    {
+      "sha256": "38a01e707c4fbca9ff447387f3406eea98e6b4c86b78846f1c61292abd1f85b0",
+      "path": "docs/spooky-handoff.md"
+    },
+    {
+      "sha256": "4d76df0daec507432e36c58b2b7696629760367d72aa325f6e560962e02bb461",
+      "path": "docs/spooky-rules.md"
+    },
+    {
+      "sha256": "d9d5e004c7c21e68cedaaec7a07755356bdf83953cb597ed99c796d826dc3111",
+      "path": "docs/spooky-implementation-checklist.md"
+    },
+    {
+      "sha256": "481ca174b87baad40f2b67e506aa9685cc618f9d8df37c59d52c433002730f8b",
+      "path": "docs/spooky-recipient-mentions.md"
+    },
+    {
+      "sha256": "60f6a988fd64f6b69c2979bb1109e2d7bcbee81db39b42cd5c4e74595b2ac6a4",
+      "path": "docs/spooky-preflight-results.json"
+    },
+    {
+      "sha256": "bdcd6fbbcb82191841e69a4cfe7bec972d6fc44e86b7534361c9144c8f66f243",
+      "path": "docs/command-registry-audit-results.json"
+    }
+  ]
+}

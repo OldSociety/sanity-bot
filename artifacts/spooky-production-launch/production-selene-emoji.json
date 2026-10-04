@@ -1,0 +1,27 @@
+{
+  "environment": "production",
+  "guildId": "1259991510410334219",
+  "applicationId": "1286400654985658368",
+  "canManageRoles": true,
+  "canManageExpressions": true,
+  "collectorRoleId": "1555732559856668713",
+  "emojiId": "1555732561119027240",
+  "emojiName": "spooky_selene_badge",
+  "managedBotRoleId": "1286403412723896405",
+  "ownedManagedRoles": [
+    {
+      "id": "1286403412723896405",
+      "name": "sanity-bot",
+      "tags": {
+        "bot_id": "1286400654985658368"
+      }
+    }
+  ],
+  "productionChanged": true,
+  "databaseOpened": false,
+  "configured": true,
+  "allowedRoles": [
+    "1555732559856668713",
+    "1286403412723896405"
+  ]
+}

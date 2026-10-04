@@ -1,0 +1,78 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const Sequelize = require('sequelize')
+const migration = require('../migrations/20261001000000-create-spooky-core')
+const { defineSpookyModels } = require('../services/spooky/models')
+const { createEconomy } = require('../services/spooky/economy')
+const { createParticipants } = require('../services/spooky/participants')
+const { createEffects } = require('../services/spooky/effects')
+const { config } = require('../services/spooky/config')
+
+async function fixture(t) {
+  const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
+  t.after(() => sequelize.close())
+  await migration.up(sequelize.getQueryInterface())
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true }
+  let now = new Date(config.startsAt)
+  const economy = createEconomy({ sequelize, models, configVersion: config.version, clock: () => now })
+  const participants = createParticipants({ models, economy, event })
+  const effects = createEffects({ models, participants, event })
+  const input = key => ({ eventId: event.eventId, guildId: 'guild', actorId: 'alice', interactionId: key, operationType: 'effects_test' })
+  const run = (key, mutate) => economy.execute(input(key), mutate)
+  return { models, effects, participants, event, run, time: value => { now = new Date(value) } }
+}
+test('durable effect renewal, replay, expiry and scope survive service reconstruction', async t => {
+  const f = await fixture(t)
+  const firstExpiry = new Date(Date.parse(config.startsAt) + 3600000)
+  const first = await f.run('put', ctx => f.effects.put(ctx, 'alice', 'theft_protection', { expiresAt: firstExpiry }))
+  const replay = await f.run('put', () => { throw new Error('rerun') })
+  assert.deepEqual(replay.receipt, first.receipt)
+  const restored = createEffects({ models: f.models, participants: f.participants, event: f.event })
+  assert.equal((await f.run('active', async ctx => ({ active: Boolean(await restored.active(ctx, 'alice', 'theft_protection')) }))).receipt.active, true)
+  await f.run('renew', ctx => restored.put(ctx, 'alice', 'theft_protection', { expiresAt: new Date(firstExpiry.getTime() + 3600000) }))
+  assert.equal(await f.models.Effect.count(), 1)
+  f.time(new Date(firstExpiry.getTime() + 3600000))
+  assert.equal((await f.run('expired', async ctx => ({ active: Boolean(await restored.active(ctx, 'alice', 'theft_protection')) }))).receipt.active, false)
+})
+test('effect expiry is clamped to event end and clearing preserves metadata for restoration', async t => {
+  const f = await fixture(t)
+  const result = await f.run('nickname', ctx => f.effects.put(ctx, 'bob', 'reversed_nickname', { expiresAt: '2027-01-01', metadata: { originalNickname: null, appliedNickname: 'boB' } }))
+  assert.equal(result.receipt.expiresAt, config.endsAt)
+  assert.equal((await f.models.Participant.findOne()).registeredAt, null)
+  const cleared = await f.run('clear', ctx => f.effects.remove(ctx, 'bob', 'reversed_nickname'))
+  assert.equal(cleared.receipt.metadata.originalNickname, null)
+  assert.equal(await f.models.Effect.count(), 0)
+})
+test('curse resolver uses active database effects rather than permanent role claims; closure turns it off', async t => {
+  const f = await fixture(t)
+  await f.run('curse', ctx => f.effects.put(ctx, 'alice', 'curse', { expiresAt: config.endsAt }))
+  assert.equal((await f.run('check', async ctx => ({ cursed: await f.effects.getCurseState(ctx, 'alice') }))).receipt.cursed, true)
+  f.time(config.endsAt)
+  assert.equal((await f.run('closed', async ctx => ({ cursed: await f.effects.getCurseState(ctx, 'alice') }))).receipt.cursed, false)
+})
+test('effect service prevents curse/protection overlap in either order', async t => {
+  for (const first of ['curse', 'theft_protection']) {
+    const f = await fixture(t)
+    const second = first === 'curse' ? 'theft_protection' : 'curse'
+    await f.run('first', ctx => f.effects.put(ctx, 'bob', first, { expiresAt: config.endsAt }))
+    const count = await f.models.Ledger.count()
+    await assert.rejects(f.run('opposite', ctx => f.effects.put(ctx, 'bob', second, { expiresAt: config.endsAt })), /mutually exclusive/)
+    assert.equal(await f.models.Effect.count(), 1)
+    assert.equal(await f.models.Ledger.count(), count)
+    assert.equal(await f.models.Operation.findByPk('discord:opposite'), null)
+  }
+})
+
+test('invalid/paused writes and later callback failure roll back effects, participant seed and ledger', async t => {
+  const f = await fixture(t)
+  await assert.rejects(() => f.run('bad', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.startsAt })), /expiry/)
+  await assert.rejects(() => f.run('fail', async ctx => {
+    await f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.endsAt })
+    throw new Error('later failure')
+  }), /later failure/)
+  assert.equal(await f.models.Participant.count(), 0)
+  assert.equal(await f.models.Ledger.count(), 0)
+  await f.models.EventState.create({ eventId: config.eventId, guildId: 'guild', actionsPaused: true })
+  await assert.rejects(() => f.run('pause', ctx => f.effects.put(ctx, 'bob', 'curse', { expiresAt: config.endsAt })), /paused/)
+  assert.equal(await f.models.Effect.count(), 0)
+})

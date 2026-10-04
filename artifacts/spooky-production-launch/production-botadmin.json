@@ -1,0 +1,7 @@
+{
+  "environment": "production",
+  "botAdminConfigured": true,
+  "humanMember": true,
+  "canSeeZeroDefaultCommands": true,
+  "databaseOpened": false
+}

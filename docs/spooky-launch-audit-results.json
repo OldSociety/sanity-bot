@@ -1,0 +1,59 @@
+{
+  "scope": "synthetic SQLite/Discord only",
+  "configVersion": 8,
+  "realDatabaseOpened": false,
+  "discordContacted": false,
+  "observations": {
+    "curseRestoration": {
+      "originalOwned": true,
+      "afterReapplicationOwned": false,
+      "finalIntent": {
+        "roleId": "curse",
+        "present": true
+      },
+      "finalStatus": "cancelled"
+    },
+    "nicknameRestoration": {
+      "actualOriginal": "Bob",
+      "nextEffectOriginal": "boB",
+      "finalRestoration": "boB"
+    },
+    "notificationCancellation": {
+      "sendsBeforeCancel": 0,
+      "sendsAfterCancel": 1,
+      "finalStatus": "cancelled",
+      "allSent": false
+    },
+    "playerQueueFilter": {
+      "allNotifications": 1,
+      "ownedPlayerNotifications": 0
+    },
+    "displayNameMarkdown": {
+      "description": "**[Discord prize](https://example.invalid)** spotted a glimmer in the Halloween gloom and found **1 🧿 Evil Eye**!",
+      "rawMaskedLinkPresent": true
+    },
+    "legacyAchievementBank": {
+      "beforeAchievement": 95,
+      "afterAchievement": 105,
+      "afterCrown": 105,
+      "crownCredit": 0
+    },
+    "closedMaintenance": {
+      "distinctIdleTicks": 3,
+      "committedMaintenanceRows": 3,
+      "scheduledPerDayIfLeftEnabled": 1440
+    }
+  },
+  "hashes": {
+    "config/spooky-2026.json": "f3becb8b886df3ac7ece7dc3abcde07b2b8521fa53de0c2e63ab798e8f278f6c",
+    "config/spooky-winners.json": "d994014f60d2b063e5725ca43c3b62ef517103a7dfd85a2f0bef235889d38fa9",
+    "services/spooky/playful.js": "bf4a5f9a6700231cd5a681a75eecae0c94075a03911e0a1c183047347cb9e015",
+    "services/spooky/notifications.js": "f8264fafb394f4fb001fddf41a80b40f0e0a392088265630d76a15298a2a7b0c",
+    "services/spooky/admin.js": "c435e0130ca44d60ce8934f2222f91a9115533562bc1b5af8ce67f1b49b14b89",
+    "services/spooky/presentation.js": "debdd623ee441f08908188861678f8b311288209d4bdeb937063c5210838cdfb",
+    "services/spooky/lifecycle.js": "b14d4139a80db457ad095a7a9d40bd4c1ef1fd8e8f42d355c44899ccfb35a541",
+    "services/spooky/flavor.js": "ab30b310fb57e31a90d555aa93fae463404c42ca4ce5a6a85566ee795a086d5f",
+    "commands/Achievements/Achievements.js": "4b64177981d3101739c7156c28ea6c39b75a09ae0ec20d24292fc7d30d8b9d0b",
+    "scripts/spooky-launch-audit-probes.js": "8ff8d22ed74a9a275f196092606f7691c6fa4b8958319b3c339ee85ef5f91b95"
+  }
+}

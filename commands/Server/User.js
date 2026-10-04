@@ -6,6 +6,7 @@ module.exports = {
     .setName('user')
     .setDescription('Provides information about the user.'),
   async execute(interaction) {
+    if (!interaction.deferred && !interaction.replied) await interaction.deferReply()
     const userId = interaction.user.id
     // interaction.user is the object representing the User who ran the command
 
@@ -30,6 +31,9 @@ module.exports = {
 	  .addFields({name: ' ', value: `This command was run by ${interaction.user.username}, who joined on ${interaction.member.joinedAt}.`})
       .setTimestamp()
 
-    await await interaction.reply({ embeds: [UserEmbed] })
+    // Permanent badge presentation is independent of seasonal gameplay flags.
+    try { UserEmbed.addFields(await require('../../services/badges').badgeField(interaction.guild, userId, User.sequelize)) }
+    catch (error) { console.error('Profile badges unavailable:', error.message) }
+    await interaction.editReply({ embeds: [UserEmbed] })
   },
 }

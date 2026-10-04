@@ -1,0 +1,437 @@
+TAP version 13
+# Subtest: completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+ok 1 - completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+  ---
+  duration_ms: 261.2366
+  ...
+# Subtest: latest Spooky badge is guild-scoped, persistent, and defaults to Selene
+ok 2 - latest Spooky badge is guild-scoped, persistent, and defaults to Selene
+  ---
+  duration_ms: 33.4812
+  ...
+# Subtest: shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+ok 3 - shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+  ---
+  duration_ms: 0.5395
+  ...
+# Subtest: badge leaderboard and profile field use permanent ownership independent of seasonal registration
+ok 4 - badge leaderboard and profile field use permanent ownership independent of seasonal registration
+  ---
+  duration_ms: 1220.0446
+  ...
+# Subtest: every normal table interval is reachable with exact boundaries and no independent Eye roll
+ok 5 - every normal table interval is reachable with exact boundaries and no independent Eye roll
+  ---
+  duration_ms: 2.8707
+  ...
+# Subtest: curse override boundary preserves 10%, 20/80 treat split and normal table selection
+ok 6 - curse override boundary preserves 10%, 20/80 treat split and normal table selection
+  ---
+  duration_ms: 0.8246
+  ...
+# Subtest: non-candy buffer halves special weights with one roll and clears after candy
+ok 7 - non-candy buffer halves special weights with one roll and clears after candy
+  ---
+  duration_ms: 37.4143
+  ...
+# Subtest: committed action history buffers across trick/treat, ignores screens and survives reconstruction/replay
+ok 8 - committed action history buffers across trick/treat, ignores screens and survives reconstruction/replay
+  ---
+  duration_ms: 229.297
+  ...
+# Subtest: successful theft spends candy before credit, records activity and concurrent replay runs once
+ok 9 - successful theft spends candy before credit, records activity and concurrent replay runs once
+  ---
+  duration_ms: 63.5342
+  ...
+# Subtest: break curse and cursed distributions each cost one regardless of delivered gifts
+ok 10 - break curse and cursed distributions each cost one regardless of delivered gifts
+  ---
+  duration_ms: 53.6732
+  ...
+# Subtest: effect failure, no-target rejection and missing handler refund all writes without rerolling
+ok 11 - effect failure, no-target rejection and missing handler refund all writes without rerolling
+  ---
+  duration_ms: 47.1389
+  ...
+# Subtest: explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+ok 12 - explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+  ---
+  duration_ms: 42.2594
+  ...
+# Subtest: choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+ok 13 - choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+  ---
+  duration_ms: 77.0828
+  ...
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 14 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 230.6236
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 15 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 35.3307
+  ...
+# Subtest: public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+ok 16 - public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+  ---
+  duration_ms: 22.7404
+  ...
+# Subtest: GIF rotation reads durable root history, charges once and preserves saved replay
+ok 17 - GIF rotation reads durable root history, charges once and preserves saved replay
+  ---
+  duration_ms: 158.4834
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 18 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 107.1333
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 19 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 348.7656
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 20 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 29.8678
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 21 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 65.6676
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 22 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 73.7175
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 23 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 112.2251
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 24 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 115.9484
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 25 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 50.3049
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 26 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 56.7289
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 27 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 36.7561
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 28 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 1.0028
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 29 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 3.6683
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 30 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 56.9473
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 31 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 24.5721
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 32 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 192.57
+  ...
+# Subtest: Crown finding/theft are mutually exclusive and each has the same 1% base interval
+ok 33 - Crown finding/theft are mutually exclusive and each has the same 1% base interval
+  ---
+  duration_ms: 2.3049
+  ...
+# Subtest: failed old-holder removal never adds a second Crown; reconstruction retries safely
+ok 34 - failed old-holder removal never adds a second Crown; reconstruction retries safely
+  ---
+  duration_ms: 248.8034
+  ...
+# Subtest: legacy multiple holders keep the most recently awarded wearer without new rewards
+ok 35 - legacy multiple holders keep the most recently awarded wearer without new rewards
+  ---
+  duration_ms: 49.4647
+  ...
+# Subtest: superseded grants cannot reclaim the Crown; release is holder-scoped
+ok 36 - superseded grants cannot reclaim the Crown; release is holder-scoped
+  ---
+  duration_ms: 59.919
+  ...
+# Subtest: durable effect renewal, replay, expiry and scope survive service reconstruction
+ok 37 - durable effect renewal, replay, expiry and scope survive service reconstruction
+  ---
+  duration_ms: 223.4204
+  ...
+# Subtest: effect expiry is clamped to event end and clearing preserves metadata for restoration
+ok 38 - effect expiry is clamped to event end and clearing preserves metadata for restoration
+  ---
+  duration_ms: 33.3219
+  ...
+# Subtest: curse resolver uses active database effects rather than permanent role claims; closure turns it off
+ok 39 - curse resolver uses active database effects rather than permanent role claims; closure turns it off
+  ---
+  duration_ms: 38.5236
+  ...
+# Subtest: effect service prevents curse/protection overlap in either order
+ok 40 - effect service prevents curse/protection overlap in either order
+  ---
+  duration_ms: 52.7371
+  ...
+# Subtest: invalid/paused writes and later callback failure roll back effects, participant seed and ledger
+ok 41 - invalid/paused writes and later callback failure roll back effects, participant seed and ledger
+  ---
+  duration_ms: 31.2744
+  ...
+# Subtest: GIF rate is stable near 10%; committed selection never consumes gameplay randomness
+ok 42 - GIF rate is stable near 10%; committed selection never consumes gameplay randomness
+  ---
+  duration_ms: 67.5957
+  ...
+# Subtest: successful Crown theft always uses Rihanna; private/error/art messages never receive it
+ok 43 - successful Crown theft always uses Rihanna; private/error/art messages never receive it
+  ---
+  duration_ms: 0.28
+  ...
+# Subtest: recent channel GIFs are avoided using the root transaction and durable outbox
+ok 44 - recent channel GIFs are avoided using the root transaction and durable outbox
+  ---
+  duration_ms: 1.3265
+  ...
+# Subtest: cancelled GIFs and non-GIF artwork do not occupy recent rotation slots
+ok 45 - cancelled GIFs and non-GIF artwork do not occupy recent rotation slots
+  ---
+  duration_ms: 0.4337
+  ...
+# Subtest: significant results share the rate; private messages, fallbacks and art keep their design
+ok 46 - significant results share the rate; private messages, fallbacks and art keep their design
+  ---
+  duration_ms: 0.6853
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 47 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 310.4358
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 48 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 73.7862
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 49 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 109.0191
+  ...
+# Subtest: protection cures a cursed target; a fresh shield restores after exactly one hour
+ok 50 - protection cures a cursed target; a fresh shield restores after exactly one hour
+  ---
+  duration_ms: 137.0479
+  ...
+# Subtest: baseline is captured on first mutation, shared across effects and restored after October
+ok 51 - baseline is captured on first mutation, shared across effects and restored after October
+  ---
+  duration_ms: 87.1081
+  ...
+# Subtest: pending curse cured by protection restores a null baseline without leaving a shield
+ok 52 - pending curse cured by protection restores a null baseline without leaving a shield
+  ---
+  duration_ms: 60.3518
+  ...
+# Subtest: readable appearance has one wrapper and respects Discord nickname length
+ok 53 - readable appearance has one wrapper and respects Discord nickname length
+  ---
+  duration_ms: 0.8384
+  ...
+# Subtest: shield blocks targeted curses and self backfires without changing expiry or nickname
+ok 54 - shield blocks targeted curses and self backfires without changing expiry or nickname
+  ---
+  duration_ms: 78.3356
+  ...
+# Subtest: maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+ok 55 - maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+  ---
+  duration_ms: 92.693
+  ...
+# Subtest: old-style refresh and later cleanup never overwrite a manually chosen nickname
+ok 56 - old-style refresh and later cleanup never overwrite a manually chosen nickname
+  ---
+  duration_ms: 82.6852
+  ...
+# Subtest: legacy null baseline without a display snapshot is preserved until safe final restoration
+ok 57 - legacy null baseline without a display snapshot is preserved until safe final restoration
+  ---
+  duration_ms: 36.0537
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 58 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 110.3913
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 59 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 147.759
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 60 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 97.6687
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 61 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 59.4325
+  ...
+# Subtest: reversal skips existing spells and restores each newly selected original at closure
+ok 62 - reversal skips existing spells and restores each newly selected original at closure
+  ---
+  duration_ms: 131.977
+  ...
+# Subtest: no eligible reversal rolls back the action candy and operation
+ok 63 - no eligible reversal rolls back the action candy and operation
+  ---
+  duration_ms: 37.0116
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 64 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 114.8666
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 65 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 154.9085
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 66 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 94.2559
+  ...
+# Subtest: reversal restores at twelve hours and legacy month-long timers are shortened without baseline changes
+ok 67 - reversal restores at twelve hours and legacy month-long timers are shortened without baseline changes
+  ---
+  duration_ms: 51.2351
+  ...
+# Subtest: Crown can be stolen and recaptured but first-win candy is not farmed
+ok 68 - Crown can be stolen and recaptured but first-win candy is not farmed
+  ---
+  duration_ms: 66.7758
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 69 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 28.4835
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 70 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 43.8947
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 71 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 56.9014
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 72 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 8.7952
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 73 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 24.3016
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 74 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 47.0604
+  ...
+# Subtest: caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+ok 75 - caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+  ---
+  duration_ms: 232.5301
+  ...
+# Subtest: successful Great Heist gets a five-point boost; failed heist cannot gain it
+ok 76 - successful Great Heist gets a five-point boost; failed heist cannot gain it
+  ---
+  duration_ms: 39.2165
+  ...
+# Subtest: Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+ok 77 - Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+  ---
+  duration_ms: 61.5011
+  ...
+# Subtest: Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+ok 78 - Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+  ---
+  duration_ms: 52.6149
+  ...
+# Subtest: non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+ok 79 - non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+  ---
+  duration_ms: 104.4054
+  ...
+# Subtest: only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+ok 80 - only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+  ---
+  duration_ms: 33.5265
+  ...
+# Subtest: failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+ok 81 - failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+  ---
+  duration_ms: 107.6405
+  ...
+# Subtest: ties share each track, a player may lead both, and inactive registrants do not win
+ok 82 - ties share each track, a player may lead both, and inactive registrants do not win
+  ---
+  duration_ms: 57.1331
+  ...
+# Subtest: Crown earns exact tenths on positive actions only; live rankings and frozen overall proof agree
+ok 83 - Crown earns exact tenths on positive actions only; live rankings and frozen overall proof agree
+  ---
+  duration_ms: 85.5353
+  ...
+# Subtest: population adapter matches a seeded actual SQLite gameplay trajectory
+ok 84 - population adapter matches a seeded actual SQLite gameplay trajectory
+  ---
+  duration_ms: 8712.2299
+  ...
+# Subtest: milestone summaries count never reached separately from conditional timing
+ok 85 - milestone summaries count never reached separately from conditional timing
+  ---
+  duration_ms: 1.1149
+  ...
+1..85
+# tests 85
+# suites 0
+# pass 85
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21513.7084

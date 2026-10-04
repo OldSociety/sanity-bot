@@ -28,3 +28,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log**.sqlite
 /config/*.sqlite
+/config/backups/
+/artifacts/command-registry/
+/artifacts/spooky-audit-tests.log
+/artifacts/spooky-preparation-tests.log
+/artifacts/spooky-development-session/
+/artifacts/spooky-live-*.json
+/artifacts/spooky-final-registry-review.json
+/.worktrees/
+/artifacts/profile-worktree-archive/

@@ -1,0 +1,245 @@
+TAP version 13
+# Subtest: every normal table interval is reachable with exact boundaries and no independent Eye roll
+ok 1 - every normal table interval is reachable with exact boundaries and no independent Eye roll
+  ---
+  duration_ms: 2.8489
+  ...
+# Subtest: curse override boundary preserves 10%, 20/80 treat split and normal table selection
+ok 2 - curse override boundary preserves 10%, 20/80 treat split and normal table selection
+  ---
+  duration_ms: 0.8237
+  ...
+# Subtest: non-candy buffer halves special weights with one roll and clears after candy
+ok 3 - non-candy buffer halves special weights with one roll and clears after candy
+  ---
+  duration_ms: 38.6838
+  ...
+# Subtest: committed action history buffers across trick/treat, ignores screens and survives reconstruction/replay
+ok 4 - committed action history buffers across trick/treat, ignores screens and survives reconstruction/replay
+  ---
+  duration_ms: 235.8144
+  ...
+# Subtest: successful theft spends candy before credit, records activity and concurrent replay runs once
+ok 5 - successful theft spends candy before credit, records activity and concurrent replay runs once
+  ---
+  duration_ms: 64.9137
+  ...
+# Subtest: break curse and cursed distributions each cost one regardless of delivered gifts
+ok 6 - break curse and cursed distributions each cost one regardless of delivered gifts
+  ---
+  duration_ms: 50.8983
+  ...
+# Subtest: effect failure, no-target rejection and missing handler refund all writes without rerolling
+ok 7 - effect failure, no-target rejection and missing handler refund all writes without rerolling
+  ---
+  duration_ms: 46.302
+  ...
+# Subtest: explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+ok 8 - explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+  ---
+  duration_ms: 42.514
+  ...
+# Subtest: choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+ok 9 - choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+  ---
+  duration_ms: 82.9642
+  ...
+# Subtest: development activation leaves production/test disabled and approved economy unchanged
+ok 10 - development activation leaves production/test disabled and approved economy unchanged
+  ---
+  duration_ms: 5.5546
+  ...
+# Subtest: invalid probability edits and duplicated outcomes fail validation
+ok 11 - invalid probability edits and duplicated outcomes fail validation
+  ---
+  duration_ms: 1.003
+  ...
+# Subtest: manifest provides unique durable quarter IDs and each character has required rarity positions
+ok 12 - manifest provides unique durable quarter IDs and each character has required rarity positions
+  ---
+  duration_ms: 1.9922
+  ...
+# Subtest: Pacific event opening/closing includes all October 31 and no redemption window
+ok 13 - Pacific event opening/closing includes all October 31 and no redemption window
+  ---
+  duration_ms: 28.1679
+  ...
+# Subtest: character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+ok 14 - character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+  ---
+  duration_ms: 0.9695
+  ...
+# Subtest: character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+ok 15 - character rarity metadata rejects missing, unknown or unordered assignments and invalid colors
+  ---
+  duration_ms: 0.6142
+  ...
+# Subtest: configuration cannot silently enable redemption, draw ceilings, or unbanked fate
+ok 16 - configuration cannot silently enable redemption, draw ceilings, or unbanked fate
+  ---
+  duration_ms: 0.6026
+  ...
+# Subtest: simulation weights cannot be used for live acquisition and configuration is immutable
+ok 17 - simulation weights cannot be used for live acquisition and configuration is immutable
+  ---
+  duration_ms: 0.4468
+  ...
+# Subtest: explicit production activation cannot enable test and leaves economy/version unchanged
+ok 18 - explicit production activation cannot enable test and leaves economy/version unchanged
+  ---
+  duration_ms: 1.0771
+  ...
+# Subtest: production finale selects only production announcement channel/activation with the environment role
+ok 19 - production finale selects only production announcement channel/activation with the environment role
+  ---
+  duration_ms: 1583.3203
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 20 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 345.5622
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 21 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 83.3664
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 22 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 121.0327
+  ...
+# Subtest: protection cures a cursed target; a fresh shield restores after exactly one hour
+ok 23 - protection cures a cursed target; a fresh shield restores after exactly one hour
+  ---
+  duration_ms: 148.5982
+  ...
+# Subtest: baseline is captured on first mutation, shared across effects and restored after October
+ok 24 - baseline is captured on first mutation, shared across effects and restored after October
+  ---
+  duration_ms: 92.3702
+  ...
+# Subtest: pending curse cured by protection restores a null baseline without leaving a shield
+ok 25 - pending curse cured by protection restores a null baseline without leaving a shield
+  ---
+  duration_ms: 58.958
+  ...
+# Subtest: readable appearance has one wrapper and respects Discord nickname length
+ok 26 - readable appearance has one wrapper and respects Discord nickname length
+  ---
+  duration_ms: 0.7561
+  ...
+# Subtest: shield blocks targeted curses and self backfires without changing expiry or nickname
+ok 27 - shield blocks targeted curses and self backfires without changing expiry or nickname
+  ---
+  duration_ms: 80.8107
+  ...
+# Subtest: maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+ok 28 - maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+  ---
+  duration_ms: 97.9725
+  ...
+# Subtest: old-style refresh and later cleanup never overwrite a manually chosen nickname
+ok 29 - old-style refresh and later cleanup never overwrite a manually chosen nickname
+  ---
+  duration_ms: 99.6924
+  ...
+# Subtest: legacy null baseline without a display snapshot is preserved until safe final restoration
+ok 30 - legacy null baseline without a display snapshot is preserved until safe final restoration
+  ---
+  duration_ms: 41.4288
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 31 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 105.3077
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 32 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 137.4891
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 33 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 80.4872
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 34 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 54.2391
+  ...
+# Subtest: reversal skips existing spells and restores each newly selected original at closure
+ok 35 - reversal skips existing spells and restores each newly selected original at closure
+  ---
+  duration_ms: 125.0223
+  ...
+# Subtest: no eligible reversal rolls back the action candy and operation
+ok 36 - no eligible reversal rolls back the action candy and operation
+  ---
+  duration_ms: 31.6956
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 37 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 107.4205
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 38 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 157.5791
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 39 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 90.8667
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 40 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 30.6303
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 41 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 36.0792
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 42 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 60.3815
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 43 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 9.0709
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 44 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 26.9519
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 45 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 46.5725
+  ...
+# Subtest: population adapter matches a seeded actual SQLite gameplay trajectory
+ok 46 - population adapter matches a seeded actual SQLite gameplay trajectory
+  ---
+  duration_ms: 9000.0665
+  ...
+# Subtest: milestone summaries count never reached separately from conditional timing
+ok 47 - milestone summaries count never reached separately from conditional timing
+  ---
+  duration_ms: 1.1059
+  ...
+1..47
+# tests 47
+# suites 0
+# pass 47
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15157.435

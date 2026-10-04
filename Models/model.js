@@ -9,6 +9,7 @@ const UserAchievement = require('./Achievement/UserAchievement')(
   DataTypes
 )
 const SpookyStat = require('./SpookyStat/SpookyStat')(sequelize, DataTypes)
+const HolidayStat = require('./Holiday/Holiday')(sequelize, DataTypes)
 const Inventory = require('./Shop/Inventory')(sequelize, DataTypes)
 // Ensure models are loaded
 
@@ -41,7 +42,7 @@ SpookyStat.associate = (models) => {
 }
 
 // Call the associations
-User.associate({ Achievement, UserAchievement, SpookyStat })
+User.associate({ Achievement, UserAchievement, SpookyStat, HolidayStat })
 Achievement.associate({ User, UserAchievement })
 SpookyStat.associate({ User })
 
@@ -49,6 +50,7 @@ module.exports = {
   User,
   Achievement,
   UserAchievement,
+  HolidayStat,
   SpookyStat,
   Inventory,
 }

@@ -1,0 +1,1149 @@
+{
+  "checksPassed": true,
+  "scope": "offline full working-tree registry versus local HEAD",
+  "branch": "feature/S-1-spooky",
+  "baselineCommit": "f56ddcd3c97a970f1c5e09e09c6a72f61c3c668c",
+  "databaseOpened": false,
+  "discordContacted": false,
+  "environmentCredentialsRead": false,
+  "executionHandlersInvoked": false,
+  "commands": [
+    {
+      "file": "commands/Achievements/Achievements.js",
+      "name": "achievement",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "create",
+            "description": "ADMIN: Create a new achievement",
+            "options": [
+              {
+                "type": 3,
+                "name": "name",
+                "description": "The name of the achievement",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "description",
+                "description": "The description of the achievement",
+                "required": true
+              },
+              {
+                "name": "secret",
+                "description": "Is this achievement secret?",
+                "required": true,
+                "type": 5
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "view",
+            "description": "ADMIN: Delete an achievement from the list",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "delete",
+            "description": "ADMIN: Delete an achievement from the list",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "award",
+            "description": "ADMIN: Award an achievement to a user",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to award the achievement to",
+                "required": true,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "remove",
+            "description": "ADMIN: Remove an achievement from a user",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to remove the achievement from",
+                "required": true,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "upload",
+            "description": "ADMIN: Upload achievements from a CSV file",
+            "options": [
+              {
+                "name": "file",
+                "description": "The CSV file containing achievements",
+                "required": true,
+                "type": 11
+              }
+            ]
+          }
+        ],
+        "name": "achievement",
+        "description": "Manage achievements",
+        "type": 1
+      },
+      "substitutes": [
+        "global models",
+        "../../utils/checkPermissions"
+      ],
+      "definitionSha256": "1dd36f7d5705375e2f563cb9a512da346978c75928e986bcd4d1beaa8d6862ce"
+    },
+    {
+      "file": "commands/Achievements/Badges.js",
+      "name": "badges",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "view",
+            "description": "View your badges or another member’s.",
+            "options": [
+              {
+                "name": "player",
+                "description": "Member to view.",
+                "required": false,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "leaderboard",
+            "description": "See the most collected badges.",
+            "options": [
+              {
+                "min_value": 1,
+                "type": 4,
+                "name": "page",
+                "description": "Page number.",
+                "required": false
+              }
+            ]
+          }
+        ],
+        "name": "badges",
+        "description": "View permanent server badges.",
+        "dm_permission": false,
+        "type": 1
+      },
+      "substitutes": [],
+      "definitionSha256": "27a41cd6dfd3dff23bbd116d3c9fcafb97fa2d24869fae17e047ce86ddb54904"
+    },
+    {
+      "file": "commands/Birthday/Birthday.js",
+      "name": "birthday",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "check",
+            "description": "Check a user's birthday",
+            "options": [
+              {
+                "name": "target",
+                "description": "The user to check. Defaults to you if not provided.",
+                "required": false,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "remember",
+            "description": "Save your birthday",
+            "options": [
+              {
+                "type": 4,
+                "name": "day",
+                "description": "Day of your birthday (1-31)",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "month",
+                "description": "Month of your birthday (1-12)",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "year",
+                "description": "Year of your birthday (e.g. 1990)",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "update",
+            "description": "Update your birthday",
+            "options": [
+              {
+                "type": 4,
+                "name": "day",
+                "description": "New day of your birthday (1-31)",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "month",
+                "description": "New month of your birthday (1-12)",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "year",
+                "description": "New year of your birthday (e.g. 1990)",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "name": "birthday",
+        "description": "Check, set, or update birthdays",
+        "type": 1
+      },
+      "substitutes": [
+        "global models"
+      ],
+      "definitionSha256": "08778a6decbc3d537734dd66e0a9ab8be43aff45a0df9f7eed34e9981b613c47"
+    },
+    {
+      "file": "commands/Fatepoints/Fate.js",
+      "name": "fate",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "add-fate",
+            "description": "Add fate points to yourself.",
+            "options": [
+              {
+                "type": 4,
+                "name": "points",
+                "description": "The number of fate points to add",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "reroll",
+            "description": "Automatically deduct 10 fate points if possible.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "balance",
+            "description": "Check your fate points and bank balance.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "manage",
+            "description": "Admins: Manage fate points and bank of any user.",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to manage",
+                "required": true,
+                "type": 6
+              },
+              {
+                "type": 3,
+                "choices": [
+                  {
+                    "name": "set-fate",
+                    "value": "set-fate"
+                  },
+                  {
+                    "name": "set-bank",
+                    "value": "set-bank"
+                  }
+                ],
+                "name": "action",
+                "description": "Choose an action",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "amount",
+                "description": "Amount of points to set or add",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "name": "fate",
+        "description": "Interact with your fate points.",
+        "type": 1
+      },
+      "substitutes": [
+        "global models",
+        "../../services/fate-wallet"
+      ],
+      "definitionSha256": "66a0510dbaf93b19ef911852ed472988e317c5f922ce7c6621b5bc8b53167258"
+    },
+    {
+      "file": "commands/Holiday/Christmas.js",
+      "name": "throw",
+      "definition": {
+        "options": [],
+        "name": "throw",
+        "description": "Throw a snowball at a random player!",
+        "type": 1
+      },
+      "substitutes": [
+        "global models"
+      ],
+      "definitionSha256": "4339f13a2e16a6a6ae6f54956fd05f306e5dbfb152962c4254369857aed16cc8"
+    },
+    {
+      "file": "commands/Holiday/Slots.js",
+      "name": "slots",
+      "definition": {
+        "options": [],
+        "name": "slots",
+        "description": "Spin the Winter Slot Machine! 🎰",
+        "type": 1
+      },
+      "substitutes": [
+        "global models"
+      ],
+      "definitionSha256": "1c1f760d8db53faa2f2d24e443e1ca282fd69c9f5a17c51f3363cb409569e5cd"
+    },
+    {
+      "file": "commands/Holiday/SpookyAdmin.js",
+      "name": "spooky-admin",
+      "definition": {
+        "options": [
+          {
+            "type": 2,
+            "name": "inspect",
+            "description": "Spooky inspect tools.",
+            "options": [
+              {
+                "type": 1,
+                "name": "player",
+                "description": "Inspect stored player balances, inventory and effects.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Player to inspect.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "max_value": 10000,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "page",
+                    "description": "Page of this private inspection result (default 1).",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "config",
+                "description": "Inspect event rules and stored pause/archive state.",
+                "options": [
+                  {
+                    "max_value": 10000,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "page",
+                    "description": "Page of this private inspection result (default 1).",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "transactions",
+                "description": "Inspect recent scoped ledger and operation receipts.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Optional player filter.",
+                    "required": false,
+                    "type": 6
+                  },
+                  {
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "before",
+                    "description": "Only rows with IDs lower than this cursor.",
+                    "required": false
+                  },
+                  {
+                    "max_value": 50,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "limit",
+                    "description": "Rows per queue (default 20).",
+                    "required": false
+                  },
+                  {
+                    "max_value": 10000,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "page",
+                    "description": "Page of this private inspection result (default 1).",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "deliveries",
+                "description": "Inspect role/nickname and public notification queues.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Optional player filter.",
+                    "required": false,
+                    "type": 6
+                  },
+                  {
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "before",
+                    "description": "Only rows with IDs lower than this cursor.",
+                    "required": false
+                  },
+                  {
+                    "max_value": 50,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "limit",
+                    "description": "Rows per queue (default 20).",
+                    "required": false
+                  },
+                  {
+                    "max_value": 10000,
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "page",
+                    "description": "Page of this private inspection result (default 1).",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "wording",
+                "description": "Privately browse trick and treat embed designs.",
+                "options": []
+              }
+            ]
+          },
+          {
+            "type": 2,
+            "name": "repair",
+            "description": "Spooky repair tools.",
+            "options": [
+              {
+                "type": 1,
+                "name": "adjust",
+                "description": "Apply an audited candy or Evil Eye balance correction.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Existing player to repair.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "Candy",
+                        "value": "candy"
+                      },
+                      {
+                        "name": "Evil Eyes",
+                        "value": "eyes"
+                      }
+                    ],
+                    "name": "resource",
+                    "description": "Balance to correct.",
+                    "required": true
+                  },
+                  {
+                    "max_value": 100,
+                    "min_value": -100,
+                    "type": 4,
+                    "name": "delta",
+                    "description": "Signed adjustment: candy ±80, Eyes ±100; no zero.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "grant-quarter",
+                "description": "Grant one named quarter; duplicate exchange runs automatically.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Registered player to repair.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "type": 3,
+                    "name": "piece",
+                    "description": "Stable piece ID, for example had_tl.",
+                    "required": true,
+                    "max_length": 16
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "remove-quarter",
+                "description": "Remove one named quarter; last copies need explicit permission.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Registered player to repair.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "type": 3,
+                    "name": "piece",
+                    "description": "Stable piece ID, for example had_tl.",
+                    "required": true,
+                    "max_length": 16
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  },
+                  {
+                    "name": "last-copy",
+                    "description": "Explicitly permit removal of an erroneous only copy.",
+                    "required": false,
+                    "type": 5
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "clear-effect",
+                "description": "Clear an effect and queue safe Discord restoration.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Existing player to repair.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "Curse",
+                        "value": "curse"
+                      },
+                      {
+                        "name": "Reversed nickname",
+                        "value": "reversed_nickname"
+                      },
+                      {
+                        "name": "Theft protection",
+                        "value": "theft_protection"
+                      }
+                    ],
+                    "name": "effect",
+                    "description": "Effect to clear.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "recompute-badges",
+                "description": "Reconcile earned permanent badges without changing quarters.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Registered event participant.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "name": "confirm",
+                    "description": "Confirm permanent badge eligibility reconciliation.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": 2,
+            "name": "event",
+            "description": "Spooky event tools.",
+            "options": [
+              {
+                "type": 1,
+                "name": "pause",
+                "description": "Pause or resume event actions without changing event dates.",
+                "options": [
+                  {
+                    "name": "paused",
+                    "description": "True to pause; false to resume.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "reset-development",
+                "description": "Reset one development seasonal player, retaining audit and wallet.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Development participant to reset.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "name": "confirm",
+                    "description": "Explicitly confirm the seasonal development reset.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "reset-testing",
+                "description": "Fresh development test: clear event state, badges and Crown; retain Fate/Bank and audit.",
+                "options": [
+                  {
+                    "name": "player",
+                    "description": "Development player to fully reset.",
+                    "required": true,
+                    "type": 6
+                  },
+                  {
+                    "name": "confirm",
+                    "description": "Confirm clearing event badges and Crown eligibility too.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": 2,
+            "name": "queue",
+            "description": "Spooky queue tools.",
+            "options": [
+              {
+                "type": 1,
+                "name": "resolve-notification",
+                "description": "Resolve one inspected queue row with an audited explicit decision.",
+                "options": [
+                  {
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "id",
+                    "description": "Inspected queue row ID.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "acknowledge",
+                        "value": "acknowledge"
+                      },
+                      {
+                        "name": "cancel",
+                        "value": "cancel"
+                      },
+                      {
+                        "name": "retry",
+                        "value": "retry"
+                      },
+                      {
+                        "name": "resend",
+                        "value": "resend"
+                      }
+                    ],
+                    "name": "action",
+                    "description": "Resend deliberately risks a duplicate; retry only an unclaimed send.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "pending",
+                        "value": "pending"
+                      },
+                      {
+                        "name": "sending",
+                        "value": "sending"
+                      },
+                      {
+                        "name": "uncertain",
+                        "value": "uncertain"
+                      }
+                    ],
+                    "name": "status",
+                    "description": "Exact status shown by inspection.",
+                    "required": true
+                  },
+                  {
+                    "name": "confirm",
+                    "description": "Confirm this decision, including possible duplicate risk for resend.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  },
+                  {
+                    "type": 3,
+                    "name": "message",
+                    "description": "Observed bot message ID, required for acknowledge.",
+                    "required": false,
+                    "max_length": 20
+                  }
+                ]
+              },
+              {
+                "type": 1,
+                "name": "resolve-delivery",
+                "description": "Resolve one inspected queue row with an audited explicit decision.",
+                "options": [
+                  {
+                    "min_value": 1,
+                    "type": 4,
+                    "name": "id",
+                    "description": "Inspected queue row ID.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "acknowledge",
+                        "value": "acknowledge"
+                      },
+                      {
+                        "name": "cancel",
+                        "value": "cancel"
+                      },
+                      {
+                        "name": "retry",
+                        "value": "retry"
+                      }
+                    ],
+                    "name": "action",
+                    "description": "Resend deliberately risks a duplicate; retry only an unclaimed send.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "choices": [
+                      {
+                        "name": "pending",
+                        "value": "pending"
+                      },
+                      {
+                        "name": "conflict",
+                        "value": "conflict"
+                      }
+                    ],
+                    "name": "status",
+                    "description": "Exact status shown by inspection.",
+                    "required": true
+                  },
+                  {
+                    "type": 3,
+                    "name": "revision",
+                    "description": "Exact inspected delivery revision.",
+                    "required": true,
+                    "max_length": 200
+                  },
+                  {
+                    "name": "confirm",
+                    "description": "Confirm this decision, including possible duplicate risk for resend.",
+                    "required": true,
+                    "type": 5
+                  },
+                  {
+                    "type": 3,
+                    "name": "reason",
+                    "description": "Required private audit reason for this correction.",
+                    "required": true,
+                    "max_length": 500,
+                    "min_length": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "name": "spooky-admin",
+        "description": "Inspect and repair Spooky event state.",
+        "default_member_permissions": "0",
+        "dm_permission": false,
+        "type": 1
+      },
+      "substitutes": [
+        "../../services/spooky/admin-runtime"
+      ],
+      "definitionSha256": "e2716652b08e9296f43c6199696771245f641a87261aa284c173779c45b60fc4"
+    },
+    {
+      "file": "commands/Holiday/TrickorTreat.js",
+      "name": "spooky",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "help",
+            "description": "Read the Spooky rules.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "register",
+            "description": "Join Spooky Season and see how to play.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "collection",
+            "description": "View your character quarters and balances.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "leaderboard",
+            "description": "View the Spooky rankings for Scream Supreme.",
+            "options": [
+              {
+                "max_value": 1000,
+                "min_value": 1,
+                "type": 4,
+                "name": "page",
+                "description": "Rankings page.",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "trick",
+            "description": "Spend one candy on a random trick.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "treat",
+            "description": "Spend one candy on a random treat.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "spend-fate",
+            "description": "Review and confirm spending ten Fate Points on a random quarter.",
+            "options": []
+          }
+        ],
+        "name": "spooky",
+        "description": "Play Spooky Season or view your collection.",
+        "type": 1
+      },
+      "substitutes": [
+        "../../services/spooky/runtime"
+      ],
+      "definitionSha256": "0613fc5f94d8274746a29093a7b30f628cd98bfbc59fd33df3820113a3c20309"
+    },
+    {
+      "file": "commands/Report/Report.js",
+      "name": "report",
+      "definition": {
+        "options": [],
+        "name": "report",
+        "description": "Report activity to the staff anonymously or publicly",
+        "type": 1
+      },
+      "substitutes": [],
+      "definitionSha256": "b981854690c57ab03109bfea9cb397956fd089291961818980f3a03a91e96908"
+    },
+    {
+      "file": "commands/Server/Profile.js",
+      "name": "profile",
+      "definition": {
+        "options": [
+          {
+            "name": "player",
+            "description": "Member to view; defaults to you.",
+            "required": false,
+            "type": 6
+          }
+        ],
+        "name": "profile",
+        "description": "Show a profile card with XP, Fate and recent badges.",
+        "dm_permission": false,
+        "type": 1
+      },
+      "substitutes": [],
+      "definitionSha256": "6841b13d5918e145208e3f74e13088843de30625ce6251e124882b10bc5571e4"
+    },
+    {
+      "file": "commands/Server/Server.js",
+      "name": "server",
+      "definition": {
+        "options": [],
+        "name": "server",
+        "description": "Display info about this server.",
+        "type": 1
+      },
+      "substitutes": [],
+      "definitionSha256": "9bea3fcc3b3f422c13e31844b0dcd5b6d0dcc1e7f9a64a177310105905132d11"
+    },
+    {
+      "file": "commands/Server/User.js",
+      "name": "user",
+      "definition": {
+        "options": [],
+        "name": "user",
+        "description": "Provides information about the user.",
+        "type": 1
+      },
+      "substitutes": [
+        "global models"
+      ],
+      "definitionSha256": "a929a2e545b4d71d346fe542cf057171e2b5a176498bed00982da280fa4cc37c"
+    },
+    {
+      "file": "commands/Shop/Shop.js",
+      "name": "shop",
+      "definition": {
+        "options": [
+          {
+            "type": 1,
+            "name": "add-item",
+            "description": "Admins: Add an item to the shop.",
+            "options": [
+              {
+                "type": 3,
+                "name": "name",
+                "description": "Item name",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "description",
+                "description": "Item description",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "image",
+                "description": "Item image URL",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "cost",
+                "description": "Item cost in Fate Points",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "stock",
+                "description": "Item stock (-1 for infinite)",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "remove-item",
+            "description": "Admins: Remove an item from the shop.",
+            "options": [
+              {
+                "type": 4,
+                "name": "number",
+                "description": "Item number (as displayed in the shop list) to remove",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "restock",
+            "description": "Admins: Restock an item in the shop.",
+            "options": [
+              {
+                "type": 4,
+                "name": "number",
+                "description": "Item number (as displayed in the shop list) to restock",
+                "required": true
+              },
+              {
+                "type": 4,
+                "name": "amount",
+                "description": "New stock count (-1 for infinite)",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "list",
+            "description": "Displays all available shop items.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "buy",
+            "description": "Purchase an item from the shop.",
+            "options": [
+              {
+                "type": 4,
+                "name": "number",
+                "description": "Item number (as displayed in the shop list) to buy",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "name": "shop",
+        "description": "Manage and interact with the shop.",
+        "type": 1
+      },
+      "substitutes": [
+        "global models"
+      ],
+      "definitionSha256": "2f96b4e9066fe41303096dfdad67d97c1972448a4ae7f7b0cb502bc4084b6245"
+    },
+    {
+      "file": "commands/Timestamp/Timestamp.js",
+      "name": "timestamp",
+      "definition": {
+        "options": [
+          {
+            "type": 3,
+            "name": "datetime",
+            "description": "Date and time (e.g., \"2025-03-07 18:30\")",
+            "required": true
+          }
+        ],
+        "name": "timestamp",
+        "description": "Convert a date/time into a Discord timestamp.",
+        "type": 1
+      },
+      "substitutes": [],
+      "definitionSha256": "a83d2a214ef0090ab321a7ac042a412141d1752e35f65837480610672d412f3d"
+    }
+  ],
+  "activeCount": 14,
+  "inactiveFiles": [
+    "commands/Daily/Daily.js",
+    "commands/Help/Help.js",
+    "commands/Slots/Slots.js"
+  ],
+  "added": [
+    "profile"
+  ],
+  "removed": [],
+  "changed": [],
+  "removedFiles": [],
+  "limitations": [
+    "Global models, execution-only helpers and Spooky runtime adapters are inert substitutes. This validates definitions, not execution imports or handlers.",
+    "HEAD is a local baseline, not the live Discord registry. Bulk PUT replaces all guild commands; server-only commands cannot be detected offline.",
+    "No command registration or login occurred. Full development acceptance and approved server settings remain required."
+  ]
+}

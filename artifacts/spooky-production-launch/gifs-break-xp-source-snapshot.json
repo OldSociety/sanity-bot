@@ -1,0 +1,78 @@
+[
+  {
+    "path": "config/spooky-2026.json",
+    "sha256": "5b8a335606ab99640e592640138fce8a2baf6173a76fd154cd32e3fb78286353"
+  },
+  {
+    "path": "config/spooky-gifs.json",
+    "sha256": "eae1397063b3fc45249d6918beb415272d30edcc27b8abf3bb0d04cdcc428dc4"
+  },
+  {
+    "path": "services/spooky/gifs.js",
+    "sha256": "bc48813ebcd8260b86acb890242967e4c314052b3055adbdbae3042d2f9428f3"
+  },
+  {
+    "path": "services/spooky/playful.js",
+    "sha256": "f6d873b4beb398822c3a6ccd03e537ed479d930391fc49b2c008b385b5a0ada1"
+  },
+  {
+    "path": "services/spooky/controller.js",
+    "sha256": "8602627054e8d5e973275f9905759a9d94b80aeb325ff19f905d49b9a56ae306"
+  },
+  {
+    "path": "services/spooky/target-choice.js",
+    "sha256": "c13ec523260575185fed6f2bc4e0da03ffb91473cfe5fa142fe56738441667aa"
+  },
+  {
+    "path": "services/spooky/config.js",
+    "sha256": "e8c0171e1e50ee54ac65fba24fdc87d6dd417035617d0b0e9164528633a7f3ee"
+  },
+  {
+    "path": "services/spooky/presentation.js",
+    "sha256": "057b831a22b784ce2816947f36983d2b9eb2972e58ae292b28fc3a8ac5667d29"
+  },
+  {
+    "path": "handlers/messageHandler.js",
+    "sha256": "ed4c3ee24d0c7c05e20a0a5ccff6a9798c41fef366b06db9432957b1f10d7fbc"
+  },
+  {
+    "path": "tests/spooky-gifs.test.js",
+    "sha256": "708ec4c065a8fa59784989ad077bc76818fb5b569adc95180cae72350d9c3363"
+  },
+  {
+    "path": "tests/message-xp-policy.test.js",
+    "sha256": "a5ff559d8e8e906fc9b31aa3c65dd35535d7de9795fd35bf8d3ebc1e45fc1e6c"
+  },
+  {
+    "path": "tests/spooky-controller.test.js",
+    "sha256": "e4e6ed2cb1bfbfd84ecc50fb0271de5ccb476ff2f87b80971628b9a9666dbc20"
+  },
+  {
+    "path": "tests/spooky-playful.test.js",
+    "sha256": "ab24e1fc7f974fbaea893a6a3283039c0b1be91ac03742db90c94d63aa5f2bc9"
+  },
+  {
+    "path": "README.md",
+    "sha256": "a2e4098d47eacb7325447c7f15283d5a42243aefffcd20f6856c14a91c415608"
+  },
+  {
+    "path": "AGENTS.md",
+    "sha256": "13089edd421a94e38b68a05fd5aa1080e9a426cf6b213a886b2df194e1cde8a5"
+  },
+  {
+    "path": "docs/spooky-gifs-break-xp.md",
+    "sha256": "df418e3845dbf661a26276c4658eb03af644488d0f9e70ab68e76178bfc760c4"
+  },
+  {
+    "path": "docs/spooky-handoff.md",
+    "sha256": "d107f304b6f306f160a566f67c99fcdd71cc33273d8df9cc9f65bc93714e232a"
+  },
+  {
+    "path": "docs/spooky-rules.md",
+    "sha256": "d2c189c0bf332385162e2d7cee7215e379760d4488bc22f1f159445a46ee545e"
+  },
+  {
+    "path": "docs/spooky-implementation-checklist.md",
+    "sha256": "2c11ad3b799ab1c44dcc7124fa9b265fc3771dcd3c0f37e47812f1f9f6fd1f87"
+  }
+]
