@@ -237,7 +237,7 @@ function outcomeFlavor(
           0x00ff00,
         ),
         say(
-          '🎁 Sweet Surprise!',
+          '🎁 Tasty Surprise!',
           `${actor} surprised ${target} with a sweet treat! 🎁`,
           0x00ff00,
         ),
@@ -277,8 +277,8 @@ function outcomeFlavor(
   }
   if (result.gifts && !result.deliveredCandy)
     return say(
-      '🍬 Sweet Thoughts!',
-      `${actor} brought sweets for ${target}, but their candy bags are already full.`,
+      '🍬 Sweet!',
+      `${actor} brought sweets for ${target}.`,
       0x00ff00,
     )
   if (receipt.overridden && result.gifts)

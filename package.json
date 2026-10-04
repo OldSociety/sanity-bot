@@ -35,6 +35,7 @@
     "redis-server": "^1.2.2",
     "sanity-bot": "file:",
     "sequelize": "^6.37.3",
+    "sharp": "^0.35.5",
     "sqlite3": "^5.1.7",
     "syllable": "^5.0.1"
   }

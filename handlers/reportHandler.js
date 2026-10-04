@@ -85,62 +85,71 @@ module.exports = (client) => {
 
   client.on('interactionCreate', async (buttonInteraction) => {
     if (!buttonInteraction.isButton()) return
-    const channel = buttonInteraction.channel
-    const adminChannel = client.channels.cache.get(modChannelId)
+    // Ticket permissions apply only to ticket buttons. Previously every game
+    // chooser/confirmation click reached this listener and raced its owner.
+    if (!['claim_ticket', 'close_ticket', 'delete_ticket'].includes(buttonInteraction.customId)) return
+    try {
+      const channel = buttonInteraction.channel
+      const adminChannel = client.channels.cache.get(modChannelId)
 
-    // Check if the user has any of the admin roles
-    const isAdmin = adminRoleIds.some(roleId => buttonInteraction.member.roles.cache.has(roleId))
-    if (!isAdmin) {
-      await buttonInteraction.reply({ content: 'Only admins can interact with this button.', ephemeral: true })
-      return
-    }
+      // Check if the user has any of the admin roles
+      const isAdmin = adminRoleIds.some(roleId => buttonInteraction.member.roles.cache.has(roleId))
+      if (!isAdmin) {
+        await buttonInteraction.reply({ content: 'Only admins can interact with this button.', ephemeral: true })
+        return
+      }
 
-    if (buttonInteraction.customId === 'claim_ticket') {
-      await buttonInteraction.reply({ content: `This ticket has been claimed by ${buttonInteraction.user.tag}.`, ephemeral: true })
-      await channel.send(`<@${buttonInteraction.user.id}> has claimed this ticket.`)
+      if (buttonInteraction.customId === 'claim_ticket') {
+        await buttonInteraction.reply({ content: `This ticket has been claimed by ${buttonInteraction.user.tag}.`, ephemeral: true })
+        await channel.send(`<@${buttonInteraction.user.id}> has claimed this ticket.`)
 
-      const closeActionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('close_ticket')
-          .setLabel('Close Ticket')
-          .setStyle(ButtonStyle.Secondary)
-      )
-      await buttonInteraction.message.edit({ components: [closeActionRow] })
-    }
-
-    if (buttonInteraction.customId === 'close_ticket') {
-      await buttonInteraction.reply({ content: `The ticket is being closed by ${buttonInteraction.user.tag}.`, ephemeral: true })
-      await channel.send(`🔒 Ticket closed by <@${buttonInteraction.user.id}>.`)
-
-      await channel.permissionOverwrites.edit(buttonInteraction.guild.roles.everyone, { ViewChannel: false })
-
-      const ticketClosedEmbed = new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle('🔒 Ticket Closed')
-        .addFields(
-          { name: '🆔', value: channel.name, inline: true },
-          { name: '✅Opened By', value: `<@${buttonInteraction.user.id}>`, inline: true },
-          { name: '❌Closed By', value: `<@${buttonInteraction.user.id}>`, inline: true },
-          { name: '⏱️Open Time', value: `<t:${Math.floor(channel.createdTimestamp / 1000)}:F>`, inline: true },
-          { name: '#️⃣ Ticket Name', value: channel.name, inline: true },
-          { name: '🙋‍♂️ Claimed By', value: buttonInteraction.user.tag, inline: true },
+        const closeActionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('close_ticket')
+            .setLabel('Close Ticket')
+            .setStyle(ButtonStyle.Secondary)
         )
-        .setTimestamp()
+        await buttonInteraction.message.edit({ components: [closeActionRow] })
+      }
 
-      await adminChannel.send({ embeds: [ticketClosedEmbed] })
+      if (buttonInteraction.customId === 'close_ticket') {
+        await buttonInteraction.reply({ content: `The ticket is being closed by ${buttonInteraction.user.tag}.`, ephemeral: true })
+        await channel.send(`🔒 Ticket closed by <@${buttonInteraction.user.id}>.`)
 
-      const deleteActionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('delete_ticket')
-          .setLabel('Delete Ticket')
-          .setStyle(ButtonStyle.Danger)
-      )
-      await buttonInteraction.message.edit({ components: [deleteActionRow] })
-    }
+        await channel.permissionOverwrites.edit(buttonInteraction.guild.roles.everyone, { ViewChannel: false })
 
-    if (buttonInteraction.customId === 'delete_ticket') {
-      await buttonInteraction.reply({ content: `This ticket is being deleted by ${buttonInteraction.user.tag}.`, ephemeral: true })
-      await channel.delete()
+        const ticketClosedEmbed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('🔒 Ticket Closed')
+          .addFields(
+            { name: '🆔', value: channel.name, inline: true },
+            { name: '✅Opened By', value: `<@${buttonInteraction.user.id}>`, inline: true },
+            { name: '❌Closed By', value: `<@${buttonInteraction.user.id}>`, inline: true },
+            { name: '⏱️Open Time', value: `<t:${Math.floor(channel.createdTimestamp / 1000)}:F>`, inline: true },
+            { name: '#️⃣ Ticket Name', value: channel.name, inline: true },
+            { name: '🙋‍♂️ Claimed By', value: buttonInteraction.user.tag, inline: true },
+          )
+          .setTimestamp()
+
+        await adminChannel.send({ embeds: [ticketClosedEmbed] })
+
+        const deleteActionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('delete_ticket')
+            .setLabel('Delete Ticket')
+            .setStyle(ButtonStyle.Danger)
+        )
+        await buttonInteraction.message.edit({ components: [deleteActionRow] })
+      }
+
+      if (buttonInteraction.customId === 'delete_ticket') {
+        await buttonInteraction.reply({ content: `This ticket is being deleted by ${buttonInteraction.user.tag}.`, ephemeral: true })
+        await channel.delete()
+      }
+    } catch (error) {
+      // EventEmitter does not await listeners: an expired interaction or failed
+      // ticket REST request must not become an unhandled process rejection.
+      console.error('Ticket button failed:', error.code || error.name || 'Error', String(error.message).slice(0, 250))
     }
   })
 }

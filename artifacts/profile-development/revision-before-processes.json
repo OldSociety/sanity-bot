@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-04T08:30:47.357Z",
+  "processes": [
+    {
+      "name": "SB-production",
+      "status": "online",
+      "environment": "production",
+      "pid": 14600,
+      "restarts": 29,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-04T03:04:12.963Z",
+      "errorBytes": 2837332,
+      "lastErrorWrite": "2026-10-04T06:59:30.824Z",
+      "outBytes": 354728236,
+      "readyLines": []
+    },
+    {
+      "name": "SB-development",
+      "status": "online",
+      "environment": "development",
+      "pid": 30080,
+      "restarts": 29,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-04T08:05:18.409Z",
+      "errorBytes": 35694,
+      "lastErrorWrite": "2026-09-08T13:00:00.924Z",
+      "outBytes": 14062226,
+      "readyLines": []
+    }
+  ]
+}

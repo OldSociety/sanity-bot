@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-04T18:35:23.581Z",
+  "environment": "development",
+  "membersChecked": 9,
+  "crownRoleManageable": true,
+  "actualCrownHolders": 0,
+  "pendingCrownDeliveries": 0,
+  "pendingCrownHasError": false,
+  "ownershipInitialized": true,
+  "logicalHolderMatchesRole": true,
+  "activeReversalRows": 0,
+  "readOnly": true
+}

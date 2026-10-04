@@ -58,7 +58,7 @@ test('private stash reminder cooldown persists for 48 hours and concurrent claim
 
 test('wording gallery uses real renderer, contains all eight standard gifts and constrains every page', () => {
   const pages = wordingPages()
-  assert.equal(pages.filter(page => page.label === 'treat • standard_gift' && !page.payload.embeds[0].title.includes('Sweet Thoughts')).length, 8)
+  assert.equal(pages.filter(page => page.label === 'treat • standard_gift' && page.payload.embeds[0].title !== '🍬 Sweet!').length, 8)
   assert.ok(pages.some(page => page.payload.embeds[0].title.includes('Sticky Fingers')))
   for (let i = 0; i < pages.length; i++) {
     const payload = previewPayload(pages, i)

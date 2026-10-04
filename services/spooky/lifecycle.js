@@ -1,11 +1,12 @@
 const { config: defaultEvent, getEventState } = require('./config')
+const { QueryTypes } = require('sequelize')
 
 // DB-only cleanup/closure shares one root operation. Archive is a durable freeze
 // marker, not deletion: inventory, wallet, scores and history remain available.
-function createLifecycle({ models, economy, playful, delivery, guildId, event = defaultEvent, winnerSnapshots = null }) {
+function createLifecycle({ models, economy, playful, delivery, guildId, event = defaultEvent, winnerSnapshots = null, clock = () => new Date() }) {
   if (typeof guildId !== 'string' || !guildId.trim()) throw new Error('Lifecycle guild ID is required')
   const scope = { eventId: event.eventId, guildId }
-  async function maintain(key) {
+  async function maintain(key, { reconcile = true } = {}) {
     if (!event.enabled) return { skipped: 'disabled' }
     if (typeof key !== 'string' || !key.trim()) throw new Error('Maintenance key is required')
     const idle = await economy.read(async transaction => {
@@ -22,7 +23,7 @@ function createLifecycle({ models, economy, playful, delivery, guildId, event = 
     })
     // Keep projection/final-award workers running after closure, without
     // writing another maintenance operation for each empty minute.
-    if (idle) return { skipped: 'closed_idle', replayed: false, receipt: idle, deliveries: await delivery.reconcile(scope) }
+    if (idle) return { skipped: 'closed_idle', replayed: false, receipt: idle, deliveries: reconcile ? await delivery.reconcile(scope) : [] }
     // Check the clock inside the transaction; a queued pre-close request must
     // close if it actually starts after the boundary. Slot keys may differ, but
     // the archive write itself is idempotent and always audited exactly once.
@@ -45,10 +46,32 @@ function createLifecycle({ models, economy, playful, delivery, guildId, event = 
     })
     // Replay still reconciles committed intents: a crash after commit or a
     // permission failure must not strand restoration until another command.
-    const deliveries = result.receipt.phase === 'UPCOMING' ? [] : await delivery.reconcile(scope)
+    const deliveries = !reconcile || result.receipt.phase === 'UPCOMING' ? [] : await delivery.reconcile(scope)
     return { ...result, deliveries }
   }
-  return { maintain }
+  async function beforeCommand(key) {
+    if (!event.enabled) return { skipped: 'disabled' }
+    // Compare instants, not text: raw Date replacements can use the host's
+    // Pacific offset while stored model dates use UTC. No cached effect state.
+    const needed = await economy.read(async transaction => {
+      const now = clock(), phase = getEventState(now, event)
+      if (phase === 'UPCOMING') return false
+      const rows = await models.Effect.sequelize.query(`SELECT e.id FROM SpookyEffects e
+        JOIN SpookyParticipants p ON p.id = e.participantId
+        WHERE p.eventId = :eventId AND p.guildId = :guildId
+          ${phase === 'CLOSED' ? '' : 'AND julianday(e.expiresAt) <= julianday(:now)'} LIMIT 1`,
+      { replacements: { ...scope, now: now.toISOString() }, type: QueryTypes.SELECT, transaction })
+      if (rows.length) return true
+      if (phase !== 'CLOSED') return false
+      const state = await models.EventState.findOne({ where: scope, transaction })
+      return !state?.archivedAt || (winnerSnapshots && !await models.Operation.findByPk(
+        require('./winner-snapshot').snapshotOperationId(scope.eventId, scope.guildId), { transaction }))
+    })
+    // Network projections and scheduled reminders remain in the minute worker;
+    // a stale unrelated REST request must never hold up a player command.
+    return needed ? maintain(key, { reconcile: false }) : { skipped: 'no_cleanup_due' }
+  }
+  return { maintain, beforeCommand }
 }
 
 // An injected scheduler is testable without a Discord client, global DB or sleep.

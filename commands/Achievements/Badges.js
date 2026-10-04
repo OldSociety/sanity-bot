@@ -14,12 +14,16 @@ module.exports = {
     try {
       if (interaction.options.getSubcommand() === 'view') {
         const player = interaction.options.getUser('player') || interaction.user
+        const member = await interaction.guild.members.fetch({ user: player.id, force: true })
+        if (require('../../services/member-policy').excludedMember(member)) return interaction.editReply('Bots are excluded from production badges.')
         return interaction.editReply({ allowedMentions: { parse: [] }, embeds: [{ title: 'Permanent Badges', color: 0xffd700, description: `<@${player.id}>`,
           fields: [await badgeField(interaction.guild, player.id, sequelize)] }] })
       }
       const page = interaction.options.getInteger('page') || 1
+      const members = await require('../../services/guild-members').memberDirectory(interaction.guild).get(interaction.guild)
+      const eligibleUserIds = [...members.values()].filter(member => !require('../../services/member-policy').excludedMember(member)).map(member => member.id)
       await require('../../services/badge-access').reconcileGuildUser(interaction.guild, interaction.user.id, sequelize).catch(error => console.error('Badge access pending:', error.message))
-      const [leaders, emojiMap] = await Promise.all([createBadges({ sequelize }).leaders(interaction.guildId, page), interaction.guild.emojis.fetch()])
+      const [leaders, emojiMap] = await Promise.all([createBadges({ sequelize }).leaders(interaction.guildId, page, eligibleUserIds), interaction.guild.emojis.fetch()])
       const fields = leaders.map((row, index) => ({ name: `#${(page - 1) * 10 + index + 1} • ${row.badgeCount}/7`, value: `<@${row.userId}>\n${renderBadges(row.badges, [...emojiMap.values()])}` }))
       await interaction.editReply({ allowedMentions: { parse: [] }, embeds: [{ title: `Badge Leaderboard • Page ${page}`, color: 0xffd700,
         description: fields.length ? undefined : 'No badges collected yet.', fields }] })

@@ -62,6 +62,26 @@ test('private help/onboarding creates actual fate account atomically and never m
   assert.ok(status.replies.at(-1).embeds[0].footer.text.includes('🍬'))
 })
 
+test('ordinary candy actions skip inventory/access scans and publish before operation-only projections', async t => {
+  const f = await fixture(t, { roll: 0.7, notifications: true })
+  await f.controller.execute(f.interaction('speed-register', 'register'))
+  let inventories = 0, accesses = 0
+  const original = f.models.Inventory.findAll.bind(f.models.Inventory)
+  f.models.Inventory.findAll = async (...args) => { inventories++; return original(...args) }
+  const turn = f.interaction('speed-turn', 'treat')
+  const controller = createController({ ...f.settings, badgeAccess: { reconcileUser: async () => { accesses++ } },
+    delivery: { enqueue: f.settings.delivery.enqueue, reconcile: async (scope, options) => {
+      assert.deepEqual(scope, { eventId: config.eventId, guildId: 'guild' })
+      assert.deepEqual(options, { revision: 'discord:speed-turn' })
+      assert.equal(turn.sent.length, 1)
+      turn.order.push('project')
+    } } })
+  await controller.execute(turn)
+  assert.equal(inventories, 0); assert.equal(accesses, 0)
+  assert.ok(turn.order.indexOf('send') < turn.order.indexOf('project'))
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 9)
+})
+
 test('leaderboard is public while collection and help remain private', async t => {
   const f = await fixture(t)
   for (const command of ['leaderboard', 'collection', 'help']) {

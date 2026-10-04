@@ -91,7 +91,8 @@ function createCandyEvents({ models, participants, effects, delivery, listMember
       return { stolen, victims, ...(!stolen ? { noEffect: 'shield_blocks_attack' } : {}) }
     },
     marked_for_mischief: async (ctx, plan) => {
-      const member = await target(ctx, plan, async member => !await effects.active(ctx, member.userId, 'bag_hole'))
+      const status = await effects.snapshot(ctx)
+      const member = await target(ctx, plan, async member => !status.active(member.userId, 'bag_hole'))
       if (!member) return fallback(ctx, plan)
       if (await combat.intercept(ctx, member.userId)) return { holeTargetUserId: member.userId, noEffect: 'shield_blocks_attack' }
       await effects.put(ctx, member.userId, 'bag_hole', { expiresAt: new Date(ctx.now.getTime() + event.combat.holeDurationMs), metadata: { appliedAt: ctx.now.toISOString() } })

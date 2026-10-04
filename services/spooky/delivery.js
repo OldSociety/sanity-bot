@@ -14,11 +14,11 @@ function createDelivery({ models, adapter, read, canDeliver = async row => !['fi
     else await models.Delivery.create({ ...where, ...values }, { transaction: ctx.transaction })
     await ctx.record({ userId, resource: `discord_intent:${kind}`, delta: 0, metadata: payload })
   }
-  function reconcile(scope, { userId, deliveryId, kinds } = {}) {
+  function reconcile(scope, { userId, deliveryId, kinds, revision } = {}) {
     // Share serialization across reconstructed services on the same connection.
     const previous = queues.get(models.Delivery.sequelize) || Promise.resolve()
     const work = previous.catch(() => {}).then(async () => {
-      const rows = await store(() => models.Delivery.findAll({ where: { ...scope, ...(userId && { userId }), ...(deliveryId !== undefined && { id: deliveryId }), status: 'pending' }, order: [['id', 'ASC']] }))
+      const rows = await store(() => models.Delivery.findAll({ where: { ...scope, ...(userId && { userId }), ...(deliveryId !== undefined && { id: deliveryId }), ...(revision && { revision }), status: 'pending' }, order: [['id', 'ASC']] }))
       const results = []
       for (const row of rows) {
         if (kinds && !kinds.includes(row.kind)) continue

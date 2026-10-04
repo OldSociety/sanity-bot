@@ -1,0 +1,272 @@
+TAP version 13
+# Subtest: completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+ok 1 - completing a character awards once atomically, survives reconstruction and seasonal participant deletion
+  ---
+  duration_ms: 1420.6031
+  ...
+# Subtest: latest Spooky badge is guild-scoped, persistent, and defaults to Selene
+ok 2 - latest Spooky badge is guild-scoped, persistent, and defaults to Selene
+  ---
+  duration_ms: 43.641
+  ...
+# Subtest: shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+ok 3 - shared renderer distinguishes missing/earned badges and resolves only usable Selene server emoji
+  ---
+  duration_ms: 0.797
+  ...
+# Subtest: badge leaderboard and profile field use permanent ownership independent of seasonal registration
+ok 4 - badge leaderboard and profile field use permanent ownership independent of seasonal registration
+  ---
+  duration_ms: 10057.3987
+  ...
+# Subtest: production excludes Discord bots and Bots-role humans; explicit development permits both
+ok 5 - production excludes Discord bots and Bots-role humans; explicit development permits both
+  ---
+  duration_ms: 2.3889
+  ...
+# Subtest: Admin label follows configured role or exact Admin role name, not unrelated roles
+ok 6 - Admin label follows configured role or exact Admin role name, not unrelated roles
+  ---
+  duration_ms: 0.416
+  ...
+# Subtest: runtime snapshot marks Bots-role targets excluded before gameplay sees the roster
+ok 7 - runtime snapshot marks Bots-role targets excluded before gameplay sees the roster
+  ---
+  duration_ms: 1163.751
+  ...
+# Subtest: progress uses live per-level XP threshold and bounds the bar
+ok 8 - progress uses live per-level XP threshold and bounds the bar
+  ---
+  duration_ms: 2.8429
+  ...
+# Subtest: badge strip is newest first with deterministic ties and no unknown ownership
+ok 9 - badge strip is newest first with deterministic ties and no unknown ownership
+  ---
+  duration_ms: 14.5907
+  ...
+# Subtest: large badge catalog displays only ten newest owned badges
+ok 10 - large badge catalog displays only ten newest owned badges
+  ---
+  duration_ms: 1.1328
+  ...
+# Subtest: renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+ok 11 - renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+  ---
+  duration_ms: 417.0095
+  ...
+# Subtest: image fetch restricts hosts, size and redirects
+ok 12 - image fetch restricts hosts, size and redirects
+  ---
+  duration_ms: 24.2657
+  ...
+# Subtest: profile reads existing and absent players without writes and sends PNG attachment
+ok 13 - profile reads existing and absent players without writes and sends PNG attachment
+  ---
+  duration_ms: 132.163
+  ...
+# Subtest: missing badges/avatar permit card and render failure closes deferred response
+ok 14 - missing badges/avatar permit card and render failure closes deferred response
+  ---
+  duration_ms: 7.937
+  ...
+# Subtest: member option uses their wallet and guild-scoped newest badges
+ok 15 - member option uses their wallet and guild-scoped newest badges
+  ---
+  duration_ms: 7.7865
+  ...
+# Subtest: profile definition supports optional member and disables DMs
+ok 16 - profile definition supports optional member and disables DMs
+  ---
+  duration_ms: 4.4814
+  ...
+# Subtest: Admin card label comes from the selected member role
+ok 17 - Admin card label comes from the selected member role
+  ---
+  duration_ms: 6.0961
+  ...
+# Subtest: profile wrapper rejects production and wrong guild before loading storage
+ok 18 - profile wrapper rejects production and wrong guild before loading storage
+  ---
+  duration_ms: 1.6421
+  ...
+# Subtest: burst consumers share one complete bootstrap; member events keep it current
+ok 19 - burst consumers share one complete bootstrap; member events keep it current
+  ---
+  duration_ms: 4.2393
+  ...
+# Subtest: incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+ok 20 - incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+  ---
+  duration_ms: 1.4341
+  ...
+# Subtest: rate-limit dispatch ends wait promptly and respects server retry_after seconds
+ok 21 - rate-limit dispatch ends wait promptly and respects server retry_after seconds
+  ---
+  duration_ms: 0.6462
+  ...
+# Subtest: unresponsive member fetch has a bounded deadline and removes listeners
+ok 22 - unresponsive member fetch has a bounded deadline and removes listeners
+  ---
+  duration_ms: 45.4188
+  ...
+# Subtest: personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+ok 23 - personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+  ---
+  duration_ms: 4.7652
+  ...
+# Subtest: /user defers publicly before DB/badge work and edits once
+ok 24 - /user defers publicly before DB/badge work and edits once
+  ---
+  duration_ms: 6.9936
+  ...
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 25 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 223.3532
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 26 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 35.1045
+  ...
+# Subtest: public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+ok 27 - public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+  ---
+  duration_ms: 21.3839
+  ...
+# Subtest: GIF rotation reads durable root history, charges once and preserves saved replay
+ok 28 - GIF rotation reads durable root history, charges once and preserves saved replay
+  ---
+  duration_ms: 158.5278
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 29 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 95.2031
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 30 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 384.1031
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 31 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 29.2632
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 32 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 63.9221
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 33 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 72.6208
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 34 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 116.5863
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 35 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 113.8278
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 36 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 42.2606
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 37 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 59.4724
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 38 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 35.5752
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 39 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 0.9822
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 40 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 3.3818
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 41 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 50.5663
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 42 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 30.2277
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 43 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 224.5219
+  ...
+# Subtest: stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+ok 44 - stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+  ---
+  duration_ms: 186.6491
+  ...
+# Subtest: level-up overflow credits current bank atomically and preserves purchase debit
+ok 45 - level-up overflow credits current bank atomically and preserves purchase debit
+  ---
+  duration_ms: 19.6137
+  ...
+# Subtest: notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+ok 46 - notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+  ---
+  duration_ms: 32.0167
+  ...
+# Subtest: ambiguous notification failure stays uncertain and is not resent automatically
+ok 47 - ambiguous notification failure stays uncertain and is not resent automatically
+  ---
+  duration_ms: 22.7786
+  ...
+# Subtest: cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+ok 48 - cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+  ---
+  duration_ms: 0.6576
+  ...
+# Subtest: complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+ok 49 - complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+  ---
+  duration_ms: 2.9684
+  ...
+# Subtest: notification migration reverses independently and preserves core operation receipts
+ok 50 - notification migration reverses independently and preserves core operation receipts
+  ---
+  duration_ms: 19.5544
+  ...
+# Subtest: wired slash command stays disabled in an allowed channel without loading the real database runtime
+ok 51 - wired slash command stays disabled in an allowed channel without loading the real database runtime
+  ---
+  duration_ms: 5.5727
+  ...
+# Subtest: booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+ok 52 - booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+  ---
+  duration_ms: 17.7188
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 26859.1003

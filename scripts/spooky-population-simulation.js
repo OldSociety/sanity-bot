@@ -179,7 +179,7 @@ function memoryGuild(specs, options, random) {
   const models = {
     // Projections succeed before the next simulated action, so there are no
     // outstanding restoration intents in this adapter (outages use DB tests).
-    Delivery: { async findOne() { return null } },
+    Delivery: { async findOne() { return null }, async findAll() { return [] } },
     Participant,
     Ledger: { async findOne({ where }) { return crownAwards.filter(row => matches(row, where)).at(-1) || null } },
     EventState: {
@@ -236,6 +236,14 @@ function memoryGuild(specs, options, random) {
     },
   }
   const effects = {
+    async snapshot(ctx) {
+      // Fresh local view, matching the runtime's transaction-local batch API.
+      const stored = (id, type) => effectRows.find(r => r.participantId === id && r.effectType === type) || null
+      return { stored, active: (id, type) => {
+        const row = stored(id, type)
+        return row && new Date(row.expiresAt) > ctx.now ? row : null
+      } }
+    },
     async active(ctx, id, type) {
       return (
         effectRows.find(

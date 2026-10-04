@@ -137,6 +137,9 @@ test('Crown earns exact tenths on positive actions only; live rankings and froze
   assert.equal(aliceBonus.delta, 2)
   const ranked = await require('../services/spooky/leaderboard').createLeaderboard({ models: f.models, economy: f.economy, User: f.User })({ eventId: config.eventId, guildId: 'guild' })
   assert.deepEqual(ranked.map(row => [row.userId, row.rank]), [['alice', 1], ['bob', 2]])
+  const eligibleRanks = await require('../services/spooky/leaderboard').createLeaderboard({ models: f.models,
+    economy: f.economy, User: f.User, eligibleUserIds: new Set(['bob']) })({ eventId: config.eventId, guildId: 'guild' })
+  assert.deepEqual(eligibleRanks.map(row => [row.userId, row.rank]), [['bob', 1]])
   await f.run('heist-with-crown', ctx => handlers.great_heist(ctx, { action: 'trick', outcome: 'great_heist', actorId: 'alice' }))
   await f.run('loss-with-crown', ctx => handlers.lost_candy(ctx, { action: 'treat', outcome: 'lost_candy', actorId: 'alice' }))
   assert.equal(await f.models.Ledger.sum('delta', { where: { resource: 'crownPrestigeTenths' } }), 9)

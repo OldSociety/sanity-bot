@@ -44,6 +44,18 @@ module.exports = {
       }
 
       try {
+        if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
+          const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
+          if (require('../services/member-policy').excludedMember(member)) {
+            await interaction.reply({ content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            return
+          }
+          const target = interaction.options.getUser('player')
+          if (target && require('../services/member-policy').excludedMember(await interaction.guild.members.fetch({ user: target.id, force: true }))) {
+            await interaction.reply({ content: 'Bots cannot be selected for these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            return
+          }
+        }
         await command.execute(interaction)
       } catch (error) {
         console.error(`Error executing ${interaction.commandName}`)

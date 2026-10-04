@@ -90,11 +90,13 @@ function createController({
     }
     if (subcommand === 'leaderboard') {
       const page = interaction.options.getInteger?.('page') ?? 1
+      const leaderboardMembers = await fetchMembers(input.guildId, { actorId: input.actorId })
       const leaders = await require('./leaderboard').createLeaderboard({
         models,
         economy,
         User,
         badges,
+        eligibleUserIds: new Set(leaderboardMembers.filter(member => !member.bot).map(member => member.userId)),
       })({ eventId: event.eventId, guildId: input.guildId }, page)
       const emojis = interaction.guild?.emojis?.fetch
         ? [...(await interaction.guild.emojis.fetch()).values()]
@@ -293,7 +295,8 @@ function createController({
       })
       receipt = { ...receipt, candy: player.candy, eyes: player.eyes }
       const registered = await models.Participant.findAll({
-        where: ctx.scope,
+        attributes: ['userId', 'registeredAt'],
+        where: { ...ctx.scope, userId: require('./presentation').targetIds(receipt.result || receipt, input.actorId) },
         transaction: ctx.transaction,
       })
       const registeredIds = new Set(
@@ -377,7 +380,7 @@ function createController({
       Object.entries(raw).map(([key, handler]) => [
         key,
         async (ctx, plan) => {
-          const before = await completed(ctx, input.actorId),
+          const before = ['find_eye', 'steal_or_find_eye'].includes(key) ? await completed(ctx, input.actorId) : [],
             result = await handler(ctx, plan)
           return {
             ...result,
@@ -440,7 +443,9 @@ function createController({
     await require('./post-commit').finishSaved({
       interaction,
       result,
-      badgeAccess,
+      // Only acquisitions can change badge ownership. Views/admin repair also
+      // reconcile access independently, including previously failed projections.
+      badgeAccess: (result.receipt.result || result.receipt).awards?.length ? badgeAccess : null,
       userId: input.actorId,
       payload:
         personal?.payload ||
@@ -469,6 +474,11 @@ function createController({
               })
       },
     })
+    // Saved rewards are visible before Discord role/nickname projection waits.
+    // Retry only this operation here; the minute worker repairs older intents.
+    if (delivery?.reconcile) await require('./post-commit').settleProjection(
+      () => delivery.reconcile({ eventId: input.eventId, guildId: input.guildId }, { revision: result.operationId }),
+      error => console.error('Spooky action projection pending:', error.message))
   }
   async function execute(interaction) {
     // Prevent two deliveries for the same interaction in this process.

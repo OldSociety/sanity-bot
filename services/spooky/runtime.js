@@ -4,17 +4,18 @@ const { helpScreen, privateScreen } = require('./presentation')
 const instances = new WeakMap()
 
 async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false } = {}) {
-  const actor = actorId ? await guild.members.fetch({ user: actorId, force: true }) : null
+  const actorRequest = actorId ? guild.members.fetch({ user: actorId, force: true }) : Promise.resolve(null)
   if (actorOnly) {
+    const actor = await actorRequest
     if (!actor || actor.id !== actorId) throw new Error('Actor membership unavailable')
-    return [{ userId: actor.id, bot: actor.user.bot, displayName: actor.displayName, nickname: actor.nickname, roleIds: [...actor.roles.cache.keys()] }]
+    return [{ userId: actor.id, bot: require('../member-policy').excludedMember(actor), displayName: actor.displayName, nickname: actor.nickname, roleIds: [...actor.roles.cache.keys()] }]
   }
-  const [members, bot, roles] = await Promise.all([require('../guild-members').memberDirectory(guild).get(guild), guild.members.fetchMe({ force: true }), guild.roles.fetch()])
+  const [actor, members, bot, roles] = await Promise.all([actorRequest, require('../guild-members').memberDirectory(guild).get(guild), guild.members.fetchMe({ force: true }), guild.roles.fetch()])
   if (actor) { if (!members.has(actor.id)) throw new Error('Actor missing from complete directory'); members.set(actor.id, actor) }
   return [...members.values()].map(member => {
     const canRole = roleId => bot.permissions.has(PermissionFlagsBits.ManageRoles) && roles.get(roleId)?.editable === true
       // Role grants compare the awarded role with the bot, not the recipient's roles.
-    return { userId: member.id, bot: member.user.bot, displayName: member.displayName, nickname: member.nickname,
+    return { userId: member.id, bot: require('../member-policy').excludedMember(member), displayName: member.displayName, nickname: member.nickname,
       roleIds: [...member.roles.cache.keys()], canManageCurse: canRole(roleIds.curse), canManageSweetTooth: canRole(roleIds.sweetTooth),
       canManageNickname: member.manageable && bot.permissions.has(PermissionFlagsBits.ManageNicknames) }
   })
@@ -71,7 +72,7 @@ function runtime(client) {
     error => console.error('Spooky winner awards failed:', error.message))
   const pending = require('./pending-notifications').createPendingNotifications({ models, economy, notifications,
     scope: { eventId: config.eventId, guildId }, getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
-  const maintenance = async key => {
+  const initialize = async () => {
     // Adopt existing/pending Crown awards once, outside SQLite for the full
     // Discord scan. Bootstrap rechecks inside the serialized root transaction.
     const crownScope = { eventId: config.eventId, guildId }
@@ -81,13 +82,18 @@ function runtime(client) {
       await economy.execute({ ...crownScope, actorId: 'system', workerKey: 'crown-exclusive-bootstrap-v18', operationType: 'crown_bootstrap' },
         ctx => require('./crown').createCrown({ models, delivery, roleId: roleIds.sweetTooth }).bootstrap(ctx, holders))
     }
+    return Boolean(initialized) || require('./config').getEventState(new Date(), config) === 'ACTIVE'
+  }
+  const sweep = async key => {
     const result = await awardMaintenance(key)
     try { await fateReminders.tick() }
     catch (error) { console.error('Spooky Fate reminder failed:', error.message) }
     try { return { ...result, pendingNotifications: await pending.tick() } }
     catch (error) { console.error('Spooky notification recovery failed:', error.message); return result }
   }
-  const instance = { controller, maintenance, models, economy, effects, notifications }
+  const coordinator = require('./maintenance-coordinator').createMaintenanceCoordinator({ initialize, sweep,
+    beforeCommand: key => lifecycle.beforeCommand(key) })
+  const instance = { controller, ...coordinator, models, economy, effects, notifications }
   instances.set(client, instance)
   return instance
 }
@@ -102,11 +108,10 @@ async function execute(interaction) {
   try {
     const service = runtime(interaction.client)
     if (interaction.guildId !== process.env.GUILDID) throw new Error('Use the configured Spooky server')
-    // Cleanup before delivery prevents expired pending role intents being applied.
+    // Keep expiry/closure safety immediate; full recovery runs in the worker.
     await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
-    await service.maintenance(`before:${interaction.id}`)
+    await service.beforeCommand(`before:${interaction.id}`)
     await service.controller.execute(interaction)
-    await service.maintenance(`after:${interaction.id}`)
   } catch (error) {
     // Keep player errors simple, but never discard the diagnostic that explains
     // why an acknowledged command could not complete.

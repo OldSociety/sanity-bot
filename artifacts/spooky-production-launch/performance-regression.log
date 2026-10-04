@@ -1,0 +1,292 @@
+TAP version 13
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 1 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 260.5393
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 2 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 42.8536
+  ...
+# Subtest: public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+ok 3 - public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+  ---
+  duration_ms: 23.8795
+  ...
+# Subtest: GIF rotation reads durable root history, charges once and preserves saved replay
+ok 4 - GIF rotation reads durable root history, charges once and preserves saved replay
+  ---
+  duration_ms: 194.5307
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 5 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 116.4374
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 6 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 447.3206
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 7 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 45.1297
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 8 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 94.8802
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 9 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 83.9357
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 10 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 156.7272
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 11 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 156.3006
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 12 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 66.8761
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 13 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 69.6488
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 14 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 48.2669
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 15 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 1.0454
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 16 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 4.3045
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 17 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 89.0427
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 18 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 34.3681
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 19 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 325.7909
+  ...
+# Subtest: Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+ok 20 - Pacific start/end boundaries freeze once and preserve inventory, scores, wallet and pause
+  ---
+  duration_ms: 305.4099
+  ...
+# Subtest: startup after downtime restores owned effects; committed replay retries pending delivery
+ok 21 - startup after downtime restores owned effects; committed replay retries pending delivery
+  ---
+  duration_ms: 97.2601
+  ...
+# Subtest: active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+ok 22 - active expiry cleans shields without waiting for play; closure catches overlong effects and respects scope
+  ---
+  duration_ms: 82.371
+  ...
+# Subtest: cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+ok 23 - cleanup failure rolls back closure/restoration; repaired data allows the same key to succeed
+  ---
+  duration_ms: 56.2077
+  ...
+# Subtest: cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+ok 24 - cleanup preserves pre-existing curse roles and cancels stale additions; disabled worker does nothing
+  ---
+  duration_ms: 55.3076
+  ...
+# Subtest: queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+ok 25 - queued pre-close maintenance uses execution time; concurrent closure writes one archive ledger entry
+  ---
+  duration_ms: 44.5558
+  ...
+# Subtest: scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+ok 26 - scheduler starts immediately, deduplicates slot keys, skips overlap/readiness, retries errors and stops
+  ---
+  duration_ms: 1.043
+  ...
+# Subtest: spell roster selection is constant-query and preserves expired/opposite/restoration eligibility
+ok 27 - spell roster selection is constant-query and preserves expired/opposite/restoration eligibility
+  ---
+  duration_ms: 268.5923
+  ...
+# Subtest: command guard is read-only when idle and cleans exact expiry without network or cross-guild writes
+ok 28 - command guard is read-only when idle and cleans exact expiry without network or cross-guild writes
+  ---
+  duration_ms: 74.0012
+  ...
+# Subtest: command guard archives at event end and retries a failed cleanup rather than caching it
+ok 29 - command guard archives at event end and retries a failed cleanup rather than caching it
+  ---
+  duration_ms: 52.7921
+  ...
+# Subtest: initialization coalesces/retries and slow full recovery never blocks a prepared command
+ok 30 - initialization coalesces/retries and slow full recovery never blocks a prepared command
+  ---
+  duration_ms: 1.1273
+  ...
+# Subtest: current-operation projection skips unrelated pending role work
+ok 31 - current-operation projection skips unrelated pending role work
+  ---
+  duration_ms: 25.387
+  ...
+# Subtest: cleanup avoids historical ledger and per-player nickname reads for modern reversals
+ok 32 - cleanup avoids historical ledger and per-player nickname reads for modern reversals
+  ---
+  duration_ms: 51.2061
+  ...
+# Subtest: caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+ok 33 - caller crown win credits five fate for any registered player, caps bank and adds ten prestige once
+  ---
+  duration_ms: 239.3095
+  ...
+# Subtest: successful Great Heist gets a five-point boost; failed heist cannot gain it
+ok 34 - successful Great Heist gets a five-point boost; failed heist cannot gain it
+  ---
+  duration_ms: 41.381
+  ...
+# Subtest: Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+ok 35 - Spooky leaderboard combines both tracks and returns ranks/badges without exposing hidden points
+  ---
+  duration_ms: 53.3414
+  ...
+# Subtest: Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+ok 36 - Sweet Tooth credits one banked fate and treat prestige in the action transaction; concurrent replay once
+  ---
+  duration_ms: 53.0658
+  ...
+# Subtest: non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+ok 37 - non-Unwanted Sweet Tooth remains playable; full bank and near-cap are correct
+  ---
+  duration_ms: 102.3059
+  ...
+# Subtest: only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+ok 38 - only normal Sweet Tooth treats award fate; other outcomes and curse replacements do not
+  ---
+  duration_ms: 30.67
+  ...
+# Subtest: failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+ok 39 - failure costs prestige, target no-effect scores zero, and bank/scoring failures roll back action candy
+  ---
+  duration_ms: 100.1024
+  ...
+# Subtest: ties share each track, a player may lead both, and inactive registrants do not win
+ok 40 - ties share each track, a player may lead both, and inactive registrants do not win
+  ---
+  duration_ms: 67.2287
+  ...
+# Subtest: Crown earns exact tenths on positive actions only; live rankings and frozen overall proof agree
+ok 41 - Crown earns exact tenths on positive actions only; live rankings and frozen overall proof agree
+  ---
+  duration_ms: 81.2207
+  ...
+# Subtest: all nine candy outcomes conserve candy, charge once, freeze receipts and replay without a second debit
+ok 42 - all nine candy outcomes conserve candy, charge once, freeze receipts and replay without a second debit
+  ---
+  duration_ms: 693.1404
+  ...
+# Subtest: raid rounding, ransom, nearby swaps and conditional chain have their distinct bounded results
+ok 43 - raid rounding, ransom, nearby swaps and conditional chain have their distinct bounded results
+  ---
+  duration_ms: 149.5741
+  ...
+# Subtest: persistent hole adds ceiling25% up to2, preserves conservation and repairs without a nickname change
+ok 44 - persistent hole adds ceiling25% up to2, preserves conservation and repairs without a nickname change
+  ---
+  duration_ms: 167.1732
+  ...
+# Subtest: two-charge shield blocks the breaking hit, restores original nickname and never charges replay twice
+ok 45 - two-charge shield blocks the breaking hit, restores original nickname and never charges replay twice
+  ---
+  duration_ms: 176.2778
+  ...
+# Subtest: shields deny Crown theft with no role/currency award; breaking attempt is still denied
+ok 46 - shields deny Crown theft with no role/currency award; breaking attempt is still denied
+  ---
+  duration_ms: 172.687
+  ...
+# Subtest: shield survives12h at most and hole/shield writes rollback together on failure
+ok 47 - shield survives12h at most and hole/shield writes rollback together on failure
+  ---
+  duration_ms: 124.9142
+  ...
+# Subtest: full receivers and tiny sources never lose unmoved candy; unregistered heavy targets are not enrolled
+ok 48 - full receivers and tiny sources never lose unmoved candy; unregistered heavy targets are not enrolled
+  ---
+  duration_ms: 103.9043
+  ...
+# Subtest: multi-recipient attacks spend one shield charge per victim and block every transfer including the popping hit
+ok 49 - multi-recipient attacks spend one shield charge per victim and block every transfer including the popping hit
+  ---
+  duration_ms: 148.0871
+  ...
+# Subtest: hole amplification is aggregated per victim, bounded by room/funds, skipped for balancing swaps, and expires
+ok 50 - hole amplification is aggregated per victim, bounded by room/funds, skipped for balancing swaps, and expires
+  ---
+  duration_ms: 196.3845
+  ...
+# Subtest: shields absorb curse, reversal, and hole attacks before any role or nickname mutation
+ok 51 - shields absorb curse, reversal, and hole attacks before any role or nickname mutation
+  ---
+  duration_ms: 198.7429
+  ...
+# Subtest: three-charge strengths freeze on grant/replay and legacy shields retain their original expiry
+ok 52 - three-charge strengths freeze on grant/replay and legacy shields retain their original expiry
+  ---
+  duration_ms: 105.728
+  ...
+# Subtest: new heavy attacks choose registered players only; unavailable funded targets refund the whole operation
+ok 53 - new heavy attacks choose registered players only; unavailable funded targets refund the whole operation
+  ---
+  duration_ms: 93.4611
+  ...
+# Subtest: blocked Crown capture earns no prestige/capture bonus or Fate currency and uses requested public failure wording
+ok 54 - blocked Crown capture earns no prestige/capture bonus or Fate currency and uses requested public failure wording
+  ---
+  duration_ms: 1385.2223
+  ...
+# Subtest: protection repairs a damaged bag without granting a shield, even when no curse role can be managed; closure removes holes
+ok 55 - protection repairs a damaged bag without granting a shield, even when no curse role can be managed; closure removes holes
+  ---
+  duration_ms: 128.7183
+  ...
+# Subtest: conditional follow-ups stop at their boundaries and use distinct victims
+ok 56 - conditional follow-ups stop at their boundaries and use distinct victims
+  ---
+  duration_ms: 215.371
+  ...
+1..56
+# tests 56
+# suites 0
+# pass 56
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11952.8991

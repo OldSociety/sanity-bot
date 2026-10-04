@@ -45,7 +45,26 @@ function createEffects({ models, participants, event = defaultConfig }) {
     await ctx.record({ userId, resource: `effect:${effectType}`, delta: -1, before: 1, after: 0 })
     return receipt
   }
-  return { active, put, remove, getCurseState: async (ctx, userId) => Boolean(await active(ctx, userId, 'curse')) }
+  // Fresh, transaction-local roster checks. Never cache gameplay state across
+  // the chooser wait or a mutation; the chosen target is checked again at commit.
+  async function snapshot(ctx) {
+    const players = await models.Participant.findAll({ attributes: ['id', 'userId'], where: ctx.scope, transaction: ctx.transaction })
+    const rows = players.length ? await models.Effect.findAll({ where: { participantId: players.map(player => player.id) }, transaction: ctx.transaction }) : []
+    const state = await models.EventState.findOne({ where: ctx.scope, transaction: ctx.transaction })
+    const userIds = new Map(players.map(player => [player.id, player.userId])), byUser = new Map()
+    for (const row of rows) {
+      const userId = userIds.get(row.participantId)
+      if (!byUser.has(userId)) byUser.set(userId, new Map())
+      byUser.get(userId).set(row.effectType, row)
+    }
+    const enabled = event.enabled && ctx.scope.eventId === event.eventId && getEventState(ctx.now, event) === 'ACTIVE' && !state?.archivedAt
+    const stored = (userId, type) => byUser.get(userId)?.get(type) || null
+    return { stored, active: (userId, type) => {
+      const row = stored(userId, type)
+      return enabled && row && new Date(row.expiresAt) > ctx.now ? row : null
+    } }
+  }
+  return { active, snapshot, put, remove, getCurseState: async (ctx, userId) => Boolean(await active(ctx, userId, 'curse')) }
 }
 
 module.exports = { createEffects }

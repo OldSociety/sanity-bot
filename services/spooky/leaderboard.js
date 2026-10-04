@@ -1,16 +1,23 @@
-function createLeaderboard({ models, economy, User, badges }) {
+function createLeaderboard({ models, economy, User, badges, eligibleUserIds = null }) {
   return async (scope, page = 1) => {
     if (!Number.isSafeInteger(page) || page < 1 || page > 1000) throw new Error('Invalid leaderboard page')
     return economy.read(async transaction => {
       const players = await models.Participant.findAll({ where: scope, transaction })
       const entries = await models.Ledger.findAll({ where: { ...scope, resource: ['treatPrestige', 'trickPrestige', 'crownPrestigeTenths'] }, transaction })
-      const ranked = players.filter(player => player.registeredAt).map(player => {
-        const actions = entries.filter(entry => entry.userId === player.userId &&
+      const byUser = new Map()
+      for (const entry of entries) {
+        if (!byUser.has(entry.userId)) byUser.set(entry.userId, [])
+        byUser.get(entry.userId).push(entry)
+      }
+      const ranked = players.filter(player => player.registeredAt && (!eligibleUserIds || eligibleUserIds.has(player.userId))).map(player => {
+        const actions = (byUser.get(player.userId) || []).filter(entry =>
           (entry.metadata?.participantId !== undefined ? entry.metadata.participantId === player.id : new Date(entry.timestamp) >= new Date(player.registeredAt)))
         const baseRows = actions.filter(row => row.resource !== 'crownPrestigeTenths')
         const bonusRows = actions.filter(row => row.resource === 'crownPrestigeTenths')
+        const baseByOperation = new Map()
+        for (const row of baseRows) if (!baseByOperation.has(row.operationId)) baseByOperation.set(row.operationId, row)
         if (new Set(bonusRows.map(row => row.operationId)).size !== bonusRows.length || bonusRows.some(row => {
-          const base = baseRows.find(entry => entry.operationId === row.operationId)
+          const base = baseByOperation.get(row.operationId)
           return !base || row.metadata.participantId !== player.id || row.metadata.scoringVersion !== base.metadata.scoringVersion || row.metadata.track !== (base.resource === 'treatPrestige' ? 'treat' : 'trick') || row.delta <= 0 || !Number.isSafeInteger(row.delta) || row.metadata.holderId !== player.userId || row.metadata.baseDelta !== row.delta ||
             row.delta !== base.delta - (['sweet_tooth', 'steal_crown'].includes(base.metadata.outcome) ? base.metadata.bonus || 0 : 0)
         })) throw new Error('Leaderboard Crown evidence mismatch')

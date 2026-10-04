@@ -41,7 +41,7 @@ test('actual registry builders fail closed for incomplete exports, duplicate nam
     const entry = require('../scripts/command-registry-audit').definition(require('node:fs').readFileSync(require('node:path').join(root, file), 'utf8'), file)
     return entry.inactive ? {} : { data: { toJSON: () => entry.definition }, execute() {} }
   })
-  assert.deepEqual(runtime.active.map(item => item.definition), defs); assert.equal(defs.length, 13)
+  assert.deepEqual(runtime.active.map(item => item.definition), defs); assert.equal(defs.length, 14)
 })
 test('default deployment plans and snapshots live-only removals; apply binds definitions and live versions', async () => {
   const live = [{ id: 'old', version: '1', name: 'server_only', type: 1, description: 'Existing command' }]

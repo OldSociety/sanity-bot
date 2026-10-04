@@ -122,89 +122,33 @@ function createPlayful({
       )
     return target ? curse(ctx, target) : { noEffect: 'no_manageable_target' }
   }
+  async function candidateState(ctx) {
+    const status = await effects.snapshot(ctx)
+    const pending = await models.Delivery.findAll({ where: { ...ctx.scope, kind: { [Op.in]: ['nickname', 'curse_role'] },
+      status: { [Op.in]: ['pending', 'conflict'] } }, transaction: ctx.transaction })
+    const intents = new Map(pending.map(row => [row.userId + ':' + row.kind, row]))
+    return { ...status, intent: (userId, kind) => intents.get(userId + ':' + kind) }
+  }
   async function choiceCandidates(ctx, plan) {
-    if (plan.outcome === 'break_curse') {
-      const eligible = []
-      for (const member of await members(ctx)) {
-        if (
-          (member.canManageCurse && await effects.active(ctx, member.userId, 'curse')) ||
-          (!await effects.active(ctx, member.userId, 'curse') && await effects.active(ctx, member.userId, 'bag_hole'))
-        )
-          eligible.push(member)
+    if (!['break_curse', 'curse_target', 'curse_spread', 'temporary_immunity'].includes(plan.outcome)) return []
+    const status = await candidateState(ctx), roster = await members(ctx)
+    if (plan.outcome === 'break_curse') return roster.filter(member => {
+      const cursed = status.active(member.userId, 'curse')
+      return (member.canManageCurse && cursed) || (!cursed && status.active(member.userId, 'bag_hole'))
+    })
+    const type = plan.outcome === 'temporary_immunity' ? 'theft_protection' : 'curse'
+    return roster.filter(member => {
+      const id = member.userId
+      if (id === plan.actorId || (type === 'curse' && !member.canManageCurse) || status.active(id, type)) return false
+      if (type === 'theft_protection' && (status.active(id, 'curse') || status.active(id, 'bag_hole'))) {
+        return Boolean(member.canManageCurse || !status.active(id, 'curse'))
       }
-      return eligible
-    }
-    if (
-      !['curse_target', 'curse_spread', 'temporary_immunity'].includes(
-        plan.outcome,
-      )
-    )
-      return []
-    const type =
-      plan.outcome === 'temporary_immunity' ? 'theft_protection' : 'curse'
-    const eligible = []
-    for (const member of await members(ctx)) {
-      if (
-        member.userId === plan.actorId ||
-        (type === 'curse' && !member.canManageCurse)
-      )
-        continue
-      if (await effects.active(ctx, member.userId, type)) continue
-      // A shield cast on a cursed target becomes a cure. Removal can safely
-      // supersede even an unapplied curse projection using its saved baseline.
-      if (type === 'theft_protection' && (await effects.active(ctx, member.userId, 'curse') || await effects.active(ctx, member.userId, 'bag_hole'))) {
-        if (member.canManageCurse || !await effects.active(ctx, member.userId, 'curse')) eligible.push(member)
-        continue
-      }
-      // A shield can absorb this attack even while its nickname projection is
-      // pending. Interception owns its restoration and writes no curse costume.
-      if (type === 'curse' && await effects.active(ctx, member.userId, 'theft_protection')) {
-        eligible.push(member)
-        continue
-      }
-      const player = await models.Participant.findOne({
-        where: { ...ctx.scope, userId: member.userId },
-        transaction: ctx.transaction,
-      })
-      // Expired rows still own restoration metadata until maintenance clears
-      // them. Never replace that row with a fresh spell.
-      if (
-        player &&
-        (await models.Effect.findOne({
-          where: { participantId: player.id, effectType: type },
-          transaction: ctx.transaction,
-        }))
-      )
-        continue
-      if (
-        member.canManageNickname &&
-        (await models.Delivery.findOne({
-          where: {
-            ...ctx.scope,
-            userId: member.userId,
-            kind: 'nickname',
-            status: { [Op.in]: ['pending', 'conflict'] },
-          },
-          transaction: ctx.transaction,
-        }))
-      )
-        continue
-      // Cleared curse role restoration remains owned by the original operation.
-      if (type === 'curse') {
-        const intent = await models.Delivery.findOne({
-          where: {
-            ...ctx.scope,
-            userId: member.userId,
-            kind: 'curse_role',
-            status: { [Op.in]: ['pending', 'conflict'] },
-          },
-          transaction: ctx.transaction,
-        })
-        if (intent?.payload.present === false) continue
-      }
-      eligible.push(member)
-    }
-    return eligible
+      if (type === 'curse' && status.active(id, 'theft_protection')) return true
+      // Expired rows and pending restorations still own their baseline.
+      if (status.stored(id, type) || (member.canManageNickname && status.intent(id, 'nickname'))) return false
+      if (type === 'curse' && status.intent(id, 'curse_role')?.payload.present === false) return false
+      return true
+    })
   }
   async function clearCurse(ctx, userId) {
     await effects.remove(ctx, userId, 'bag_hole')
@@ -279,6 +223,7 @@ function createPlayful({
     if (ctx.scope.eventId !== event.eventId)
       throw new Error('Effect event mismatch')
     const scoped = await models.Participant.findAll({
+      attributes: ['id', 'userId'],
       where: ctx.scope,
       transaction: ctx.transaction,
     })
@@ -310,8 +255,8 @@ function createPlayful({
     // ledger entry, never a fresh nickname baseline or a renewed timer.
     if (!closed) for (const row of allRows.filter(row => row.effectType === 'reversed_nickname')) {
       const participant = byId.get(row.participantId)
-      const applied = await models.Ledger.findOne({ where: { ...ctx.scope, userId: participant.userId,
-        resource: 'effect:reversed_nickname', delta: 1 }, order: [['id', 'DESC']], transaction: ctx.transaction })
+      const applied = !row.metadata?.appliedAt ? await models.Ledger.findOne({ where: { ...ctx.scope, userId: participant.userId,
+        resource: 'effect:reversed_nickname', delta: 1 }, order: [['id', 'DESC']], transaction: ctx.transaction }) : null
       const start = row.metadata?.appliedAt || applied?.timestamp
       const limit = start ? Math.min(Date.parse(event.endsAt), new Date(start).getTime() + event.nickname.reversalDurationMs)
         : Math.min(Date.parse(event.endsAt), ctx.now.getTime() + event.nickname.reversalDurationMs)
@@ -343,7 +288,9 @@ function createPlayful({
       }
       cleared.push({ userId: participant.userId, effectType: row.effectType })
     }
-    if (!closed) for (const participantId of activeByPlayer.keys()) await nicknames.refresh(ctx, byId.get(participantId).userId)
+    if (!closed) for (const [participantId, activeRows] of activeByPlayer) {
+      if (activeRows.some(row => ['curse', 'theft_protection'].includes(row.effectType))) await nicknames.refresh(ctx, byId.get(participantId).userId)
+    }
     return { cleared }
   }
   const handlers = {
@@ -473,19 +420,13 @@ function createPlayful({
       }
     },
     reverse_nickname: async (ctx, plan) => {
-      const eligible = []
-      for (const member of await members(ctx)) {
-        if (member.userId === plan.actorId || !member.canManageNickname) continue
-        const player = await models.Participant.findOne({ where: { ...ctx.scope, userId: member.userId }, transaction: ctx.transaction })
-        // Pending/expired effects still own the baseline. Also avoid a reversal
-        // hidden beneath an active spell: the chosen target must visibly benefit.
-        if (player && await models.Effect.findOne({ where: { participantId: player.id,
-          effectType: { [Op.in]: ['reversed_nickname', 'curse'] } }, transaction: ctx.transaction })) continue
-        if (await effects.active(ctx, member.userId, 'theft_protection')) { eligible.push(member); continue }
-        if (await models.Delivery.findOne({ where: { ...ctx.scope, userId: member.userId, kind: 'nickname',
-          status: { [Op.in]: ['pending', 'conflict'] } }, transaction: ctx.transaction })) continue
-        eligible.push(member)
-      }
+      const status = await candidateState(ctx)
+      const eligible = (await members(ctx)).filter(member => {
+        const id = member.userId
+        if (id === plan.actorId || !member.canManageNickname || status.stored(id, 'reversed_nickname') || status.stored(id, 'curse')) return false
+        if (status.active(id, 'theft_protection')) return true
+        return !status.intent(id, 'nickname')
+      })
       const target = randomTargets(eligible, 1, random)[0]
       if (!target) {
         const error = new Error('No player can receive the backwards-name spell right now. Nothing was spent; try again.')

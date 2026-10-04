@@ -1,0 +1,192 @@
+TAP version 13
+# Subtest: production excludes Discord bots and Bots-role humans; explicit development permits both
+ok 1 - production excludes Discord bots and Bots-role humans; explicit development permits both
+  ---
+  duration_ms: 2.5677
+  ...
+# Subtest: Admin label follows configured role or exact Admin role name, not unrelated roles
+ok 2 - Admin label follows configured role or exact Admin role name, not unrelated roles
+  ---
+  duration_ms: 0.3521
+  ...
+# Subtest: runtime snapshot marks Bots-role targets excluded before gameplay sees the roster
+ok 3 - runtime snapshot marks Bots-role targets excluded before gameplay sees the roster
+  ---
+  duration_ms: 1254.6122
+  ...
+# Subtest: command dispatch rejects Bots-role actors and targets in production, permits development
+ok 4 - command dispatch rejects Bots-role actors and targets in production, permits development
+  ---
+  duration_ms: 3.6293
+  ...
+# Subtest: burst consumers share one complete bootstrap; member events keep it current
+ok 5 - burst consumers share one complete bootstrap; member events keep it current
+  ---
+  duration_ms: 6.0069
+  ...
+# Subtest: incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+ok 6 - incomplete bootstrap fails closed and retries obey allowance; disconnect invalidates
+  ---
+  duration_ms: 1.6258
+  ...
+# Subtest: rate-limit dispatch ends wait promptly and respects server retry_after seconds
+ok 7 - rate-limit dispatch ends wait promptly and respects server retry_after seconds
+  ---
+  duration_ms: 0.6577
+  ...
+# Subtest: unresponsive member fetch has a bounded deadline and removes listeners
+ok 8 - unresponsive member fetch has a bounded deadline and removes listeners
+  ---
+  duration_ms: 34.129
+  ...
+# Subtest: personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+ok 9 - personal fate snapshot uses only a fresh actor; repeated gameplay shares directory
+  ---
+  duration_ms: 5.6669
+  ...
+# Subtest: /user defers publicly before DB/badge work and edits once
+ok 10 - /user defers publicly before DB/badge work and edits once
+  ---
+  duration_ms: 8.0459
+  ...
+# Subtest: private help/onboarding creates actual fate account atomically and never mentions others
+ok 11 - private help/onboarding creates actual fate account atomically and never mentions others
+  ---
+  duration_ms: 257.0708
+  ...
+# Subtest: ordinary candy actions skip inventory/access scans and publish before operation-only projections
+ok 12 - ordinary candy actions skip inventory/access scans and publish before operation-only projections
+  ---
+  duration_ms: 147.304
+  ...
+# Subtest: leaderboard is public while collection and help remain private
+ok 13 - leaderboard is public while collection and help remain private
+  ---
+  duration_ms: 34.364
+  ...
+# Subtest: public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+ok 14 - public leaderboard uses latest earned badge emoji and defaults to supplied Selene art
+  ---
+  duration_ms: 32.7908
+  ...
+# Subtest: GIF rotation reads durable root history, charges once and preserves saved replay
+ok 15 - GIF rotation reads durable root history, charges once and preserves saved replay
+  ---
+  duration_ms: 160.4135
+  ...
+# Subtest: chosen shield recipient commits one action cost; replay skips the choice and random rolls
+ok 16 - chosen shield recipient commits one action cost; replay skips the choice and random rolls
+  ---
+  duration_ms: 140.4613
+  ...
+# Subtest: break-curse skips a lone target, offers two/three choices and saves one paid result
+ok 17 - break-curse skips a lone target, offers two/three choices and saves one paid result
+  ---
+  duration_ms: 451.2063
+  ...
+# Subtest: registration avatar and committed balances survive replay; re-registering grants no extra candy
+ok 18 - registration avatar and committed balances survive replay; re-registering grants no extra candy
+  ---
+  duration_ms: 36.8222
+  ...
+# Subtest: registered targets are publicly tagged with strict user allowlist
+ok 19 - registered targets are publicly tagged with strict user allowlist
+  ---
+  duration_ms: 83.298
+  ...
+# Subtest: losing outcomes charge exactly one candy and remain flavorful private results
+ok 20 - losing outcomes charge exactly one candy and remain flavorful private results
+  ---
+  duration_ms: 100.1176
+  ...
+# Spooky public delivery pending (discord:failed-cleanup): send failed
+# Subtest: successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+ok 21 - successful public results remove the private acknowledgement; failed delivery keeps a friendly warning
+  ---
+  duration_ms: 156.8185
+  ...
+# Subtest: nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+ok 22 - nonregistered targets get one embed mention per 72h; later effects stay public without pinging
+  ---
+  duration_ms: 171.5456
+  ...
+# Subtest: fate purchase publicly reveals quarter; replay retains render plan and debits only once
+ok 23 - fate purchase publicly reveals quarter; replay retains render plan and debits only once
+  ---
+  duration_ms: 121.9213
+  ...
+# Spooky public delivery pending (discord:theft): send failed
+# Subtest: failed public notification does not refund or reroll committed theft
+ok 24 - failed public notification does not refund or reroll committed theft
+  ---
+  duration_ms: 109.393
+  ...
+# Subtest: membership failures and disabled events do not mutate or silently find rewards
+ok 25 - membership failures and disabled events do not mutate or silently find rewards
+  ---
+  duration_ms: 51.743
+  ...
+# Subtest: all effect recipient fields route publicly, with safe names and no false permanent badge claim
+ok 26 - all effect recipient fields route publicly, with safe names and no false permanent badge claim
+  ---
+  duration_ms: 1.7126
+  ...
+# Subtest: slash definitions match help and route the authenticated interaction to the controller
+ok 27 - slash definitions match help and route the authenticated interaction to the controller
+  ---
+  duration_ms: 5.2486
+  ...
+# Subtest: a newly completed character gets one prominent notification; later draws do not repeat completion
+ok 28 - a newly completed character gets one prominent notification; later draws do not repeat completion
+  ---
+  duration_ms: 85.9895
+  ...
+# Subtest: collection shows total duplicate progress across characters
+ok 29 - collection shows total duplicate progress across characters
+  ---
+  duration_ms: 36.3574
+  ...
+# Subtest: registered recipient references are spaced out; repeated immediate actions use names
+ok 30 - registered recipient references are spaced out; repeated immediate actions use names
+  ---
+  duration_ms: 286.0147
+  ...
+# Subtest: spell roster selection is constant-query and preserves expired/opposite/restoration eligibility
+ok 31 - spell roster selection is constant-query and preserves expired/opposite/restoration eligibility
+  ---
+  duration_ms: 325.7748
+  ...
+# Subtest: command guard is read-only when idle and cleans exact expiry without network or cross-guild writes
+ok 32 - command guard is read-only when idle and cleans exact expiry without network or cross-guild writes
+  ---
+  duration_ms: 75.1474
+  ...
+# Subtest: command guard archives at event end and retries a failed cleanup rather than caching it
+ok 33 - command guard archives at event end and retries a failed cleanup rather than caching it
+  ---
+  duration_ms: 53.3242
+  ...
+# Subtest: initialization coalesces/retries and slow full recovery never blocks a prepared command
+ok 34 - initialization coalesces/retries and slow full recovery never blocks a prepared command
+  ---
+  duration_ms: 1.0017
+  ...
+# Subtest: current-operation projection skips unrelated pending role work
+ok 35 - current-operation projection skips unrelated pending role work
+  ---
+  duration_ms: 26.3901
+  ...
+# Subtest: cleanup avoids historical ledger and per-player nickname reads for modern reversals
+ok 36 - cleanup avoids historical ledger and per-player nickname reads for modern reversals
+  ---
+  duration_ms: 59.1504
+  ...
+1..36
+# tests 36
+# suites 0
+# pass 36
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8060.305

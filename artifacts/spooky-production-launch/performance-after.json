@@ -1,0 +1,28 @@
+{
+  "temporary_immunity": {
+    "sql": 6,
+    "ms": 14
+  },
+  "curse_target": {
+    "sql": 6,
+    "ms": 10
+  },
+  "break_curse": {
+    "sql": 6,
+    "ms": 9
+  },
+  "cleanup": {
+    "sql": 7,
+    "ms": 16
+  },
+  "two-full-sweeps": {
+    "sql": 24,
+    "ms": 25,
+    "newOperations": 2
+  },
+  "command-guard": {
+    "sql": 3,
+    "ms": 3,
+    "newOperations": 0
+  }
+}

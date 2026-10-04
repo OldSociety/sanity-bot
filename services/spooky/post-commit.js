@@ -4,6 +4,12 @@ async function safeEdit(interaction, payload, operationId) {
   try { await interaction.editReply(payload); return true }
   catch (error) { log('reply', operationId, error); return false }
 }
+async function settleProjection(work, onError, timeoutMs = 1000) {
+  let timer
+  const pending = Promise.resolve().then(work).catch(onError)
+  try { await Promise.race([pending, new Promise(resolve => { timer = setTimeout(resolve, timeoutMs) })]) }
+  finally { clearTimeout(timer) }
+}
 // A webhook failure cannot roll back an operation or suppress its durable outbox.
 async function finishSaved({ interaction, result, payload, publish, badgeAccess, userId, savedTitle = '🎃 Action Saved', hideAfterPublish = false }) {
   if (!hideAfterPublish) await safeEdit(interaction, payload, result.operationId)
@@ -34,4 +40,4 @@ async function finishSaved({ interaction, result, payload, publish, badgeAccess,
     finally { clearTimeout(timer) }
   }
 }
-module.exports = { finishSaved, safeEdit }
+module.exports = { finishSaved, safeEdit, settleProjection }

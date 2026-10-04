@@ -1,0 +1,55 @@
+TAP version 13
+# Subtest: progress uses live per-level XP threshold and bounds the bar
+ok 1 - progress uses live per-level XP threshold and bounds the bar
+  ---
+  duration_ms: 3.3273
+  ...
+# Subtest: badge strip is newest first with deterministic ties and no unknown ownership
+ok 2 - badge strip is newest first with deterministic ties and no unknown ownership
+  ---
+  duration_ms: 16.8298
+  ...
+# Subtest: large badge catalog displays only ten newest owned badges
+ok 3 - large badge catalog displays only ten newest owned badges
+  ---
+  duration_ms: 1.2046
+  ...
+# Subtest: renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+ok 4 - renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+  ---
+  duration_ms: 370.3375
+  ...
+# Subtest: image fetch restricts hosts, size and redirects
+ok 5 - image fetch restricts hosts, size and redirects
+  ---
+  duration_ms: 29.0579
+  ...
+# Subtest: ticket listener leaves game selectors/confirmations and unrelated buttons entirely to their owner
+ok 6 - ticket listener leaves game selectors/confirmations and unrelated buttons entirely to their owner
+  ---
+  duration_ms: 1294.6139
+  ...
+# Subtest: ticket buttons still enforce staff permissions and contain expired-interaction failures
+ok 7 - ticket buttons still enforce staff permissions and contain expired-interaction failures
+  ---
+  duration_ms: 1.9744
+  ...
+# Subtest: population adapter matches a seeded actual SQLite gameplay trajectory
+ok 8 - population adapter matches a seeded actual SQLite gameplay trajectory
+  ---
+  duration_ms: 11405.3867
+  ...
+# Subtest: milestone summaries count never reached separately from conditional timing
+ok 9 - milestone summaries count never reached separately from conditional timing
+  ---
+  duration_ms: 1.6249
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14095.1226

@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-04T18:38:00.821Z",
+  "processes": [
+    {
+      "name": "SB-production",
+      "status": "online",
+      "pid": 11728,
+      "restarts": 32,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-04T18:35:42.824Z",
+      "errorBytes": 2838531,
+      "lastErrorWrite": "2026-10-04T18:09:50.610Z",
+      "readyLines": [
+        "Environment: production",
+        "Ready! Logged in as sanity-bot#9046"
+      ]
+    },
+    {
+      "name": "SB-development",
+      "status": "online",
+      "pid": 28132,
+      "restarts": 31,
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "startedAt": "2026-10-04T18:34:54.249Z",
+      "errorBytes": 35834,
+      "lastErrorWrite": "2026-10-04T18:11:28.482Z",
+      "readyLines": [
+        "Environment: development",
+        "Ready! Logged in as Sanity Bot [DEV]#8984"
+      ]
+    }
+  ]
+}
