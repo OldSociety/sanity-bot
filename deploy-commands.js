@@ -19,10 +19,10 @@ function deploymentPlan(runtime, desired, live) {
   return { ...snapshot, removals: live.filter(item => !desired.some(next => identity(next) === identity(item))).map(identity).sort(),
     planHash: createHash('sha256').update(JSON.stringify(snapshot)).digest('hex') }
 }
-function offlineDefinitions(root, environment) {
+function offlineDefinitions(root, environment, now = Date.now()) {
   const { definition } = require('./scripts/command-registry-audit')
   const entries = inventory(commandFiles(root).map(file => definition(fs.readFileSync(path.join(root, file), 'utf8'), file)), { strictInactive: true }).active
-  return entries.filter(entry => environment === undefined || require('./services/command-environment').commandEnabled(entry, environment)).map(entry => entry.definition)
+  return entries.filter(entry => environment === undefined || require('./services/command-environment').commandEnabled(entry, environment, now)).map(entry => entry.definition)
 }
 function saveSnapshot(root, plan, stage) {
   const directory = path.join(root, 'artifacts', 'command-registry')

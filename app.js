@@ -54,10 +54,12 @@ client.once('ready', () => require('./services/spooky/runtime').startMaintenance
 
 client.cooldowns = new Collection()
 client.commands = new Collection()
-for (const entry of require('./services/command-registry').loadRegistry(__dirname).active) {
+const commandEntries = require('./services/command-registry').loadRegistry(__dirname).active
+for (const entry of commandEntries) {
   if (!require('./services/command-environment').commandEnabled(entry.command, process.env.NODE_ENV)) continue
   client.commands.set(entry.name, entry.command)
 }
+client.once('ready', () => require('./services/event-command-lifecycle').start(client, commandEntries))
 
 // Dynamically read event files
 const eventsPath = path.join(__dirname, 'events')

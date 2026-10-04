@@ -267,6 +267,7 @@ function createController({
             user.bank,
             user.fate_points,
             event.fate.quarterCost,
+            event.fate.paymentResource,
           ),
         }
       })

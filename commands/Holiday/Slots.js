@@ -5,6 +5,7 @@ const { HolidayStat } = require('../../Models/model')
 const activePlayers = new Set()
 
 module.exports = {
+  eventKey: 'winter',
   data: new SlashCommandBuilder()
     .setName('slots')
     .setDescription('Spin the Winter Slot Machine! 🎰'),

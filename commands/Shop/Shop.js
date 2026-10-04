@@ -329,7 +329,7 @@ module.exports = {
 
         // Deduct cost and update user.
         userData.fate_points -= targetItem.cost
-        await userData.save()
+        await require('../../services/fate-wallet').saveWallet(User, userData)
 
         // Reduce stock only if it's not infinite (-1).
         if (targetItem.stock > 0) {

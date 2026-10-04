@@ -1,0 +1,181 @@
+
+> sanity-bot@1.0.0 test:leveling
+> cross-env NODE_ENV=test node --test --test-concurrency=1 tests/community-*.test.js tests/fate-rules.test.js tests/event-command-lifecycle.test.js tests/message-xp-policy.test.js tests/spooky-fate-purchases.test.js
+
+TAP version 13
+# Subtest: launch configuration is explicit, disabled in unselected environments and refuses missing roles/channels
+ok 1 - launch configuration is explicit, disabled in unselected environments and refuses missing roles/channels
+  ---
+  duration_ms: 27.6423
+  ...
+# Subtest: cooldown spans midnight, user/day cap resets at Pacific midnight and rejected message replays remain rejected
+ok 2 - cooldown spans midnight, user/day cap resets at Pacific midnight and rejected message replays remain rejected
+  ---
+  duration_ms: 276.8039
+  ...
+# Subtest: simultaneous messages respect 24 server points and durable replay never earns twice
+ok 3 - simultaneous messages respect 24 server points and durable replay never earns twice
+  ---
+  duration_ms: 224.669
+  ...
+# Subtest: a communal level credits every current campaign player once, caps Fate without touching Bank, and keeps flat XP progression
+ok 4 - a communal level credits every current campaign player once, caps Fate without touching Bank, and keeps flat XP progression
+  ---
+  duration_ms: 61.2296
+  ...
+# Subtest: roster/network or invalid wallet failure rolls back XP and all rewards; retry survives service recreation
+ok 5 - roster/network or invalid wallet failure rolls back XP and all rewards; retry survives service recreation
+  ---
+  duration_ms: 50.3518
+  ...
+# Subtest: disabled and wrong guild paths create no community state
+ok 6 - disabled and wrong guild paths create no community state
+  ---
+  duration_ms: 8.1037
+  ...
+# Subtest: only configured public shared text channels/threads count; parties, private threads, commands and bots never do
+ok 7 - only configured public shared text channels/threads count; parties, private threads, commands and bots never do
+  ---
+  duration_ms: 3.6949
+  ...
+# Subtest: fresh campaign roster includes noncontributors and excludes spectators, inactive players and bots
+ok 8 - fresh campaign roster includes noncontributors and excludes spectators, inactive players and bots
+  ---
+  duration_ms: 2.9046
+  ...
+# Subtest: campaign roster uses all REST pages and aborts incomplete/repeating pagination
+ok 9 - campaign roster uses all REST pages and aborts incomplete/repeating pagination
+  ---
+  duration_ms: 13.4123
+  ...
+# Subtest: event registration is absent outside its exact window and inactive Winter adds no commands
+ok 10 - event registration is absent outside its exact window and inactive Winter adds no commands
+  ---
+  duration_ms: 1785.9652
+  ...
+# Subtest: expiry deletes only owned event commands and preserves unrelated/server-only commands; repeated cleanup is safe
+ok 11 - expiry deletes only owned event commands and preserves unrelated/server-only commands; repeated cleanup is safe
+  ---
+  duration_ms: 2.0445
+  ...
+# Subtest: cleanup refuses the wrong application and keeps failed deletion eligible for retry
+ok 12 - cleanup refuses the wrong application and keeps failed deletion eligible for retry
+  ---
+  duration_ms: 1.8489
+  ...
+# Subtest: rerolls cost ten and exhaust Bank before combining normal Fate
+ok 13 - rerolls cost ten and exhaust Bank before combining normal Fate
+  ---
+  duration_ms: 3.4395
+  ...
+# Subtest: ordinary purchases cannot spend Bank; only explicitly exceptional overflow banks
+ok 14 - ordinary purchases cannot spend Bank; only explicitly exceptional overflow banks
+  ---
+  duration_ms: 8.4847
+  ...
+# Subtest: real reroll command combines Bank and Fate, then reports insufficient funds without a second debit
+ok 15 - real reroll command combines Bank and Fate, then reports insufficient funds without a second debit
+  ---
+  duration_ms: 1652.6597
+  ...
+# Subtest: Spooky channel and threads award no XP/Fate while cursed messages still run
+ok 16 - Spooky channel and threads award no XP/Fate while cursed messages still run
+  ---
+  duration_ms: 1253.776
+  ...
+# Error updating community progression: Community test unavailable
+# Error updating chat progression: message.author.displayAvatarURL is not a function
+# Subtest: community launch preserves personal XP but replaces personal Fate; pipeline failure does not block seasonal processing
+ok 17 - community launch preserves personal XP but replaces personal Fate; pipeline failure does not block seasonal processing
+  ---
+  duration_ms: 18.4897
+  ...
+# Subtest: slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+ok 18 - slash commands, interaction messages and bot/webhook output cannot award message XP anywhere
+  ---
+  duration_ms: 6.3713
+  ...
+# Subtest: ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+ok 19 - ordinary chat outside Spooky keeps legacy XP and selected-guild isolation
+  ---
+  duration_ms: 13.9437
+  ...
+# Subtest: community launch purchases spend normal Fate only, never special Bank, with durable replay
+ok 20 - community launch purchases spend normal Fate only, never special Bank, with durable replay
+  ---
+  duration_ms: 216.4615
+  ...
+# Subtest: bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged
+ok 21 - bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged
+  ---
+  duration_ms: 44.3477
+  ...
+# Subtest: insufficient combined wallet and missing/invalid accounts fail safely
+ok 22 - insufficient combined wallet and missing/invalid accounts fail safely
+  ---
+  duration_ms: 29.9765
+  ...
+# Subtest: authorization fails closed and cannot buy for a different actor
+ok 23 - authorization fails closed and cannot buy for a different actor
+  ---
+  duration_ms: 20.0467
+  ...
+# Subtest: any registered bank holder may purchase without Unwanted/admin role claims
+ok 24 - any registered bank holder may purchase without Unwanted/admin role claims
+  ---
+  duration_ms: 31.5523
+  ...
+# Subtest: same interaction replays one debit and award; distinct purchases have no daily ceiling
+ok 25 - same interaction replays one debit and award; distinct purchases have no daily ceiling
+  ---
+  duration_ms: 214.5322
+  ...
+# Subtest: concurrent purchases compete for the same final ten bank points
+ok 26 - concurrent purchases compete for the same final ten bank points
+  ---
+  duration_ms: 31.0885
+  ...
+# Subtest: award failure rolls back bank and ledger, and retry is safe
+ok 27 - award failure rolls back bank and ledger, and retry is safe
+  ---
+  duration_ms: 30.1671
+  ...
+# Subtest: fate draw triggering the fifth duplicate exchanges it in the same receipt
+ok 28 - fate draw triggering the fifth duplicate exchanges it in the same receipt
+  ---
+  duration_ms: 32.1883
+  ...
+# Subtest: disabled/closed/paused/unregistered/wrong guild purchases leave the shared bank untouched
+ok 29 - disabled/closed/paused/unregistered/wrong guild purchases leave the shared bank untouched
+  ---
+  duration_ms: 36.8691
+  ...
+# Subtest: mixed Bank/Fate payment and Fate-only payment debit ten exactly with matching ledger
+ok 30 - mixed Bank/Fate payment and Fate-only payment debit ten exactly with matching ledger
+  ---
+  duration_ms: 57.5345
+  ...
+# Subtest: wallet drift invalidates a confirmation instead of switching which balance pays
+ok 31 - wallet drift invalidates a confirmation instead of switching which balance pays
+  ---
+  duration_ms: 19.8143
+  ...
+# Subtest: failed quarter or receipt finalization rolls back both wallets, inventory and ledger
+ok 32 - failed quarter or receipt finalization rolls back both wallets, inventory and ledger
+  ---
+  duration_ms: 31.7457
+  ...
+# Subtest: Fate rarity thresholds differ from Eye draws without changing missing-piece exchange
+ok 33 - Fate rarity thresholds differ from Eye draws without changing missing-piece exchange
+  ---
+  duration_ms: 102.2979
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8107.257

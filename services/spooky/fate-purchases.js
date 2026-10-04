@@ -1,5 +1,7 @@
 const { config: defaultConfig } = require('./config')
-function planFatePayment(bank, fate, cost) {
+function planFatePayment(bank, fate, cost, paymentResource = 'bank-then-fate') {
+  if (paymentResource === 'normal-fate-only') return require('../fate-rules').payment(bank, fate, { kind: 'purchase', cost })
+  if (paymentResource !== 'bank-then-fate') throw new Error('Invalid Fate purchase policy')
   if (![bank, fate, cost].every(Number.isSafeInteger) || bank < 0 || fate < 0 || cost <= 0 || !Number.isSafeInteger(bank + fate)) throw new Error('Invalid fate balance')
   if (bank + fate < cost) throw new Error('Insufficient Fate Points')
   const bankSpent = Math.min(bank, cost), fateSpent = cost - bankSpent
@@ -9,7 +11,7 @@ function planFatePayment(bank, fate, cost) {
 function createFatePurchases({ User, models, economy, collection, event = defaultConfig, canPurchase = () => true, finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (User.sequelize !== models.Participant.sequelize) throw new Error('Fate and seasonal models must share a connection')
   if (typeof canPurchase !== 'function') throw new Error('Fate purchase authorization is required')
-  if (event.fate.paymentResource !== 'bank-then-fate' || !Number.isSafeInteger(event.fate.quarterCost) || event.fate.quarterCost <= 0) throw new Error('Invalid Fate quarter cost')
+  if (!['bank-then-fate', 'normal-fate-only'].includes(event.fate.paymentResource) || !Number.isSafeInteger(event.fate.quarterCost) || event.fate.quarterCost <= 0) throw new Error('Invalid Fate quarter cost')
 
   async function purchase(input) {
     if (input.userId !== undefined && input.userId !== input.actorId) throw new Error('Fate purchase must belong to the actor')
@@ -21,7 +23,7 @@ function createFatePurchases({ User, models, economy, collection, event = defaul
       const user = await User.findByPk(userId, { transaction: ctx.transaction })
       if (!user) throw new Error('Fate account does not exist')
       if (input.expectedWallet && (user.bank !== input.expectedWallet.bank || user.fate_points !== input.expectedWallet.fatePoints)) throw new Error('Your balances changed. Use /spooky spend-fate again to review them.')
-      const payment = planFatePayment(user.bank, user.fate_points, event.fate.quarterCost)
+      const payment = planFatePayment(user.bank, user.fate_points, event.fate.quarterCost, event.fate.paymentResource)
       // Claim both balances atomically. Changes since confirmation never silently
       // switch a Bank-only preview into spending the player's unbanked Fate.
       const [changed] = await User.update({ bank: payment.bank, fate_points: payment.fatePoints }, {

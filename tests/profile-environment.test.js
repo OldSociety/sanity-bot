@@ -11,7 +11,7 @@ test('merged deployment registry keeps Spooky in both environments and profile o
   const { offlineDefinitions } = require('../deploy-commands')
   const root = require('node:path').resolve(__dirname, '..')
   for (const environment of ['development', 'production']) {
-    const names = offlineDefinitions(root, environment).map(command => command.name)
+    const names = offlineDefinitions(root, environment, Date.parse(require('../config/spooky-2026.json').startsAt) + 1).map(command => command.name)
     assert.equal(names.includes('profile'), environment === 'development')
     assert.ok(names.includes('spooky'))
     assert.ok(names.includes('spooky-admin'))

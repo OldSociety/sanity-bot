@@ -74,7 +74,7 @@ function adminCommand(controller) {
     if (name === 'inspect') group.addSubcommand(command => command.setName('wording').setDescription('Privately browse trick and treat embed designs.'))
     return group
   })
-  return { data, execute: interaction => controller.execute(interaction) }
+  return { data, eventKey: 'spooky', execute: interaction => controller.execute(interaction) }
 }
 function reasonOption(option) {
   return option.setName('reason').setDescription('Required private audit reason for this correction.').setRequired(true).setMinLength(1).setMaxLength(500)

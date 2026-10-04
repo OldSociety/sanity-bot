@@ -4,6 +4,8 @@
   "description": "custom roll for sanity bot",
   "main": "app.js",
   "scripts": {
+    "test:leveling": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/community-*.test.js tests/fate-rules.test.js tests/event-command-lifecycle.test.js tests/message-xp-policy.test.js tests/spooky-fate-purchases.test.js",
+    "leveling:rehearse": "node scripts/community-leveling-rehearsal.js",
     "test:profile": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/profile-*.test.js",
     "test": "cross-env NODE_ENV=test node --test --test-concurrency=1 tests/*.test.js",
     "check:dev": "cross-env NODE_ENV=development node scripts/check-environment.js",

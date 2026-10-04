@@ -9,7 +9,7 @@ function levelReward(unwanted, booster) {
 // This entry point runs outside economy callbacks. Sharing the connection queue
 // prevents chat writes entering a seasonal transaction; the conditional update
 // also claims the old XP/level/timestamp exactly once before awarding fate.
-async function applyChatMessage(User, { userId, userName, now, xp, unwanted, booster }) {
+async function applyChatMessage(User, { userId, userName, now, xp, unwanted, booster, rewardFate = true }) {
   if (!Number.isSafeInteger(xp) || xp < 0 || !Number.isFinite(new Date(now).getTime())) throw new Error('Invalid chat progression')
   return serialize(User.sequelize, async () => {
     let user = await User.findByPk(userId)
@@ -29,11 +29,11 @@ async function applyChatMessage(User, { userId, userName, now, xp, unwanted, boo
     const levelUp = user.chat_exp + xp >= threshold
     const values = { chat_exp: user.chat_exp + xp - (levelUp ? threshold : 0),
       chat_level: user.chat_level + Number(levelUp), last_chat_message: now,
-      ...(levelUp ? levelReward(unwanted, booster) : {}) }
+      ...(levelUp && rewardFate ? levelReward(unwanted, booster) : {}) }
     const [changed] = await User.update(values, { where: { user_id: userId,
       chat_exp: user.chat_exp, chat_level: user.chat_level, last_chat_message: user.last_chat_message } })
     return { credited: changed === 1, levelUp: changed === 1 && levelUp,
-      overflow: levelUp && unwanted ? Math.max(0, user.fate_points + 5 - 100) : 0, user: await User.findByPk(userId) }
+      overflow: levelUp && unwanted && rewardFate ? Math.max(0, user.fate_points + 5 - 100) : 0, user: await User.findByPk(userId) }
   })
 }
 
@@ -41,7 +41,8 @@ async function applyChatMessage(User, { userId, userName, now, xp, unwanted, boo
 // balances instead of overwriting a committed seasonal purchase or reward.
 async function saveWallet(User, user) {
   const bank = user.bank, fate = user.fate_points
-  if (![bank, fate].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 100)) throw new Error('Invalid fate balance')
+  if (![bank, fate].every(value => Number.isSafeInteger(value) && value >= 0) || fate > 100 ||
+    bank > Math.max(100, user.previous('bank'))) throw new Error('Invalid fate balance')
   const [changed] = await serialize(User.sequelize, () => User.update({ bank, fate_points: fate }, { where: {
     user_id: user.user_id, bank: user.previous('bank'), fate_points: user.previous('fate_points'),
   } }))

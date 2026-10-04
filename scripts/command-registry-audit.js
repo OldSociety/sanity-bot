@@ -73,7 +73,7 @@ function definition(source, filename) {
     throw new Error(`Incomplete command export: ${filename}`)
   const data = command.data.toJSON() // SDK validates builder definitions.
   validate(data)
-  return { file: filename, name: data.name, definition: data, substitutes, environments: command.environments }
+  return { file: filename, name: data.name, definition: data, substitutes, environments: command.environments, eventKey: command.eventKey }
 }
 function audit(args = []) {
   if (args.length)

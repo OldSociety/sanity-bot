@@ -28,6 +28,18 @@ async function fixture(t, { bank = 100, fate = 100, random = () => 0, enabled = 
   return { sequelize, User, models, economy, collection, event, participants, service, input, user, time: value => { now = new Date(value) } }
 }
 
+test('community launch purchases spend normal Fate only, never special Bank, with durable replay', async t => {
+  const f = await fixture(t, { bank: 63, fate: 12 })
+  const event = { ...f.event, fate: { ...f.event.fate, paymentResource: 'normal-fate-only' } }
+  const service = createFatePurchases({ ...f, event })
+  const result = await service.purchase(f.input('normal-only'))
+  assert.equal(result.receipt.bank, 63); assert.equal(result.receipt.fatePoints, 2)
+  assert.equal((await service.purchase(f.input('normal-only'))).replayed, true)
+  await assert.rejects(() => service.purchase(f.input('insufficient-normal')), /Insufficient/)
+  await f.user.reload(); assert.equal(f.user.bank, 63); assert.equal(f.user.fate_points, 2)
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 0)
+})
+
 test('bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged', async t => {
   const f = await fixture(t)
   const result = await f.service.purchase(f.input('buy'))

@@ -9,6 +9,8 @@ module.exports = (client, User, dependencies = {}) => {
     ((message) => require('../services/spooky/runtime').handleMessage(message))
   const badgeField =
     dependencies.badgeField || require('../services/badges').badgeField
+  const communityConfig = dependencies.communityConfig || (() => require('../services/community-leveling/config').selectConfig())
+  const handleCommunity = dependencies.handleCommunity || (message => require('../services/community-leveling/runtime').handleMessage(message, User))
   const clock = dependencies.clock || (() => new Date()),
     random = dependencies.random || Math.random
   client.on('messageCreate', async (message) => {
@@ -33,6 +35,13 @@ module.exports = (client, User, dependencies = {}) => {
       } catch (error) {
         console.error('Error fetching referenced message:', error.message)
       }
+    }
+    const communal = communityConfig()
+    const communalGuild = communal.enabled && message.guild.id === communal.guildId
+    try {
+      await handleCommunity(message)
+    } catch (error) {
+      console.error('Error updating community progression:', error.message)
     }
     // Independent pipelines: a haiku, XP, badge or level-up send failure cannot
     // prevent seasonal message effects from handling this eligible message.
@@ -66,6 +75,7 @@ module.exports = (client, User, dependencies = {}) => {
         xp: Math.floor(random() * 4) + 10,
         unwanted,
         booster,
+        rewardFate: !communalGuild,
       })
       if (result.levelUp) {
         const user = result.user
@@ -76,12 +86,12 @@ module.exports = (client, User, dependencies = {}) => {
             `🎉 Congratulations, ${
               message.author.username
             }! You've reached **level ${user.chat_level}**${
-              unwanted ? ' and gained **5 fate points**!' : '!'
+              unwanted && !communalGuild ? ' and gained **5 fate points**!' : '!'
             }`,
           )
           .setTimestamp()
           .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
-        if (unwanted)
+        if (unwanted && !communalGuild)
           embed.addFields(
             { name: 'Fate', value: `${user.fate_points}`, inline: true },
             { name: 'Bank', value: `${user.bank}`, inline: true },

@@ -3,8 +3,9 @@ const sessions = new Set()
 const prefix = 'spooky-spend-fate:'
 function hasSession(customId) { return sessions.has(customId) }
 function confirmationPayload(interaction, quote, event) {
+  const paymentText = event.fate.paymentResource === 'normal-fate-only' ? '**normal Fate only**. Banked Fate is reserved for rerolls' : '**Bank first**, then your **Fate balance**'
   const payload = withBalances(privateScreen('🔮 Spend Fate Points?',
-    `Buy **one random quarter** for **${event.fate.quarterCost} Fate Points**?\n\nPayment uses **Bank first**, then your **Fate balance**. The numbers below show this purchase's deductions.\nA duplicate is possible; five duplicates automatically grant an unowned piece.\n\nNothing is spent until you press **Confirm**. This offer expires in two minutes.`, fateBalanceFields(quote.payment)), quote)
+    `Buy **one random quarter** for **${event.fate.quarterCost} Fate Points**?\n\nPayment uses ${paymentText}. The numbers below show this purchase's deductions.\nA duplicate is possible; five duplicates automatically grant an unowned piece.\n\nNothing is spent until you press **Confirm**. This offer expires in two minutes.`, fateBalanceFields(quote.payment)), quote)
   if (interaction.user.displayAvatarURL) payload.embeds[0].thumbnail = { url: interaction.user.displayAvatarURL() }
   payload.components = [{ type: 1, components: [
     { type: 2, style: 3, custom_id: `${prefix}${interaction.id}:confirm`, label: 'Confirm' },

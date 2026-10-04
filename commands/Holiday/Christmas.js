@@ -4,6 +4,7 @@ const { User, HolidayStat } = require('../../Models/model')
 const { Op } = require('sequelize')
 
 module.exports = {
+  eventKey: 'winter',
   data: new SlashCommandBuilder()
     .setName('throw')
     .setDescription('Throw a snowball at a random player!'),

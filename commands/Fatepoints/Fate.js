@@ -168,17 +168,11 @@ module.exports = {
       let pointsDeducted = 0
       let source = ''
 
-      if (userData.bank >= 10) {
-        // Deduct from bank first if available
-        userData.bank -= 10
-        pointsDeducted = 10
-        source = 'banked fate points'
-      } else if (userData.fate_points >= 10) {
-        // Deduct from fate points if bank is insufficient
-        userData.fate_points -= 10
-        pointsDeducted = 10
-        source = 'fate points'
-      } else {
+      let payment
+      try {
+        payment = require('../../services/fate-rules').payment(userData.bank, userData.fate_points, { kind: 'reroll' })
+      } catch (error) {
+        if (error.message !== 'Insufficient Fate Points') throw error
         const errorEmbed = new EmbedBuilder()
           .setColor('#FF0000') // Red for error messages
           .setTitle('Error')
@@ -187,6 +181,12 @@ module.exports = {
         await interaction.reply({ embeds: [errorEmbed], ephemeral: true })
         return
       }
+
+      userData.bank = payment.bank
+      userData.fate_points = payment.fatePoints
+      pointsDeducted = payment.bankSpent + payment.fateSpent
+      source = payment.bankSpent && payment.fateSpent ? `Fate Points (${payment.bankSpent} Bank + ${payment.fateSpent} Fate)`
+        : payment.bankSpent ? 'banked fate points' : 'fate points'
 
       await saveWallet(User, userData)
 

@@ -1,0 +1,189 @@
+TAP version 13
+# Subtest: rerolls cost ten and exhaust Bank before combining normal Fate
+ok 1 - rerolls cost ten and exhaust Bank before combining normal Fate
+  ---
+  duration_ms: 3.5125
+  ...
+# Subtest: ordinary purchases cannot spend Bank; only explicitly exceptional overflow banks
+ok 2 - ordinary purchases cannot spend Bank; only explicitly exceptional overflow banks
+  ---
+  duration_ms: 8.5171
+  ...
+# Subtest: real reroll command combines Bank and Fate, then reports insufficient funds without a second debit
+ok 3 - real reroll command combines Bank and Fate, then reports insufficient funds without a second debit
+  ---
+  duration_ms: 1749.426
+  ...
+# Spooky reply pending (discord:draw): Expired webhook
+# Spooky reply pending (discord:draw): Expired webhook
+# Subtest: expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+ok 4 - expired private reply and hung cosmetic access cannot strand a saved fate quarter; replay charges once
+  ---
+  duration_ms: 3807.5573
+  ...
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Spooky pending notification 1: Synthetic unavailable old channel
+# Subtest: restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+ok 5 - restart recovery dispatches only owned definitely-pending gameplay; ambiguous/special channels remain untouched
+  ---
+  duration_ms: 94.3053
+  ...
+# Subtest: cancel or supersede during member fetch prevents old role and nickname writes
+ok 6 - cancel or supersede during member fetch prevents old role and nickname writes
+  ---
+  duration_ms: 50.2954
+  ...
+# Subtest: actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+ok 7 - actual Discord adapter checks intent after its final async fetch and preserves independent nicknames
+  ---
+  duration_ms: 3.747
+  ...
+# Subtest: role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+ok 8 - role adapter grants and removes below-bot roles for owners but rejects inaccessible roles
+  ---
+  duration_ms: 0.6385
+  ...
+# Subtest: curse restoration retains original role through configuration drift and safely rejects lost provenance
+ok 9 - curse restoration retains original role through configuration drift and safely rejects lost provenance
+  ---
+  duration_ms: 164.2924
+  ...
+# Subtest: admin repair receipts and reacquisition reveals reflect retained permanent ownership
+ok 10 - admin repair receipts and reacquisition reveals reflect retained permanent ownership
+  ---
+  duration_ms: 127.6228
+  ...
+# Subtest: partial Sweet Tooth still displays committed fate and candy rewards
+ok 11 - partial Sweet Tooth still displays committed fate and candy rewards
+  ---
+  duration_ms: 0.9175
+  ...
+# Subtest: simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+ok 12 - simultaneous level messages claim one XP transition and one fate reward, sharing the economy queue
+  ---
+  duration_ms: 32.4063
+  ...
+# Error handling haiku: Synthetic haiku failure
+# Error updating chat progression: Synthetic XP failure
+# Error handling haiku: Synthetic haiku failure
+# Level-up badges unavailable: Synthetic badge failure
+# Error updating chat progression: Synthetic send failure
+# Subtest: message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+ok 13 - message pipelines handle XP/haiku/send failures independently and ignore numeric DMs
+  ---
+  duration_ms: 35.57
+  ...
+# Subtest: projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+ok 14 - projection acknowledgement waits outside an unrelated rollback and newer removal wins over an in-flight add
+  ---
+  duration_ms: 52.3016
+  ...
+# Subtest: stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+ok 15 - stale legacy fate mutation cannot overwrite a completed bank debit; fresh retry succeeds
+  ---
+  duration_ms: 198.2393
+  ...
+# Subtest: level-up overflow credits current bank atomically and preserves purchase debit
+ok 16 - level-up overflow credits current bank atomically and preserves purchase debit
+  ---
+  duration_ms: 22.3208
+  ...
+# Subtest: normal purchases preserve pre-existing above-cap Bank, and wallet writes cannot manufacture more overflow
+ok 17 - normal purchases preserve pre-existing above-cap Bank, and wallet writes cannot manufacture more overflow
+  ---
+  duration_ms: 21.4165
+  ...
+# Subtest: notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+ok 18 - notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction
+  ---
+  duration_ms: 36.6848
+  ...
+# Subtest: ambiguous notification failure stays uncertain and is not resent automatically
+ok 19 - ambiguous notification failure stays uncertain and is not resent automatically
+  ---
+  duration_ms: 21.2353
+  ...
+# Subtest: cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+ok 20 - cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion
+  ---
+  duration_ms: 0.5501
+  ...
+# Subtest: complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+ok 21 - complete membership snapshot requirement rejects partial fetch instead of treating it as empty
+  ---
+  duration_ms: 2.7679
+  ...
+# Subtest: notification migration reverses independently and preserves core operation receipts
+ok 22 - notification migration reverses independently and preserves core operation receipts
+  ---
+  duration_ms: 19.1345
+  ...
+# Subtest: wired slash command stays disabled in an allowed channel without loading the real database runtime
+ok 23 - wired slash command stays disabled in an allowed channel without loading the real database runtime
+  ---
+  duration_ms: 5.5195
+  ...
+# Subtest: booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+ok 24 - booster/birthday bank credits use current balances, respect cap and count actual booster rewards
+  ---
+  duration_ms: 18.6294
+  ...
+# Subtest: audited cancellation during delayed eligibility prevents API dispatch
+ok 25 - audited cancellation during delayed eligibility prevents API dispatch
+  ---
+  duration_ms: 297.9709
+  ...
+# Subtest: player queue filtering uses original ownership before cursor/limit and respects guild scope
+ok 26 - player queue filtering uses original ownership before cursor/limit and respects guild scope
+  ---
+  duration_ms: 71.3575
+  ...
+# Subtest: display names cannot inject masked links, Markdown or mentions into public results
+ok 27 - display names cannot inject masked links, Markdown or mentions into public results
+  ---
+  duration_ms: 1165.1793
+  ...
+# Subtest: achievement award and capped bank credit are atomic, concurrent-idempotent and preserve old over-cap balances
+ok 28 - achievement award and capped bank credit are atomic, concurrent-idempotent and preserve old over-cap balances
+  ---
+  duration_ms: 55.6998
+  ...
+# Subtest: idle closed maintenance validates proof and reconciles pending projections without creating operations
+ok 29 - idle closed maintenance validates proof and reconciles pending projections without creating operations
+  ---
+  duration_ms: 72.7421
+  ...
+# Subtest: full testing reset clears this event and Crown eligibility, preserves other badges/wallet/history, and replays safely
+ok 30 - full testing reset clears this event and Crown eligibility, preserves other badges/wallet/history, and replays safely
+  ---
+  duration_ms: 122.1054
+  ...
+# Subtest: full testing reset rolls back registration and badge deletion if the badge write fails
+ok 31 - full testing reset rolls back registration and badge deletion if the badge write fails
+  ---
+  duration_ms: 54.6159
+  ...
+# Subtest: finishing Selene emits one completion with main badge, token thumbnail and bank transition; duplicate is clearly labeled
+ok 32 - finishing Selene emits one completion with main badge, token thumbnail and bank transition; duplicate is clearly labeled
+  ---
+  duration_ms: 6.3033
+  ...
+# Subtest: development badge settings never enable production or another guild and reset stays under the admin event group
+ok 33 - development badge settings never enable production or another guild and reset stays under the admin event group
+  ---
+  duration_ms: 14.2951
+  ...
+# Subtest: shared bank rewards and level overflow do not silently clamp existing above-cap balances
+ok 34 - shared bank rewards and level overflow do not silently clamp existing above-cap balances
+  ---
+  duration_ms: 32.8001
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11063.9149

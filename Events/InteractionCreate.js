@@ -44,6 +44,10 @@ module.exports = {
       }
 
       try {
+        if (!require('../services/command-environment').commandEnabled(command, process.env.NODE_ENV)) {
+          await interaction.reply({ content: 'This command is not currently available.', ephemeral: true, allowedMentions: { parse: [] } })
+          return
+        }
         if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
           const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
           if (require('../services/member-policy').excludedMember(member)) {

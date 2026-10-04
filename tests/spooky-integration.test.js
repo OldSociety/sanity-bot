@@ -42,6 +42,17 @@ test('level-up overflow credits current bank atomically and preserves purchase d
   const capped = await awardLevelUp(f.User, 'alice', { chat_level: 3 }, { unwanted: true, booster: false })
   assert.equal(capped.bank, 14)
 })
+
+test('normal purchases preserve pre-existing above-cap Bank, and wallet writes cannot manufacture more overflow', async t => {
+  const f = await fixture(t)
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', bank: 105, fate_points: 50 })
+  const user = await f.User.findByPk('alice'); user.fate_points -= 10
+  await saveWallet(f.User, user)
+  assert.equal((await f.User.findByPk('alice')).bank, 105)
+  assert.equal((await f.User.findByPk('alice')).fate_points, 40)
+  const fresh = await f.User.findByPk('alice'); fresh.bank = 106
+  await assert.rejects(() => saveWallet(f.User, fresh), /Invalid fate balance/)
+})
 test('notification enqueue is atomic; persistent sent state prevents delayed duplicate send after reconstruction', async t => {
   const f = await fixture(t)
   await assert.rejects(() => f.run('fail', async ctx => {

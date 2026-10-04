@@ -14,7 +14,7 @@ function spookyCommand(controller) {
     if (name === 'leaderboard') command.addIntegerOption(option => option.setName('page').setDescription('Rankings page.').setMinValue(1).setMaxValue(1000))
     return command
   })
-  return { data, execute: interaction => controller.execute(interaction) }
+  return { data, eventKey: 'spooky', execute: interaction => controller.execute(interaction) }
 }
 
 module.exports = { spookyCommand }
