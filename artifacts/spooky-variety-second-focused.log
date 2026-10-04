@@ -1,0 +1,308 @@
+TAP version 13
+# Subtest: every normal table interval is reachable with exact boundaries and no independent Eye roll
+ok 1 - every normal table interval is reachable with exact boundaries and no independent Eye roll
+  ---
+  duration_ms: 3.3785
+  ...
+# Subtest: curse override boundary preserves 10%, 20/80 treat split and normal table selection
+ok 2 - curse override boundary preserves 10%, 20/80 treat split and normal table selection
+  ---
+  duration_ms: 0.8796
+  ...
+# Subtest: same-spell buffer reduces only repeated reversal and leaves Eye/Crown/failure odds intact
+ok 3 - same-spell buffer reduces only repeated reversal and leaves Eye/Crown/failure odds intact
+  ---
+  duration_ms: 55.7605
+  ...
+# Subtest: committed history discourages a repeated spell, ignores screens and survives reconstruction/replay
+ok 4 - committed history discourages a repeated spell, ignores screens and survives reconstruction/replay
+  ---
+  duration_ms: 262.7569
+  ...
+# Subtest: successful theft spends candy before credit, records activity and concurrent replay runs once
+ok 5 - successful theft spends candy before credit, records activity and concurrent replay runs once
+  ---
+  duration_ms: 69.7362
+  ...
+# Subtest: break curse and cursed distributions each cost one regardless of delivered gifts
+ok 6 - break curse and cursed distributions each cost one regardless of delivered gifts
+  ---
+  duration_ms: 65.3772
+  ...
+# Subtest: effect failure, no-target rejection and missing handler refund all writes without rerolling
+ok 7 - effect failure, no-target rejection and missing handler refund all writes without rerolling
+  ---
+  duration_ms: 56.3249
+  ...
+# Subtest: explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+ok 8 - explicit paid no-effect outcome costs one; insufficient/paused/unregistered actions fail safely
+  ---
+  duration_ms: 50.5857
+  ...
+# Subtest: choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+ok 9 - choice wait holds no transaction; pause, depleted candy and changed curse roll back without a second roll
+  ---
+  duration_ms: 99.3213
+  ...
+# Subtest: self curse cannot renew; target choices omit existing curses and shields
+ok 10 - self curse cannot renew; target choices omit existing curses and shields
+  ---
+  duration_ms: 339.3295
+  ...
+# Subtest: a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+ok 11 - a chosen break-curse target is revalidated; vanished curse cannot become a different gift
+  ---
+  duration_ms: 105.5462
+  ...
+# Subtest: shield is recipient-only above 20%; repeat shared protection never renews caller
+ok 12 - shield is recipient-only above 20%; repeat shared protection never renews caller
+  ---
+  duration_ms: 145.5052
+  ...
+# Subtest: protection cures a cursed target; a fresh shield restores after exactly twelve hours
+not ok 13 - protection cures a cursed target; a fresh shield restores after exactly twelve hours
+  ---
+  duration_ms: 157.9707
+  location: 'C:\\Users\\headm\\code\\sanity-bot-dev\\tests\\spooky-playful.test.js:78:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '✨( Player )✨'
+    - 'Player'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Player'
+  actual: '✨( Player )✨'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\headm\code\sanity-bot-dev\tests\spooky-playful.test.js:97:10)
+    async Test.run (node:internal/test_runner/test:931:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:629:7)
+  ...
+# Subtest: baseline is captured on first mutation, shared across effects and restored after October
+ok 14 - baseline is captured on first mutation, shared across effects and restored after October
+  ---
+  duration_ms: 111.1813
+  ...
+# Subtest: pending curse cured by protection restores a null baseline without leaving a shield
+ok 15 - pending curse cured by protection restores a null baseline without leaving a shield
+  ---
+  duration_ms: 89.1806
+  ...
+# Subtest: readable appearance has one wrapper and respects Discord nickname length
+ok 16 - readable appearance has one wrapper and respects Discord nickname length
+  ---
+  duration_ms: 0.8886
+  ...
+# Subtest: shield intercepts targeted curse and self backfire, losing charges without renewing expiry
+ok 17 - shield intercepts targeted curse and self backfire, losing charges without renewing expiry
+  ---
+  duration_ms: 147.3055
+  ...
+# Subtest: maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+ok 18 - maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry
+  ---
+  duration_ms: 136.3948
+  ...
+# Subtest: old-style refresh and later cleanup never overwrite a manually chosen nickname
+ok 19 - old-style refresh and later cleanup never overwrite a manually chosen nickname
+  ---
+  duration_ms: 99.9264
+  ...
+# Subtest: legacy null baseline without a display snapshot is preserved until safe final restoration
+ok 20 - legacy null baseline without a display snapshot is preserved until safe final restoration
+  ---
+  duration_ms: 48.3875
+  ...
+# Subtest: unapplied combined nickname intents restore safely; manual edits are never overwritten
+ok 21 - unapplied combined nickname intents restore safely; manual edits are never overwritten
+  ---
+  duration_ms: 128.7698
+  ...
+# Subtest: cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+ok 22 - cursed treats count actual delivered sweets toward a hidden goal and safely remove bot-owned role
+  ---
+  duration_ms: 168.079
+  ...
+# Subtest: failed curse removal survives another hit and eventually removes only the bot-owned role
+ok 23 - failed curse removal survives another hit and eventually removes only the bot-owned role
+  ---
+  duration_ms: 104.4431
+  ...
+# Subtest: pending/conflicting nickname restoration cannot be overwritten by a new reversal
+ok 24 - pending/conflicting nickname restoration cannot be overwritten by a new reversal
+  ---
+  duration_ms: 91.2993
+  ...
+# Subtest: reversal skips existing spells and restores each newly selected original at closure
+not ok 25 - reversal skips existing spells and restores each newly selected original at closure
+  ---
+  duration_ms: 93.8132
+  location: 'C:\\Users\\headm\\code\\sanity-bot-dev\\tests\\spooky-playful.test.js:283:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'carol' !== 'dan'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'dan'
+  actual: 'carol'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\headm\code\sanity-bot-dev\tests\spooky-playful.test.js:288:10)
+    async Test.run (node:internal/test_runner/test:931:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:629:7)
+  ...
+# Subtest: no eligible reversal rolls back the action candy and operation
+ok 26 - no eligible reversal rolls back the action candy and operation
+  ---
+  duration_ms: 30.7336
+  ...
+# Subtest: ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+ok 27 - ordinary/double/cursed gifts use actual recipients, cap credits, and immunity shields both parties
+  ---
+  duration_ms: 167.9945
+  ...
+# Subtest: curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+ok 28 - curse apply/spread/backfire are durable; break clears owned role with post-commit intent
+  ---
+  duration_ms: 196.8
+  ...
+# Subtest: nickname applies once and October cleanup restores null original; independent changes conflict safely
+ok 29 - nickname applies once and October cleanup restores null original; independent changes conflict safely
+  ---
+  duration_ms: 111.1368
+  ...
+# Subtest: reversal restores at twelve hours and legacy month-long timers are shortened without baseline changes
+ok 30 - reversal restores at twelve hours and legacy month-long timers are shortened without baseline changes
+  ---
+  duration_ms: 50.4096
+  ...
+# Subtest: Crown can be stolen and recaptured but first-win candy is not farmed
+ok 31 - Crown can be stolen and recaptured but first-win candy is not farmed
+  ---
+  duration_ms: 81.1086
+  ...
+# Subtest: failed Discord delivery survives reconstruction and retry is idempotent
+ok 32 - failed Discord delivery survives reconstruction and retry is idempotent
+  ---
+  duration_ms: 51.209
+  ...
+# Subtest: Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+ok 33 - Sweet Tooth crowns only the caller once; repeat outcomes cannot transfer it; Eye treat converts
+  ---
+  duration_ms: 47.4551
+  ...
+# Subtest: permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+ok 34 - permission failures do not claim effects, existing roles are not removed and root failure rolls back intent
+  ---
+  duration_ms: 78.982
+  ...
+# Subtest: delivery migration rollback/reapply preserves core tables
+ok 35 - delivery migration rollback/reapply preserves core tables
+  ---
+  duration_ms: 10.688
+  ...
+# Subtest: delivery retry detects state already applied before acknowledgment failure
+ok 36 - delivery retry detects state already applied before acknowledgment failure
+  ---
+  duration_ms: 41.297
+  ...
+# Subtest: cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+ok 37 - cleanup rolls back with its restoration intent and repeat worker receipt does not enqueue twice
+  ---
+  duration_ms: 61.7304
+  ...
+# Subtest: random sampling is without replacement and can select every candidate
+ok 38 - random sampling is without replacement and can select every candidate
+  ---
+  duration_ms: 6.1089
+  ...
+# Subtest: nonparticipant theft materializes only chosen victim, excludes self/bots, includes admin and strips mention text
+ok 39 - nonparticipant theft materializes only chosen victim, excludes self/bots, includes admin and strips mention text
+  ---
+  duration_ms: 379.9851
+  ...
+# Subtest: heist picks random distinct funded victims and limits credit to caller capacity
+ok 40 - heist picks random distinct funded victims and limits credit to caller capacity
+  ---
+  duration_ms: 139.9772
+  ...
+# Subtest: protection lasts exactly to expiry, includes both resources and ignores another guild effects
+ok 41 - protection lasts exactly to expiry, includes both resources and ignores another guild effects
+  ---
+  duration_ms: 49.6447
+  ...
+# Subtest: Eye victim needs registration/funds but no activity; theft converts at five and replay does not steal twice
+ok 42 - Eye victim needs registration/funds but no activity; theft converts at five and replay does not steal twice
+  ---
+  duration_ms: 59.0224
+  ...
+# Subtest: solo Eye pool finds one; protected victim blocks theft without inventing an Eye; no candy target gives paid no-effect without minting candy
+ok 43 - solo Eye pool finds one; protected victim blocks theft without inventing an Eye; no candy target gives paid no-effect without minting candy
+  ---
+  duration_ms: 113.2004
+  ...
+# Subtest: concurrent last-Eye theft transfers once; next action finds rather than spending a nonexistent Eye
+ok 44 - concurrent last-Eye theft transfers once; next action finds rather than spending a nonexistent Eye
+  ---
+  duration_ms: 81.8724
+  ...
+# Subtest: membership or RNG/award errors roll back action cost and never mint a fallback Eye
+ok 45 - membership or RNG/award errors roll back action cost and never mint a fallback Eye
+  ---
+  duration_ms: 78.8695
+  ...
+# Subtest: lazy funding uses due refill but an exhausted victim is skipped without extra materialization
+ok 46 - lazy funding uses due refill but an exhausted victim is skipped without extra materialization
+  ---
+  duration_ms: 70.0101
+  ...
+# Subtest: all nine candy outcomes conserve candy, charge once, freeze receipts and replay without a second debit
+ok 47 - all nine candy outcomes conserve candy, charge once, freeze receipts and replay without a second debit
+  ---
+  duration_ms: 824.6164
+  ...
+# Subtest: raid rounding, ransom, nearby swaps and conditional chain have their distinct bounded results
+ok 48 - raid rounding, ransom, nearby swaps and conditional chain have their distinct bounded results
+  ---
+  duration_ms: 173.0832
+  ...
+# Subtest: persistent hole adds ceiling25% up to2, preserves conservation and repairs without a nickname change
+ok 49 - persistent hole adds ceiling25% up to2, preserves conservation and repairs without a nickname change
+  ---
+  duration_ms: 156.811
+  ...
+# Subtest: two-charge shield blocks the breaking hit, restores original nickname and never charges replay twice
+ok 50 - two-charge shield blocks the breaking hit, restores original nickname and never charges replay twice
+  ---
+  duration_ms: 205.7364
+  ...
+# Subtest: shields deny Crown theft with no role/currency award; breaking attempt is still denied
+ok 51 - shields deny Crown theft with no role/currency award; breaking attempt is still denied
+  ---
+  duration_ms: 217.3575
+  ...
+# Subtest: shield survives12h at most and hole/shield writes rollback together on failure
+ok 52 - shield survives12h at most and hole/shield writes rollback together on failure
+  ---
+  duration_ms: 223.4032
+  ...
+# Subtest: full receivers and tiny sources never lose unmoved candy; unregistered heavy targets are not enrolled
+ok 53 - full receivers and tiny sources never lose unmoved candy; unregistered heavy targets are not enrolled
+  ---
+  duration_ms: 118.6138
+  ...
+1..53
+# tests 53
+# suites 0
+# pass 51
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8614.2062

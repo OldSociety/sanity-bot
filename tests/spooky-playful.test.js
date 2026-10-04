@@ -75,7 +75,7 @@ test('shield is recipient-only above 20%; repeat shared protection never renews 
   assert.deepEqual((await f.models.Effect.findOne({ where: { participantId: player.id, effectType: 'theft_protection' } })).get({ plain: true }), before)
 })
 
-test('protection cures a cursed target; a fresh shield restores after exactly one hour', async t => {
+test('protection cures a cursed target; a fresh shield restores after exactly twelve hours', async t => {
   const f = await fixture(t)
   f.members[1].nickname = 'Player'
   await f.invoke('curse-name', 'curse_target'); await f.delivery.reconcile(f.scope)
@@ -89,10 +89,10 @@ test('protection cures a cursed target; a fresh shield restores after exactly on
   await f.run('fresh-shield', ctx => f.playful.handlers.temporary_immunity(ctx, { actorId: 'alice', targetUserId: 'bob' }))
   await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].nickname, '✨( Player )✨')
-  f.time(new Date(Date.parse(config.startsAt) + 3599999))
+  f.time(new Date(Date.parse(config.startsAt) + config.protection.theftDurationMs - 1))
   await f.run('not-expired', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].nickname, '✨( Player )✨')
-  f.time(new Date(Date.parse(config.startsAt) + 3600000))
+  f.time(new Date(Date.parse(config.startsAt) + config.protection.theftDurationMs))
   await f.run('expire-name', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
   assert.equal(f.members[1].nickname, 'Player')
 })
@@ -141,18 +141,18 @@ test('readable appearance has one wrapper and respects Discord nickname length',
   }
 })
 
-test('shield blocks targeted curses and self backfires without changing expiry or nickname', async t => {
-  const f = await fixture(t)
-  await f.invoke('shield', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
-  const before = (await f.models.Effect.findAll()).map(row => row.get({ plain: true }))
-  const targets = await f.run('unshielded-choices', async ctx => ({ ids: (await f.playful.choiceCandidates(ctx, { actorId: 'alice', outcome: 'curse_target' })).map(member => member.userId) }))
-  assert.deepEqual(targets.receipt.ids, ['carol', 'dan'])
-  assert.equal((await f.invoke('self-blocked', 'curse_backfire')).receipt.noEffect, 'shield_blocks_curse')
-  await assert.rejects(f.run('stale-choice', ctx => f.playful.handlers.curse_target(ctx, { actorId: 'alice', targetUserId: 'bob' })), /no longer eligible/)
-  assert.deepEqual((await f.models.Effect.findAll()).map(row => row.get({ plain: true })), before)
-  assert.equal(f.members[0].nickname, '✨( alice )✨')
+test('shield intercepts targeted curse and self backfire, losing charges without renewing expiry', async t => {
+ const f=await fixture(t);await f.invoke('shield','temporary_immunity');await f.delivery.reconcile(f.scope)
+ const before=(await f.models.Effect.findAll()).map(row=>new Date(row.expiresAt).getTime())
+ const targets=await f.run('choices',async ctx=>({ids:(await f.playful.choiceCandidates(ctx,{actorId:'alice',outcome:'curse_target'})).map(m=>m.userId)}))
+ assert.deepEqual(targets.receipt.ids,['bob','carol','dan'])
+ assert.equal((await f.invoke('self-blocked','curse_backfire')).receipt.noEffect,'shield_blocks_attack')
+ const blocked=await f.run('target-blocked',ctx=>f.playful.handlers.curse_target(ctx,{actorId:'alice',targetUserId:'bob'}))
+ assert.equal(blocked.receipt.noEffect,'shield_blocks_attack')
+ assert.deepEqual((await f.models.Effect.findAll()).map(row=>new Date(row.expiresAt).getTime()),before)
+ assert.equal(f.members[0].nickname,'✨( alice )✨')
+ assert.ok((await f.models.Effect.findAll()).every(row=>row.metadata.chargesRemaining===1))
 })
-
 test('maintenance refreshes saved old styles, cures legacy overlap and restores the original at expiry', async t => {
   const f = await fixture(t)
   f.members[1].nickname = 'Player'
@@ -283,8 +283,8 @@ test('pending/conflicting nickname restoration cannot be overwritten by a new re
 test('reversal skips existing spells and restores each newly selected original at closure', async t => {
   const f = await fixture(t)
   f.members[1].nickname = 'Hadley'; f.members[2].nickname = 'Selene'; f.members[3].nickname = 'Maxim'
-  await f.invoke('shield-first', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
-  await f.invoke('curse-second', 'curse_target'); await f.delivery.reconcile(f.scope)
+  await f.invoke('reverse-first', 'reverse_nickname'); await f.delivery.reconcile(f.scope)
+  await f.run('curse-second', ctx => f.playful.handlers.curse_target(ctx, { actorId: 'alice', targetUserId: 'carol' })); await f.delivery.reconcile(f.scope)
   assert.equal((await f.invoke('reverse-third', 'reverse_nickname')).receipt.reversedUserId, 'dan')
   await f.delivery.reconcile(f.scope)
   await assert.rejects(f.invoke('no-more-targets', 'reverse_nickname'), /Nothing was spent/)

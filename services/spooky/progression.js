@@ -25,7 +25,7 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
     if (event.prestige?.status !== 'approved') throw new Error('Prestige scoring is provisional')
     const score = event.prestige
     const base = plan.overridden ? score.curseReplacement
-      : ['lost_candy', 'caught_stealing'].includes(plan.outcome) ? score.failure
+      : ['lost_candy', 'caught_stealing'].includes(plan.outcome) || result.failure === 'reverse_robbery' ? score.failure
       : result.noEffect ? score.noEffect : score.success
     const bonus = !plan.overridden && !result.noEffect
       ? result.crownWon ? event.crown.prestigeBonus : result.stolen > 0 ? event.prestigeBonuses?.[plan.outcome] || 0 : 0 : 0
@@ -52,7 +52,7 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
       if (ctx.scope.eventId !== event.eventId) throw new Error('Progression event mismatch')
       const holder = await models.Ledger.findOne({ where: { ...ctx.scope, resource: 'crown_holder' }, order: [['id', 'DESC']], transaction: ctx.transaction })
       plan = { ...plan, crownHolderBefore: holder?.metadata?.holderId || null, crownHolderOperationId: holder?.operationId }
-      const result = await handler(ctx, plan)
+      const result = require('./combat').combatReceipt(ctx, await handler(ctx, plan))
       const crownOutcome = outcome === 'sweet_tooth' && plan.action === 'treat' || outcome === 'steal_crown' && plan.action === 'trick'
       const bonus = crownOutcome && !plan.overridden && (result.crownFirstWin !== false || !result.crownWon)
         ? outcome === 'steal_crown' && !result.crownWon ? {} : await sweetToothBonus(ctx, plan.actorId, result.crownWon === true) : {}

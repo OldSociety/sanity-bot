@@ -13,6 +13,16 @@ function wordingPages() {
     steal_or_find_eye: { stolen: 1, victims: [{ userId: 'recipient' }] },
     steal_crown: { awardedUserId: 'actor', crownWon: true, crownStolenFrom: 'recipient', crownFirstWin: true,
       fateBonus: 5, candyReward: 5, bankBefore: 71, bank: 76, fatePoints: 100 },
+    candy_raid: { stolen: 8, victims: [{ userId: 'recipient' }], candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 8 }] },
+    bag_swap: { swapTargetUserId: 'recipient', swapped: true, redistributed: 5 },
+    bag_explosion: { explosionTargetUserId: 'recipient', scattered: 2, candyMovements: [{ fromUserId: 'recipient', toUserId: 'other', candy: 2 }] },
+    sticky_fingers: { stolen: 4, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
+    reverse_robbery: { lost: 3, robberyTargetUserId: 'recipient', failure: 'reverse_robbery' },
+    candy_ransom: { stolen: 3, ransomTaken: 5, ransomReturned: 2, victims: [{ userId: 'recipient' }] },
+    boo: { explosionTargetUserId: 'recipient', scattered: 3 },
+    candy_shakedown: { stolen: 6, victims: [{ userId: 'recipient' }] },
+    trick_chain: { stolen: 4, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
+    marked_for_mischief: { holeTargetUserId: 'recipient' },
   }
   const add = (receipt, variantKey) => {
     const payload = actionMessages({ candy: 50, eyes: 2, ...receipt }, { actorId: 'actor',
@@ -22,9 +32,18 @@ function wordingPages() {
     pages.push({ label: `${receipt.action} • ${receipt.outcome}${receipt.overridden ? ' • curse replacement' : ''}${receipt.result?.goodwillFreedUserId ? ' • goodwill' : ''}`, payload })
   }
   for (const action of ['treat', 'trick']) for (const outcome of config[`${action}Outcomes`]) {
-    for (let i = 0; i < (outcome.id === 'standard_gift' ? 100 : 1); i++) add({ action, outcome: outcome.id, result: samples[outcome.id] }, String(i))
+    for (let i = 0; i < (['standard_gift', 'caught_stealing', 'lost_candy'].includes(outcome.id) ? 100 : 1); i++) add({ action, outcome: outcome.id, result: samples[outcome.id] }, String(i))
   }
   add({ action: 'trick', outcome: 'steal_or_find_eye', result: { found: 1 } })
+  add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', swapped: false, redistributed: 5 } })
+  add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', noEffect: 'equal_bags' } })
+  add({ action: 'trick', outcome: 'candy_raid', result: { stolen: 2, candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 2, holeBonus: 1 }] } })
+  add({ action: 'trick', outcome: 'bag_explosion', result: { scattered: 1, explosionTargetUserId: 'recipient', candyMovements: [{ fromUserId: 'recipient', toUserId: 'other', candy: 1 }] } })
+  add({ action: 'trick', outcome: 'candy_ransom', result: { stolen: 1, victims: [{ userId: 'recipient' }], fallback: 'ordinary_theft', fallbackFrom: 'candy_ransom' } })
+  add({ action: 'treat', outcome: 'temporary_immunity', result: { freedUserId: 'recipient', bagRepairedUserId: 'recipient' } })
+  add({ action: 'trick', outcome: 'steal_crown', result: { crownProtectedUserId: 'recipient', noEffect: 'shield_blocks_attack', blockedShields: [{ userId: 'recipient', popped: true }] } })
+  add({ action: 'trick', outcome: 'steal_candy', result: { noEffect: 'shield_blocks_attack', blockedShields: [{ userId: 'recipient', popped: false }] } })
+  add({ action: 'treat', outcome: 'break_curse', result: { bagRepairedUserId: 'recipient' } })
   add({ action: 'treat', outcome: 'temporary_immunity', result: { shielded: ['recipient'] } })
   add({ action: 'trick', outcome: 'curse_backfire', result: { noEffect: 'already_cursed' } })
   add({ action: 'trick', outcome: 'steal_crown', result: { awardedUserId: 'actor', crownWon: true, crownStolenFrom: 'recipient', crownFirstWin: false } })

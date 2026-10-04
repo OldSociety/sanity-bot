@@ -79,8 +79,8 @@ test('protection lasts exactly to expiry, includes both resources and ignores an
   await f.models.Effect.create({ participantId: other.id, effectType: 'theft_protection', expiresAt })
   const inspect = resource => f.economy.execute({ ...f.input(`inspect-${resource}-${Date.now()}`), operationType: 'inspect_test' }, async ctx =>
     ({ ids: (await f.theft.candidates(ctx, 'alice', resource)).map(member => member.userId) }))
-  assert.deepEqual((await inspect('eyes')).receipt.ids, ['carol'])
-  assert.deepEqual((await inspect('candy')).receipt.ids, ['carol'])
+  assert.deepEqual((await inspect('eyes')).receipt.ids, ['bob','carol'])
+  assert.deepEqual((await inspect('candy')).receipt.ids, ['bob','carol'])
   f.time(expiresAt)
   assert.deepEqual((await inspect('eyes')).receipt.ids, ['bob','carol'])
   assert.equal(carol.eyes, 1)
@@ -101,13 +101,13 @@ test('Eye victim needs registration/funds but no activity; theft converts at fiv
   assert.deepEqual(replay.receipt, result.receipt)
 })
 
-test('solo or protected-only Eye pool finds one; no candy target gives paid no-effect without minting candy', async t => {
+test('solo Eye pool finds one; protected victim blocks theft without inventing an Eye; no candy target gives paid no-effect without minting candy', async t => {
   const solo = await fixture(t, [], { outcomeRoll: .99 })
   assert.equal((await solo.actions.execute(solo.input('solo'))).receipt.result.found, 1)
   const protectedOnly = await fixture(t, [human('bob')], { outcomeRoll: .99 })
   const bob = await protectedOnly.register('bob', { eyes: 1 })
   await protectedOnly.models.Effect.create({ participantId: bob.id, effectType: 'theft_protection', expiresAt: new Date(Date.parse(config.startsAt) + 3600000) })
-  assert.equal((await protectedOnly.actions.execute(protectedOnly.input('protected'))).receipt.result.found, 1)
+  assert.equal((await protectedOnly.actions.execute(protectedOnly.input('protected'))).receipt.result.found, 0)
   assert.equal((await protectedOnly.row('bob')).eyes, 1)
   const candy = await fixture(t)
   const empty = await candy.actions.execute(candy.input('empty'))

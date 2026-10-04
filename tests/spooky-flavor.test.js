@@ -74,3 +74,19 @@ test('Eye finds and self rewards are public while unrewarded personal failures s
   assert.match(spell.payload.embeds[0].description, /jack-o'-lantern/)
   assert.doesNotMatch(JSON.stringify(spell.payload), /Misfire|could not reach|permission/)
 })
+
+
+test('caught and dropped outcomes vary cosmetically without changing the one-candy meaning or private visibility', () => {
+ for (const outcome of ['caught_stealing', 'lost_candy']) {
+  const titles = new Set();
+  for (let i = 0; i < 30; i++) {
+   const receipt = { action: outcome === 'lost_candy' ? 'treat' : 'trick', outcome, candy: 9, eyes: 0, result: { failure: outcome } };
+   const ctx = { actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }], registeredIds: new Set(), variantKey: String(i) };
+   const messages = actionMessages(receipt, ctx); titles.add(messages[0].payload.embeds[0].title);
+   assert.equal(messages[0].public, false); assert.deepEqual(actionMessages(receipt, ctx), messages);
+   assert.doesNotMatch(messages[0].payload.embeds[0].description, /Effect unavailable/);
+   assert.match(messages[0].payload.embeds[0].footer.text, /9/);
+  }
+  assert.equal(titles.size, 3);
+ }
+});

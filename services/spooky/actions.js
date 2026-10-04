@@ -14,14 +14,24 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
     return { action, overridden: true, outcome: action === 'trick' ? 'curse_distribute_two'
       : roll(random) < event.curse.treatSpreadPercent / 100 ? 'curse_spread' : 'curse_distribute_three' }
   }
-  // After a non-candy result, soften the whole special-result group for one
-  // action. One weighted roll, never reroll a committed result or failed handler.
-  const buffered = nonCandyOutcomes.has(previousOutcome)
+  // Soften only the immediately repeated spell family. Older configurations
+  // retain their historical broad buffer; committed outcomes are never rerolled.
+  const families = [['reverse_nickname'], ['curse_target', 'curse_backfire', 'curse_spread'], ['temporary_immunity'], ['break_curse'], ['marked_for_mischief']]
+  const family = families.find(ids => ids.includes(previousOutcome)) || []
+  const targeted = event.actionBuffer.mode === 'same-spell'
+  const buffered = targeted ? family.length > 0 : nonCandyOutcomes.has(previousOutcome)
   const weights = event[`${action}Outcomes`].map(outcome => {
     const id = outcome.id === 'sweet_tooth' && crownHolderId ? 'standard_gift'
-      : outcome.id === 'steal_crown' && (!crownHolderId || crownHolderId === actorId) ? 'caught_stealing' : outcome.id
-    return { id, weight: outcome.percent * (buffered && nonCandyOutcomes.has(id) ? event.actionBuffer.specialWeightPercent / 100 : 1) }
+      : outcome.id === 'steal_crown' && (!crownHolderId || crownHolderId === actorId) ? (targeted ? 'steal_candy' : 'caught_stealing') : outcome.id
+    return { id, original: outcome.percent, weight: outcome.percent * (buffered && (targeted ? family.includes(id) : nonCandyOutcomes.has(id)) ? event.actionBuffer.specialWeightPercent / 100 : 1) }
   })
+  if (targeted && buffered) {
+    const candy = new Set(action === 'treat' ? ['standard_gift', 'double_gift'] : ['steal_candy', 'great_heist', 'candy_raid', 'bag_explosion', 'sticky_fingers', 'candy_ransom', 'boo', 'candy_shakedown', 'trick_chain'])
+    const freed = weights.reduce((sum, row) => sum + row.original - row.weight, 0)
+    const pool = weights.filter(row => candy.has(row.id)).reduce((sum, row) => sum + row.weight, 0)
+    if (freed && !pool) throw new Error('Repeated spell has no candy redistribution pool')
+    for (const row of weights) if (candy.has(row.id)) row.weight += freed * row.weight / pool
+  }
   const value = roll(random) * weights.reduce((sum, outcome) => sum + outcome.weight, 0)
   let boundary = 0
   for (const outcome of weights) {
@@ -84,9 +94,10 @@ function createActions({ models, economy, participants, handlers, getCurseState,
       // Handlers are database-only and share this root transaction. They must
       // validate targets before writes or return an explicit paid no-effect result.
       // Exceptions refund everything by rollback; never reroll an unavailable effect.
-      const result = await handler(ctx, { ...selected, actorId: input.actorId,
+      const rawResult = await handler(ctx, { ...selected, actorId: input.actorId,
         availableCandy: participant.candy - baseCost, distributionLimit })
-      if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('Outcome handler must return a receipt')
+      if (!rawResult || typeof rawResult !== 'object' || Array.isArray(rawResult)) throw new Error('Outcome handler must return a receipt')
+      const result = require('./combat').combatReceipt(ctx, rawResult)
       const delivered = result.deliveredCandy ?? 0
       if (!Number.isSafeInteger(delivered) || delivered < 0 || (distributionLimit && delivered > distributionLimit)) throw new Error('Invalid delivered candy count')
       // Fetch fresh state: handlers may have credited the actor (e.g. theft).

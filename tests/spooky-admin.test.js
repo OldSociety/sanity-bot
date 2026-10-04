@@ -307,6 +307,7 @@ test('development reset preserves wallet/permanent sentinel/audit/other scopes, 
   await putEffect(f, player, 'curse', { botOwnedRole: true, roleId: 'curse-role' })
   await putEffect(f, player, 'reversed_nickname', { originalNickname: 'Alice', appliedNickname: 'ecilA' })
   await putEffect(f, player, 'theft_protection')
+  await putEffect(f, player, 'bag_hole')
   await f.models.Delivery.create({ eventId: config.eventId, guildId: 'guild', userId: 'alice', kind: 'sweet_tooth_role', revision: 'old', payload: { roleId: 'sweet', present: true } })
   const notifications = require('../services/spooky/notifications').createNotifications({ models: f.models })
   for (const key of ['pending', 'uncertain']) await f.run(key, async ctx => {
@@ -315,7 +316,7 @@ test('development reset preserves wallet/permanent sentinel/audit/other scopes, 
   })
   await f.models.Notification.update({ status: 'uncertain' }, { where: { operationId: 'discord:uncertain' } })
   const result = await f.admin.control(controlInput('reset-ok', { action: 'reset-development', confirm: true }))
-  assert.equal(result.receipt.effects.length, 3)
+  assert.equal(result.receipt.effects.length, 4)
   assert.equal(result.receipt.cancelledNotifications.length, 1); assert.equal(result.receipt.ambiguousNotifications.length, 1)
   assert.equal(await f.models.Inventory.count(), 0); assert.equal(await f.models.Effect.count(), 0)
   assert.equal(await f.models.Participant.count(), 2)
@@ -526,3 +527,15 @@ test('repair adapter queues big awards for the player, keeps reasons private and
   assert.equal((await f.models.Notification.findOne()).status, 'uncertain')
   assert.equal((await f.models.Participant.findOne()).eyes, 0)
 })
+
+
+test('existing owner-only curse-clear tool heals bag holes without nickname or role writes and replays safely', async t => {
+ const f = await fixture(t);
+ const player = await f.models.Participant.create({ eventId: config.eventId, guildId: 'guild', userId: 'alice', candy: 10, eyes: 0, registeredAt: new Date(config.startsAt), refillAnchor: new Date(config.startsAt) });
+ await putEffect(f, player, 'bag_hole', {});
+ const r = await f.admin.control(controlInput('hole-clear'));
+ assert.equal(r.receipt.effects[0].bagRepaired, true);
+ assert.equal(await f.models.Effect.count(), 0); assert.equal(await f.models.Delivery.count(), 0);
+ assert.equal((await f.admin.control(controlInput('hole-clear'))).replayed, true);
+ assert.equal((await f.models.Participant.findByPk(player.id)).candy, 10);
+});

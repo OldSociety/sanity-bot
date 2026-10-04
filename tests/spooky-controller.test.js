@@ -137,7 +137,7 @@ test('break-curse skips a lone target, offers two/three choices and saves one pa
     assert.equal(Boolean(choice), count >= 2)
     if (choice) {
       assert.equal(choice.components[0].components.length, count)
-      assert.match(choice.embeds[0].title, /Whose Curse/)
+      assert.match(choice.embeds[0].title, /Whose Spell/)
     }
     const saved = await f.models.Operation.findByPk(`discord:break-${count}`)
     assert.equal(saved.receipt.candySpent, 1)
@@ -190,13 +190,13 @@ test('losing outcomes charge exactly one candy and remain flavorful private resu
   await f.controller.execute(f.interaction('join', 'register'))
   const lost = f.interaction('lost-one', 'treat'); await f.controller.execute(lost)
   const embed = lost.replies.at(-1).embeds[0]
-  assert.equal(embed.title, '🎃 Oops! 🍬 Candy Down!')
+  assert.match(embed.title, /Candy Down|Ghost Ate It|Tangled Treat/)
   assert.match(embed.footer.text, /🍬 9/)
   assert.doesNotMatch(embed.footer.text, /\/80/)
   assert.equal(JSON.stringify(embed).includes('unavailable'), false)
   const caught = f.interaction('caught-one', 'trick')
   await createController({ ...f.settings, random: () => 0.6 }).execute(caught)
-  assert.equal(caught.replies.at(-1).embeds[0].title, '🚨 Caught Red-Handed!')
+  assert.match(caught.replies.at(-1).embeds[0].title, /Caught Red-Handed|Pumpkin Saw Everything|Bat Patrol/)
   assert.equal((await f.models.Participant.findOne()).candy, 8)
   assert.equal(await f.models.Ledger.count({ where: { userId: 'alice', resource: 'candy', delta: -1 } }), 2)
   const replay = f.interaction('lost-one', 'treat'); await createController(f.settings).execute(replay)

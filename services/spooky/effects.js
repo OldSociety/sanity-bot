@@ -1,6 +1,6 @@
 const { config: defaultConfig, getEventState } = require('./config')
 
-const types = new Set(['curse', 'theft_protection', 'reversed_nickname'])
+const types = new Set(['curse', 'theft_protection', 'reversed_nickname', 'bag_hole'])
 function createEffects({ models, participants, event = defaultConfig }) {
   async function active(ctx, userId, effectType) {
     if (!types.has(effectType)) throw new Error('Unknown spooky effect')

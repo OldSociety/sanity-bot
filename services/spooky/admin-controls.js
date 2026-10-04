@@ -44,6 +44,9 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
       metadata: { action: 'cancel', previousRevision, payload: row.payload } })
   }
   async function clear(ctx, player, effectType) {
+    // The existing curse-clear tool also heals the new bag hex. No new slash
+    // command or permission surface is needed, and disabled events remain repairable.
+    const repairedBag = effectType === 'curse' && await effects.remove(ctx, player.userId, 'bag_hole')
     const row = await models.Effect.findOne({ where: { participantId: player.id, effectType }, transaction: ctx.transaction })
     if (!row) {
       if (effectType === 'curse') {
@@ -54,7 +57,7 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
         ...ctx.scope, userId: player.userId, kind: 'nickname', status: 'pending',
       }, transaction: ctx.transaction })) throw new Error('Pending nickname intent without an effect requires inspection before clearing')
       await ctx.record({ userId: player.userId, resource: `effect:${effectType}`, delta: 0, metadata: { noEffect: 'already_absent' } })
-      return { effectType, cleared: false }
+      return { effectType, cleared: Boolean(repairedBag), ...(repairedBag ? { bagRepaired: true } : {}) }
     }
     const metadata = row.metadata || {}
     if (effectType === 'curse') {
@@ -73,7 +76,7 @@ function createAdminControls({ sequelize, models, economy, event, scope, checkAc
     await effects.remove(ctx, player.userId, effectType)
     await ctx.record({ userId: player.userId, resource: 'effect_restoration', delta: 0,
       metadata: { effectType, originalMetadata: metadata } })
-    return { effectType, cleared: true }
+    return { effectType, cleared: true, ...(repairedBag ? { bagRepaired: true } : {}) }
   }
   async function cancelNotifications(ctx, userId) {
     const operations = await models.Operation.findAll({ where: { ...ctx.scope,

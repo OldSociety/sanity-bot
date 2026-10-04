@@ -21,6 +21,7 @@ function createPlayful({
     delivery,
   })
   const crown = require('./crown').createCrown({ models, delivery, roleId: roleIds.sweetTooth })
+  const combat = require('./combat').createCombat({ models, participants, effects, delivery, event })
   async function members(ctx) {
     const snapshot = await listMembers(ctx)
     if (!Array.isArray(snapshot)) throw new Error('Invalid membership snapshot')
@@ -61,7 +62,7 @@ function createPlayful({
     }
   }
   async function curse(ctx, member) {
-    if (await effects.active(ctx, member.userId, 'theft_protection')) return { noEffect: 'shield_blocks_curse' }
+    if (await combat.intercept(ctx, member.userId)) return combat.receipt(ctx, { noEffect: 'shield_blocks_attack' })
     if (member.canManageCurse !== true) return { noEffect: 'role_permission' }
     const old = await effects.active(ctx, member.userId, 'curse')
     if (old) return { noEffect: 'already_cursed' }
@@ -126,8 +127,8 @@ function createPlayful({
       const eligible = []
       for (const member of await members(ctx)) {
         if (
-          member.canManageCurse &&
-          (await effects.active(ctx, member.userId, 'curse'))
+          (member.canManageCurse && await effects.active(ctx, member.userId, 'curse')) ||
+          (!await effects.active(ctx, member.userId, 'curse') && await effects.active(ctx, member.userId, 'bag_hole'))
         )
           eligible.push(member)
       }
@@ -149,11 +150,16 @@ function createPlayful({
       )
         continue
       if (await effects.active(ctx, member.userId, type)) continue
-      if (type === 'curse' && await effects.active(ctx, member.userId, 'theft_protection')) continue
       // A shield cast on a cursed target becomes a cure. Removal can safely
       // supersede even an unapplied curse projection using its saved baseline.
-      if (type === 'theft_protection' && await effects.active(ctx, member.userId, 'curse')) {
-        if (member.canManageCurse) eligible.push(member)
+      if (type === 'theft_protection' && (await effects.active(ctx, member.userId, 'curse') || await effects.active(ctx, member.userId, 'bag_hole'))) {
+        if (member.canManageCurse || !await effects.active(ctx, member.userId, 'curse')) eligible.push(member)
+        continue
+      }
+      // A shield can absorb this attack even while its nickname projection is
+      // pending. Interception owns its restoration and writes no curse costume.
+      if (type === 'curse' && await effects.active(ctx, member.userId, 'theft_protection')) {
+        eligible.push(member)
         continue
       }
       const player = await models.Participant.findOne({
@@ -201,6 +207,7 @@ function createPlayful({
     return eligible
   }
   async function clearCurse(ctx, userId) {
+    await effects.remove(ctx, userId, 'bag_hole')
     await nicknames.remove(ctx, userId, 'curse')
     const removed = await effects.remove(ctx, userId, 'curse')
     if (removed?.metadata.botOwnedRole === true)
@@ -324,7 +331,7 @@ function createPlayful({
       )
         throw new Error('Curse restoration metadata is invalid')
       if (
-        !['curse', 'reversed_nickname', 'theft_protection'].includes(
+        !['curse', 'reversed_nickname', 'theft_protection', 'bag_hole'].includes(
           row.effectType,
         )
       )
@@ -374,8 +381,10 @@ function createPlayful({
           'That curse has already been broken. Nothing was spent; try again.',
         )
       if (!target) return gift(ctx, plan.actorId, 1)
+      const repaired = Boolean(await effects.active(ctx, target.userId, 'bag_hole'))
+      const cursed = Boolean(await effects.active(ctx, target.userId, 'curse'))
       await clearCurse(ctx, target.userId)
-      return { freedUserId: target.userId }
+      return { ...(cursed ? { freedUserId: target.userId } : {}), ...(repaired ? { bagRepairedUserId: target.userId } : {}) }
     },
     temporary_immunity: async (ctx, plan) => {
       const eligible = await choiceCandidates(ctx, {
@@ -390,9 +399,11 @@ function createPlayful({
           'That player is no longer eligible. Nothing was spent; try again.',
         )
       if (!recipient) return { noEffect: 'no_recipient' }
-      if (await effects.active(ctx, recipient.userId, 'curse')) {
+      if (await effects.active(ctx, recipient.userId, 'curse') || await effects.active(ctx, recipient.userId, 'bag_hole')) {
+        const repaired = Boolean(await effects.active(ctx, recipient.userId, 'bag_hole'))
+        const cursed = Boolean(await effects.active(ctx, recipient.userId, 'curse'))
         await clearCurse(ctx, recipient.userId)
-        return { freedUserId: recipient.userId, protectionBrokeCurse: true }
+        return { ...(cursed ? { freedUserId: recipient.userId, protectionBrokeCurse: true } : {}), ...(repaired ? { bagRepairedUserId: recipient.userId } : {}) }
       }
       const caller = (await members(ctx)).find(
         (member) => member.userId === plan.actorId,
@@ -425,6 +436,7 @@ function createPlayful({
       const both =
         !callerShield &&
         !await effects.active(ctx, plan.actorId, 'curse') &&
+        !await effects.active(ctx, plan.actorId, 'bag_hole') &&
         !callerPending &&
         value < event.protection.bothPercent / 100
       const shielded = [...(both ? [plan.actorId] : []), recipient.userId]
@@ -433,9 +445,11 @@ function createPlayful({
       )
       for (const userId of shielded) {
         const member = userId === plan.actorId ? caller : recipient
+        const chargeRoll = random()
+        if (!Number.isFinite(chargeRoll) || chargeRoll < 0 || chargeRoll >= 1) throw new Error('Invalid shield strength roll')
         await effects.put(ctx, userId, 'theft_protection', {
           expiresAt,
-          metadata: await nicknames.apply(ctx, member, 'theft_protection'),
+          metadata: { ...await nicknames.apply(ctx, member, 'theft_protection'), chargesRemaining: chargeRoll < .5 ? 2 : 3 },
         })
       }
       let deliveredCandy = 0
@@ -466,7 +480,8 @@ function createPlayful({
         // Pending/expired effects still own the baseline. Also avoid a reversal
         // hidden beneath an active spell: the chosen target must visibly benefit.
         if (player && await models.Effect.findOne({ where: { participantId: player.id,
-          effectType: { [Op.in]: ['reversed_nickname', 'curse', 'theft_protection'] } }, transaction: ctx.transaction })) continue
+          effectType: { [Op.in]: ['reversed_nickname', 'curse'] } }, transaction: ctx.transaction })) continue
+        if (await effects.active(ctx, member.userId, 'theft_protection')) { eligible.push(member); continue }
         if (await models.Delivery.findOne({ where: { ...ctx.scope, userId: member.userId, kind: 'nickname',
           status: { [Op.in]: ['pending', 'conflict'] } }, transaction: ctx.transaction })) continue
         eligible.push(member)
@@ -479,6 +494,7 @@ function createPlayful({
       }
       // The same nickname owner composes reversal with curse and shield, so
       // each removal preserves the remaining costume and the original name.
+      if (await combat.intercept(ctx, target.userId)) return combat.receipt(ctx, { noEffect: 'shield_blocks_attack' })
       const metadata = await nicknames.apply(ctx, target, 'reversed_nickname')
       if (!Object.hasOwn(metadata, 'originalNickname'))
         return { noEffect: 'restoration_pending' }
@@ -546,6 +562,7 @@ function createPlayful({
         caller = all.find(member => member.userId === plan.actorId)
       if (!holderId || holderId === plan.actorId) throw new Error('There is no other Crown holder to steal from. Nothing was spent.')
       if (!caller?.canManageSweetTooth) throw new Error('The Crown cannot change hands right now. Nothing was spent.')
+      if (await combat.intercept(ctx, holderId)) return combat.receipt(ctx, { crownProtectedUserId: holderId, crownWon: false, noEffect: 'shield_blocks_attack' })
       const reset = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_reset' }, order: [['id', 'DESC']], transaction: ctx.transaction })
       const wonBefore = await models.Ledger.findOne({ where: { ...ctx.scope, userId: plan.actorId, resource: 'crown_award',
         ...(reset ? { id: { [Op.gt]: reset.id } } : {}) }, transaction: ctx.transaction })

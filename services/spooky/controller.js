@@ -340,6 +340,8 @@ function createController({
       models,
       participants,
       collection,
+      effects,
+      delivery,
       event,
       random,
       listMembers: () => snapshot,
@@ -369,6 +371,7 @@ function createController({
     const raw = progression.wrapHandlers({
       ...playful.handlers,
       ...theft.handlers,
+      ...require('./candy-events').createCandyEvents({ models, participants, effects, delivery, event, random, listMembers: () => snapshot }).handlers,
     })
     const handlers = Object.fromEntries(
       Object.entries(raw).map(([key, handler]) => [

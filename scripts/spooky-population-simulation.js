@@ -137,6 +137,7 @@ function memoryGuild(specs, options, random) {
     })
   const row = (values) =>
     Object.assign(values, {
+      get() { return this },
       async update(values) {
         Object.assign(this, values)
         return this
@@ -295,6 +296,7 @@ function memoryGuild(specs, options, random) {
     random,
   })
   const theft = createTheft({
+    effects, delivery,
     models,
     participants,
     collection,
@@ -321,6 +323,7 @@ function memoryGuild(specs, options, random) {
   const handlers = progression.wrapHandlers({
     ...playful.handlers,
     ...theft.handlers,
+    ...require('../services/spooky/candy-events').createCandyEvents({ models, participants, effects, delivery, listMembers, random }).handlers,
   })
   function context(now) {
     const ctx = {
@@ -430,7 +433,7 @@ function memoryGuild(specs, options, random) {
     let result
     try { result = await handlers[plan.outcome](ctx, plan) }
     catch (error) {
-      if (error.code !== 'NO_REVERSAL_TARGET') throw error
+      if (!['NO_REVERSAL_TARGET', 'NO_CANDY_TARGET'].includes(error.code)) throw error
       // This specific rejection occurs before any handler write. Model only
       // the action-cost rollback; arbitrary partial failures need real SQLite.
       Object.assign(p, snapshot); totals.candyRefilled = refillTotal; totals.candySpent--; return false
@@ -680,6 +683,8 @@ async function main() {
       'actions',
       'collection',
       'theft',
+      'combat',
+      'candy-events',
       'playful',
       'progression',
     ].map((n) => `services/spooky/${n}.js`),

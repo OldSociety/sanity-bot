@@ -1,8 +1,15 @@
 {
-  "version": 18,
-  "nickname": { "reversalDurationMs": 43200000 },
-  "actionBuffer": { "specialWeightPercent": 50 },
-  "gifs": { "routinePercent": 10 },
+  "version": 19,
+  "nickname": {
+    "reversalDurationMs": 43200000
+  },
+  "actionBuffer": {
+    "specialWeightPercent": 25,
+    "mode": "same-spell"
+  },
+  "gifs": {
+    "routinePercent": 10
+  },
   "eventId": "spooky-2026",
   "enabled": false,
   "developmentEnabled": true,
@@ -44,7 +51,7 @@
   },
   "protection": {
     "bothPercent": 20,
-    "theftDurationMs": 3600000,
+    "theftDurationMs": 43200000,
     "eyeVictimActivityWindowMs": null,
     "dailyVictimLossLimit": null
   },
@@ -54,7 +61,9 @@
     "messageTransformPercent": 20,
     "messageReversePercent": 50
   },
-  "targetChoice": { "timeoutMs": 20000 },
+  "targetChoice": {
+    "timeoutMs": 20000
+  },
   "treatOutcomes": [
     {
       "id": "lost_candy",
@@ -108,7 +117,47 @@
     },
     {
       "id": "caught_stealing",
-      "percent": 36
+      "percent": 16
+    },
+    {
+      "id": "candy_raid",
+      "percent": 3
+    },
+    {
+      "id": "bag_swap",
+      "percent": 2
+    },
+    {
+      "id": "bag_explosion",
+      "percent": 2
+    },
+    {
+      "id": "sticky_fingers",
+      "percent": 3
+    },
+    {
+      "id": "reverse_robbery",
+      "percent": 2
+    },
+    {
+      "id": "candy_ransom",
+      "percent": 2
+    },
+    {
+      "id": "boo",
+      "percent": 2
+    },
+    {
+      "id": "candy_shakedown",
+      "percent": 2
+    },
+    {
+      "id": "trick_chain",
+      "percent": 1
+    },
+    {
+      "id": "marked_for_mischief",
+      "percent": 1
     },
     {
       "id": "steal_crown",
@@ -155,5 +204,10 @@
     "registeredLimit": 4,
     "registeredMinIntervalMs": 64800000,
     "chancePercent": 20
+  },
+  "combat": {
+    "holeDurationMs": 43200000,
+    "holeBonusPercent": 25,
+    "holeBonusCap": 2
   }
 }

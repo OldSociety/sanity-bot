@@ -40,11 +40,11 @@ test('population adapter matches a seeded actual SQLite gameplay trajectory', as
   const listMembers = async () => members
   const playful = createPlayful({ models, participants, effects, collection, delivery, listMembers,
     roleIds: { curse: 'curse', sweetTooth: 'sweet' }, event, random })
-  const theft = createTheft({ models, participants, collection, listMembers, event, random })
+  const theft = createTheft({ models, participants, collection, effects, delivery, listMembers, event, random })
   const progression = createProgression({ User, models, event, isUnwanted: async () => true })
   const actions = createActions({ models, economy, participants, event, random,
     getCrownHolder: playful.crownHolder,
-    handlers: progression.wrapHandlers({ ...playful.handlers, ...theft.handlers }), getCurseState: effects.getCurseState })
+    handlers: progression.wrapHandlers({ ...playful.handlers, ...theft.handlers, ...require('../services/spooky/candy-events').createCandyEvents({ models, participants, effects, delivery, listMembers, event, random }).handlers }), getCurseState: effects.getCurseState })
   const fate = createFatePurchases({ User, models, economy, collection, event })
   const scope = { eventId: config.eventId, guildId: 'simulation' }
   const input = id => ({ ...scope, actorId: id, interactionId: `parity-${key++}` })
@@ -73,7 +73,7 @@ test('population adapter matches a seeded actual SQLite gameplay trajectory', as
       const result = await actions.execute({ ...input(id), action })
       outcomes.add(result.receipt.outcome)
     } catch (error) {
-      if (error.code !== 'NO_REVERSAL_TARGET') throw error
+      if (!['NO_REVERSAL_TARGET', 'NO_CANDY_TARGET'].includes(error.code)) throw error
       succeeded = false
     }
     assert.equal(await fast.action(id, action, now), succeeded)

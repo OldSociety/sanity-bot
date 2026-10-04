@@ -76,3 +76,17 @@ test('significant results share the rate; private messages, fallbacks and art ke
   assert.deepEqual(withActionGif({ action: 'treat', outcome: 'sweet_tooth' }, pages, opts)[1], pages[1])
   assert.ok(Object.values(pools).every(pool => pool.length && pool.every(id => /^[A-Za-z0-9]+$/.test(id))))
 })
+
+
+test('new variety outcomes reuse reviewed GIF pools, honor the10% budget and rotate recent assets', async () => {
+ for (const outcome of ['candy_raid', 'bag_swap', 'bag_explosion', 'sticky_fingers', 'reverse_robbery', 'candy_ransom', 'boo', 'candy_shakedown', 'trick_chain', 'marked_for_mischief']) {
+  const receipt = { action: 'trick', outcome, result: {} }, options = { operationId: 'discord:variety-' + outcome, routinePercent: 100 };
+  const image = withActionGif(receipt, message(), options)[0].payload.embeds[0].image;
+  assert.ok(image, outcome); assert.equal(withActionGif(receipt, message(), { ...options, routinePercent: 0 })[0].payload.embeds[0].image, undefined);
+  const rotated = await require('../services/spooky/gifs').withRecentActionGif(receipt, message(), options, { models: { Notification: { findAll: async () => [{ status: 'pending', payload: { embeds: [{ image }] } }] } }, ctx: {}, channelId: 'channel' });
+  assert.notEqual(rotated[0].payload.embeds[0].image.url, image.url);
+ }
+ const repaired = { action: 'treat', outcome: 'break_curse', result: { bagRepairedUserId: 'bob' } };
+ const url = withActionGif(repaired, message(), { operationId: 'repair', routinePercent: 100 })[0].payload.embeds[0].image.url;
+ assert.ok(pools.break_curse.some(id => url.includes('/' + id + '/')));
+});

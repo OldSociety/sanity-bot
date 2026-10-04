@@ -54,8 +54,8 @@ test('Crown finding/theft are mutually exclusive and each has the same 1% base i
   assert.equal(selectAction({ action: 'treat', actorId: 'alice', random: () => .205 }).outcome, 'sweet_tooth')
   assert.equal(selectAction({ action: 'treat', actorId: 'alice', crownHolderId: 'bob', random: () => .205 }).outcome, 'standard_gift')
   assert.equal(selectAction({ action: 'trick', actorId: 'alice', crownHolderId: 'bob', random: () => .865 }).outcome, 'steal_crown')
-  assert.equal(selectAction({ action: 'trick', actorId: 'bob', crownHolderId: 'bob', random: () => .865 }).outcome, 'caught_stealing')
-  assert.equal(selectAction({ action: 'trick', actorId: 'alice', random: () => .865 }).outcome, 'caught_stealing')
+  assert.equal(selectAction({ action: 'trick', actorId: 'bob', crownHolderId: 'bob', random: () => .865 }).outcome, 'steal_candy')
+  assert.equal(selectAction({ action: 'trick', actorId: 'alice', random: () => .865 }).outcome, 'steal_candy')
 })
 
 test('failed old-holder removal never adds a second Crown; reconstruction retries safely', async t => {

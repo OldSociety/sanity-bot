@@ -78,6 +78,14 @@ function targetIds(result, actorId) {
         result.reversedUserId,
         result.awardedUserId,
         result.crownStolenFrom,
+        result.crownProtectedUserId,
+        result.holeTargetUserId,
+        result.bagRepairedUserId,
+        result.swapTargetUserId,
+        result.robberyTargetUserId,
+        result.explosionTargetUserId,
+        ...(result.blockedShields || []).map(row => row.userId),
+        ...(result.candyMovements || []).flatMap(row => [row.fromUserId, row.toUserId]),
       ].filter((id) => id && id !== actorId),
     ),
   ]
@@ -99,10 +107,14 @@ function actionMessages(
   const flavor = require('./flavor').outcomeFlavor(receipt, {
     actorId,
     actor,
+    label,
     targets: ids.map(label),
     variantKey,
   })
   const details = []
+  for (const shield of result.blockedShields || []) details.push(shield.popped
+    ? `💥 ${label(shield.userId)}'s shield burst into sparks! It stopped the attack, but the magic is gone.`
+    : `✨ ${label(shield.userId)}'s shield caught the attack—and flickered.`)
   if (
     result.fateBonus &&
     !(receipt.outcome === 'sweet_tooth' && result.noEffect)
@@ -340,7 +352,7 @@ function helpScreen() {
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
       'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',
       'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',
-      'Protection lasts one hour, usually shielding the recipient and sometimes the giver too. Shields block curses; protection cast on a cursed player breaks their curse instead. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',
+      'A shield usually protects the recipient and sometimes the giver too. Each attack weakens it until it bursts, or its magic fades. Shields protect candy, Eyes, names and even the Sweet Tooth Crown. Protection cast on a cursed player breaks their curse instead; it can also repair a hole in their bag. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',
       'Effects involving another player are public; occasional recipient links appear inside the embed without notification pings. `/spooky leaderboard` shows public rankings.',
       'Backwards-name spells last 12 hours, then restore the original name. Only one player wears the Sweet Tooth Crown: Treats can find it while unclaimed, and a rare Trick can steal it from its holder.',
       'Quarter reveals are public. Personal screens are private. Play throughout October in Pacific time; no post-October redemption.',
