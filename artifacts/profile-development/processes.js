@@ -2,7 +2,7 @@ const fs = require('node:fs'), path = require('node:path')
 process.env.PM2_HOME = 'C:/Users/headm/.pm2'
 const pm2 = require('C:/Users/headm/AppData/Roaming/npm/node_modules/pm2')
 const mode = process.argv[2]
-const prefix = process.argv[3] === 'revision' ? 'revision-' : ''
+const prefix = ['revision', 'palette'].includes(process.argv[3]) ? `${process.argv[3]}-` : ''
 if (!['before', 'after', 'reload', 'reload-production', 'save'].includes(mode)) throw Error('Expected before, after, reload, reload-production or save')
 const invoke = (fn, ...args) => new Promise((resolve, reject) => fn.call(pm2, ...args, (error, value) => error ? reject(error) : resolve(value)))
 async function main() {

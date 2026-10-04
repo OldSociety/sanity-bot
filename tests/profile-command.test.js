@@ -53,6 +53,22 @@ test('Admin card label comes from the selected member role', async t => {
     roles: { cache: new Map([['admin', { id: 'admin', name: 'Admin' }]]) } })
   await f.execute(); assert.equal(f.rendered[0].isAdmin, true)
 })
+test('profile shows only selected member ownership, regardless of available server badges/emojis', async t => {
+  const f = await fixture(t)
+  const { defineBadgeModel, createBadges } = require('../services/badges')
+  const Ownership = defineBadgeModel(f.User.sequelize); await Ownership.sync()
+  await Ownership.bulkCreate([
+    { guildId: 'guild', userId: 'alice', badgeId: 'spooky-2026:sel', sourceEventId: 'spooky-2026', awardedAt: new Date() },
+    { guildId: 'guild', userId: 'bob', badgeId: 'spooky-2026:mrq', sourceEventId: 'spooky-2026', awardedAt: new Date() },
+    { guildId: 'other', userId: 'alice', badgeId: 'spooky-2026:had', sourceEventId: 'spooky-2026', awardedAt: new Date() },
+  ])
+  f.interaction.guild.emojis.fetch = async () => new Map([['mrq', { id: '123456789012345678', name: 'spooky_marq_badge' }]])
+  await f.execute({ badgeService: createBadges({ sequelize: f.User.sequelize }) })
+  assert.deepEqual(f.rendered[0].badges.map(badge => badge.id), ['spooky-2026:sel'])
+  await Ownership.destroy({ where: { guildId: 'guild', userId: 'alice' } })
+  await f.execute({ badgeService: createBadges({ sequelize: f.User.sequelize }) })
+  assert.deepEqual(f.rendered[1].badges, [])
+})
 test('profile wrapper rejects production and wrong guild before loading storage', async t => {
   const oldEnv = process.env.NODE_ENV, oldGuild = process.env.GUILDID
   t.after(() => {

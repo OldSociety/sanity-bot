@@ -46,7 +46,7 @@ async function circle(input, size) {
     .composite([{ input: Buffer.from(`<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="white"/></svg>`), blend: 'dest-in' }]).png().toBuffer()
 }
 async function label(value, font, width) {
-  const input = await sharp({ text: { text: `<span foreground="#f6f4ff">${xml(clean(value)) || 'Player'}</span>`, font, rgba: true, dpi: 72 } }).png().toBuffer()
+  const input = await sharp({ text: { text: `<span foreground="#e8f0f3">${xml(clean(value)) || 'Player'}</span>`, font, rgba: true, dpi: 72 } }).png().toBuffer()
   const meta = await sharp(input).metadata()
   return sharp(input).resize({ width: Math.min(width, meta.width), withoutEnlargement: true }).png().toBuffer()
 }
@@ -55,35 +55,35 @@ async function renderProfileCard({ displayName, username, user = {}, avatar, bad
   const progress = progression(user), overlays = []
   const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0
   const number = value => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value)
-  const text = (x, y, size, value, color = '#f6f4ff', weight = 400) => `<text x="${x}" y="${y}" font-family="Segoe UI, sans-serif" font-size="${size}" font-weight="${weight}" fill="${color}">${xml(value)}</text>`
+  const text = (x, y, size, value, color = '#e8f0f3', weight = 400) => `<text x="${x}" y="${y}" font-family="Segoe UI, sans-serif" font-size="${size}" font-weight="${weight}" fill="${color}">${xml(value)}</text>`
   const badgeMarkup = badges.slice(0, MAX_BADGES).map((badge, i) => {
     const x = 288 + i * 86
-    return `<circle cx="${x}" cy="391" r="27" fill="#211b37" stroke="#776c94" stroke-opacity=".5"/>` +
-      text(x - 8, 400, 25, initial(badge.name), '#d8c6ff', 600) +
-      `<text x="${x}" y="440" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#c7bfd9">${xml(truncate(badge.name, 10))}</text>`
+    return `<circle cx="${x}" cy="391" r="27" fill="#0d2029" stroke="#4f7f91" stroke-opacity=".6"/>` +
+      text(x - 8, 400, 25, initial(badge.name), '#aecbd6', 600) +
+      `<text x="${x}" y="440" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#bdced5">${xml(truncate(badge.name, 10))}</text>`
   }).join('')
   const layout = svg(`<defs>
-    <linearGradient id="shade"><stop stop-color="#080914" stop-opacity=".97"/><stop offset=".60" stop-color="#111022" stop-opacity=".84"/><stop offset="1" stop-color="#141123" stop-opacity=".50"/></linearGradient>
-    <linearGradient id="bar"><stop stop-color="#9b7cff"/><stop offset="1" stop-color="#f2c594"/></linearGradient>
+    <linearGradient id="shade"><stop stop-color="#031827" stop-opacity=".72"/><stop offset=".60" stop-color="#071923" stop-opacity=".38"/><stop offset="1" stop-color="#170e16" stop-opacity=".18"/></linearGradient>
+    <linearGradient id="bar"><stop stop-color="#36758c"/><stop offset="1" stop-color="#9b283d"/></linearGradient>
   </defs><rect width="1200" height="480" fill="url(#shade)"/>
-  <rect x="20" y="20" width="1160" height="440" rx="25" fill="none" stroke="#d3c3ff" stroke-opacity=".20"/>
-  ${isAdmin ? '<text x="1118" y="62" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#e6d7ff">ADMIN</text>' : ''}
-  <circle cx="140" cy="184" r="92" fill="#211b37" stroke="#c7a9f4" stroke-width="2"/>
-  ${text(120, 200, 45, initial(displayName || username || 'P'), '#d8c6ff', 600)}
-  <rect x="54" y="298" width="172" height="42" rx="21" fill="#c3a2fa" fill-opacity=".12"/>
-  <text x="140" y="325" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e6d7ff">LEVEL ${progress.level}</text>
-  ${text(260, 143, 18, '@' + truncate(username || 'player', 40), '#bdb4cf')}
-  ${text(260, 193, 13, 'FATE POINTS', '#bdb4cf', 600)}
-  ${text(260, 231, 30, number(count(user.fate_points)), '#f6f4ff', 600)}
-  ${text(446, 193, 13, 'BANK', '#bdb4cf', 600)}
-  ${text(446, 231, 30, number(count(user.bank)), '#f6f4ff', 600)}
-  ${text(632, 193, 13, 'TOTAL AVAILABLE', '#bdb4cf', 600)}
-  ${text(632, 231, 30, number(count(user.fate_points) + count(user.bank)), '#f6f4ff', 600)}
-  <text x="1118" y="272" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" fill="#d4cae4">LEVEL ${progress.level + 1}</text>
-  <rect x="260" y="288" width="858" height="16" rx="8" fill="#d6c7ff" fill-opacity=".16"/>
+  <rect x="20" y="20" width="1160" height="440" rx="25" fill="none" stroke="#527f91" stroke-opacity=".40"/>
+  ${isAdmin ? '<text x="1118" y="62" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600" fill="#c5dce5">ADMIN</text>' : ''}
+  <circle cx="140" cy="184" r="92" fill="#0d2029" stroke="#527f91" stroke-width="2"/>
+  ${text(120, 200, 45, initial(displayName || username || 'P'), '#aecbd6', 600)}
+  <rect x="54" y="298" width="172" height="42" rx="21" fill="#527f91" fill-opacity=".20"/>
+  <text x="140" y="325" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#c5dce5">LEVEL ${progress.level}</text>
+  ${text(260, 143, 18, '@' + truncate(username || 'player', 40), '#b1c4cd')}
+  ${text(260, 193, 13, 'FATE POINTS', '#b1c4cd', 600)}
+  ${text(260, 231, 30, number(count(user.fate_points)), '#e8f0f3', 600)}
+  ${text(446, 193, 13, 'BANK', '#b1c4cd', 600)}
+  ${text(446, 231, 30, number(count(user.bank)), '#e8f0f3', 600)}
+  ${text(632, 193, 13, 'TOTAL AVAILABLE', '#b1c4cd', 600)}
+  ${text(632, 231, 30, number(count(user.fate_points) + count(user.bank)), '#e8f0f3', 600)}
+  <text x="1118" y="272" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" fill="#c5dce5">LEVEL ${progress.level + 1}</text>
+  <rect x="260" y="288" width="858" height="16" rx="8" fill="#527f91" fill-opacity=".30"/>
   ${progress.fraction > 0 ? `<rect x="260" y="288" width="${858 * progress.fraction}" height="16" rx="${Math.min(8, 429 * progress.fraction)}" fill="url(#bar)"/>` : ''}
-  ${text(260, 348, 12, 'RECENT UNLOCKS', '#bdb4cf', 600)}
-  ${badgeMarkup || text(260, 402, 18, badgesUnavailable ? 'Badges temporarily unavailable' : 'Your next badge belongs here.', '#9c93b0')}`)
+  ${text(260, 348, 12, 'RECENT UNLOCKS', '#b1c4cd', 600)}
+  ${badgeMarkup || text(260, 402, 18, badgesUnavailable ? 'Badges temporarily unavailable' : 'No badges unlocked yet.', '#a3bac4')}`)
   const name = await label(truncate(displayName || username || 'Player', 48), 'Segoe UI Bold 38', 820)
   // Text rasterization preserves Unicode names and measures before fitting.
   overlays.push({ input: layout }, { input: name, left: 260, top: 73 })
