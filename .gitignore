@@ -35,3 +35,5 @@ yarn-error.log**.sqlite
 /artifacts/spooky-development-session/
 /artifacts/spooky-live-*.json
 /artifacts/spooky-final-registry-review.json
+/.worktrees/
+/artifacts/profile-worktree-archive/
