@@ -82,10 +82,10 @@ test('shields deny Crown theft with no role/currency award; breaking attempt is 
  const r=(await f.invoke('crown3','steal_crown')).receipt;assert.equal(r.crownWon,true);await f.delivery.reconcile(f.scope)
  assert.equal(f.members[0].roleIds.includes('sweet'),true);assert.equal(f.members[1].roleIds.includes('sweet'),false)
 })
-test('shield survives12h at most and hole/shield writes rollback together on failure',async t=>{
+test('shield survives6h at most and hole/shield writes rollback together on failure',async t=>{
  const f=await fixture(t)
  await f.invoke('shield','temporary_immunity');await f.delivery.reconcile(f.scope)
- const expiry=Date.parse(config.startsAt)+43200000
+ const expiry=Date.parse(config.startsAt)+21600000
  assert.equal(new Date((await f.models.Effect.findOne({where:{effectType:'theft_protection'}})).expiresAt).getTime(),expiry)
  await assert.rejects(f.run('rollback',async ctx=>{await f.events.combat.intercept(ctx,'bob');throw new Error('rollback')}),/rollback/)
  assert.equal((await f.models.Effect.findOne({where:{effectType:'theft_protection',participantId:(await f.row('bob')).id}})).metadata.chargesRemaining,2)

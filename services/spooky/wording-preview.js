@@ -61,7 +61,7 @@ function wordingPages() {
   pages.push({ label: 'collection • Selene badge unlocked', payload: completion })
   const duplicate = actionMessages({ candy: 50, eyes: 2, awards: [{ ...piece, duplicate: true, duplicates: 1, ownedPositions: ['tl', 'tr'] }] },
     { actorId: 'actor', members: [{ userId: 'actor', displayName: 'Example Player' }], registeredIds: new Set() })[0].payload
-  pages.push({ label: 'collection • duplicate piece', payload: duplicate })
+  if (config.duplicates.allowDuplicates !== false) pages.push({ label: 'collection • duplicate piece', payload: duplicate })
   return pages
 }
 function previewPayload(pages, index) {

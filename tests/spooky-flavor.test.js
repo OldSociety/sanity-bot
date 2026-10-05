@@ -41,8 +41,8 @@ test('legacy treat variants keep recipient safety, committed balances and avatar
     assert.equal(JSON.stringify(unregistered).includes('@everyone'), false)
     assert.deepEqual(unregistered.allowedMentions.users, [])
   }
-  assert.ok(titles.has('🍰 Cake of Kindness!'))
-  assert.ok(titles.has('🍩 Donut Delivery!'))
+  assert.ok(titles.has('🍰 Cake of Kindness'))
+  assert.ok(titles.has('🍩 Donut Delivery'))
   assert.equal(variant(['one', 'two'], 'same'), variant(['one', 'two'], 'same'))
 })
 

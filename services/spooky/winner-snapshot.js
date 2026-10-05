@@ -105,7 +105,7 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
           crownBonusTenths += entry.delta
         }
         if (!Number.isSafeInteger(crownBonusTenths)) throw new Error('Crown prestige overflow')
-        if (actions.length) entrants.push({ userId: player.userId, participantId: player.id, score, actions: actions.length, ...(bonuses.length ? { crownBonusTenths } : {}) })
+        if (actions.length && !(event.competition?.nonCompetitiveUserIds || []).includes(player.userId)) entrants.push({ userId: player.userId, participantId: player.id, score, actions: actions.length, ...(bonuses.length ? { crownBonusTenths } : {}) })
       }
       entrants.sort((a, b) => b.score - a.score || a.userId.localeCompare(b.userId))
       const score = entrants.length ? entrants[0].score : null
@@ -114,7 +114,8 @@ function createWinnerSnapshot({ models, event = defaultEvent }) {
     tracks.overall = overallTrack(tracks)
     const receipt = { ...ctx.scope, configVersion: event.version, scoringVersion: event.prestige.version,
       endsAt: event.endsAt, frozenAt: ctx.now.toISOString(), sourceOperationId: ctx.operationId,
-      policy: { adminEligible: true, ties: 'shared', allowBothTitles: true }, tracks }
+      policy: { adminEligible: true, ties: 'shared', allowBothTitles: true,
+        nonCompetitiveUserIds: [...(event.competition?.nonCompetitiveUserIds || [])] }, tracks }
     await models.Operation.create({ operationId, interactionId: null, ...ctx.scope, actorId: 'system',
       operationType: 'winner_snapshot', receipt, createdAt: ctx.now, completedAt: ctx.now }, { transaction: ctx.transaction })
     await ctx.record({ userId: 'system', resource: 'prestige_snapshot', delta: 0, metadata: {

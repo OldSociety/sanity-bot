@@ -96,6 +96,7 @@ function createController({
         economy,
         User,
         badges,
+        event,
         eligibleUserIds: new Set(leaderboardMembers.filter(member => !member.bot).map(member => member.userId)),
       })({ eventId: event.eventId, guildId: input.guildId }, page)
       const emojis = interaction.guild?.emojis?.fetch
@@ -104,7 +105,7 @@ function createController({
       const text = leaders
         .map(
           (row) =>
-            `**#${row.rank} ${require('../display-name').safeName(
+            `**${row.nonCompetitive ? 'Community host ·' : `#${row.rank}`} ${require('../display-name').safeName(
               row.name,
             )}**\n${require('../badges').renderBadges(row.badges, emojis)}`,
         )
@@ -212,7 +213,7 @@ function createController({
         withBalances(
           privateScreen(
             '🧩 Your Collection',
-            `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`,
+            event.duplicates.allowDuplicates === false ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.` : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`,
           ),
           player,
           clock(),

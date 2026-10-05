@@ -1,4 +1,5 @@
-function createLeaderboard({ models, economy, User, badges, eligibleUserIds = null }) {
+function createLeaderboard({ models, economy, User, badges, eligibleUserIds = null, event = require('./config').config }) {
+  const nonCompetitive = new Set(event.competition?.nonCompetitiveUserIds || [])
   return async (scope, page = 1) => {
     if (!Number.isSafeInteger(page) || page < 1 || page > 1000) throw new Error('Invalid leaderboard page')
     return economy.read(async transaction => {
@@ -27,10 +28,12 @@ function createLeaderboard({ models, economy, User, badges, eligibleUserIds = nu
         const scoreTenths = score * 10 + crownBonus
         if (!Number.isSafeInteger(scoreTenths)) throw new Error('Leaderboard prestige overflow')
         return { userId: player.userId, score: scoreTenths, actions: baseRows.length }
-      }).filter(player => player.actions).sort((a, b) => b.score - a.score || a.userId.localeCompare(b.userId))
+      }).filter(player => player.actions).sort((a, b) => Number(nonCompetitive.has(a.userId)) - Number(nonCompetitive.has(b.userId)) || b.score - a.score || a.userId.localeCompare(b.userId))
+      const competitive = ranked.filter(row => !nonCompetitive.has(row.userId))
       return Promise.all(ranked.slice((page - 1) * 10, page * 10).map(async (player, index) => {
         const user = await User.findByPk(player.userId, { transaction })
-        return { rank: ranked.findIndex(row => row.score === player.score) + 1, userId: player.userId,
+        return { rank: nonCompetitive.has(player.userId) ? null : competitive.findIndex(row => row.score === player.score) + 1,
+          ...(nonCompetitive.has(player.userId) ? { nonCompetitive: true } : {}), userId: player.userId,
           name: user?.user_name || player.userId, badges: badges ? await badges.owned(scope.guildId, player.userId, transaction) : [] }
       }))
     })

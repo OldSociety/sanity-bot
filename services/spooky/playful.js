@@ -233,6 +233,21 @@ function createPlayful({
     const allRows = scoped.length ? await models.Effect.findAll({ where: {
       participantId: { [Op.in]: [...byId.keys()] },
     }, transaction: ctx.transaction }) : []
+    // Rebase existing shields on the original cast, never on worker/restart
+    // time. Shortened shields must expire before overlap/nickname decisions.
+    if (!closed) for (const row of allRows.filter(row => row.effectType === 'theft_protection')) {
+      const participant = byId.get(row.participantId)
+      const applied = !row.metadata?.appliedAt ? await models.Ledger.findOne({ where: { ...ctx.scope, userId: participant.userId,
+        resource: 'effect:theft_protection', delta: 1 }, order: [['id', 'DESC']], transaction: ctx.transaction }) : null
+      const start = row.metadata?.appliedAt || applied?.timestamp
+      const appliedAt = start ? new Date(start) : ctx.now
+      if (!Number.isFinite(+appliedAt)) throw new Error('Invalid shield application time')
+      const limit = Math.min(Date.parse(event.endsAt), +appliedAt + event.protection.theftDurationMs)
+      if (new Date(row.expiresAt).getTime() > limit) {
+        await row.update({ expiresAt: new Date(limit), metadata: { ...row.metadata, appliedAt: appliedAt.toISOString() } }, { transaction: ctx.transaction })
+        await ctx.record({ userId: participant.userId, resource: 'shield_timer', delta: 0, metadata: { expiresAt: new Date(limit).toISOString() } })
+      }
+    }
     const activeByPlayer = new Map()
     for (const row of allRows) if (new Date(row.expiresAt) > ctx.now) {
       if (!activeByPlayer.has(row.participantId)) activeByPlayer.set(row.participantId, [])
@@ -396,7 +411,7 @@ function createPlayful({
         if (!Number.isFinite(chargeRoll) || chargeRoll < 0 || chargeRoll >= 1) throw new Error('Invalid shield strength roll')
         await effects.put(ctx, userId, 'theft_protection', {
           expiresAt,
-          metadata: { ...await nicknames.apply(ctx, member, 'theft_protection'), chargesRemaining: chargeRoll < .5 ? 2 : 3 },
+          metadata: { ...await nicknames.apply(ctx, member, 'theft_protection'), appliedAt: ctx.now.toISOString(), chargesRemaining: chargeRoll < .5 ? 2 : 3 },
         })
       }
       let deliveredCandy = 0

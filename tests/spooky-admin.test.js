@@ -429,7 +429,7 @@ test('Eye correction converts at five atomically, concurrent replay never reroll
 })
 
 test('grant correction exchanges exactly five extras, keeps first copies and replays one grant', async t => {
-  const f = await fixture(t, true, { random: () => 0 })
+  const f = await fixture(t, true, { random: () => 0, event: { ...config, duplicates: { ...config.duplicates, allowDuplicates: true } } })
   const player = await seed(f)
   await f.models.Inventory.create({ participantId: player.id, pieceId: 'had_tl', quantity: 5 })
   const input = repairInput('grant', { action: 'grant-quarter', pieceId: 'had_tl' })
@@ -466,7 +466,7 @@ test('quarter removal corrects one copy only; only-copy removal requires explici
 
 test('repair finalization/RNG failure rolls back debit, grant, exchange and audit; retry succeeds', async t => {
   let fail = true
-  const f = await fixture(t, true, { random: () => 0, finalizeRepair: async (_ctx, receipt) => {
+  const f = await fixture(t, true, { random: () => 0, event: { ...config, duplicates: { ...config.duplicates, allowDuplicates: true } }, finalizeRepair: async (_ctx, receipt) => {
     if (fail) throw new Error('outbox failure'); return receipt
   } })
   const player = await seed(f, { eyes: 4 })
@@ -476,7 +476,7 @@ test('repair finalization/RNG failure rolls back debit, grant, exchange and audi
   assert.equal(await f.models.Inventory.count(), 0); assert.equal(await f.models.Ledger.count(), 0); assert.equal(await f.models.Operation.count(), 0)
   fail = false; await f.admin.repair(input)
   assert.equal((await f.models.Participant.findByPk(player.id)).eyes, 0)
-  const other = await fixture(t, true, { random: () => { throw new Error('rng failure') } })
+  const other = await fixture(t, true, { event: { ...config, duplicates: { ...config.duplicates, allowDuplicates: true } }, random: () => { throw new Error('rng failure') } })
   const victim = await seed(other)
   await other.models.Inventory.create({ participantId: victim.id, pieceId: 'had_tl', quantity: 5 })
   await assert.rejects(() => other.admin.repair(repairInput('grant-rollback', { action: 'grant-quarter', pieceId: 'had_tl' })), /rng failure/)

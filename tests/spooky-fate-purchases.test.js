@@ -10,13 +10,13 @@ const { createCollection } = require('../services/spooky/collection')
 const { createFatePurchases } = require('../services/spooky/fate-purchases')
 const { config } = require('../services/spooky/config')
 
-async function fixture(t, { bank = 100, fate = 100, random = () => 0, enabled = true } = {}) {
+async function fixture(t, { bank = 100, fate = 100, random = () => 0, enabled = true, legacyDuplicates = false } = {}) {
   const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
   t.after(() => sequelize.close())
   const User = defineUser(sequelize, Sequelize.DataTypes)
   await User.sync() // Actual User schema, solely on this disposable connection.
   await migration.up(sequelize.getQueryInterface())
-  const models = defineSpookyModels(sequelize), event = { ...config, enabled }
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled, duplicates: { ...config.duplicates, allowDuplicates: legacyDuplicates } }
   let now = new Date(config.startsAt)
   const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => now })
   const participants = createParticipants({ models, economy, event })
@@ -38,6 +38,15 @@ test('community launch purchases spend normal Fate only, never special Bank, wit
   await assert.rejects(() => service.purchase(f.input('insufficient-normal')), /Insufficient/)
   await f.user.reload(); assert.equal(f.user.bank, 63); assert.equal(f.user.fate_points, 2)
   assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 0)
+})
+test('complete collection rejects paid draw and rolls back both Fate and Bank debits', async t => {
+  const f = await fixture(t), participant = await f.models.Participant.findOne()
+  for (const piece of require('../services/spooky/config').pieces) await f.models.Inventory.create({ participantId: participant.id, pieceId: piece.id, quantity: 1 })
+  const before = await f.models.Ledger.count()
+  await assert.rejects(f.service.purchase(f.input('complete-buy')), /complete/)
+  await f.user.reload(); assert.equal(f.user.bank, 100); assert.equal(f.user.fate_points, 100)
+  assert.equal(await f.models.Ledger.count(), before)
+  assert.equal(await f.models.Operation.count({ where: { operationId: 'discord:complete-buy' } }), 0)
 })
 
 test('bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged', async t => {
@@ -120,7 +129,7 @@ test('award failure rolls back bank and ledger, and retry is safe', async t => {
 })
 
 test('fate draw triggering the fifth duplicate exchanges it in the same receipt', async t => {
-  const f = await fixture(t)
+  const f = await fixture(t, { legacyDuplicates: true })
   const participant = await f.models.Participant.findOne()
   await f.models.Inventory.create({ participantId: participant.id, pieceId: 'had_tl', quantity: 5 })
   const result = await f.service.purchase(f.input('fifth'))

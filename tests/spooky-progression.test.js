@@ -29,6 +29,29 @@ async function fixture(t, { eligible = true, bank = 0, random = () => .2 } = {})
   return { User, models, economy, event, participants, progression, actions, user, input, run }
 }
 
+test('configured host stays last and unranked across pages without displacing other players or winning', async t => {
+  const f = await fixture(t), event = { ...f.event, competition: { nonCompetitiveUserIds: ['alice'] } }
+  await f.run('host-high-score', ctx => f.progression.prestige(ctx, { actorId: 'alice', action: 'treat', outcome: 'sweet_tooth' }, { crownWon: true }))
+  for (let index = 0; index < 11; index++) {
+    const userId = `member${index}`
+    await f.participants.register({ ...f.input(`reg-${userId}`), actorId: userId })
+    await f.User.create({ user_id: userId, user_name: userId })
+    await f.run(`score-${userId}`, ctx => f.progression.prestige(ctx, { actorId: userId, action: 'treat', outcome: 'standard_gift' }, {}))
+  }
+  const read = require('../services/spooky/leaderboard').createLeaderboard({ models: f.models, economy: f.economy, User: f.User, event })
+  const scope = { eventId: event.eventId, guildId: 'guild' }
+  const first = await read(scope), last = await read(scope, 2)
+  assert.equal(first.length, 10); assert.ok(first.every(row => row.userId !== 'alice' && row.rank === 1))
+  assert.equal(last.at(-1).userId, 'alice'); assert.equal(last.at(-1).rank, null); assert.equal(last.at(-1).nonCompetitive, true)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).treatPrestige, 12)
+  const closingEconomy = createEconomy({ sequelize: f.User.sequelize, models: f.models, clock: () => new Date(event.endsAt) })
+  const snapshots = require('../services/spooky/winner-snapshot').createWinnerSnapshot({ models: f.models, event })
+  const frozen = await closingEconomy.execute({ ...scope, actorId: 'system', workerKey: 'host-proof', operationType: 'test' }, snapshots.freeze)
+  const operation = await f.models.Operation.findByPk(frozen.receipt.operationId)
+  assert.equal(operation.receipt.tracks.overall.entrants.some(row => row.userId === 'alice'), false)
+  assert.equal(operation.receipt.tracks.overall.userIds.length, 11)
+})
+
 test('caller crown win credits five fate for any registered player, caps bank and adds ten prestige once', async t => {
   const f = await fixture(t, { eligible: false, bank: 98 })
   const handlers = f.progression.wrapHandlers({ sweet_tooth: async () => ({ crownWon: true, awardedUserId: 'alice' }) })

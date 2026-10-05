@@ -66,7 +66,7 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
     for (const [track, resource] of [['treat', 'treatPrestige'], ['trick', 'trickPrestige']]) {
       const entries = await models.Ledger.findAll({ where: { ...ctx.scope, resource }, transaction: ctx.transaction })
       const activeIds = new Set(entries.map(entry => entry.userId))
-      const eligible = participants.filter(player => player.registeredAt && activeIds.has(player.userId))
+      const eligible = participants.filter(player => player.registeredAt && activeIds.has(player.userId) && !(event.competition?.nonCompetitiveUserIds || []).includes(player.userId))
       const bonuses = await models.Ledger.findAll({ where: { ...ctx.scope, resource: 'crownPrestigeTenths' }, transaction: ctx.transaction })
       const points = player => player[resource] * 10 + bonuses.filter(row => row.userId === player.userId && row.metadata?.participantId === player.id && row.metadata.track === track).reduce((sum, row) => sum + row.delta, 0)
       const scoreTenths = eligible.length ? Math.max(...eligible.map(points)) : null

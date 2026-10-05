@@ -324,13 +324,14 @@ test('a newly completed character gets one prominent notification; later draws d
 })
 
 
-test('collection shows total duplicate progress across characters', async t => {
+test('collection describes unique progress rather than the retired duplicate exchange', async t => {
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register-duplicates', 'register'))
   const player = await f.models.Participant.findOne()
   for (const [pieceId, quantity] of [['sel_tl',2], ['mrq_tr',3]]) await f.models.Inventory.create({ participantId: player.id, pieceId, quantity })
   const view = f.interaction('view-duplicates', 'collection'); await f.controller.execute(view)
-  assert.match(JSON.stringify(view), /Current Duplicates: 3\/5/)
+  assert.match(JSON.stringify(view), /Every new quarter/)
+  assert.doesNotMatch(JSON.stringify(view), /Current Duplicates/)
 })
 
 test('registered recipient references are spaced out; repeated immediate actions use names', async t => {

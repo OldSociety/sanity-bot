@@ -8,13 +8,16 @@ function createCollection({ models, participants, event = defaultConfig, random 
     return value
   }
   function select(list) { return list[Math.floor(roll() * list.length)] }
-  function ordinaryPiece(percent = event.ordinaryRarity.percent) {
+  function ordinaryPiece(percent = event.ordinaryRarity.percent, owned = new Map()) {
     requireApprovedRarity(event)
-    const value = roll() * 100
+    const candidates = event.duplicates.allowDuplicates === false ? pieces.filter(piece => !owned.has(piece.id)) : pieces
+    if (!candidates.length) throw new Error('Your collection is complete; no more quarters are needed.')
+    const available = ['common', 'rare', 'legendary'].filter(rarity => candidates.some(piece => piece.rarity === rarity))
+    const value = roll() * available.reduce((sum, rarity) => sum + percent[rarity], 0)
     let threshold = 0
-    for (const rarity of ['common', 'rare', 'legendary']) {
+    for (const rarity of available) {
       threshold += percent[rarity]
-      if (value < threshold) return select(pieces.filter(piece => piece.rarity === rarity))
+      if (value < threshold) return select(candidates.filter(piece => piece.rarity === rarity))
     }
     throw new Error('Invalid ordinary rarity weights')
   }
@@ -36,6 +39,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
   }
   async function add(ctx, participant, owned, piece, reason) {
     const existing = owned.get(piece.id), before = existing?.quantity ?? 0
+    if (before && event.duplicates.allowDuplicates === false) throw new Error('This quarter is already owned.')
     if (!Number.isSafeInteger(before + 1)) throw new Error('Inventory quantity overflow')
     if (existing) await existing.update({ quantity: before + 1 }, { transaction: ctx.transaction })
     else owned.set(piece.id, await models.Inventory.create({ participantId: participant.id, pieceId: piece.id, quantity: 1 }, { transaction: ctx.transaction }))
@@ -52,6 +56,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
   }
   async function exchange(ctx, participant, owned) {
     const awards = []
+    if (event.duplicates.allowDuplicates === false) return awards
     while (true) {
       const missing = pieces.filter(piece => !owned.has(piece.id))
       const extras = [...owned.values()].reduce((sum, row) => sum + row.quantity - 1, 0)
@@ -93,13 +98,13 @@ function createCollection({ models, participants, event = defaultConfig, random 
   async function drawQuarter(ctx, userId) {
     requireApprovedRarity(event)
     const participant = await player(ctx, userId), owned = await inventory(ctx, participant)
-    const award = await add(ctx, participant, owned, ordinaryPiece(), 'ordinary_draw')
+    const award = await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned), 'ordinary_draw')
     return summary(owned, [award, ...await exchange(ctx, participant, owned)])
   }
   async function drawFateQuarter(ctx, userId) {
     requireApprovedRarity(event)
     const participant = await player(ctx, userId), owned = await inventory(ctx, participant)
-    const award = await add(ctx, participant, owned, ordinaryPiece(event.fate.rarityPercent), 'fate_draw')
+    const award = await add(ctx, participant, owned, ordinaryPiece(event.fate.rarityPercent, owned), 'fate_draw')
     return summary(owned, [award, ...await exchange(ctx, participant, owned)])
   }
   async function creditEyes(ctx, userId, amount, { fromUserId = null, metadata = {} } = {}) {
@@ -112,10 +117,10 @@ function createCollection({ models, participants, event = defaultConfig, random 
     } else await ctx.changeBalance(userId, 'eyes', amount, { metadata })
     const balance = await models.Participant.findByPk(participant.id, { transaction: ctx.transaction })
     const owned = await inventory(ctx, participant), awards = []
-    while (balance.eyes >= event.eyes.quarterCost) {
+    while (balance.eyes >= event.eyes.quarterCost && (event.duplicates.allowDuplicates !== false || owned.size < pieces.length)) {
       await ctx.changeBalance(userId, 'eyes', -event.eyes.quarterCost, { metadata: { reason: 'automatic_quarter' } })
       balance.eyes -= event.eyes.quarterCost
-      awards.push(await add(ctx, participant, owned, ordinaryPiece(), 'eye_draw'))
+      awards.push(await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned), 'eye_draw'))
       awards.push(...await exchange(ctx, participant, owned))
     }
     return { ...summary(owned, awards), eyes: balance.eyes }

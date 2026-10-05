@@ -14,7 +14,7 @@ async function fixture(t) {
   const input = key => ({ eventId: config.eventId, guildId: 'guild', actorId: 'alice', interactionId: key, operationType: 'badge_test' })
   await participants.register(input('register'))
   const badges = createBadges({ sequelize })
-  const collection = require('../services/spooky/collection').createCollection({ models, participants, badges, event: { ...config, enabled: true } })
+  const collection = require('../services/spooky/collection').createCollection({ models, participants, badges, event: { ...config, enabled: true, duplicates: { ...config.duplicates, allowDuplicates: true } } })
   const grant = (key, position, fail = false) => economy.execute(input(key), async ctx => {
     const receipt = await collection.grantQuarter(ctx, 'alice', `sel_${position}`)
     if (fail) throw new Error('injected badge interruption')

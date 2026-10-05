@@ -15,6 +15,10 @@ function validateOutcomes(outcomes, label) {
   if (outcomes.reduce((sum, item) => sum + item.percent, 0) !== 100) throw new Error(`${label} probabilities must total 100`)
 }
 function validateEvent(config) {
+  if (config.duplicates?.allowDuplicates !== undefined && typeof config.duplicates.allowDuplicates !== 'boolean') throw new Error('Invalid duplicate policy')
+  if (config.competition && (!Array.isArray(config.competition.nonCompetitiveUserIds) ||
+    config.competition.nonCompetitiveUserIds.some(id => !/^\d{17,20}$/.test(id)) ||
+    new Set(config.competition.nonCompetitiveUserIds).size !== config.competition.nonCompetitiveUserIds.length)) throw new Error('Invalid competition identity policy')
   if (!config.eventId || !Number.isSafeInteger(config.version) || config.version < 1) throw new Error('Invalid event identity/version')
   if (typeof config.enabled !== 'boolean' || config.timezone !== 'America/Los_Angeles') throw new Error('Invalid event enabled flag or timezone')
   const start = Date.parse(config.startsAt), end = Date.parse(config.endsAt), redemptionEnd = Date.parse(config.redemptionEndsAt)

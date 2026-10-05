@@ -41,6 +41,23 @@ async function fixture(t, random = () => 0) {
     time: value => { now = new Date(value) }, fail: value => { failure = value }, calls: () => networkCalls }
 }
 
+test('legacy12h shield shortens from its cast time and cleanup restores nickname at6h without renewal', async t => {
+  const f = await fixture(t)
+  await f.invoke('legacy-shield', 'temporary_immunity'); await f.delivery.reconcile(f.scope)
+  const row = await f.models.Effect.findOne({ where: { effectType: 'theft_protection' } })
+  const metadata = { ...row.metadata }; delete metadata.appliedAt
+  await row.update({ expiresAt: new Date(Date.parse(config.startsAt) + 43200000), metadata })
+  f.time(Date.parse(config.startsAt) + 3600000)
+  await f.run('shorten-shield', ctx => f.playful.cleanup(ctx))
+  assert.equal(+new Date((await row.reload()).expiresAt), Date.parse(config.startsAt) + 21600000)
+  f.time(Date.parse(config.startsAt) + 21600000 - 1)
+  await f.run('shield-not-yet', ctx => f.playful.cleanup(ctx)); assert.equal(await f.models.Effect.count(), 2)
+  f.time(Date.parse(config.startsAt) + 21600000)
+  await f.run('shield-expired', ctx => f.playful.cleanup(ctx)); await f.delivery.reconcile(f.scope)
+  assert.equal(await f.models.Effect.count(), 0); assert.equal(f.members.find(m => m.userId === 'bob').nickname, null)
+  await f.run('shield-repeat-cleanup', ctx => f.playful.cleanup(ctx)); assert.equal(await f.models.Effect.count(), 0)
+})
+
 test('self curse cannot renew; target choices omit existing curses and shields', async t => {
   const f = await fixture(t)
   await f.invoke('self-first', 'curse_backfire')

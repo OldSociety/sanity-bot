@@ -1,5 +1,8 @@
 {
-  "version": 19,
+  "version": 20,
+  "competition": {
+    "nonCompetitiveUserIds": ["138131238803210240"]
+  },
   "nickname": {
     "reversalDurationMs": 43200000
   },
@@ -44,6 +47,7 @@
     }
   },
   "duplicates": {
+    "allowDuplicates": false,
     "exchangeCost": 5,
     "automaticConversion": true,
     "selection": "uniform-missing-piece",
@@ -51,7 +55,7 @@
   },
   "protection": {
     "bothPercent": 20,
-    "theftDurationMs": 43200000,
+    "theftDurationMs": 21600000,
     "eyeVictimActivityWindowMs": null,
     "dailyVictimLossLimit": null
   },

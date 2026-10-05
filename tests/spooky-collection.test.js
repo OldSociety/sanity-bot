@@ -12,7 +12,8 @@ async function fixture(t, random = () => 0, overrides = {}) {
   const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
   t.after(() => sequelize.close())
   await migration.up(sequelize.getQueryInterface())
-  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true, ...overrides }
+  // Historical duplicate/replay fixtures explicitly retain the old policy.
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true, duplicates: { ...config.duplicates, allowDuplicates: true }, ...overrides }
   const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => new Date(config.startsAt) })
   const participants = createParticipants({ models, economy, event })
   const collection = createCollection({ models, participants, event, random })
@@ -26,6 +27,47 @@ async function fixture(t, random = () => 0, overrides = {}) {
   }
   return { models, event, economy, participants, collection, input, run, owner, seed }
 }
+
+test('unique draws fill all28 quarters without repetition and retain Eyes after completion', async t => {
+  const f = await fixture(t, () => 0, { duplicates: { ...config.duplicates, allowDuplicates: false } })
+  const credited = await f.run('unique-fill', ctx => f.collection.creditEyes(ctx, 'alice', 142))
+  assert.equal(credited.receipt.awards.length, 28)
+  assert.equal(new Set(credited.receipt.awards.map(a => a.id)).size, 28)
+  assert.equal(credited.receipt.completeCharacters.length, 7)
+  assert.equal(credited.receipt.eyes, 2)
+  assert.ok((await f.models.Inventory.findAll()).every(row => row.quantity === 1))
+  await assert.rejects(f.run('unique-full-paid', ctx => f.collection.drawFateQuarter(ctx, 'alice')), /complete/)
+  await assert.rejects(f.run('unique-full-grant', ctx => f.collection.grantQuarter(ctx, 'alice', 'had_tl')), /already owned/)
+  const held = await f.run('unique-full-eyes', ctx => f.collection.creditEyes(ctx, 'alice', 5))
+  assert.equal(held.receipt.eyes, 7); assert.equal(held.receipt.awards.length, 0)
+})
+test('unique draws reweight remaining rarities rather than discarding exhausted-pool draws', async t => {
+  const f = await fixture(t, () => 0, { duplicates: { ...config.duplicates, allowDuplicates: false } })
+  await f.seed(Object.fromEntries(pieces.filter(p => p.rarity === 'common').map(p => [p.id, 1])))
+  const drawn = await f.run('rare-remaining', ctx => f.collection.drawQuarter(ctx, 'alice'))
+  assert.equal(drawn.receipt.awards[0].rarity, 'rare')
+  assert.equal(drawn.receipt.awards[0].duplicate, false)
+})
+test('quiet cutover gives4 Eyes per extra once across concurrent and replayed runs', async t => {
+  const f = await fixture(t, () => 0, { duplicates: { ...config.duplicates, allowDuplicates: false } })
+  await f.seed({ mrq_bl: 2, had_tl: 3 }); await (await f.owner()).update({ eyes: 2 })
+  const compensation = require('../services/spooky/duplicate-compensation').createDuplicateCompensation({ models: f.models, economy: f.economy, event: f.event })
+  const scope = { eventId: config.eventId, guildId: 'guild' }
+  const results = await Promise.all([compensation.run(scope), compensation.run(scope)])
+  assert.equal(results.filter(r => !r.replayed).length, 1)
+  assert.equal(results[0].receipt.extras, 3); assert.equal(results[0].receipt.eyesCredited, 12)
+  assert.equal((await f.owner()).eyes, 14)
+  assert.ok((await f.models.Inventory.findAll()).every(row => row.quantity === 1))
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'eyes' } }), 1)
+  assert.equal((await compensation.run(scope)).replayed, true)
+})
+test('quiet cutover rolls back removed extras if Eye credit overflows', async t => {
+  const f = await fixture(t, () => 0, { duplicates: { ...config.duplicates, allowDuplicates: false } })
+  await f.seed({ mrq_bl: 2 }); await (await f.owner()).update({ eyes: Number.MAX_SAFE_INTEGER })
+  const compensation = require('../services/spooky/duplicate-compensation').createDuplicateCompensation({ models: f.models, economy: f.economy, event: f.event })
+  await assert.rejects(compensation.run({ eventId: config.eventId, guildId: 'guild' }), /overflow|bounds/i)
+  assert.equal((await f.models.Inventory.findOne()).quantity, 2)
+})
 
 test('Eye credit automatically consumes each five, with remainder and replay without RNG', async t => {
   let rolls = 0
