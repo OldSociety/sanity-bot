@@ -146,7 +146,7 @@ test('finishing Selene emits one completion with main badge, token thumbnail and
   assert.equal(messages.length, 1); const payload = messages[0].payload
   assert.match(payload.embeds[0].title, /Selene Complete/)
   assert.equal(payload.embeds[0].image.url, 'attachment://SPOOKY_SELENE_BADGE.png')
-  assert.equal(payload.files.length, 2); assert.match(preparePayload(payload).files[1].attachment, /assets[\\/]badges[\\/]SPOOKY_SELENE_BADGE.png$/)
+  assert.equal(payload.files.length, 2); assert.match(preparePayload(payload).files[1].attachment, /assets[\\/]badges[\\/]Spooky[\\/]SPOOKY_SELENE_BADGE.png$/)
   assert.equal(payload.embeds[0].fields.find(field => field.name === 'Bank').value, '20 → 10')
   const evidence = { embeds: [{ image: { url: 'https://example.invalid/token' }, thumbnail: { url: 'https://example.invalid/badge' } }],
     attachments: payload.files.map((file, index) => ({ name: file.name, url: index ? 'https://example.invalid/badge' : 'https://example.invalid/token' })) }

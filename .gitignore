@@ -37,3 +37,4 @@ yarn-error.log**.sqlite
 /artifacts/spooky-final-registry-review.json
 /.worktrees/
 /artifacts/profile-worktree-archive/
+/.runtime/

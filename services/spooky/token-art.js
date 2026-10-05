@@ -27,7 +27,7 @@ function preparePayload(payload, deliveryContext) {
   payload = require('./mentions').prepareMentionPayload(payload, deliveryContext)
   if (!payload.files) return payload
   return { ...payload, files: validateFiles(payload.files).map(file => ({
-    attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', file.badgeAsset)
+    attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', 'Spooky', file.badgeAsset)
       : path.join(__dirname, '..', '..', 'assets', 'spooky', 'tokens', file.tokenAsset), name: file.name,
   })) }
 }
