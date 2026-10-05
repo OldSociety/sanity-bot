@@ -2,7 +2,15 @@
   "timezone": "America/Los_Angeles",
   "months": 2,
   "environments": {
-    "development": { "enabled": false, "startsAt": null, "endsAt": null },
-    "production": { "enabled": false, "startsAt": null, "endsAt": null }
+    "development": {
+      "enabled": true,
+      "startsAt": "2026-10-05T18:18:28.389Z",
+      "endsAt": "2026-12-05T19:18:28.389Z"
+    },
+    "production": {
+      "enabled": true,
+      "startsAt": "2026-10-05T18:18:28.389Z",
+      "endsAt": "2026-12-05T19:18:28.389Z"
+    }
   }
 }

@@ -1,4 +1,4 @@
-# Personal-only leveling reset readiness
+# Personal-only leveling reset — live
 
 October 5, 2026: Community XP is paused at the human's request. Both Community activation flags remain false, and neither live database has Community tables. Production has no Community runtime. Do not deploy its migration or activate either flag as part of this launch. The personal system continues independently with its current curve, XP eligibility and +5 Fate reward for the Unwanted campaign role. No new slash commands are needed.
 
@@ -10,7 +10,7 @@ Set every saved account in the selected bot's database to `chat_level = 1`, `cha
 
 Current personal earnings remain 10–13 XP per qualifying message with a one-minute cooldown; a level at current level L requires `5L² + 50L + 100` XP. Level1 requires155 XP, approximately12–16 credited messages depending on rolls. Eligible personal level-ups grant +5 Fate, with normal Fate capped100. This reset restarts the curve; it does not flatten later requirements or promise a fixed reward interval. Production Bots-role members will be excluded from personal XP; development test-role members remain eligible. Actual Discord bots, slash/webhook/interaction output and Spooky chat remain excluded.
 
-The previously approved launch protection still applies to personal rewards: for two Pacific calendar months starting at the actual reset launch, newly earned Fate above100 goes into Bank up to its100 cap. Existing balances are never transferred. Pin startsAt/endsAt from `launchWindow(actualLaunchInstant)`, rather than restarting the period on a reload. Both live grace windows are still disabled/null during preparation. The staged production handler adds the Bank notice and reports actual credited Fate; it retains production's text level embeds and does not activate development-only profiles/Sanity.
+The previously approved launch protection still applies to personal rewards: for two Pacific calendar months starting at the actual reset launch, newly earned Fate above100 goes into Bank up to its100 cap. Existing balances are never transferred. Pin startsAt/endsAt from `launchWindow(actualLaunchInstant)`, rather than restarting the period on a reload. Both grace windows were disabled/null during preparation and were activated only at the authorized cutover. The staged production handler adds the Bank notice and reports actual credited Fate; it retains production's text level embeds and does not activate development-only profiles/Sanity.
 
 ## Preparation evidence
 
@@ -28,4 +28,14 @@ Validation:499/499 full isolated tests and13/13 final focused checks pass. Both 
 4. Run the transactional reset with a pinned guild/launch identity once. Verify every affected account is level1/XP0 with cleared cooldown, exact preservation of all other data, and one committed launch receipt. Do not use ORM sync/alter or copy a rehearsal database over live storage.
 5. Restart the named bot once, verify Ready and fresh error-log bytes, confirm disabled Community and pinned grace dates, then save PM2. No registry deployment is needed. Any public reset announcement needs its own human instruction.
 
-No live reset has been authorized/executed in this readiness check. Explicit go-ahead is required because the operation removes existing earned XP and levels. Rollback after new activity requires a scoped plan rather than restoring a whole database and losing subsequent wallet/gameplay changes.
+The human explicitly authorized the live reset after the successful readiness check. It was executed October 5, 2026 at11:18:28 a.m. Pacific, with the overflow window ending December 5, 2026 at11:18:28 a.m. Pacific. Rollback after new activity requires a scoped plan rather than restoring a whole database and losing subsequent wallet/gameplay changes.
+
+## Completed live cutover
+
+Human authorization: “go ahead and reset.” Both named writers were stopped. Fresh exclusive backups were hash/integrity verified under `.runtime/personal-leveling-launch/live-1791224305905`; source and prior grace config backups were also preserved. Production received only the rehearsed personal message handler and reset helper; the Community/Profile/Sanity runtime was not activated or deployed. No migrations or command registry writes were needed.
+
+Launch identity `personal-2026-10-05` reset80 production and79 development saved accounts to level1/XP0 with cleared cooldown. Exact comparisons before restart verified only those three User columns changed, plus one launch receipt per database. Every wallet, birthday, badge, seasonal/Sanity table, archived supporter value and unrelated User column was preserved. Each database passed integrity and foreign-key checks. Fresh read-only post-start verification confirmed one reset receipt per environment, every saved account still level1/XP0 at inspection, valid wallets, absent Community tables and disabled Community flags.
+
+The pinned overflow policy is `2026-10-05T18:18:28.389Z` inclusive through `2026-12-05T19:18:28.389Z` exclusive. It applies to newly earned personal Fate overflow, retaining normal100/Bank100 caps and never transferring existing balances. Each bot reads its independently deployed config; restarts do not extend the window. Community remains paused.
+
+Production PID13104 and development PID16432 were fresh Ready after one named restart each; error-log sizes remained at their fresh baseline with zero new bytes. PM2 was saved. The full preparation suite passed499/499, the production compatibility probe passed again immediately before cutover, and13/13 focused checks passed afterward. Test-only disabled policy fixtures now model prelaunch conditions without incorrectly requiring the deployed grace config to stay disabled. Live evidence is retained in `live-launch.json`, `live-read-only-verification.json`, `launch-before-processes.json` and `launch-after-processes.json`. No real paid test action or public announcement was sent, and no worktree/main merge/push was performed.

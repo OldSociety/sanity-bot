@@ -7,7 +7,8 @@ async function fixture(t) {
   return { db, User }
 }
 test('grace is inactive until an explicit launch, starts inclusively and ends exactly after two Pacific calendar months', () => {
-  assert.equal(selectedGrace('production').enabled, false); assert.equal(selectedGrace('development').enabled, false)
+  const beforeLaunch = { environments: { production: { enabled: false }, development: { enabled: false } } }
+  assert.equal(selectedGrace('production', beforeLaunch).enabled, false); assert.equal(selectedGrace('development', beforeLaunch).enabled, false)
   assert.equal(selectedGrace('test').enabled, false)
   assert.deepEqual(launchWindow(policy.startsAt), policy)
   assert.equal(activeGrace('2026-10-05T18:59:59Z', policy), false)
