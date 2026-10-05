@@ -91,7 +91,7 @@ async function renderProfileCard({ displayName, username, user = {}, avatar, bad
   await Promise.all(badges.slice(0, MAX_BADGES).map(async (badge, i) => {
     let input = badge.image
     if (!input && badge.imageAsset && path.basename(badge.imageAsset) === badge.imageAsset) {
-      input = await fs.readFile(path.join(assetRoot, 'badges', badge.imageAsset)).catch(() => null)
+      input = await fs.readFile(path.join(assetRoot, 'badges', 'Spooky', badge.imageAsset)).catch(() => null)
     }
     if (input) try { overlays.push({ input: await circle(input, 48), left: 264 + i * 86, top: 367 }) } catch {}
   }))

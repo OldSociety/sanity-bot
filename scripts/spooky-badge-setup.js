@@ -51,7 +51,7 @@ async function main(args) {
     productionChanged: environment === 'production' && mode === '--setup', databaseOpened: false }
   if (mode === '--inspect') return report
   if (!report.canManageRoles || !report.canManageExpressions) throw new Error('Development bot requires ManageRoles and ManageGuildExpressions')
-  const image = fs.readFileSync(path.join(root, 'assets/badges/SPOOKY_' + characterName.toUpperCase() + '_BADGE.png'))
+  const image = fs.readFileSync(path.join(root, 'assets/badges/Spooky/SPOOKY_' + characterName.toUpperCase() + '_BADGE.png'))
   if (image.length > 256 * 1024 || image.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error('Invalid/oversized badge PNG')
   if (!botRole) {
     botRole = renderers[0] || await rest.post(Routes.guildRoles(guild.id), { body: { name: rendererName, permissions: '0', hoist: false, mentionable: false }, reason: 'Development bot-only badge rendering' })

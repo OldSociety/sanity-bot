@@ -4,7 +4,8 @@
     {
       "characterId": "had",
       "name": "Hadley",
-      "emojiName": null
+      "emojiName": null,
+      "imageAsset": "SPOOKY_HADLEY_BADGE.png"
     },
     {
       "characterId": "hfm",
