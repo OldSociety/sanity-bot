@@ -70,3 +70,19 @@ test('ordinary chat outside Spooky keeps legacy XP and selected-guild isolation'
   await f.run({ guild: { id: 'other-guild' }, channelId: 'spooky', author: { id: 'bob', username: 'Bob', bot: false } })
   assert.equal((await f.User.findByPk('bob')).chat_exp, 4) // Legacy first-chat seed.
 })
+
+test('Bots-role members earn no personal XP/Fate in production, while development permits test members', async t => {
+  const original = process.env.NODE_ENV
+  t.after(() => { process.env.NODE_ENV = original })
+  const f = await fixture(t, { badgeField: async () => ({ name: 'Badges', value: 'None' }) })
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 40 })
+  const member = { roles: { cache: new Map([['unwanted', { name: 'Unwanted' }], ['bots', { name: 'Bots' }]]) } }
+  process.env.NODE_ENV = 'production'
+  await f.run({ member })
+  assert.equal((await f.User.findByPk('alice')).chat_exp, 150)
+  assert.equal((await f.User.findByPk('alice')).fate_points, 40)
+  process.env.NODE_ENV = 'development'
+  await f.run({ member })
+  assert.equal((await f.User.findByPk('alice')).chat_level, 2)
+  assert.equal((await f.User.findByPk('alice')).fate_points, 45)
+})

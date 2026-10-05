@@ -1,5 +1,7 @@
 # Community leveling foundation
 
+**October 5 update: Community XP is paused by the human. Keep both flags disabled and do not migrate or activate it during the personal XP/level reset. Personal leveling and its +5 Fate rewards continue. See [personal-only launch readiness](personal-leveling-launch.md).**
+
 Work begins on `feature/S-1-leveling` from merged main. The community system is disabled in development and production. No live migration, reload, command deployment or player correction is part of this implementation. The user's message ended after step 6's introduction; further requirements remain to be supplied.
 
 ## Locked launch rules
@@ -16,7 +18,7 @@ The additive migration creates CommunityGuild (level and current XP), CommunityD
 
 Existing Users.fate_points and Users.bank already store separate durable balances. They are retained. Explicitly exceptional rewards may use Bank, with a temporary launch exception for newly earned ordinary personal/community overflow. Birthdays and designated prizes retain their Bank rewards. Financial support no longer awards Fate, cumulative booster totals are retired, and supporter-only overflow has been removed. The legacy database column is left untouched as archived evidence; runtime code does not read/write it. Bank retains its100 cap. No existing balance is reset or rebased.
 
-Personal and community leveling run concurrently. Eligible personal level-ups retain their +5 Fate reward; each community level additionally awards +5 normal Fate to every current eligible campaign player, including noncontributors. Community activation never suppresses personal rewards. Both can reward the same message, respecting the normal Fate cap. Spooky purchases in that environment switch to normal Fate only unless the separately enabled Sanity system selects Sanity payment. Rerolls always use Bank first. Existing normal-Fate shop purchases use the shared compare-and-swap wallet path so stale shop reads cannot overwrite communal awards. The previous statement that community rewards replace personal rewards was an implementation error, corrected before activation.
+Personal and community leveling run concurrently. Eligible personal level-ups retain their +5 Fate reward; each community level additionally awards +5 normal Fate to every current eligible campaign player, including noncontributors. Community activation never suppresses personal rewards. Both can reward the same message, respecting the normal Fate cap. Spooky purchases in that environment switch to normal Fate only unless the separately enabled Sanity system selects Sanity payment. Rerolls always use Bank first. The normal-Fate shop is now disabled and hidden pending a non-game reward redesign; it must gain atomic purchase/stock/receipt handling before reopening. The previous statement that community rewards replace personal rewards was an implementation error, corrected before activation.
 
 ## Concurrent reward pacing review — October5
 

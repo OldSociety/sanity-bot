@@ -68,7 +68,7 @@ module.exports = (client, User, dependencies = {}) => {
     const spookyChannel = process.env.GUILDID && process.env.SPOOKYCHANNELID &&
       message.guild.id === process.env.GUILDID &&
       (message.channelId === process.env.SPOOKYCHANNELID || message.channel.parentId === process.env.SPOOKYCHANNELID)
-    if (!spookyChannel) try {
+    if (!spookyChannel && !require('../services/member-policy').excludedMember(message.member)) try {
       const unwanted = message.member.roles.cache.has(
         process.env.UNWANTEDROLEID,
       )
