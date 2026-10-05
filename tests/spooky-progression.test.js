@@ -52,9 +52,12 @@ test('configured host stays last and unranked across pages without displacing ot
   assert.equal(operation.receipt.tracks.overall.userIds.length, 11)
 })
 
-test('caller crown win credits five fate for any registered player, caps bank and adds ten prestige once', async t => {
-  const f = await fixture(t, { eligible: false, bank: 98 })
-  const handlers = f.progression.wrapHandlers({ sweet_tooth: async () => ({ crownWon: true, awardedUserId: 'alice' }) })
+test('first Unwanted Crown win credits capped fate and adds ten prestige with frozen replay', async t => {
+  const f = await fixture(t, { bank: 98 })
+  const handlers = f.progression.wrapHandlers({ sweet_tooth: async ctx => {
+    await ctx.record({ userId: 'alice', resource: 'crown_award', delta: 1 })
+    return { crownWon: true, crownFirstWin: true, awardedUserId: 'alice' }
+  } })
   const result = await f.run('new-crown', ctx => handlers.sweet_tooth(ctx, { actorId: 'alice', action: 'treat', outcome: 'sweet_tooth' }))
   assert.equal(result.receipt.fateBonus, 2); assert.equal((await f.user.reload()).bank, 100)
   assert.equal(result.receipt.prestige.delta, 12)
@@ -68,6 +71,77 @@ test('caller crown win credits five fate for any registered player, caps bank an
   assert.equal(replay.receipt.fatePoints, 99)
   assert.equal(replay.receipt.prestige.delta, 12)
   assert.equal((await f.models.Participant.findOne()).treatPrestige, 12)
+})
+
+function crownEmbed(result, outcome = 'sweet_tooth') {
+  return require('../services/spooky/presentation').actionMessages({ action: outcome === 'sweet_tooth' ? 'treat' : 'trick',
+    outcome, result, candy: 10, eyes: 0 }, { actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }],
+    registeredIds: new Set(), variantKey: 'test' })[0].payload.embeds[0]
+}
+
+test('non-Unwanted first discovery and theft award neither Fate nor wallet display', async t => {
+  for (const outcome of ['sweet_tooth', 'steal_crown']) {
+    const f = await fixture(t, { eligible: false, bank: 71 })
+    const wrapped = f.progression.wrapHandlers({ [outcome]: async ctx => {
+      await ctx.record({ userId: 'alice', resource: 'crown_award', delta: 1 })
+      return { crownWon: true, crownFirstWin: true, awardedUserId: 'alice', candyReward: 5 }
+    } })
+    const win = await f.run(outcome, ctx => wrapped[outcome](ctx, { actorId: 'alice', outcome,
+      action: outcome === 'sweet_tooth' ? 'treat' : 'trick' }))
+    assert.equal(win.receipt.fateBonus, 0)
+    assert.equal(win.receipt.fateEligible, false)
+    assert.equal((await f.user.reload()).bank, 71)
+    assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 0)
+    assert.equal(crownEmbed(win.receipt, outcome).fields, undefined)
+    assert.doesNotMatch(crownEmbed(win.receipt, outcome).description, /Banked fate/)
+    assert.equal(win.receipt.prestige.delta, 12)
+  }
+})
+
+test('legacy Crown winners cannot farm Fate by recapture, misleading first-win flag or consolation', async t => {
+  for (const userName of ['cosmic_force', 'akikisano', 'trinitycat172']) {
+    const f = await fixture(t, { bank: 71 })
+    await f.user.update({ user_name: userName })
+    await f.run('legacy-win', async ctx => {
+      await ctx.record({ userId: 'alice', resource: 'crown_award', delta: 1 })
+      // Old saved operations need not contain the modern crownFirstWin flag.
+      return { crownWon: true, fateBonus: 5 }
+    })
+    const recreated = createProgression({ User: f.User, models: f.models, event: f.event, isUnwanted: () => true })
+    const cases = [
+      ['sweet_tooth', { crownWon: true, crownFirstWin: false }],
+      ['steal_crown', { crownWon: true, crownFirstWin: false }],
+      ['sweet_tooth', { crownWon: true, crownFirstWin: true }],
+      ['steal_crown', { crownWon: true, crownFirstWin: true }],
+      ['sweet_tooth', { crownWon: true }],
+      ['sweet_tooth', { noEffect: 'no_role_recipient' }],
+    ]
+    for (let index = 0; index < cases.length; index++) {
+      const [outcome, receipt] = cases[index]
+      const wrapped = recreated.wrapHandlers({ [outcome]: async () => receipt })
+      const result = await f.run(`recapture-${index}`, ctx => wrapped[outcome](ctx, { actorId: 'alice', outcome,
+        action: outcome === 'sweet_tooth' ? 'treat' : 'trick' }))
+      assert.ok(!result.receipt.fateBonus)
+      assert.equal(crownEmbed(result.receipt, outcome).fields, undefined)
+      assert.doesNotMatch(crownEmbed(result.receipt, outcome).description, /Banked fate/)
+      assert.equal((await f.user.reload()).bank, 71)
+    }
+    assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 0)
+  }
+})
+
+test('explicit development Crown testing reset reopens only its scoped first-win history', async t => {
+  const f = await fixture(t)
+  await f.run('prior', async ctx => { await ctx.record({ userId: 'alice', resource: 'crown_award', delta: 1 }); return {} })
+  await f.run('reset', async ctx => { await ctx.record({ userId: 'alice', resource: 'crown_reset', delta: 0 }); return {} })
+  const handlers = f.progression.wrapHandlers({ steal_crown: async ctx => {
+    await ctx.record({ userId: 'alice', resource: 'crown_award', delta: 1 })
+    return { crownWon: true, crownFirstWin: true, awardedUserId: 'alice' }
+  } })
+  const result = await f.run('fresh-test', ctx => handlers.steal_crown(ctx, { actorId: 'alice', action: 'trick', outcome: 'steal_crown' }))
+  assert.equal(result.receipt.fateBonus, 5)
+  assert.equal((await f.user.reload()).bank, 5)
+  assert.equal(crownEmbed(result.receipt, 'steal_crown').fields.find(field => field.name === 'Bank').value, '0 → 5')
 })
 
 test('successful Great Heist gets a five-point boost; failed heist cannot gain it', async t => {

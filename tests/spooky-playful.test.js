@@ -408,6 +408,40 @@ test('Crown can be stolen and recaptured but first-win candy is not farmed', asy
   assert.deepEqual(f.members.filter(member => member.roleIds.includes('sweet-role')).map(member => member.userId), ['alice'])
 })
 
+test('real Crown discovery, theft and recapture give Fate once to Unwanted holders only', async t => {
+  const f = await fixture(t)
+  const User = require('../Models/User/User')(f.sequelize, Sequelize.DataTypes); await User.sync()
+  for (const userId of ['alice', 'bob']) {
+    await User.create({ user_id: userId, user_name: userId, bank: 20, fate_points: 30 })
+    await f.participants.register({ ...f.scope, actorId: userId, interactionId: `register-${userId}` })
+  }
+  f.members[0].roleIds.push('unwanted')
+  const progression = require('../services/spooky/progression').createProgression({ User, models: f.models,
+    event: { ...config, enabled: true }, isUnwanted: (_ctx, userId) => f.members.find(member => member.userId === userId).roleIds.includes('unwanted') })
+  const handlers = progression.wrapHandlers(f.playful.handlers)
+  const capture = async (key, userId, outcome) => {
+    const result = await f.run(key, ctx => handlers[outcome](ctx, { actorId: userId, outcome, action: outcome === 'sweet_tooth' ? 'treat' : 'trick' }))
+    await f.delivery.reconcile(f.scope)
+    assert.deepEqual(f.members.filter(member => member.roleIds.includes('sweet-role')).map(member => member.userId), [userId])
+    return result.receipt
+  }
+  const first = await capture('first-crown', 'alice', 'sweet_tooth')
+  assert.equal(first.fateBonus, 5); assert.equal(first.bank, 25)
+  const ineligible = await capture('bob-crown', 'bob', 'steal_crown')
+  assert.equal(ineligible.crownFirstWin, true); assert.equal(ineligible.fateBonus, 0); assert.equal(ineligible.bank, undefined)
+  const repeat = await capture('alice-again', 'alice', 'steal_crown')
+  assert.equal(repeat.crownFirstWin, false); assert.ok(!repeat.fateBonus); assert.equal(repeat.bank, undefined)
+  // Joining Unwanted after the first win does not reopen the first-win reward.
+  f.members[1].roleIds.push('unwanted')
+  const joinedLater = await capture('bob-again', 'bob', 'steal_crown')
+  assert.equal(joinedLater.crownFirstWin, false); assert.ok(!joinedLater.fateBonus); assert.equal(joinedLater.bank, undefined)
+  assert.equal((await User.findByPk('alice')).bank, 25); assert.equal((await User.findByPk('bob')).bank, 20)
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 1)
+  const embed = require('../services/spooky/presentation').actionMessages({ outcome: 'steal_crown', action: 'trick', result: repeat,
+    candy: 10, eyes: 0 }, { actorId: 'alice', members: f.members, registeredIds: new Set() })[0].payload.embeds[0]
+  assert.equal(embed.fields, undefined); assert.doesNotMatch(embed.description, /Banked fate/)
+})
+
 test('failed Discord delivery survives reconstruction and retry is idempotent', async t => {
   const f = await fixture(t)
   await f.invoke('role', 'sweet_tooth')

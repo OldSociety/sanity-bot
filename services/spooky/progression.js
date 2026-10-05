@@ -1,12 +1,22 @@
 const { config: defaultConfig } = require('./config')
+const { Op } = require('sequelize')
 
 function createProgression({ User, models, event = defaultConfig, isUnwanted }) {
   if (User.sequelize !== models.Participant.sequelize) throw new Error('Fate and seasonal models must share a connection')
   if (typeof isUnwanted !== 'function') throw new Error('Trusted Unwanted eligibility resolver is required')
   async function sweetToothBonus(ctx, userId, crownWon = false) {
-    const eligible = crownWon || await isUnwanted(ctx, userId)
+    // Wearing/winning the Crown never substitutes for the campaign role.
+    const eligible = await isUnwanted(ctx, userId)
     if (typeof eligible !== 'boolean') throw new Error('Invalid Unwanted eligibility')
     if (!eligible) return { fateBonus: 0, fateEligible: false }
+    // Historical awards survive role loss, recapture and process restarts. The
+    // current first-win marker is written by the handler in this transaction.
+    // Only the explicit development testing reset reopens that test history.
+    const reset = await models.Ledger.findOne({ where: { ...ctx.scope, userId, resource: 'crown_reset' },
+      order: [['id', 'DESC']], transaction: ctx.transaction })
+    const prior = await models.Ledger.findOne({ where: { ...ctx.scope, userId, resource: 'crown_award',
+      operationId: { [Op.ne]: ctx.operationId }, ...(reset ? { id: { [Op.gt]: reset.id } } : {}) }, transaction: ctx.transaction })
+    if (prior) return { fateBonus: 0, fateEligible: false }
     const user = await User.findByPk(userId, { transaction: ctx.transaction })
     if (!user) throw new Error('Eligible fate account does not exist')
     const before = user.bank
@@ -54,7 +64,7 @@ function createProgression({ User, models, event = defaultConfig, isUnwanted }) 
       plan = { ...plan, crownHolderBefore: holder?.metadata?.holderId || null, crownHolderOperationId: holder?.operationId }
       const result = require('./combat').combatReceipt(ctx, await handler(ctx, plan))
       const crownOutcome = outcome === 'sweet_tooth' && plan.action === 'treat' || outcome === 'steal_crown' && plan.action === 'trick'
-      const bonus = crownOutcome && !plan.overridden && (result.crownFirstWin !== false || !result.crownWon)
+      const bonus = crownOutcome && !plan.overridden && (result.crownWon ? result.crownFirstWin === true : true)
         ? outcome === 'steal_crown' && !result.crownWon ? {} : await sweetToothBonus(ctx, plan.actorId, result.crownWon === true) : {}
       // Receipt data is for audit/admin consumers; player rendering hides exact weights.
       return { ...result, ...bonus, prestige: await prestige(ctx, plan, result) }
