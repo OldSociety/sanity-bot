@@ -35,6 +35,10 @@ module.exports = {
     // Handle Slash Commands
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName)
+      if (interaction.commandName === 'shop') {
+        await interaction.reply({ content: 'The Fate shop is temporarily closed while new rewards are being planned.', ephemeral: true }).catch(() => {})
+        return
+      }
 
       if (!command) {
         console.error(
@@ -69,6 +73,7 @@ module.exports = {
         console.error(`Error executing ${interaction.commandName}`)
         console.error(error)
         const payload = { content: 'The command could not complete. Check your saved state before trying another paid action; completed rewards remain saved.', ephemeral: true, allowedMentions: { parse: [] } }
+        if (interaction.deferred && !interaction.replied) await interaction.editReply(payload).catch(() => {})
         if (!interaction.replied && !interaction.deferred) await interaction.reply(payload).catch(() => {})
       }
     }

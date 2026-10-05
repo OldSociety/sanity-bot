@@ -18,15 +18,20 @@ test('real reroll command combines Bank and Fate, then reports insufficient fund
   assert.equal(process.env.NODE_ENV, 'test')
   const { User } = require('../Models/model'), command = require('../commands/Fatepoints/Fate')
   t.after(() => User.sequelize.close()); await User.sync()
+  await require('../migrations/wallet-operations')(User.sequelize)
   const saved = { BOTTESTCHANNELID: process.env.BOTTESTCHANNELID, UNWANTEDROLEID: process.env.UNWANTEDROLEID }
   process.env.BOTTESTCHANNELID = 'test-channel'; process.env.UNWANTEDROLEID = 'player-role'
   t.after(() => { for (const [key, value] of Object.entries(saved)) value === undefined ? delete process.env[key] : process.env[key] = value })
   await User.create({ user_id: 'alice', user_name: 'Alice', bank: 6, fate_points: 4 })
-  const replies = [], interaction = { user: { id: 'alice', username: 'Alice' }, guildId: 'test-guild', channel: { id: 'test-channel' },
-    member: { roles: { cache: new Map([['player-role', {}]]) } }, options: { getSubcommand: () => 'reroll' }, reply: async payload => replies.push(payload) }
+  const replies = [], interaction = { id: 'first', user: { id: 'alice', username: 'Alice' }, guildId: 'test-guild', channel: { id: 'test-channel' },
+    member: { roles: { cache: new Map([['player-role', {}]]) } }, options: { getSubcommand: () => 'reroll' },
+    deferReply: async () => {}, editReply: async payload => replies.push(payload), reply: async payload => replies.push(payload) }
   await command.execute(interaction)
   assert.equal((await User.findByPk('alice')).bank, 0); assert.equal((await User.findByPk('alice')).fate_points, 0)
   await command.execute(interaction)
+  assert.deepEqual(replies[1].embeds[0].data, replies[0].embeds[0].data)
+  interaction.id = 'second'
+  await command.execute(interaction)
   assert.match(replies[0].embeds[0].data.description, /6 Bank \+ 4 Fate/)
-  assert.equal(replies[1].embeds[0].data.description, 'Not enough fate points.')
+  assert.equal(replies[2].embeds[0].data.description, 'Not enough fate points.')
 })

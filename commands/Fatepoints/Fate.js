@@ -86,11 +86,13 @@ module.exports = {
 
     const subcommand = interaction.options.getSubcommand()
     if (subcommand === 'manage' && !await require('../../utils/botAdmin').requireBotAdmin(interaction)) return
+    if (subcommand === 'reroll' && !interaction.deferred && !interaction.replied) await interaction.deferReply()
 
     // Fetch or create user data
-    let userData = await User.findOne({ where: { user_id: userId } })
-    if (!userData) {
-      userData = await User.create({
+    let userData = await require('../../services/spooky/economy').serialize(User.sequelize, async () => {
+      const existing = await User.findByPk(userId)
+      if (existing) return existing
+      return User.create({
         user_id: userId,
         user_name: interaction.user.username,
         chat_exp: 0,
@@ -99,7 +101,7 @@ module.exports = {
         fate_points: 0,
         last_chat_message: new Date(),
       })
-    }
+    })
 
 
     if (subcommand === 'add-fate') {
@@ -167,27 +169,24 @@ module.exports = {
       let pointsDeducted = 0
       let source = ''
 
-      let payment
-      try {
-        payment = require('../../services/fate-rules').payment(userData.bank, userData.fate_points, { kind: 'reroll' })
-      } catch (error) {
-        if (error.message !== 'Insufficient Fate Points') throw error
+      const result = await require('../../services/wallet-operation').reroll(User, {
+        guildId: interaction.guildId, userId, interactionId: interaction.id,
+      })
+      const payment = result.receipt
+      if (!payment.success) {
         const errorEmbed = new EmbedBuilder()
           .setColor('#FF0000') // Red for error messages
           .setTitle('Error')
           .setDescription('Not enough fate points.')
 
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true })
+        await interaction.editReply({ embeds: [errorEmbed] })
         return
       }
 
-      userData.bank = payment.bank
-      userData.fate_points = payment.fatePoints
+      userData = payment.after
       pointsDeducted = payment.bankSpent + payment.fateSpent
       source = payment.bankSpent && payment.fateSpent ? `Fate Points (${payment.bankSpent} Bank + ${payment.fateSpent} Fate)`
         : payment.bankSpent ? 'banked fate points' : 'fate points'
-
-      await saveWallet(User, userData)
 
       const rollEmbed = new EmbedBuilder()
         .setColor('#FFFF00') // Yellow for neutral informative messages
@@ -205,7 +204,7 @@ module.exports = {
           }
         )
 
-      await interaction.reply({ embeds: [rollEmbed] })
+      await interaction.editReply({ embeds: [rollEmbed] })
     } else if (subcommand === 'balance') {
       // Existing balance logic remains unchanged
       const balanceEmbed = new EmbedBuilder()
