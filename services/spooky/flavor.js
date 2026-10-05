@@ -40,7 +40,7 @@ function outcomeFlavor(
   })
   if (result.crownProtectedUserId)
     return say(
-      '🛡️ What a Failure!',
+      '🛡️ What a Failure',
       `${actor} tried to take ${label(
         result.crownProtectedUserId,
       )}'s crown. What a failure! Their shield stopped the theft.`,
@@ -48,41 +48,41 @@ function outcomeFlavor(
     )
   if (result.bagRepairedUserId)
     return say(
-      '🪡 Bag Repaired!',
+      '🪡 Bag Repaired',
       `${actor} patched ${label(
         result.bagRepairedUserId,
       )}'s candy bag! Its sweets are safe from that sneaky hole again.${
         result.freedUserId
-          ? ' Their curse broke too—they are free at last!'
+          ? ' Their curse broke too. They are free at last!'
           : ''
       }`,
     )
   if (result.noEffect === 'shield_blocks_attack')
     return say(
-      '✨ The Shield Holds!',
-      `${actor}'s mischief bounced off a shimmering shield!`,
+      '✨ The Shield Holds',
+      `${actor}'s mischief failed.`,
       0xffa500,
     )
   if (result.fallback === 'ordinary_theft')
     return say(
-      '🍬 A Smaller Mischief!',
+      '🍬 A Smaller Mischief',
       `${actor}'s grand plan became a quick pocket pick: **${result.stolen} candy** from ${target}!`,
     )
   if (result.holeTargetUserId)
     return say(
-      '🕳️ A Hole in the Bag!',
+      '🕳️ A Hole in the Bag',
       `${actor} put a hole in ${label(
         result.holeTargetUserId,
       )}'s candy bag. Who knows what might fall out?`,
     )
   const titles = {
-    candy_raid: '🏴‍☠️ Candy Raid!',
-    bag_explosion: '💥 Bag Explosion!',
-    sticky_fingers: '🖐️ Sticky Fingers!',
-    candy_ransom: '📜 Candy Ransom!',
+    candy_raid: '🏴‍☠️ Candy Raid',
+    bag_explosion: '💥 Bag Explosion',
+    sticky_fingers: '🖐️ Sticky Fingers',
+    candy_ransom: '📜 Candy Ransom',
     boo: '👻 BOO!',
-    candy_shakedown: '🍬 Candy Shakedown!',
-    trick_chain: '⚡ Trick Chain!',
+    candy_shakedown: '🍬 Candy Shakedown',
+    trick_chain: '⚡ Trick Chain',
   }
   if (titles[receipt.outcome]) {
     const movement = (result.candyMovements || [])
@@ -120,7 +120,7 @@ function outcomeFlavor(
   }
   if (receipt.outcome === 'bag_swap' && !result.noEffect)
     return say(
-      result.swapped ? '🛍️ Bag Swap!' : '⚖️ Bags Rebalanced!',
+      result.swapped ? '🛍️ Bag Swap' : '⚖️ Bags Rebalanced!',
       `${actor} tangled candy bags with ${label(result.swapTargetUserId)}! ${
         result.swapped
           ? 'Their balances traded places.'
@@ -129,7 +129,7 @@ function outcomeFlavor(
     )
   if (receipt.outcome === 'reverse_robbery' && result.lost)
     return say(
-      '🙃 Reverse Robbery!',
+      '🙃 Reverse Robbery',
       `${actor}'s robbery went backwards! ${label(
         result.robberyTargetUserId,
       )} walked away with **${result.lost} candy** from their bag.`,
@@ -138,17 +138,17 @@ function outcomeFlavor(
     return variant(
       [
         say(
-          '🎃 Oops! Candy Down!',
-          `${actor} dropped the **1 candy used for this treat**, and it vanished into the shadows. No treat this time!`,
+          '🎃 Oops! Candy Down',
+          `${actor} dropped the **1 candy used for this treat**, and it vanished into the shadows. No treat this time.`,
           0xff6347,
         ),
         say(
-          '👻 A Ghost Ate It!',
+          '👻 A Ghost Ate It',
           `A hungry ghost gulped down the **1 candy used for ${actor}'s treat**. It burped politely and drifted away.`,
           0xff6347,
         ),
         say(
-          '🕸️ Tangled Treat!',
+          '🕸️ Tangled Treat',
           `${actor}'s **1 candy used for this treat** stuck to a haunted web. The spider is having a very sweet Halloween!`,
           0xff6347,
         ),
@@ -159,17 +159,17 @@ function outcomeFlavor(
     return variant(
       [
         say(
-          '🚨 Caught Red-Handed!',
+          '🚨 Caught Red-Handed',
           `${actor} tried to sneak a candy away, but got caught! Their trick candy is gone, and the loot stays put.`,
           0xff6347,
         ),
         say(
-          '🎃 The Pumpkin Saw Everything!',
+          '🎃 The Pumpkin Saw Everything',
           `${actor} tried a sneaky theft, but a jack-o'-lantern sounded the alarm! Only their **1 trick candy** was spent.`,
           0xff6347,
         ),
         say(
-          '🦇 Bat Patrol!',
+          '🦇 Bat Patrol',
           `${actor} crept toward the sweets, then the bat patrol swooped in! Their **1 trick candy** is gone; everyone else's bags are safe.`,
           0xff6347,
         ),
@@ -211,63 +211,63 @@ function outcomeFlavor(
       shield_blocks_curse: `${actor}'s sparkling shield turned the curse away! Their protection is still shining.`,
     }
     return say(
-      '🎃 Mischief Gone Sideways!',
+      '🎃 Mischief Gone Sideways',
       reasons[result.noEffect] || 'The Halloween magic fizzled this time.',
       0xe67e22,
     )
   }
   if (result.freedUserId)
     return say(
-      '💫 Curse Broken!',
+      '💫 Curse Broken',
       `${actor} broke the curse on ${target}! They are free at last!`,
       0x00ff00,
     )
   if (result.gifts && !receipt.overridden && result.deliveredCandy > 0) {
     if (receipt.outcome === 'double_gift')
       return say(
-        '🎁 Double the Delight!',
+        '🎁 Double the Delight',
         `${actor} gifted **${result.deliveredCandy} candies** to ${target} for the price of one!`,
         0x00ff00,
       )
     return variant(
       [
         say(
-          '🍬 Treat Gifted!',
+          '🍬 Treat Gifted',
           `${actor} gifted a treat to ${target}. Their generosity knows no bounds! 🍬`,
           0x00ff00,
         ),
         say(
-          '🎁 Tasty Surprise!',
+          '🎁 Tasty Surprise',
           `${actor} surprised ${target} with a sweet treat! 🎁`,
           0x00ff00,
         ),
         say(
-          '🍭 Treat Exchange!',
+          '🍭 Treat Exchange',
           `${actor} offered a sweet treat to ${target}. 🍭`,
           0x00ff00,
         ),
         say(
-          '🍫 Chocolate Delight!',
+          '🍫 Chocolate Delight',
           `${actor} shared a delicious chocolate with ${target}. 🍫`,
           0x00ff00,
         ),
         say(
-          '🍪 Cookie Craze!',
+          '🍪 Cookie Craze',
           `${actor} gave a warm cookie treat to ${target}. 🍪`,
           0x00ff00,
         ),
         say(
-          '🍩 Donut Delivery!',
+          '🍩 Donut Delivery',
           `${actor} surprised ${target} with a sugary donut! 🍩`,
           0x00ff00,
         ),
         say(
-          '🍰 Cake of Kindness!',
+          '🍰 Cake of Kindness',
           `${actor} gave ${target} a slice of their favorite cake. 🎂`,
           0x00ff00,
         ),
         say(
-          '🧁 Cupcake Cheers!',
+          '🧁 Cupcake Cheers',
           `${actor} offered ${target} a delightful cupcake! 🧁`,
           0x00ff00,
         ),
@@ -283,13 +283,13 @@ function outcomeFlavor(
     )
   if (receipt.overridden && result.gifts)
     return say(
-      '🎃 Your Curse Takes Over!',
+      '🎃 Your Curse Takes Over',
       `${actor}'s curse turned their ${receipt.action} into a candy giveaway! **${result.deliveredCandy} candies** went to ${target}.`,
       0xff6347,
     )
   if (result.shielded)
     return say(
-      '✨ A Sweet Shield!',
+      '✨ A Sweet Shield',
       `${actor} wrapped ${
         result.shielded.includes(actorId) ? `themself and ${target}` : target
       } in Halloween magic. Their shimmering shield will stand between them and Halloween mischief!`,
@@ -297,15 +297,15 @@ function outcomeFlavor(
     )
   if (result.cursedUserId && receipt.overridden)
     return say(
-      '🎃 Your Curse Spreads!',
+      '🎃 Your Curse Spreads',
       `${actor}'s curse spread to ${target}. Stop it before it gets worse!`,
       0xff0000,
     )
   if (result.cursedUserId)
     return say(
       receipt.outcome === 'curse_backfire'
-        ? '🔮 The Curse Backfires!'
-        : '🦇 A Wicked Curse!',
+        ? '🔮 The Curse Backfires'
+        : '🦇 A Wicked Curse',
       `${actor}'s spell ${
         receipt.outcome === 'curse_backfire'
           ? 'bounced straight back! They are cursed'
@@ -315,7 +315,7 @@ function outcomeFlavor(
     )
   if (result.reversedUserId)
     return say(
-      '🙃 Spelling Backwards!',
+      '🙃 Spelling Backwards',
       `${actor} put a backwards spell on ${target}'s name! ${
         result.alreadyReversed
           ? `It was already tangled, so just laughed at ${target} instead.`
@@ -347,12 +347,12 @@ function outcomeFlavor(
     )
   if (receipt.outcome === 'find_eye' || result.found)
     return say(
-      '🧿 Something in the Shadows!',
+      '🧿 Something in the Shadows',
       `${actor} spotted a glimmer in the Halloween gloom and found **1 Evil Eye**!`,
       0x00ff00,
     )
   return say(
-    'A Token for Your Collection!',
+    'A Token for Your Collection',
     `${actor} opened a mysterious Halloween parcel. See which quarter was inside!`,
     0xffd700,
   )

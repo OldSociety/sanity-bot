@@ -114,7 +114,7 @@ function actionMessages(
   const details = []
   for (const shield of result.blockedShields || []) details.push(shield.popped
     ? `💥 ${label(shield.userId)}'s shield burst into sparks! It stopped the attack, but the magic is gone.`
-    : `✨ ${label(shield.userId)}'s shield caught the attack—and flickered.`)
+    : `✨ ${label(shield.userId)}'s shield caught the attack and flickered.`)
   if (
     result.fateBonus &&
     !(receipt.outcome === 'sweet_tooth' && result.noEffect)
