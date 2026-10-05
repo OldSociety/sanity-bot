@@ -5,7 +5,8 @@ const defaults = require('../../config/spooky-reminders.json')
 
 function validateReminders(settings) {
   const snowflake = value => typeof value === 'string' && /^\d{17,20}$/.test(value)
-  if (typeof settings.enabled !== 'boolean' || settings.timezone !== 'America/Los_Angeles' || ![3, 7].includes(settings.everyDays)) throw new Error('Invalid reminder enable/cadence/timezone')
+  if (typeof settings.enabled !== 'boolean' || settings.timezone !== 'America/Los_Angeles' || ![3, 4, 7].includes(settings.everyDays)) throw new Error('Invalid reminder enable/cadence/timezone')
+  if (settings.anchorDate !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(settings.anchorDate) || !Number.isFinite(Date.parse(`${settings.anchorDate}T00:00:00Z`)) || new Date(`${settings.anchorDate}T00:00:00Z`).toISOString().slice(0, 10) !== settings.anchorDate)) throw new Error('Invalid reminder anchor date')
   if (settings.channelId !== null && !snowflake(settings.channelId)) throw new Error('Invalid reminder channel ID')
   if (!Array.isArray(settings.roleIds) || settings.roleIds.length > 10 || settings.roleIds.some(id => !snowflake(id)) || new Set(settings.roleIds).size !== settings.roleIds.length) throw new Error('Invalid reminder role allowlist')
   if (settings.localTime !== null && (typeof settings.localTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.localTime))) throw new Error('Invalid reminder local time')
@@ -23,7 +24,7 @@ function localParts(now) {
 // IANA Pacific wall time so midnight/DST never silently become fixed UTC-8.
 function latestReminderSlot(now, settings = reminderConfig, event = defaultEvent) {
   if (!settings.enabled || getEventState(new Date(now), event) !== 'ACTIVE') return null
-  const local = localParts(now), first = localParts(event.startsAt).date
+  const local = localParts(now), first = settings.anchorDate || localParts(event.startsAt).date
   const dayMs = 86400000, ordinal = Date.parse(`${local.date}T00:00:00Z`), anchor = Date.parse(`${first}T00:00:00Z`)
   let offset = (ordinal - anchor) / dayMs
   if (local.time < settings.localTime) offset--
@@ -38,7 +39,7 @@ function reminderPayload(settings) {
 }
 class NotDue extends Error {}
 function createReminders({ models, economy, notifications, guildId, getChannel, event = defaultEvent,
-  settings = reminderConfig, clock = () => new Date(), namespace = 'reminder', operationType = 'event_reminder', payload = reminderPayload }) {
+  settings = reminderConfig, clock = () => new Date(), namespace = 'reminder', operationType = 'event_reminder', payload = reminderPayload, buildReceipt = async () => ({}) }) {
   const approved = validateReminders(settings)
   if (typeof guildId !== 'string' || !guildId.trim() || typeof getChannel !== 'function') throw new Error('Reminder guild/channel adapter required')
   const scope = { eventId: event.eventId, guildId }
@@ -79,9 +80,9 @@ function createReminders({ models, economy, notifications, guildId, getChannel, 
     let result
     try {
       result = await economy.execute({ ...scope, actorId: 'system', workerKey: `${namespace}:${slot}`, operationType }, async ctx => {
-        const receipt = { slot, signature, channelId: approved.channelId, roleIds: approved.roleIds, localTime: approved.localTime }
+        const receipt = { ...await buildReceipt(ctx, slot), slot, signature, channelId: approved.channelId, roleIds: approved.roleIds, localTime: approved.localTime }
         if (!await canSend(receipt, ctx.now, ctx.transaction)) throw new NotDue('Reminder paused, closed or no longer due')
-        await notifications.enqueue(ctx, approved.channelId, [{ public: true, payload: payload(approved) }])
+        await notifications.enqueue(ctx, approved.channelId, [{ public: true, payload: payload(approved, receipt) }])
         await ctx.record({ userId: 'system', resource: 'event_reminder', delta: 0, metadata: receipt })
         return receipt
       })

@@ -64,6 +64,9 @@ function runtime(client) {
           ? 'Don’t forget: **10 Sanity** buys a random token quarter with **/spooky buy-quarter**! You can trade throughout October, with no daily limit.'
           : 'Don’t forget: **10 Fate Points (Bank first, then Fate)** buy a random token quarter with **/spooky spend-fate**! You can trade throughout October, with no daily limit.' }] }),
     getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
+  const spotlight = require('./spotlight').createSpotlight({ models, economy, notifications, guildId,
+    channelId: channels[0], roleId: roleIds.unwanted,
+    getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
   const reminderMaintenance = require('./reminders').withReminders(key => lifecycle.maintain(key), reminders,
     error => console.error('Spooky reminder failed:', error.message))
   // Defer optional configuration validation into the isolated award step. A bad
@@ -90,6 +93,8 @@ function runtime(client) {
     const result = await awardMaintenance(key)
     try { await fateReminders.tick() }
     catch (error) { console.error('Spooky Fate reminder failed:', error.message) }
+    try { await spotlight.tick() }
+    catch (error) { console.error('Spooky spotlight failed:', error.message) }
     try { return { ...result, pendingNotifications: await pending.tick() } }
     catch (error) { console.error('Spooky notification recovery failed:', error.message); return result }
   }

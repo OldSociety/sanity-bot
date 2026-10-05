@@ -8,16 +8,33 @@ function createCollection({ models, participants, event = defaultConfig, random 
     return value
   }
   function select(list) { return list[Math.floor(roll() * list.length)] }
-  function ordinaryPiece(percent = event.ordinaryRarity.percent, owned = new Map()) {
+  function ordinaryPiece(percent = event.ordinaryRarity.percent, owned = new Map(), spotlight = null) {
     requireApprovedRarity(event)
     const candidates = event.duplicates.allowDuplicates === false ? pieces.filter(piece => !owned.has(piece.id)) : pieces
     if (!candidates.length) throw new Error('Your collection is complete; no more quarters are needed.')
     const available = ['common', 'rare', 'legendary'].filter(rarity => candidates.some(piece => piece.rarity === rarity))
-    const value = roll() * available.reduce((sum, rarity) => sum + percent[rarity], 0)
+    if (!spotlight || !candidates.some(piece => piece.characterId === spotlight.characterId)) {
+      const value = roll() * available.reduce((sum, rarity) => sum + percent[rarity], 0)
+      let threshold = 0
+      for (const rarity of available) {
+        threshold += percent[rarity]
+        if (value < threshold) return select(candidates.filter(piece => piece.rarity === rarity))
+      }
+      throw new Error('Invalid ordinary rarity weights')
+    }
+    const weighted = require('./spotlight').pieceWeights(candidates, percent, spotlight?.characterId)
+    const rarityWeight = rarity => weighted.filter(item => item.piece.rarity === rarity).reduce((sum, item) => sum + item.weight, 0)
+    const value = roll() * available.reduce((sum, rarity) => sum + rarityWeight(rarity), 0)
     let threshold = 0
     for (const rarity of available) {
-      threshold += percent[rarity]
-      if (value < threshold) return select(candidates.filter(piece => piece.rarity === rarity))
+      threshold += rarityWeight(rarity)
+      if (value < threshold) {
+        const pool = weighted.filter(item => item.piece.rarity === rarity)
+        const pick = roll() * rarityWeight(rarity)
+        let cumulative = 0
+        for (const item of pool) { cumulative += item.weight; if (pick < cumulative) return item.piece }
+        return pool.at(-1).piece
+      }
     }
     throw new Error('Invalid ordinary rarity weights')
   }
@@ -98,13 +115,15 @@ function createCollection({ models, participants, event = defaultConfig, random 
   async function drawQuarter(ctx, userId) {
     requireApprovedRarity(event)
     const participant = await player(ctx, userId), owned = await inventory(ctx, participant)
-    const award = await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned), 'ordinary_draw')
+    const spotlight = await require('./spotlight').ensureSpotlight(ctx, models, event)
+    const award = await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned, spotlight), 'ordinary_draw')
     return summary(owned, [award, ...await exchange(ctx, participant, owned)])
   }
   async function drawFateQuarter(ctx, userId) {
     requireApprovedRarity(event)
     const participant = await player(ctx, userId), owned = await inventory(ctx, participant)
-    const award = await add(ctx, participant, owned, ordinaryPiece(event.fate.rarityPercent, owned), 'fate_draw')
+    const spotlight = await require('./spotlight').ensureSpotlight(ctx, models, event)
+    const award = await add(ctx, participant, owned, ordinaryPiece(event.fate.rarityPercent, owned, spotlight), 'fate_draw')
     return summary(owned, [award, ...await exchange(ctx, participant, owned)])
   }
   async function creditEyes(ctx, userId, amount, { fromUserId = null, metadata = {} } = {}) {
@@ -118,9 +137,10 @@ function createCollection({ models, participants, event = defaultConfig, random 
     const balance = await models.Participant.findByPk(participant.id, { transaction: ctx.transaction })
     const owned = await inventory(ctx, participant), awards = []
     while (balance.eyes >= event.eyes.quarterCost && (event.duplicates.allowDuplicates !== false || owned.size < pieces.length)) {
+      const spotlight = await require('./spotlight').ensureSpotlight(ctx, models, event)
       await ctx.changeBalance(userId, 'eyes', -event.eyes.quarterCost, { metadata: { reason: 'automatic_quarter' } })
       balance.eyes -= event.eyes.quarterCost
-      awards.push(await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned), 'eye_draw'))
+      awards.push(await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned, spotlight), 'eye_draw'))
       awards.push(...await exchange(ctx, participant, owned))
     }
     return { ...summary(owned, awards), eyes: balance.eyes }

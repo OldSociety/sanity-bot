@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "anchorDate": "2026-10-05",
+  "everyDays": 4,
+  "localTime": "12:00",
+  "weightPercent": 25,
+  "characters": ["had", "sel", "mrq"]
+}
