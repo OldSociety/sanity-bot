@@ -13,6 +13,7 @@ module.exports = (client, User, dependencies = {}) => {
   const profileNotification = dependencies.profileNotification || require('../services/profile-notification').createProfileNotification({ User })
   const clock = dependencies.clock || (() => new Date()),
     random = dependencies.random || Math.random
+  const qualifiesPersonalXp = dependencies.qualifiesPersonalXp || require('../services/personal-xp-channels').qualifiesPersonalXp
   client.on('messageCreate', async (message) => {
     // Guild/member presence works with Discord's numeric DM channel types.
     if (
@@ -68,7 +69,7 @@ module.exports = (client, User, dependencies = {}) => {
     const spookyChannel = process.env.GUILDID && process.env.SPOOKYCHANNELID &&
       message.guild.id === process.env.GUILDID &&
       (message.channelId === process.env.SPOOKYCHANNELID || message.channel.parentId === process.env.SPOOKYCHANNELID)
-    if (!spookyChannel && !require('../services/member-policy').excludedMember(message.member)) try {
+    if (!spookyChannel && qualifiesPersonalXp(message) && !require('../services/member-policy').excludedMember(message.member)) try {
       const unwanted = message.member.roles.cache.has(
         process.env.UNWANTEDROLEID,
       )

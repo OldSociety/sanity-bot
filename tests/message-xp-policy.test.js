@@ -10,7 +10,7 @@ async function fixture(t, dependencies = {}) {
   const client = { user: { id: 'bot' }, on: (_name, callback) => { handler = callback } }
   require('../handlers/messageHandler')(client, User, { detectHaiku: async () => null,
     handleSpooky: async message => cursed.push(message.id), profileNotification: async () => null,
-    random: () => 0, clock: () => new Date('2026-10-02T12:00:00Z'), ...dependencies })
+    random: () => 0, clock: () => new Date('2026-10-02T12:00:00Z'), qualifiesPersonalXp: () => true, ...dependencies })
   const message = { id: 'message', guild: { id: 'guild' }, channelId: 'chat', channel: { send: async () => {} },
     author: { id: 'alice', username: 'Alice', bot: false, displayAvatarURL: () => 'https://example.com/avatar.png' }, member: { roles: { cache: { has: () => false } } },
     content: 'Some ordinary conversation', mentions: { has: () => false } }
@@ -85,4 +85,17 @@ test('Bots-role members earn no personal XP/Fate in production, while developmen
   await f.run({ member })
   assert.equal((await f.User.findByPk('alice')).chat_level, 2)
   assert.equal((await f.User.findByPk('alice')).fate_points, 45)
+})
+
+test('personal channel restriction blocks XP and user creation without blocking seasonal processing or consuming cooldown', async t => {
+  const source = { environments: { test: { guildId: 'guild', channelIds: ['table', 'forum', 'hell'] } } }
+  const f = await fixture(t, { qualifiesPersonalXp: message => require('../services/personal-xp-channels').qualifiesPersonalXp(message, { environment: 'test', source }) })
+  await f.run({ channelId: 'party', channel: { type: 0 } })
+  assert.equal(await f.User.count(), 0)
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 0 })
+  await f.run({ channelId: 'private', channel: { type: 12, parentId: 'forum' } })
+  assert.equal((await f.User.findByPk('alice')).last_chat_message, null)
+  await f.run({ channelId: 'forum-post', channel: { type: 11, parentId: 'forum' } })
+  assert.equal((await f.User.findByPk('alice')).chat_exp, 10)
+  assert.equal(f.cursed.length, 3)
 })

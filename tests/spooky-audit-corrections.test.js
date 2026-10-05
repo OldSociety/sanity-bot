@@ -185,7 +185,7 @@ test('message pipelines handle XP/haiku/send failures independently and ignore n
     channel: { type: 0, send: async payload => { sent.push(payload); throw new Error('Synthetic send failure') } } }
   const dependencies = { detectHaiku: async () => { throw new Error('Synthetic haiku failure') },
     handleSpooky: async item => cursed.push(item.id), badgeField: async () => { throw new Error('Synthetic badge failure') },
-    clock: () => new Date(config.startsAt), random: () => 0 }
+    clock: () => new Date(config.startsAt), random: () => 0, qualifiesPersonalXp: () => true }
   require('../handlers/messageHandler')(client, { sequelize: f.db, findByPk: async () => { throw new Error('Synthetic XP failure') } }, dependencies)
   await events.get('messageCreate')(message)
   await events.get('messageCreate')({ ...message, guild: null, member: null, channel: { type: 1 } })
