@@ -9,7 +9,6 @@ module.exports = (client, User, dependencies = {}) => {
     ((message) => require('../services/spooky/runtime').handleMessage(message))
   const badgeField =
     dependencies.badgeField || require('../services/badges').badgeField
-  const communityConfig = dependencies.communityConfig || (() => require('../services/community-leveling/config').selectConfig())
   const handleCommunity = dependencies.handleCommunity || (message => require('../services/community-leveling/runtime').handleMessage(message, User))
   const profileNotification = dependencies.profileNotification || require('../services/profile-notification').createProfileNotification({ User })
   const clock = dependencies.clock || (() => new Date()),
@@ -37,8 +36,6 @@ module.exports = (client, User, dependencies = {}) => {
         console.error('Error fetching referenced message:', error.message)
       }
     }
-    const communal = communityConfig()
-    const communalGuild = communal.enabled && message.guild.id === communal.guildId
     let sanityActivity = null
     try { sanityActivity = await require('../services/sanity').handleMessage(message, User) }
     catch (error) { console.error('Sanity activity unavailable:', error.message) }
@@ -79,7 +76,7 @@ module.exports = (client, User, dependencies = {}) => {
         xp: Math.floor(random() * 4) + 10,
         unwanted,
         booster,
-        rewardFate: !communalGuild,
+        rewardFate: true,
       })
       if (result.levelUp) {
         const user = result.user
@@ -90,12 +87,12 @@ module.exports = (client, User, dependencies = {}) => {
             `🎉 Congratulations, ${
               message.author.username
             }! You've reached **level ${user.chat_level}**${
-              unwanted && !communalGuild ? ' and gained **5 fate points**!' : '!'
+              unwanted ? ' and gained **5 fate points**!' : '!'
             }`,
           )
           .setTimestamp()
           .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
-        if (unwanted && !communalGuild)
+        if (unwanted)
           embed.addFields(
             { name: 'Fate', value: `${user.fate_points}`, inline: true },
             { name: 'Bank', value: `${user.bank}`, inline: true },

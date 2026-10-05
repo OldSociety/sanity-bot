@@ -2,15 +2,17 @@ const test = require('node:test'), assert = require('node:assert/strict'), Seque
 async function fixture(t, dependencies = {}) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
   const User = require('../Models/User/User')(db, Sequelize.DataTypes); await User.sync()
-  const keys = ['GUILDID','SPOOKYCHANNELID'], saved = keys.map(key => process.env[key])
+  const keys = ['GUILDID','SPOOKYCHANNELID','UNWANTEDROLEID','BOOSTERROLEID'], saved = keys.map(key => process.env[key])
   process.env.GUILDID = 'guild'; process.env.SPOOKYCHANNELID = 'spooky'
+  process.env.UNWANTEDROLEID = 'unwanted'; process.env.BOOSTERROLEID = 'booster'
   t.after(() => keys.forEach((key, i) => saved[i] === undefined ? delete process.env[key] : process.env[key] = saved[i]))
   let handler; const cursed = []
   const client = { user: { id: 'bot' }, on: (_name, callback) => { handler = callback } }
   require('../handlers/messageHandler')(client, User, { detectHaiku: async () => null,
-    handleSpooky: async message => cursed.push(message.id), random: () => 0, clock: () => new Date('2026-10-02T12:00:00Z'), ...dependencies })
+    handleSpooky: async message => cursed.push(message.id), profileNotification: async () => null,
+    random: () => 0, clock: () => new Date('2026-10-02T12:00:00Z'), ...dependencies })
   const message = { id: 'message', guild: { id: 'guild' }, channelId: 'chat', channel: { send: async () => {} },
-    author: { id: 'alice', username: 'Alice', bot: false }, member: { roles: { cache: { has: () => false } } },
+    author: { id: 'alice', username: 'Alice', bot: false, displayAvatarURL: () => 'https://example.com/avatar.png' }, member: { roles: { cache: { has: () => false } } },
     content: 'Some ordinary conversation', mentions: { has: () => false } }
   return { User, message, cursed, run: overrides => handler({ ...message, ...overrides }) }
 }
@@ -24,15 +26,35 @@ test('Spooky channel and threads award no XP/Fate while cursed messages still ru
   assert.deepEqual(f.cursed, ['spooky-chat','spooky-thread'])
 })
 
-test('community launch preserves personal XP but replaces personal Fate; pipeline failure does not block seasonal processing', async t => {
+test('community pipeline failure preserves personal XP and capped Fate rewards and seasonal processing', async t => {
   let messages = 0
   const f = await fixture(t, { communityConfig: () => ({ enabled: true, guildId: 'guild' }),
     handleCommunity: async () => { messages++; throw new Error('Community test unavailable') }, badgeField: async () => ({ name: 'Badges', value: 'None' }) })
   await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 98, bank: 63 })
-  await f.run({ member: { roles: { cache: { has: () => true } } } })
+  await f.run({ member: { roles: { cache: { has: id => id === 'unwanted' } } } })
   const user = await f.User.findByPk('alice')
-  assert.equal(user.chat_level, 2); assert.equal(user.fate_points, 98); assert.equal(user.bank, 63)
+  assert.equal(user.chat_level, 2); assert.equal(user.fate_points, 100); assert.equal(user.bank, 63)
   assert.equal(messages, 1); assert.deepEqual(f.cursed, ['message'])
+})
+
+test('one qualifying chat can award both personal and communal level-up Fate without overwriting either', async t => {
+  let community, messageId = 0
+  const f = await fixture(t, { handleCommunity: message => community.earn({ guildId: 'guild', userId: message.author.id,
+    messageId: `community-${messageId++}`, now: new Date('2026-10-02T12:00:00Z') }),
+    badgeField: async () => ({ name: 'Badges', value: 'None' }) })
+  const db = f.User.sequelize
+  await require('../migrations/community-leveling').up(db.getQueryInterface())
+  const models = require('../services/community-leveling/models').defineModels(db)
+  community = require('../services/community-leveling/economy').createCommunity({ User: f.User, models,
+    config: { enabled: true, guildId: 'guild', timezone: 'America/Los_Angeles' },
+    resolveRecipients: async () => [{ userId: 'alice', userName: 'Alice' }] })
+  await models.Guild.create({ guildId: 'guild', xp: 299 })
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 90, bank: 63 })
+  await f.run({ member: { roles: { cache: { has: id => id === 'unwanted' } } } })
+  const user = await f.User.findByPk('alice'), guild = await models.Guild.findByPk('guild')
+  assert.equal(user.chat_level, 2); assert.equal(user.fate_points, 100); assert.equal(user.bank, 63)
+  assert.equal(guild.level, 2); assert.equal(guild.xp, 0)
+  assert.equal((await models.Receipt.findOne({ where: { guildId: 'guild', messageId: 'community-0' } })).result.rewards[0].credited, 5)
 })
 test('slash commands, interaction messages and bot/webhook output cannot award message XP anywhere', async t => {
   const f = await fixture(t)
