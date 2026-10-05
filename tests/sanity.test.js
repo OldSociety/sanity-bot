@@ -1,0 +1,105 @@
+const test = require('node:test'), assert = require('node:assert/strict'), Sequelize = require('sequelize')
+const { createSanity, selected } = require('../services/sanity')
+async function fixture(t, origin = '2026-10-04T16:00:00Z') {
+  const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
+  await require('../migrations/sanity').up(db.getQueryInterface())
+  await require('../migrations/sanity-daily').up(db.getQueryInterface())
+  // Most behavior checks use 50 to leave room for daily credits.
+  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity.json'), starting: 50, enabled: true } })
+  const now = hours => new Date(Date.parse(origin) + hours * 3600000)
+  return { db, service, now, gain: (id, hours, channelId = 'chat') => service.gain({ guildId: 'guild', userId: 'alice', messageId: id, channelId, now: now(hours) }) }
+}
+test('Sanity remains development-only', () => {
+  assert.equal(selected('development').starting, 100)
+  assert.equal(selected('development').enabled, true); assert.equal(selected('production').enabled, false); assert.equal(selected('test').enabled, false)
+})
+
+test('new accounts start at full Sanity and the first reminder cannot occur above69', async t => {
+  const f = await fixture(t)
+  const service = createSanity({ sequelize: f.db, config: { ...require('../config/sanity.json'), enabled: true } })
+  assert.equal((await service.view('guild', 'alice', f.now(0))).balance, 100)
+  assert.equal(await service.claimReminder('guild', 'alice', f.now(0)), null)
+  assert.equal((await service.view('guild', 'alice', f.now(30 * 24))).balance, 70)
+  assert.equal(await service.claimReminder('guild', 'alice', f.now(30 * 24)), null)
+  assert.equal((await service.view('guild', 'alice', f.now(31 * 24))).balance, 69)
+  assert.equal((await service.claimReminder('guild', 'alice', f.now(31 * 24))).band, 'fading')
+})
+test('presence earns two once, spaced conversation earns one, further messages and replay cannot farm rewards', async t => {
+  const f = await fixture(t)
+  assert.equal((await f.service.view('guild', 'alice', f.now(0))).balance, 50)
+  assert.equal((await f.gain('first', 0)).after, 52)
+  assert.equal((await f.gain('early', .49)).credited, 0)
+  assert.equal((await f.gain('conversation', .5, 'elsewhere')).after, 53)
+  for (let i = 0; i < 20; i++) assert.equal((await f.gain(`more-${i}`, 1 + i / 10)).credited, 0)
+  assert.equal((await f.gain('first', 0)).replayed, true)
+  assert.equal(await f.service.models.Receipt.count(), 2)
+  assert.equal((await f.gain('tomorrow', 24)).after, 55)
+})
+test('completed inactive Pacific days lose one; active days are protected; reads catch up once without counting as activity', async t => {
+  const f = await fixture(t); await f.gain('first', 0)
+  assert.equal((await f.service.view('guild', 'alice', f.now(24))).balance, 52)
+  assert.equal((await f.service.view('guild', 'alice', f.now(48))).balance, 51)
+  assert.equal((await f.service.view('guild', 'alice', f.now(48))).balance, 51)
+  assert.equal((await f.service.view('guild', 'alice', f.now(96))).balance, 49)
+  assert.equal((await f.gain('return', 96)).after, 51)
+  assert.equal((await f.service.view('guild', 'alice', f.now(120))).balance, 51)
+  assert.equal((await f.service.view('guild', 'alice', f.now(10000))).balance, 0)
+})
+test('two active conversation days maintain Sanity over a week, matching the intended scale', async t => {
+  const f = await fixture(t)
+  await f.gain('day0', 0); await f.gain('conversation0', .5)
+  await f.gain('day3', 72); await f.gain('conversation3', 72.5)
+  assert.equal((await f.service.view('guild', 'alice', f.now(168))).balance, 51) // +6 -5
+})
+test('Pacific midnight and DST use calendar days rather than elapsed 24-hour ticks', async t => {
+  const f = await fixture(t, '2026-11-01T06:45:00Z') // Oct31 23:45 PDT
+  await f.gain('oct31', 0)
+  assert.equal((await f.gain('nov1', .5)).after, 54) // New calendar day, even though just 30 minutes passed.
+  assert.equal((await f.service.view('guild', 'alice', new Date('2026-11-02T08:01:00Z'))).balance, 54)
+  assert.equal((await f.service.view('guild', 'alice', new Date('2026-11-03T08:01:00Z'))).balance, 53)
+})
+test('cap consumes daily rewards without letting a subsequent purchase manufacture them again', async t => {
+  const f = await fixture(t); await f.service.view('guild', 'alice', f.now(0))
+  await (await f.service.models.Account.findOne()).update({ balance: 100 })
+  assert.equal((await f.gain('presence', 0)).credited, 0)
+  assert.equal((await f.gain('conversation', .5)).credited, 0)
+  await f.db.transaction(tx => f.service.spendInTransaction({ guildId: 'guild', userId: 'alice', now: f.now(1), cost: 10 }, tx))
+  assert.equal((await f.gain('after-purchase', 1.5)).after, 90)
+})
+test('Sanity spend shares the root transaction, rolls back failures and rejects stale confirmations', async t => {
+  const f = await fixture(t); await f.service.view('guild', 'alice', f.now(0))
+  await assert.rejects(() => f.db.transaction(async tx => {
+    await f.service.spendInTransaction({ guildId: 'guild', userId: 'alice', now: f.now(0), cost: 10, expected: 50 }, tx)
+    throw Error('Failed award')
+  }), /Failed award/)
+  assert.equal((await f.service.view('guild', 'alice', f.now(0))).balance, 50)
+  await assert.rejects(() => f.db.transaction(tx => f.service.spendInTransaction({ guildId: 'guild', userId: 'alice', now: f.now(0), cost: 10, expected: 49 }, tx)), /changed/)
+})
+test('weekly reminder reservation uses current bands, never duplicates across thresholds, and zero is special once', async t => {
+  const f = await fixture(t); await f.service.view('guild', 'alice', f.now(0))
+  const account = await f.service.models.Account.findOne()
+  await account.update({ balance: 70 })
+  assert.equal(await f.service.claimReminder('guild', 'alice', f.now(0)), null)
+  await account.update({ balance: 69 })
+  const [one, two] = await Promise.all([f.service.claimReminder('guild', 'alice', f.now(0)), f.service.claimReminder('guild', 'alice', f.now(0))])
+  assert.equal(one.band, 'fading'); assert.equal(two, null)
+  await account.update({ balance: 24 })
+  assert.equal(await f.service.claimReminder('guild', 'alice', f.now(1)), null)
+  assert.equal((await f.service.claimReminder('guild', 'alice', f.now(168))).band, 'waning')
+  await account.update({ balance: 0 })
+  assert.equal(await f.service.claimReminder('guild', 'alice', f.now(169)), null)
+  assert.equal((await f.service.claimReminder('guild', 'alice', f.now(336))).special, true)
+  assert.equal(await f.service.claimReminder('guild', 'alice', f.now(504)), null)
+})
+test('daily migration preserves an old-policy balance, prevents duplicate credits today and does not backdate losses', async t => {
+  const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
+  await require('../migrations/sanity').up(db.getQueryInterface())
+  const model = createSanity({ sequelize: db }).models.Account
+  const now = new Date('2026-10-04T16:00:00Z')
+  await model.create({ guildId: 'guild', userId: 'alice', balance: 58, earned: 8, day: '2026-10-04', lastEarnedAt: now, lastActiveAt: now })
+  await require('../migrations/sanity-daily').up(db.getQueryInterface(), { now })
+  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity.json'), enabled: true } })
+  assert.equal((await service.view('guild', 'alice', now)).balance, 58)
+  assert.equal((await service.gain({ guildId: 'guild', userId: 'alice', messageId: 'after', now: new Date(+now + 3600000) })).credited, 0)
+  assert.equal((await model.findOne()).balance, 58)
+})

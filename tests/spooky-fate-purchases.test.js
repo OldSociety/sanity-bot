@@ -49,6 +49,23 @@ test('complete collection rejects paid draw and rolls back both Fate and Bank de
   assert.equal(await f.models.Operation.count({ where: { operationId: 'discord:complete-buy' } }), 0)
 })
 
+test('development Sanity purchases debit only Sanity once, preserve Fate/Bank, and roll back a failed draw', async t => {
+  const f = await fixture(t)
+  await require('../migrations/sanity').up(f.sequelize.getQueryInterface())
+  await require('../migrations/sanity-daily').up(f.sequelize.getQueryInterface())
+  const sanity = require('../services/sanity').createSanity({ sequelize: f.sequelize, config: { ...require('../config/sanity.json'), enabled: true } })
+  const service = createFatePurchases({ ...f, event: { ...f.event, fate: { ...f.event.fate, paymentResource: 'sanity' } }, sanity })
+  const result = await service.purchase(f.input('sanity'))
+  assert.equal(result.receipt.sanityBefore, 100); assert.equal(result.receipt.sanity, 90)
+  assert.equal((await service.purchase(f.input('sanity'))).replayed, true)
+  await f.user.reload(); assert.equal(f.user.bank, 100); assert.equal(f.user.fate_points, 100)
+  assert.equal(await f.models.Ledger.count({ where: { resource: 'sanity' } }), 1)
+  const failing = createFatePurchases({ ...f, event: { ...f.event, fate: { ...f.event.fate, paymentResource: 'sanity' } }, sanity,
+    collection: { drawFateQuarter: async () => { throw new Error('Draw failed') } } })
+  await assert.rejects(() => failing.purchase(f.input('failed')), /Draw failed/)
+  const account = await sanity.models.Account.findOne(); assert.equal(account.balance, 90)
+})
+
 test('bank-only purchase uses actual User model and leaves unbanked fate/candy/Eyes unchanged', async t => {
   const f = await fixture(t)
   const result = await f.service.purchase(f.input('buy'))

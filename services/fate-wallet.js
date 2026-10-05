@@ -33,6 +33,7 @@ async function applyChatMessage(User, { userId, userName, now, xp, unwanted, boo
     const [changed] = await User.update(values, { where: { user_id: userId,
       chat_exp: user.chat_exp, chat_level: user.chat_level, last_chat_message: user.last_chat_message } })
     return { credited: changed === 1, levelUp: changed === 1 && levelUp,
+      before: { chat_level: user.chat_level, fate_points: user.fate_points, bank: user.bank },
       overflow: levelUp && unwanted && rewardFate ? Math.max(0, user.fate_points + 5 - 100) : 0, user: await User.findByPk(userId) }
   })
 }
@@ -61,13 +62,19 @@ async function awardLevelUp(User, userId, values, { unwanted, booster }) {
   })
 }
 
-async function creditBank(User, userId, amount, { countBoost = false } = {}) {
+async function creditBank(User, userId, amount, { countBoost = false, withSnapshot = false } = {}) {
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Invalid bank reward')
   return serialize(User.sequelize, async () => {
+    const credit = async transaction => {
+    const options = transaction ? { transaction } : {}
+    const before = withSnapshot ? (await User.findByPk(userId, options))?.get({ plain: true }) : null
     await User.update({ bank: literal(`MAX(bank, MIN(100, bank + ${amount}))`), ...(countBoost ? {
     boosterTotal: literal('boosterTotal + CASE WHEN bank < 100 THEN 1 ELSE 0 END'),
-  } : {}) }, { where: { user_id: userId } })
-    return User.findByPk(userId)
+  } : {}) }, { ...options, where: { user_id: userId } })
+    const user = await User.findByPk(userId, options)
+    return withSnapshot ? { user, before, after: user?.get({ plain: true }) } : user
+    }
+    return withSnapshot ? User.sequelize.transaction({ type: require('sequelize').Transaction.TYPES.IMMEDIATE }, credit) : credit()
   })
 }
 

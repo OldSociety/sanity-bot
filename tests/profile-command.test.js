@@ -45,13 +45,36 @@ test('member option uses their wallet and guild-scoped newest badges', async t =
 test('profile definition supports optional member and disables DMs', () => {
   const data = require('../commands/Server/Profile').data.toJSON()
   assert.equal(data.name, 'profile'); assert.equal(data.dm_permission, false)
-  assert.equal(data.options[0].name, 'player'); assert.equal(data.options[0].required, false)
+  assert.deepEqual(data.options.map(option => option.name), ['view', 'birthday', 'level'])
+  assert.equal(data.options[0].options[0].name, 'player'); assert.equal(data.options[0].options[0].required, false)
 })
 test('Admin card label comes from the selected member role', async t => {
   const f = await fixture(t)
   f.interaction.guild.members.fetch = async () => ({ displayName: 'Alice', displayAvatarURL: f.interaction.user.displayAvatarURL,
     roles: { cache: new Map([['admin', { id: 'admin', name: 'Admin' }]]) } })
   await f.execute(); assert.equal(f.rendered[0].isAdmin, true)
+})
+
+test('birthday and level previews are private and never change saved levels, currency or Sanity', async t => {
+  const f = await fixture(t)
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_level: 27, chat_exp: 3000, fate_points: 100, bank: 63 })
+  const before = (await f.User.findByPk('alice')).get({ plain: true })
+  let balanceReads = 0
+  const sanityService = { view: async () => { throw Error('Preview must not settle Sanity') }, models: { Account: {
+    findOne: async () => { balanceReads++; return { balance: 72 } },
+  } } }
+  const deferred = []
+  f.interaction.deferReply = async options => deferred.push(options)
+  for (const mode of ['birthday', 'level']) {
+    f.interaction.options.getSubcommand = () => mode
+    await f.execute({ sanityService })
+    assert.deepEqual((await f.User.findByPk('alice')).get({ plain: true }), before)
+  }
+  assert.deepEqual(deferred, [{ ephemeral: true }, { ephemeral: true }])
+  assert.equal(f.rendered[0].occasion, 'birthday'); assert.equal(f.rendered[0].user.bank, 73)
+  assert.equal(f.rendered[0].before.bank, 63); assert.equal(f.rendered[1].occasion, 'level-up')
+  assert.equal(f.rendered[1].user.chat_level, 28); assert.equal(f.rendered[1].before.chat_level, 27)
+  assert.equal(balanceReads, 2); assert.match(f.edits[0].content, /Visual preview only/)
 })
 test('profile shows only selected member ownership, regardless of available server badges/emojis', async t => {
   const f = await fixture(t)

@@ -11,6 +11,7 @@ module.exports = (client, User, dependencies = {}) => {
     dependencies.badgeField || require('../services/badges').badgeField
   const communityConfig = dependencies.communityConfig || (() => require('../services/community-leveling/config').selectConfig())
   const handleCommunity = dependencies.handleCommunity || (message => require('../services/community-leveling/runtime').handleMessage(message, User))
+  const profileNotification = dependencies.profileNotification || require('../services/profile-notification').createProfileNotification({ User })
   const clock = dependencies.clock || (() => new Date()),
     random = dependencies.random || Math.random
   client.on('messageCreate', async (message) => {
@@ -38,6 +39,9 @@ module.exports = (client, User, dependencies = {}) => {
     }
     const communal = communityConfig()
     const communalGuild = communal.enabled && message.guild.id === communal.guildId
+    let sanityActivity = null
+    try { sanityActivity = await require('../services/sanity').handleMessage(message, User) }
+    catch (error) { console.error('Sanity activity unavailable:', error.message) }
     try {
       await handleCommunity(message)
     } catch (error) {
@@ -115,7 +119,11 @@ module.exports = (client, User, dependencies = {}) => {
         } catch (error) {
           console.error('Level-up badges unavailable:', error.message)
         }
-        await message.channel.send({ embeds: [embed] })
+        let card = null
+        try { card = await profileNotification({ message, user: user.get({ plain: true }), before: result.before, occasion: 'level-up',
+          ...(sanityActivity ? { sanity: { balance: sanityActivity.after, beforeBalance: sanityActivity.before, maximum: require('../config/sanity.json').capacity } } : {}) }) }
+        catch (error) { console.error('Level-up card unavailable:', error.message) }
+        await message.channel.send(card || { embeds: [embed] })
       }
     } catch (error) {
       console.error('Error updating chat progression:', error.message)

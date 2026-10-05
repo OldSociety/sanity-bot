@@ -38,3 +38,4 @@ yarn-error.log**.sqlite
 /.worktrees/
 /artifacts/profile-worktree-archive/
 /.runtime/
+AGENTS.md

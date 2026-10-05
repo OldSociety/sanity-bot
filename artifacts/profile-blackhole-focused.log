@@ -1,0 +1,110 @@
+TAP version 13
+# Subtest: progress uses live per-level XP threshold and bounds the bar
+ok 1 - progress uses live per-level XP threshold and bounds the bar
+  ---
+  duration_ms: 2.6847
+  ...
+# Subtest: badge strip is newest first with deterministic ties and no unknown ownership
+ok 2 - badge strip is newest first with deterministic ties and no unknown ownership
+  ---
+  duration_ms: 14.3083
+  ...
+# Subtest: large badge catalog displays only ten newest owned badges
+ok 3 - large badge catalog displays only ten newest owned badges
+  ---
+  duration_ms: 1.0563
+  ...
+# Subtest: renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+ok 4 - renderer produces PNG for Unicode/XML names, empty badges and overflow XP
+  ---
+  duration_ms: 339.9422
+  ...
+# Subtest: image fetch restricts hosts, size and redirects
+ok 5 - image fetch restricts hosts, size and redirects
+  ---
+  duration_ms: 23.9699
+  ...
+# Subtest: profile reads existing and absent players without writes and sends PNG attachment
+ok 6 - profile reads existing and absent players without writes and sends PNG attachment
+  ---
+  duration_ms: 121.8643
+  ...
+# Subtest: missing badges/avatar permit card and render failure closes deferred response
+ok 7 - missing badges/avatar permit card and render failure closes deferred response
+  ---
+  duration_ms: 8.0334
+  ...
+# Subtest: member option uses their wallet and guild-scoped newest badges
+ok 8 - member option uses their wallet and guild-scoped newest badges
+  ---
+  duration_ms: 7.2595
+  ...
+# Subtest: profile definition supports optional member and disables DMs
+ok 9 - profile definition supports optional member and disables DMs
+  ---
+  duration_ms: 4.9103
+  ...
+# Subtest: Admin card label comes from the selected member role
+ok 10 - Admin card label comes from the selected member role
+  ---
+  duration_ms: 6.535
+  ...
+# Subtest: profile shows only selected member ownership, regardless of available server badges/emojis
+ok 11 - profile shows only selected member ownership, regardless of available server badges/emojis
+  ---
+  duration_ms: 16.6582
+  ...
+# Subtest: profile wrapper rejects production and wrong guild before loading storage
+ok 12 - profile wrapper rejects production and wrong guild before loading storage
+  ---
+  duration_ms: 0.8917
+  ...
+# Subtest: profile is available to runtime and registration only in explicit development
+ok 13 - profile is available to runtime and registration only in explicit development
+  ---
+  duration_ms: 1144.488
+  ...
+# Subtest: merged deployment registry keeps Spooky in both environments and profile only in development
+ok 14 - merged deployment registry keeps Spooky in both environments and profile only in development
+  ---
+  duration_ms: 419.4358
+  ...
+# Subtest: birthday snapshots surround the committed capped Bank credit
+ok 15 - birthday snapshots surround the committed capped Bank credit
+  ---
+  duration_ms: 473.4007
+  ...
+# Subtest: occasion arrows reflect actual changes and cap-limited awards, with no invented adjustments on normal profiles
+ok 16 - occasion arrows reflect actual changes and cap-limited awards, with no invented adjustments on normal profiles
+  ---
+  duration_ms: 24.1052
+  ...
+# Subtest: background eye uses exact requested thresholds and all five transparent overlays render independently
+ok 17 - background eye uses exact requested thresholds and all five transparent overlays render independently
+  ---
+  duration_ms: 45.523
+  ...
+# Subtest: level-up and birthday cards retain dimensions, Unicode names and only owned badges with Sanity artwork
+ok 18 - level-up and birthday cards retain dimensions, Unicode names and only owned badges with Sanity artwork
+  ---
+  duration_ms: 286.7359
+  ...
+# Subtest: changing Sanity changes the background-eye area without changing landscape or wallet content below it
+ok 19 - changing Sanity changes the background-eye area without changing landscape or wallet content below it
+  ---
+  duration_ms: 184.5272
+  ...
+# Subtest: automatic artwork remains development-only and uses committed snapshots rather than reading a new Fate balance
+ok 20 - automatic artwork remains development-only and uses committed snapshots rather than reading a new Fate balance
+  ---
+  duration_ms: 1090.1519
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6364.9893

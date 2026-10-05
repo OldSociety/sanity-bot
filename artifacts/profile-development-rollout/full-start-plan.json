@@ -1,0 +1,41 @@
+{
+  "guildId": "684459745167671453",
+  "humans": [
+    "138131238803210240",
+    "1190768287848607876"
+  ],
+  "processes": [
+    {
+      "name": "SB-production",
+      "pid": 11728,
+      "status": "online",
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "script": "C:\\Users\\headm\\code\\sanity-bot-dev\\app.js",
+      "restarts": 32,
+      "error": "C:\\Users\\headm\\.pm2\\logs\\SB-production-error.log",
+      "out": "C:\\Users\\headm\\.pm2\\logs\\SB-production-out.log"
+    },
+    {
+      "name": "SB-development",
+      "pid": 10248,
+      "status": "online",
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev\\.worktrees\\leveling-profile",
+      "script": "C:\\Users\\headm\\code\\sanity-bot-dev\\.worktrees\\leveling-profile\\app.js",
+      "restarts": 1,
+      "error": "C:\\Users\\headm\\.pm2\\logs\\SB-development-error.log",
+      "out": "C:\\Users\\headm\\.pm2\\logs\\SB-development-out.log"
+    }
+  ],
+  "logs": [
+    {
+      "name": "SB-production",
+      "error": 2838531,
+      "out": 381665026
+    },
+    {
+      "name": "SB-development",
+      "error": 35834,
+      "out": 19733573
+    }
+  ]
+}

@@ -3,9 +3,10 @@ const sessions = new Set()
 const prefix = 'spooky-spend-fate:'
 function hasSession(customId) { return sessions.has(customId) }
 function confirmationPayload(interaction, quote, event) {
-  const paymentText = event.fate.paymentResource === 'normal-fate-only' ? '**normal Fate only**. Banked Fate is reserved for rerolls' : '**Bank first**, then your **Fate balance**'
-  const payload = withBalances(privateScreen('🔮 Spend Fate Points?',
-    `Buy **one random unowned quarter** for **${event.fate.quarterCost} Fate Points**?\n\nPayment uses ${paymentText}. The numbers below show this purchase's deductions.\nYou will receive a piece you have not collected yet.\n\nNothing is spent until you press **Confirm**. This offer expires in two minutes.`, fateBalanceFields(quote.payment)), quote)
+  const currency = event.fate.paymentResource === 'sanity' ? 'Sanity' : 'Fate Points'
+  const paymentText = currency === 'Sanity' ? '**Sanity only**. Fate and Bank remain untouched' : event.fate.paymentResource === 'normal-fate-only' ? '**normal Fate only**. Banked Fate is reserved for rerolls' : '**Bank first**, then your **Fate balance**'
+  const payload = withBalances(privateScreen(`🔮 Spend ${currency}?`,
+    `Buy **one random unowned quarter** for **${event.fate.quarterCost} ${currency}**?\n\nPayment uses ${paymentText}. The numbers below show this purchase's deductions.\nYou will receive a piece you have not collected yet.\n\nNothing is spent until you press **Confirm**. This offer expires in two minutes.`, fateBalanceFields(quote.payment)), quote)
   if (interaction.user.displayAvatarURL) payload.embeds[0].thumbnail = { url: interaction.user.displayAvatarURL() }
   payload.components = [{ type: 1, components: [
     { type: 2, style: 3, custom_id: `${prefix}${interaction.id}:confirm`, label: 'Confirm' },
@@ -14,6 +15,7 @@ function confirmationPayload(interaction, quote, event) {
   return payload
 }
 async function showConfirmation(interaction, { quote, event, onConfirm }) {
+  const cancellation = event.fate.paymentResource === 'sanity' ? 'Your Sanity is untouched.' : 'Your Fate Points are untouched.'
   const payload = confirmationPayload(interaction, quote, event)
   const ids = payload.components[0].components.map(button => button.custom_id)
   ids.forEach(id => sessions.add(id))
@@ -36,14 +38,14 @@ async function showConfirmation(interaction, { quote, event, onConfirm }) {
           // confirmation handler while the committed reward is being delivered.
           ids.forEach(id => sessions.delete(id))
           if (button.customId.endsWith(':confirm')) await onConfirm()
-          else await interaction.editReply({ ...withBalances(privateScreen('🔮 Purchase Cancelled', 'Your Fate Points are untouched.'), quote), components: [] })
+          else await interaction.editReply({ ...withBalances(privateScreen('🔮 Purchase Cancelled', cancellation), quote), components: [] })
           resolve()
         } catch (error) { collector.stop('failed'); reject(error) }
       })
       collector.on('end', () => {
         if (claimed) return
         claimed = true
-        void interaction.editReply({ ...withBalances(privateScreen('🔮 Confirmation Expired', 'Nothing was spent. Use /spooky spend-fate to review a new purchase.'), quote), components: [] })
+        void interaction.editReply({ ...withBalances(privateScreen('🔮 Confirmation Expired', `Nothing was spent. Use /spooky ${event.fate.paymentResource === 'sanity' ? 'buy-quarter' : 'spend-fate'} to review a new purchase.`), quote), components: [] })
           .catch(() => {}).finally(resolve)
       })
     })

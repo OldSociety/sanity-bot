@@ -61,6 +61,10 @@ module.exports = {
           }
         }
         await command.execute(interaction)
+        if (process.env.NODE_ENV === 'development') {
+          try { await require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User) }
+          catch (error) { console.error('Sanity reminder unavailable:', error.message) }
+        }
       } catch (error) {
         console.error(`Error executing ${interaction.commandName}`)
         console.error(error)
@@ -76,7 +80,8 @@ module.exports = {
         return
       }
       if (customId.startsWith('spooky-spend-fate:') && !require('../services/spooky/fate-confirmation').hasSession(customId)) {
-        await interaction.reply({ content: 'This confirmation expired. Nothing was spent by this click; use /spooky spend-fate to review a new purchase.', ephemeral: true }).catch(() => {})
+        const purchase = require('../services/sanity').selected().enabled ? 'buy-quarter' : 'spend-fate'
+        await interaction.reply({ content: `This confirmation expired. Nothing was spent by this click; use /spooky ${purchase} to review a new purchase.`, ephemeral: true }).catch(() => {})
         return
       }
 

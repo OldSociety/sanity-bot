@@ -32,6 +32,9 @@ function withBalances(payload, receipt, now, event) {
 const { safeName } = require('../display-name')
 function fateBalanceFields(result) {
   const valid = (value) => Number.isSafeInteger(value) && value >= 0
+  if (valid(result.sanity)) return [{ name: 'Sanity', value: valid(result.sanityBefore) && result.sanityBefore !== result.sanity ? `${result.sanityBefore} → ${result.sanity}` : `${result.sanity}`, inline: true },
+    ...(valid(result.fatePoints) ? [{ name: 'Fate', value: `${result.fatePoints}`, inline: true }] : []),
+    ...(valid(result.bank) ? [{ name: 'Bank', value: `${result.bank}`, inline: true }] : [])]
   if (!valid(result.bank)) return []
   const before = valid(result.bankBefore) ? result.bankBefore : null
   const bank = {
@@ -325,7 +328,7 @@ function registrationScreen(receipt, user) {
       '**Play:** `/spooky treat` or `/spooky trick` — each costs **1 🍬 candy**.',
       '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random unowned quarter. Every new piece advances your collection! Complete a character to unlock its permanent badge.',
       '**Check in:** `/spooky collection` for quarters, badges and balances.',
-      `**More:** \`/spooky spend-fate\` buys a quarter for **10 Fate Points (${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'})**. \`/spooky help\` explains the full rules.`,
+      config.fate.paymentResource === 'sanity' ? '**More:** `/spooky buy-quarter` buys a quarter for **10 Sanity**. Fate and Bank stay untouched. `/spooky help` explains the full rules.' : `**More:** \`/spooky spend-fate\` buys a quarter for **10 Fate Points (${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'})**. \`/spooky help\` explains the full rules.`,
       'Candy refills **+1 every 18 minutes**. Keep spending so your bucket has room for more!',
     ].join('\n\n'),
   )
@@ -346,7 +349,7 @@ function helpScreen() {
     [
       '**Play:** `/spooky register`, `/spooky trick`, `/spooky treat`.',
       '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
-      `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'}**; no daily limit.`,
+      config.fate.paymentResource === 'sanity' ? '**Extra quarter:** `/spooky buy-quarter` lets you confirm spending **10 Sanity**; Fate and Bank stay untouched.' : `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'}**; no daily limit.`,
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
       'Five 🧿 Evil Eyes automatically award an unowned quarter. You can collect each piece only once; completed collections retain further Eyes.',
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',

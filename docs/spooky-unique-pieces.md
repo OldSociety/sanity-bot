@@ -27,3 +27,15 @@ New regressions cover all28 unique pieces, depleted rarity pools, completed coll
 ## Rollout
 
 Use the independent production runtime described in [branch workflow](branch-development-workflow.md). Stop its single writer, verify backup/integrity, install only the reviewed source/config files, apply the quiet compensation once, then restart and check fresh logs plus actual nickname restoration. Development is switched back to the preserved leveling checkout after these fixes are integrated there. No schema migration, new command, odds change for Eyes/Crown, participant reset, historical rescore or unrelated admin exclusion is part of the rollout. Exact operational evidence resides in ignored `.runtime/spooky-fixes`.
+
+## Completed live verification
+
+Fix commit7550520 is retained on `codex/spooky-collection-fixes`, based on main. Its resolved integration is8aa0832 on `feature/S-1-leveling`; the primary checkout returned to that branch with all unfinished leveling/profile/Sanity work restored. No worktree was created or retained and no remote push/main merge was performed.
+
+420/420 full fix-branch checks and14/14 final purchase checks passed; after integration467/467 full checks passed. Offline preflight, full registry audit, syntax and whitespace checks passed. New source/config files only were installed into the independent production runtime. No command definition or registry changes were needed.
+
+Both writers were stopped for separately verified backups: `.runtime/spooky-fixes/production-before.sqlite` and `development-before.sqlite`. Per-environment quiet compensation found exactly one extra `mrq_bl` for junkrabbit in each database, removed only that extra, and credited4 Eyes (balance afterward4). Replay returned the same saved receipt without another credit. All tables outside participants/inventory/ledger/operations matched pre-cutover hashes; other participant fields and first inventory copies were verified unchanged. SQLite integrity and foreign-key checks passed. No notifications or badge writes accompanied compensation.
+
+Production restarted on PID8364 and development on PID21120; both online/Ready, PM2 saved, fresh error-log sizes unchanged. Read-only database plus fresh Discord REST checks found zero remaining production duplicates, four expired shields removed with all four nicknames restored, and seven active shields limited to6hours from their original casts. The existing unrelated nickname conflict for154693795160522752 remains unchanged; no manual nickname override was forced. There were no new pending deliveries.
+
+Evidence: `production-cutover.json`, `development-cutover.json`, `shield-verification.json`, `processes-{before,after}.json`, `final-full-tests.log`, `final-purchase-tests.log`, and `integrated-leveling-full-tests.log` under `.runtime/spooky-fixes`. Existing Eye/Crown action odds, candy refill, reversal duration, shield charges and gameplay participation remain unchanged.

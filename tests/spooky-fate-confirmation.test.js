@@ -15,6 +15,22 @@ function fixture() {
   return { interaction, collector, edits, denials, button, quote }
 }
 const tick = () => new Promise(resolve => setImmediate(resolve))
+
+test('Sanity confirmation and cancellation use the new currency without spending or adding commands', async () => {
+  const f = fixture(); let purchases = 0
+  const event = { ...config, fate: { ...config.fate, paymentResource: 'sanity' } }
+  const quote = { ...f.quote, payment: { sanityBefore: 50, sanity: 40, sanitySpent: 10, bank: 63, fatePoints: 100 } }
+  const work = showConfirmation(f.interaction, { quote, event, onConfirm: async () => { purchases++ } })
+  await tick()
+  assert.deepEqual(f.edits[0].embeds[0].fields.map(item => [item.name, item.value]), [['Sanity','50 → 40'], ['Fate','100'], ['Bank','63']])
+  f.collector.emit('collect', f.button('cancel')); await work
+  assert.match(f.edits.at(-1).embeds[0].description, /Sanity/)
+  assert.equal(purchases, 0)
+  const definition = require('../services/spooky/command-definition').spookyCommand({}, event).data.toJSON()
+  assert.equal(definition.options.length, 7)
+  assert.ok(definition.options.some(item => item.name === 'buy-quarter'))
+  assert.ok(!definition.options.some(item => item.name === 'spend-fate'))
+})
 test('confirmation displays exact Bank/Fate projections and spends nothing on cancel or timeout', async () => {
   for (const kind of ['cancel', 'timeout']) {
     const f = fixture(); let purchases = 0

@@ -1,0 +1,1173 @@
+{
+  "guildId": "684459745167671453",
+  "clientId": "1291847176569360476",
+  "live": [
+    {
+      "id": "1427356393068822779",
+      "application_id": "1291847176569360476",
+      "version": "1427356393068822788",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "achievement",
+      "description": "Manage achievements",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "create",
+          "description": "ADMIN: Create a new achievement",
+          "options": [
+            {
+              "type": 3,
+              "name": "name",
+              "description": "The name of the achievement",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "description",
+              "description": "The description of the achievement",
+              "required": true
+            },
+            {
+              "type": 5,
+              "name": "secret",
+              "description": "Is this achievement secret?",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "view",
+          "description": "ADMIN: Delete an achievement from the list"
+        },
+        {
+          "type": 1,
+          "name": "delete",
+          "description": "ADMIN: Delete an achievement from the list"
+        },
+        {
+          "type": 1,
+          "name": "award",
+          "description": "ADMIN: Award an achievement to a user",
+          "options": [
+            {
+              "type": 6,
+              "name": "user",
+              "description": "The user to award the achievement to",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remove",
+          "description": "ADMIN: Remove an achievement from a user",
+          "options": [
+            {
+              "type": 6,
+              "name": "user",
+              "description": "The user to remove the achievement from",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "upload",
+          "description": "ADMIN: Upload achievements from a CSV file",
+          "options": [
+            {
+              "type": 11,
+              "name": "file",
+              "description": "The CSV file containing achievements",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822780",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108116",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "birthday",
+      "description": "Check, set, or update birthdays",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "check",
+          "description": "Check a user's birthday",
+          "options": [
+            {
+              "type": 6,
+              "name": "target",
+              "description": "The user to check. Defaults to you if not provided."
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remember",
+          "description": "Save your birthday",
+          "options": [
+            {
+              "type": 4,
+              "name": "day",
+              "description": "Day of your birthday (1-31)",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "month",
+              "description": "Month of your birthday (1-12)",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "year",
+              "description": "Year of your birthday (e.g. 1990)",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "update",
+          "description": "Update your birthday",
+          "options": [
+            {
+              "type": 4,
+              "name": "day",
+              "description": "New day of your birthday (1-31)",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "month",
+              "description": "New month of your birthday (1-12)",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "year",
+              "description": "New year of your birthday (e.g. 1990)",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822781",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108117",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "fate",
+      "description": "Interact with your fate points.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "add-fate",
+          "description": "Add fate points to yourself.",
+          "options": [
+            {
+              "type": 4,
+              "name": "points",
+              "description": "The number of fate points to add",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "reroll",
+          "description": "Automatically deduct 10 fate points if possible."
+        },
+        {
+          "type": 1,
+          "name": "balance",
+          "description": "Check your fate points and bank balance."
+        },
+        {
+          "type": 1,
+          "name": "manage",
+          "description": "Admins: Manage fate points and bank of any user.",
+          "options": [
+            {
+              "type": 6,
+              "name": "user",
+              "description": "The user to manage",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "action",
+              "description": "Choose an action",
+              "required": true,
+              "choices": [
+                {
+                  "name": "set-fate",
+                  "value": "set-fate"
+                },
+                {
+                  "name": "set-bank",
+                  "value": "set-bank"
+                }
+              ]
+            },
+            {
+              "type": 4,
+              "name": "amount",
+              "description": "Amount of points to set or add",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822782",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108118",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "throw",
+      "description": "Throw a snowball at a random player!",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822783",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108119",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "report",
+      "description": "Report activity to the staff anonymously or publicly",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822784",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108120",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "server",
+      "description": "Display info about this server.",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822785",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108121",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "user",
+      "description": "Provides information about the user.",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822786",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108122",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "shop",
+      "description": "Manage and interact with the shop.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "add-item",
+          "description": "Admins: Add an item to the shop.",
+          "options": [
+            {
+              "type": 3,
+              "name": "name",
+              "description": "Item name",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "description",
+              "description": "Item description",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "image",
+              "description": "Item image URL",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "cost",
+              "description": "Item cost in Fate Points",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "stock",
+              "description": "Item stock (-1 for infinite)",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remove-item",
+          "description": "Admins: Remove an item from the shop.",
+          "options": [
+            {
+              "type": 4,
+              "name": "number",
+              "description": "Item number (as displayed in the shop list) to remove",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "restock",
+          "description": "Admins: Restock an item in the shop.",
+          "options": [
+            {
+              "type": 4,
+              "name": "number",
+              "description": "Item number (as displayed in the shop list) to restock",
+              "required": true
+            },
+            {
+              "type": 4,
+              "name": "amount",
+              "description": "New stock count (-1 for infinite)",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "list",
+          "description": "Displays all available shop items."
+        },
+        {
+          "type": 1,
+          "name": "buy",
+          "description": "Purchase an item from the shop.",
+          "options": [
+            {
+              "type": 4,
+              "name": "number",
+              "description": "Item number (as displayed in the shop list) to buy",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1427356393068822787",
+      "application_id": "1291847176569360476",
+      "version": "1427356393199108123",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "timestamp",
+      "description": "Convert a date/time into a Discord timestamp.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 3,
+          "name": "datetime",
+          "description": "Date and time (e.g., \"2025-03-07 18:30\")",
+          "required": true
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1428048310194933890",
+      "application_id": "1291847176569360476",
+      "version": "1428048310194933891",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "slots",
+      "description": "Spin the Winter Slot Machine! 🎰",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1545540670804992101",
+      "application_id": "1291847176569360476",
+      "version": "1555630480429162508",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "game",
+      "description": "Something is waiting",
+      "guild_id": "684459745167671453",
+      "nsfw": false
+    },
+    {
+      "id": "1555630479749808301",
+      "application_id": "1291847176569360476",
+      "version": "1555630479749808308",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "badges",
+      "description": "View permanent server badges.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "view",
+          "description": "View your badges or another member’s.",
+          "options": [
+            {
+              "type": 6,
+              "name": "player",
+              "description": "Member to view."
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "leaderboard",
+          "description": "See the most collected badges.",
+          "options": [
+            {
+              "type": 4,
+              "name": "page",
+              "description": "Page number.",
+              "min_value": 1
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1555630479749808305",
+      "application_id": "1291847176569360476",
+      "version": "1555743708626952282",
+      "default_member_permissions": "0",
+      "type": 1,
+      "name": "spooky-admin",
+      "description": "Inspect and repair Spooky event state.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 2,
+          "name": "inspect",
+          "description": "Spooky inspect tools.",
+          "options": [
+            {
+              "type": 1,
+              "name": "player",
+              "description": "Inspect stored player balances, inventory and effects.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Player to inspect.",
+                  "required": true
+                },
+                {
+                  "type": 4,
+                  "name": "page",
+                  "description": "Page of this private inspection result (default 1).",
+                  "min_value": 1,
+                  "max_value": 10000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "config",
+              "description": "Inspect event rules and stored pause/archive state.",
+              "options": [
+                {
+                  "type": 4,
+                  "name": "page",
+                  "description": "Page of this private inspection result (default 1).",
+                  "min_value": 1,
+                  "max_value": 10000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "transactions",
+              "description": "Inspect recent scoped ledger and operation receipts.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Optional player filter."
+                },
+                {
+                  "type": 4,
+                  "name": "before",
+                  "description": "Only rows with IDs lower than this cursor.",
+                  "min_value": 1
+                },
+                {
+                  "type": 4,
+                  "name": "limit",
+                  "description": "Rows per queue (default 20).",
+                  "min_value": 1,
+                  "max_value": 50
+                },
+                {
+                  "type": 4,
+                  "name": "page",
+                  "description": "Page of this private inspection result (default 1).",
+                  "min_value": 1,
+                  "max_value": 10000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "deliveries",
+              "description": "Inspect role/nickname and public notification queues.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Optional player filter."
+                },
+                {
+                  "type": 4,
+                  "name": "before",
+                  "description": "Only rows with IDs lower than this cursor.",
+                  "min_value": 1
+                },
+                {
+                  "type": 4,
+                  "name": "limit",
+                  "description": "Rows per queue (default 20).",
+                  "min_value": 1,
+                  "max_value": 50
+                },
+                {
+                  "type": 4,
+                  "name": "page",
+                  "description": "Page of this private inspection result (default 1).",
+                  "min_value": 1,
+                  "max_value": 10000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "wording",
+              "description": "Privately browse trick and treat embed designs."
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "repair",
+          "description": "Spooky repair tools.",
+          "options": [
+            {
+              "type": 1,
+              "name": "adjust",
+              "description": "Apply an audited candy or Evil Eye balance correction.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Existing player to repair.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "resource",
+                  "description": "Balance to correct.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "Candy",
+                      "value": "candy"
+                    },
+                    {
+                      "name": "Evil Eyes",
+                      "value": "eyes"
+                    }
+                  ]
+                },
+                {
+                  "type": 4,
+                  "name": "delta",
+                  "description": "Signed adjustment: candy ±80, Eyes ±100; no zero.",
+                  "required": true,
+                  "min_value": -100,
+                  "max_value": 100
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "grant-quarter",
+              "description": "Grant one named quarter; duplicate exchange runs automatically.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Registered player to repair.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "piece",
+                  "description": "Stable piece ID, for example had_tl.",
+                  "required": true,
+                  "max_length": 16
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "remove-quarter",
+              "description": "Remove one named quarter; last copies need explicit permission.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Registered player to repair.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "piece",
+                  "description": "Stable piece ID, for example had_tl.",
+                  "required": true,
+                  "max_length": 16
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                },
+                {
+                  "type": 5,
+                  "name": "last-copy",
+                  "description": "Explicitly permit removal of an erroneous only copy."
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "clear-effect",
+              "description": "Clear an effect and queue safe Discord restoration.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Existing player to repair.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "effect",
+                  "description": "Effect to clear.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "Curse",
+                      "value": "curse"
+                    },
+                    {
+                      "name": "Reversed nickname",
+                      "value": "reversed_nickname"
+                    },
+                    {
+                      "name": "Theft protection",
+                      "value": "theft_protection"
+                    }
+                  ]
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "recompute-badges",
+              "description": "Reconcile earned permanent badges without changing quarters.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Registered event participant.",
+                  "required": true
+                },
+                {
+                  "type": 5,
+                  "name": "confirm",
+                  "description": "Confirm permanent badge eligibility reconciliation.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "event",
+          "description": "Spooky event tools.",
+          "options": [
+            {
+              "type": 1,
+              "name": "pause",
+              "description": "Pause or resume event actions without changing event dates.",
+              "options": [
+                {
+                  "type": 5,
+                  "name": "paused",
+                  "description": "True to pause; false to resume.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "reset-development",
+              "description": "Reset one development seasonal player, retaining audit and wallet.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Development participant to reset.",
+                  "required": true
+                },
+                {
+                  "type": 5,
+                  "name": "confirm",
+                  "description": "Explicitly confirm the seasonal development reset.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "reset-testing",
+              "description": "Fresh development test: clear event state, badges and Crown; retain Fate/Bank and audit.",
+              "options": [
+                {
+                  "type": 6,
+                  "name": "player",
+                  "description": "Development player to fully reset.",
+                  "required": true
+                },
+                {
+                  "type": 5,
+                  "name": "confirm",
+                  "description": "Confirm clearing event badges and Crown eligibility too.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "queue",
+          "description": "Spooky queue tools.",
+          "options": [
+            {
+              "type": 1,
+              "name": "resolve-notification",
+              "description": "Resolve one inspected queue row with an audited explicit decision.",
+              "options": [
+                {
+                  "type": 4,
+                  "name": "id",
+                  "description": "Inspected queue row ID.",
+                  "required": true,
+                  "min_value": 1
+                },
+                {
+                  "type": 3,
+                  "name": "action",
+                  "description": "Resend deliberately risks a duplicate; retry only an unclaimed send.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "acknowledge",
+                      "value": "acknowledge"
+                    },
+                    {
+                      "name": "cancel",
+                      "value": "cancel"
+                    },
+                    {
+                      "name": "retry",
+                      "value": "retry"
+                    },
+                    {
+                      "name": "resend",
+                      "value": "resend"
+                    }
+                  ]
+                },
+                {
+                  "type": 3,
+                  "name": "status",
+                  "description": "Exact status shown by inspection.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "pending",
+                      "value": "pending"
+                    },
+                    {
+                      "name": "sending",
+                      "value": "sending"
+                    },
+                    {
+                      "name": "uncertain",
+                      "value": "uncertain"
+                    }
+                  ]
+                },
+                {
+                  "type": 5,
+                  "name": "confirm",
+                  "description": "Confirm this decision, including possible duplicate risk for resend.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                },
+                {
+                  "type": 3,
+                  "name": "message",
+                  "description": "Observed bot message ID, required for acknowledge.",
+                  "max_length": 20
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "resolve-delivery",
+              "description": "Resolve one inspected queue row with an audited explicit decision.",
+              "options": [
+                {
+                  "type": 4,
+                  "name": "id",
+                  "description": "Inspected queue row ID.",
+                  "required": true,
+                  "min_value": 1
+                },
+                {
+                  "type": 3,
+                  "name": "action",
+                  "description": "Resend deliberately risks a duplicate; retry only an unclaimed send.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "acknowledge",
+                      "value": "acknowledge"
+                    },
+                    {
+                      "name": "cancel",
+                      "value": "cancel"
+                    },
+                    {
+                      "name": "retry",
+                      "value": "retry"
+                    }
+                  ]
+                },
+                {
+                  "type": 3,
+                  "name": "status",
+                  "description": "Exact status shown by inspection.",
+                  "required": true,
+                  "choices": [
+                    {
+                      "name": "pending",
+                      "value": "pending"
+                    },
+                    {
+                      "name": "conflict",
+                      "value": "conflict"
+                    }
+                  ]
+                },
+                {
+                  "type": 3,
+                  "name": "revision",
+                  "description": "Exact inspected delivery revision.",
+                  "required": true,
+                  "max_length": 200
+                },
+                {
+                  "type": 5,
+                  "name": "confirm",
+                  "description": "Confirm this decision, including possible duplicate risk for resend.",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "reason",
+                  "description": "Required private audit reason for this correction.",
+                  "required": true,
+                  "min_length": 1,
+                  "max_length": 500
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1555630479749808307",
+      "application_id": "1291847176569360476",
+      "version": "1555743708626952283",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "spooky",
+      "description": "Play Spooky Season or view your collection.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 1,
+          "name": "help",
+          "description": "Read the Spooky rules."
+        },
+        {
+          "type": 1,
+          "name": "register",
+          "description": "Join Spooky Season and see how to play."
+        },
+        {
+          "type": 1,
+          "name": "collection",
+          "description": "View your character quarters and balances."
+        },
+        {
+          "type": 1,
+          "name": "leaderboard",
+          "description": "View the Spooky rankings for Scream Supreme.",
+          "options": [
+            {
+              "type": 4,
+              "name": "page",
+              "description": "Rankings page.",
+              "min_value": 1,
+              "max_value": 1000
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "trick",
+          "description": "Spend one candy on a random trick."
+        },
+        {
+          "type": 1,
+          "name": "treat",
+          "description": "Spend one candy on a random treat."
+        },
+        {
+          "type": 1,
+          "name": "spend-fate",
+          "description": "Review and confirm spending ten Fate Points on a random quarter."
+        }
+      ],
+      "nsfw": false
+    },
+    {
+      "id": "1556215575007600742",
+      "application_id": "1291847176569360476",
+      "version": "1556215575007600743",
+      "default_member_permissions": null,
+      "type": 1,
+      "name": "profile",
+      "description": "Show a profile card with XP, Fate and recent badges.",
+      "guild_id": "684459745167671453",
+      "options": [
+        {
+          "type": 6,
+          "name": "player",
+          "description": "Member to view; defaults to you."
+        }
+      ],
+      "nsfw": false
+    }
+  ],
+  "desired": [
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "view",
+          "description": "Show a profile card.",
+          "options": [
+            {
+              "name": "player",
+              "description": "Member to view; defaults to you.",
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "birthday",
+          "description": "Preview your birthday card without awarding points.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "level",
+          "description": "Preview your level-up card without changing your level.",
+          "options": []
+        }
+      ],
+      "name": "profile",
+      "description": "Show a profile card with XP, Fate and recent badges.",
+      "dm_permission": false,
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "help",
+          "description": "Read the Spooky rules.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "register",
+          "description": "Join Spooky Season and see how to play.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "collection",
+          "description": "View your character quarters and balances.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "leaderboard",
+          "description": "View the Spooky rankings for Scream Supreme.",
+          "options": [
+            {
+              "max_value": 1000,
+              "min_value": 1,
+              "type": 4,
+              "name": "page",
+              "description": "Rankings page.",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "trick",
+          "description": "Spend one candy on a random trick.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "treat",
+          "description": "Spend one candy on a random treat.",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "buy-quarter",
+          "description": "Review and confirm spending ten Sanity on a random quarter.",
+          "options": []
+        }
+      ],
+      "name": "spooky",
+      "description": "Play Spooky Season or view your collection.",
+      "type": 1
+    }
+  ],
+  "hash": "8951c462b24c03964183766e4e4b6abb33f1af82f0ba423c9d035642f0a4ca7c"
+}

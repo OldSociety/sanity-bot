@@ -8,6 +8,19 @@ function resolveRuntime(environment, root = projectRoot) {
   if (!['development', 'production', 'test'].includes(env)) {
     throw new Error('NODE_ENV must be development, production, or test.')
   }
+  // Production tools also use the independent deployment's authoritative
+  // credentials/storage, rather than the retired pre-cutover database copy.
+  const productionRoot = path.join(projectRoot, '.runtime', 'production')
+  if (env === 'production' && root === projectRoot && fs.existsSync(path.join(productionRoot, 'app.js'))) {
+    root = productionRoot
+  }
+  // An isolated development checkout can use the existing authoritative
+  // credentials/storage directory without copying the live database. This
+  // override cannot redirect production or test storage.
+  if (env === 'development' && root === projectRoot && process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT) {
+    if (!path.isAbsolute(process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT)) throw new Error('Development runtime root must be absolute.')
+    root = path.resolve(process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT)
+  }
   // Tests cannot select an on-disk database, even if config.json changes.
   return {
     env,

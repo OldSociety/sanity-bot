@@ -221,7 +221,7 @@ function createController({
         ),
       )
     }
-    if (subcommand === 'spend-fate' && !purchaseApproval) {
+    if (['spend-fate', 'buy-quarter'].includes(subcommand) && !purchaseApproval) {
       const saved = await economy.read((transaction) =>
         models.Operation.findByPk(`discord:${input.interactionId}`, {
           transaction,
@@ -260,11 +260,15 @@ function createController({
           throw new Error('Spooky actions are paused or closed')
         const user = await User.findByPk(input.actorId, { transaction })
         if (!user) throw new Error('Fate account does not exist')
-        const wallet = { bank: user.bank, fatePoints: user.fate_points }
+        const sanity = event.fate.paymentResource === 'sanity' ? require('../sanity').createSanity({ sequelize: User.sequelize }) : null
+        const view = sanity ? await sanity.viewInTransaction(input.guildId, input.actorId, clock(), transaction) : null
+        if (view && view.balance < event.fate.quarterCost) throw new Error('Insufficient Sanity')
+        const wallet = { bank: user.bank, fatePoints: user.fate_points, ...(view ? { sanity: view.balance } : {}) }
         return {
           ...(await balanceSnapshotInTransaction(input, transaction)),
           wallet,
-          payment: require('./fate-purchases').planFatePayment(
+          payment: view ? { sanityBefore: view.balance, sanity: view.balance - event.fate.quarterCost, sanitySpent: event.fate.quarterCost,
+            bank: user.bank, fatePoints: user.fate_points } : require('./fate-purchases').planFatePayment(
             user.bank,
             user.fate_points,
             event.fate.quarterCost,
@@ -278,12 +282,12 @@ function createController({
         onConfirm: () => executeCommand(interaction, quote.wallet),
       })
     }
-    if (!['trick', 'treat', 'spend-fate'].includes(subcommand))
+    if (!['trick', 'treat', 'spend-fate', 'buy-quarter'].includes(subcommand))
       throw new Error('Unknown spooky command')
     // Discord fetches occur before any root database transaction; failures abort.
     const snapshot = await fetchMembers(interaction.guildId, {
       actorId: input.actorId,
-      actorOnly: subcommand === 'spend-fate',
+      actorOnly: ['spend-fate', 'buy-quarter'].includes(subcommand),
     })
     if (
       !Array.isArray(snapshot) ||
@@ -394,7 +398,7 @@ function createController({
       ]),
     )
     let result
-    if (subcommand === 'spend-fate') {
+    if (['spend-fate', 'buy-quarter'].includes(subcommand)) {
       const wrapped = {
         drawFateQuarter: async (ctx, userId) => {
           const before = await completed(ctx, userId),

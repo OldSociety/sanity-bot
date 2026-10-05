@@ -59,8 +59,10 @@ function runtime(client) {
     settings: require('./reminder-settings').fateReminderSettings({ channelId: channels[0], roleId: roleIds.unwanted }),
     payload: settings => ({ content: `<@&${roleIds.unwanted}>`,
       allowedMentions: { parse: [], users: [], roles: settings.roleIds, repliedUser: false },
-      embeds: [{ title: '🔮 Turn Your Fate Into a Find!', color: 0x9B59B6,
-        description: 'Don’t forget: **10 Fate Points (Bank first, then Fate)** buy a random token quarter with **/spooky spend-fate**! You can trade throughout October, with no daily limit.' }] }),
+      embeds: [{ title: config.fate.paymentResource === 'sanity' ? 'Turn Your Sanity Into a Find!' : '🔮 Turn Your Fate Into a Find!', color: 0x9B59B6,
+        description: config.fate.paymentResource === 'sanity'
+          ? 'Don’t forget: **10 Sanity** buys a random token quarter with **/spooky buy-quarter**! You can trade throughout October, with no daily limit.'
+          : 'Don’t forget: **10 Fate Points (Bank first, then Fate)** buy a random token quarter with **/spooky spend-fate**! You can trade throughout October, with no daily limit.' }] }),
     getChannel: async channelId => (await guild(guildId)).channels.fetch(channelId) })
   const reminderMaintenance = require('./reminders').withReminders(key => lifecycle.maintain(key), reminders,
     error => console.error('Spooky reminder failed:', error.message))

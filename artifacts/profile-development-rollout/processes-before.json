@@ -1,0 +1,36 @@
+{
+  "processes": [
+    {
+      "name": "SB-production",
+      "pid": 11728,
+      "status": "online",
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "script": "C:\\Users\\headm\\code\\sanity-bot-dev\\app.js",
+      "restarts": 32,
+      "error": "C:\\Users\\headm\\.pm2\\logs\\SB-production-error.log",
+      "out": "C:\\Users\\headm\\.pm2\\logs\\SB-production-out.log"
+    },
+    {
+      "name": "SB-development",
+      "pid": 5440,
+      "status": "online",
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev",
+      "script": "C:\\Users\\headm\\code\\sanity-bot-dev\\app.js",
+      "restarts": 32,
+      "error": "C:\\Users\\headm\\.pm2\\logs\\SB-development-error.log",
+      "out": "C:\\Users\\headm\\.pm2\\logs\\SB-development-out.log"
+    }
+  ],
+  "logs": [
+    {
+      "name": "SB-production",
+      "error": 2838531,
+      "out": 379127996
+    },
+    {
+      "name": "SB-development",
+      "error": 35834,
+      "out": 18966622
+    }
+  ]
+}

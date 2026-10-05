@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "developmentEnabled": true,
+  "productionEnabled": false,
+  "capacity": 100,
+  "starting": 100,
+  "presenceReward": 2,
+  "conversationReward": 1,
+  "conversationIntervalMs": 1800000,
+  "conversationRule": "spaced-messages",
+  "dailyCap": 3,
+  "decayAmount": 1,
+  "reminderIntervalMs": 604800000,
+  "reminderDelivery": "private-chat-dm"
+}

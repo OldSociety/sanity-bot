@@ -25,6 +25,22 @@ test('default is development; database paths are independent of working director
 test('unknown environments fail closed', () => {
   for (const env of ['', 'staging', 'Development']) assert.throws(() => resolveRuntime(env), /NODE_ENV/)
 })
+
+test('isolated development checkout can retain authoritative storage without redirecting production or test', t => {
+  const prior = process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT
+  t.after(() => prior === undefined ? delete process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT : process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = prior)
+  const root = fixture(t, dev, prod)
+  process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = root
+  assert.equal(resolveRuntime('development').root, root)
+  assert.equal(resolveRuntime('development').database.storage, path.join(root, 'config', 'dev.sqlite'))
+  assert.notEqual(resolveRuntime('production').root, root)
+  assert.equal(resolveRuntime('test').database.storage, ':memory:')
+  const target = {}
+  assert.equal(loadDiscordEnvironment('development', { target }).root, root)
+  assert.equal(target.GUILDID, '222222222222222222')
+  process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = 'relative-folder'
+  assert.throws(() => resolveRuntime('development'), /absolute/)
+})
 test('test environment is always memory-only and cannot load Discord credentials', () => {
   assert.equal(resolveRuntime('test').database.storage, ':memory:')
   assert.equal(resolveRuntime('test').envFile, null)

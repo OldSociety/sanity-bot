@@ -5,12 +5,15 @@ const { renderProfileCard, recentBadges, discordImage } = require('./profile-car
 const { excludedMember, adminMember } = require('./member-policy')
 
 function createProfileCommand({ User, badgeService = createBadges({ sequelize: User.sequelize }),
-  render = renderProfileCard, download = discordImage, logger = console }) {
+  render = renderProfileCard, download = discordImage, logger = console, sanityService = require('./sanity').runtime(User) }) {
   return async interaction => {
     if (!interaction.guild) return interaction.reply({ content: 'Use /profile in a server.', ephemeral: true })
-    await interaction.deferReply()
+    const mode = interaction.options.getSubcommand?.(false) || 'view'
+    const preview = ['birthday', 'level'].includes(mode)
+    if (!['view', 'birthday', 'level'].includes(mode)) return interaction.reply({ content: 'Unknown profile mode.', ephemeral: true })
+    await interaction.deferReply(preview ? { ephemeral: true } : {})
     try {
-      const player = interaction.options.getUser('player') || interaction.user
+      const player = preview ? interaction.user : interaction.options.getUser('player') || interaction.user
       const member = await interaction.guild.members.fetch(player.id).catch(() => null)
       if (excludedMember(member || { user: player })) return interaction.editReply('Bots are excluded from production profiles.')
       const user = await serialize(User.sequelize, () => User.findByPk(player.id))
@@ -30,9 +33,21 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
         return { ...badge, image }
       }))
       const name = member?.displayName || player.globalName || player.username
-      const buffer = await render({ displayName: name, username: player.username, user: user?.get({ plain: true }) || {}, avatar,
-        badges: decorated, badgesUnavailable, isAdmin: adminMember(member) })
-      await interaction.editReply({ files: [new AttachmentBuilder(buffer, { name: 'profile.png', description: `Profile card for ${name}` })],
+      let sanity = null
+      if (sanityService) {
+        if (preview) {
+          // Preview reads never initialize accounts, settle decay or award funds.
+          const account = await sanityService.models.Account.findOne({ where: { guildId: interaction.guild.id, userId: player.id } })
+          const config = require('../config/sanity.json')
+          sanity = { balance: account?.balance ?? config.starting, maximum: config.capacity }
+        } else sanity = await sanityService.view(interaction.guild.id, player.id)
+      }
+      const saved = user?.get({ plain: true }) || {}
+      const example = previewCard(saved, mode)
+      const buffer = await render({ displayName: name, username: player.username, ...example, avatar,
+        badges: decorated, badgesUnavailable, isAdmin: adminMember(member), sanity })
+      await interaction.editReply({ ...(preview ? { content: 'Visual preview only. No points, levels or badges were awarded.' } : {}),
+        files: [new AttachmentBuilder(buffer, { name: preview ? `profile-${mode}-preview.png` : 'profile.png', description: `Profile card for ${name}` })],
         allowedMentions: { parse: [] } })
     } catch (error) {
       logger.error('Profile card generation failed:', error.message)
@@ -40,4 +55,12 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
     }
   }
 }
-module.exports = { createProfileCommand }
+function previewCard(saved, mode) {
+  if (mode === 'view') return { user: saved, occasion: 'profile' }
+  const user = { ...saved, chat_level: saved.chat_level || 1, fate_points: saved.fate_points || 0, bank: saved.bank || 0 }
+  const before = { ...user }
+  if (mode === 'birthday') user.bank = Math.max(user.bank, Math.min(100, user.bank + 10))
+  if (mode === 'level') { user.chat_level++; user.chat_exp = 0 }
+  return { user, before, occasion: mode === 'level' ? 'level-up' : 'birthday' }
+}
+module.exports = { createProfileCommand, previewCard }

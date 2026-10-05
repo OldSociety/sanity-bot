@@ -1,0 +1,20 @@
+TAP version 13
+# Subtest: reminders stay private, actor-scoped and excluded from birthday/level test previews
+ok 1 - reminders stay private, actor-scoped and excluded from birthday/level test previews
+  ---
+  duration_ms: 435.9431
+  ...
+# Subtest: maintenance creates no scheduler or storage service in production
+ok 2 - maintenance creates no scheduler or storage service in production
+  ---
+  duration_ms: 2.7216
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 602.1263

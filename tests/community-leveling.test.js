@@ -117,7 +117,7 @@ test('new launch purchase policy is selected only for the explicitly activated e
   const event = require('../config/spooky-2026.json'), { selectEvent } = require('../services/spooky/config')
   try {
     Object.assign(data.environments.development, { enabled: true, guildId: 'guild', campaignRoleIds: ['campaign'], channelIds: ['shared'] })
-    assert.equal(selectEvent(event, 'development').fate.paymentResource, 'normal-fate-only')
+    assert.equal(selectEvent(event, 'development').fate.paymentResource, 'sanity')
     assert.equal(selectEvent(event, 'production').fate.paymentResource, 'bank-then-fate')
   } finally { data.environments.development = saved }
 })

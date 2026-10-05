@@ -1,0 +1,65 @@
+TAP version 13
+# Subtest: reminders stay private, actor-scoped and excluded from birthday/level test previews
+ok 1 - reminders stay private, actor-scoped and excluded from birthday/level test previews
+  ---
+  duration_ms: 413.8104
+  ...
+# Subtest: maintenance creates no scheduler or storage service in production
+ok 2 - maintenance creates no scheduler or storage service in production
+  ---
+  duration_ms: 1.4122
+  ...
+# Subtest: Sanity remains development-only
+ok 3 - Sanity remains development-only
+  ---
+  duration_ms: 2.2046
+  ...
+# Subtest: presence earns two once, spaced conversation earns one, further messages and replay cannot farm rewards
+ok 4 - presence earns two once, spaced conversation earns one, further messages and replay cannot farm rewards
+  ---
+  duration_ms: 377.8607
+  ...
+# Subtest: completed inactive Pacific days lose one; active days are protected; reads catch up once without counting as activity
+ok 5 - completed inactive Pacific days lose one; active days are protected; reads catch up once without counting as activity
+  ---
+  duration_ms: 61.2903
+  ...
+# Subtest: two active conversation days maintain Sanity over a week, matching the intended scale
+ok 6 - two active conversation days maintain Sanity over a week, matching the intended scale
+  ---
+  duration_ms: 54.6007
+  ...
+# Subtest: Pacific midnight and DST use calendar days rather than elapsed 24-hour ticks
+ok 7 - Pacific midnight and DST use calendar days rather than elapsed 24-hour ticks
+  ---
+  duration_ms: 44.7766
+  ...
+# Subtest: cap consumes daily rewards without letting a subsequent purchase manufacture them again
+ok 8 - cap consumes daily rewards without letting a subsequent purchase manufacture them again
+  ---
+  duration_ms: 38.983
+  ...
+# Subtest: Sanity spend shares the root transaction, rolls back failures and rejects stale confirmations
+ok 9 - Sanity spend shares the root transaction, rolls back failures and rejects stale confirmations
+  ---
+  duration_ms: 28.6942
+  ...
+# Subtest: weekly reminder reservation uses current bands, never duplicates across thresholds, and zero is special once
+ok 10 - weekly reminder reservation uses current bands, never duplicates across thresholds, and zero is special once
+  ---
+  duration_ms: 56.397
+  ...
+# Subtest: daily migration preserves an old-policy balance, prevents duplicate credits today and does not backdate losses
+ok 11 - daily migration preserves an old-policy balance, prevents duplicate credits today and does not backdate losses
+  ---
+  duration_ms: 24.4176
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1767.6448

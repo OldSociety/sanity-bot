@@ -1,0 +1,45 @@
+{
+  "database": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\dev.sqlite",
+  "backup": "C:\\Users\\headm\\code\\sanity-bot-dev\\config\\backups\\profile-sanity-1791157063242\\dev.sqlite",
+  "before": {
+    "digest": "cbae3ff45ee746ae4935111cba3f3b386f0bc2a149b74a77fabb53d0d6507395",
+    "counts": {
+      "Achievements": 49,
+      "BadgeOwnership": 2,
+      "HolidayStats": 9,
+      "Inventories": 10,
+      "SequelizeMeta": 30,
+      "SpookyDeliveries": 1,
+      "SpookyEffects": 0,
+      "SpookyEventStates": 0,
+      "SpookyInventory": 3,
+      "SpookyLedger": 189,
+      "SpookyNotifications": 50,
+      "SpookyOperations": 3467,
+      "SpookyParticipants": 2,
+      "SpookySchemaMigrations": 4,
+      "SpookyStats": 0,
+      "UserAchievements": 39,
+      "Users": 79
+    },
+    "tables": [
+      "Achievements",
+      "BadgeOwnership",
+      "HolidayStats",
+      "Inventories",
+      "SequelizeMeta",
+      "SpookyDeliveries",
+      "SpookyEffects",
+      "SpookyEventStates",
+      "SpookyInventory",
+      "SpookyLedger",
+      "SpookyNotifications",
+      "SpookyOperations",
+      "SpookyParticipants",
+      "SpookySchemaMigrations",
+      "SpookyStats",
+      "UserAchievements",
+      "Users"
+    ]
+  }
+}

@@ -8,10 +8,10 @@ function planFatePayment(bank, fate, cost, paymentResource = 'bank-then-fate') {
   return { bankBefore: bank, bank: bank - bankSpent, fateBefore: fate, fatePoints: fate - fateSpent, bankSpent, fateSpent }
 }
 
-function createFatePurchases({ User, models, economy, collection, event = defaultConfig, canPurchase = () => true, finalizeReceipt = async (_ctx, receipt) => receipt }) {
+function createFatePurchases({ User, models, economy, collection, event = defaultConfig, sanity = event.fate.paymentResource === 'sanity' ? require('../sanity').createSanity({ sequelize: User.sequelize }) : null, canPurchase = () => true, finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (User.sequelize !== models.Participant.sequelize) throw new Error('Fate and seasonal models must share a connection')
   if (typeof canPurchase !== 'function') throw new Error('Fate purchase authorization is required')
-  if (!['bank-then-fate', 'normal-fate-only'].includes(event.fate.paymentResource) || !Number.isSafeInteger(event.fate.quarterCost) || event.fate.quarterCost <= 0) throw new Error('Invalid Fate quarter cost')
+  if (!['bank-then-fate', 'normal-fate-only', 'sanity'].includes(event.fate.paymentResource) || !Number.isSafeInteger(event.fate.quarterCost) || event.fate.quarterCost <= 0) throw new Error('Invalid Fate quarter cost')
 
   async function purchase(input) {
     if (input.userId !== undefined && input.userId !== input.actorId) throw new Error('Fate purchase must belong to the actor')
@@ -22,6 +22,13 @@ function createFatePurchases({ User, models, economy, collection, event = defaul
       const userId = input.actorId
       const user = await User.findByPk(userId, { transaction: ctx.transaction })
       if (!user) throw new Error('Fate account does not exist')
+      if (event.fate.paymentResource === 'sanity') {
+        const payment = await sanity.spendInTransaction({ guildId: ctx.scope.guildId, userId, now: ctx.now,
+          cost: event.fate.quarterCost, expected: input.expectedWallet?.sanity }, ctx.transaction)
+        await ctx.record({ userId, resource: 'sanity', delta: -payment.sanitySpent, before: payment.sanityBefore, after: payment.sanity, metadata: { reason: 'quarter_purchase' } })
+        return finalizeReceipt(ctx, { ...await collection.drawFateQuarter(ctx, userId), userId, ...payment,
+          bank: user.bank, fatePoints: user.fate_points })
+      }
       if (input.expectedWallet && (user.bank !== input.expectedWallet.bank || user.fate_points !== input.expectedWallet.fatePoints)) throw new Error('Your balances changed. Use /spooky spend-fate again to review them.')
       const payment = planFatePayment(user.bank, user.fate_points, event.fate.quarterCost, event.fate.paymentResource)
       // Claim both balances atomically. Changes since confirmation never silently

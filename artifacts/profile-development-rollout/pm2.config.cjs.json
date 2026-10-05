@@ -1,0 +1,14 @@
+{
+  "apps": [
+    {
+      "name": "SB-development",
+      "script": "C:\\Users\\headm\\code\\sanity-bot-dev\\.worktrees\\leveling-profile\\app.js",
+      "cwd": "C:\\Users\\headm\\code\\sanity-bot-dev\\.worktrees\\leveling-profile",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": 3000,
+        "SANITY_DEVELOPMENT_RUNTIME_ROOT": "C:\\Users\\headm\\code\\sanity-bot-dev"
+      }
+    }
+  ]
+}

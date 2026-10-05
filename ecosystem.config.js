@@ -8,7 +8,9 @@ module.exports = {
         {
             name: 'SB' + SUFFIX,
             script: 'app.js',
-            cwd: __dirname,
+            cwd: SUFFIX === '-production'
+                ? require('node:path').join(__dirname, '.runtime', 'production')
+                : __dirname,
             env: {
                 NODE_ENV: 'development',
                 PORT: 3000

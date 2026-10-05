@@ -1,5 +1,11 @@
 // app.js
 
+// Production uses its independent deployment, never this editable checkout.
+if (process.env.NODE_ENV === 'production' && require('node:fs').existsSync(
+  require('node:path').join(__dirname, '.runtime', 'production', 'app.js'))) {
+  throw new Error('Start production from .runtime/production using PM2, not the development checkout.')
+}
+
 const { loadDiscordEnvironment } = require('./config/runtime')
 const runtime = loadDiscordEnvironment()
 console.log(`Environment: ${runtime.env}`)
@@ -51,6 +57,7 @@ global.client = client // Set global client after client initialization
 // Disabled Spooky creates no timer and opens no seasonal storage. When enabled,
 // startup catches up expired effects and the minute worker continues without play.
 client.once('ready', () => require('./services/spooky/runtime').startMaintenance(client))
+client.once('ready', () => require('./services/sanity-maintenance').start(client, User))
 
 client.cooldowns = new Collection()
 client.commands = new Collection()
