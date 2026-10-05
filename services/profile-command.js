@@ -6,7 +6,7 @@ const { excludedMember, adminMember } = require('./member-policy')
 
 function createProfileCommand({ User, badgeService = createBadges({ sequelize: User.sequelize }),
   render = renderProfileCard, download = discordImage, logger = console,
-  sanityService = process.env.NODE_ENV === 'development' ? require('./sanity').runtime(User) : null }) {
+  sanityService = require('./sanity').runtime(User) }) {
   return async interaction => {
     if (!interaction.guild) return interaction.reply({ content: 'Use /profile in a server.', ephemeral: true })
     const mode = interaction.options.getSubcommand?.(false) || 'view'

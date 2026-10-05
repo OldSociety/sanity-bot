@@ -24,8 +24,8 @@ test('chat DM failure never attempts a public fallback', async t => {
   const message = { guild: { id: 'guild' }, createdTimestamp: Date.now(), author: { id: 'alice', send: async () => { throw Error('closed DM') } } }
   await assert.rejects(nudgeChat(message, { claimReminder: async () => ({ balance: 69, band: 'fading' }) }), /closed DM/)
 })
-test('maintenance creates no scheduler or storage service in production', t => {
+test('maintenance creates no scheduler or storage service in test environment', t => {
   const prior = process.env.NODE_ENV; t.after(() => prior === undefined ? delete process.env.NODE_ENV : process.env.NODE_ENV = prior)
-  process.env.NODE_ENV = 'production'
+  process.env.NODE_ENV = 'test'
   assert.equal(typeof require('../services/sanity-maintenance').start({}, {}), 'function')
 })

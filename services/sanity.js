@@ -4,7 +4,9 @@ const { serialize } = require('./spooky/economy')
 const { dayKey } = require('./community-leveling/config')
 const data = require('../config/sanity.json')
 function selected(environment = process.env.NODE_ENV) {
-  return { ...data, enabled: environment === 'development' && data.developmentEnabled === true }
+  const enabled = (environment === 'development' && data.developmentEnabled === true) ||
+    (environment === 'production' && data.productionEnabled === true)
+  return { ...data, enabled, spendingEnabled: enabled && data[`${environment}SpendingEnabled`] === true }
 }
 function defineModels(db) {
   const key = () => ({ type: D.STRING, primaryKey: true, allowNull: false })
@@ -107,7 +109,7 @@ async function handleMessage(message, User) {
   if (!selected().enabled) return null
   const config = { ...require('./community-leveling/config').selectConfig(), enabled: true }
   if (config.guildId !== process.env.GUILDID) throw new Error('Sanity guild must match selected environment')
-  if (!require('./community-leveling/runtime').qualifies(message, config)) return null
+  if (!require('./community-leveling/eligibility').qualifies(message, config)) return null
   // Show the settled returning state before this post earns today's presence.
   // A closed DM never prevents activity credit or falls back to public delivery.
   try { await require('./sanity-reminder').nudgeChat(message, runtime(User)) }

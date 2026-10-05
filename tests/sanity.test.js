@@ -9,9 +9,9 @@ async function fixture(t, origin = '2026-10-04T16:00:00Z') {
   const now = hours => new Date(Date.parse(origin) + hours * 3600000)
   return { db, service, now, gain: (id, hours, channelId = 'chat') => service.gain({ guildId: 'guild', userId: 'alice', messageId: id, channelId, now: now(hours) }) }
 }
-test('Sanity remains development-only', () => {
+test('Sanity is enabled in both bot environments but not tests', () => {
   assert.equal(selected('development').starting, 100)
-  assert.equal(selected('development').enabled, true); assert.equal(selected('production').enabled, false); assert.equal(selected('test').enabled, false)
+  assert.equal(selected('development').enabled, true); assert.equal(selected('production').enabled, true); assert.equal(selected('test').enabled, false)
 })
 
 test('new accounts start at full Sanity and the first reminder cannot occur above69', async t => {

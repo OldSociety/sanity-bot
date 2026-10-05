@@ -90,7 +90,7 @@ module.exports = {
         return
       }
       if (customId.startsWith('spooky-spend-fate:') && !require('../services/spooky/fate-confirmation').hasSession(customId)) {
-        const purchase = require('../services/sanity').selected().enabled ? 'buy-quarter' : 'spend-fate'
+        const purchase = require('../services/sanity').selected().spendingEnabled ? 'buy-quarter' : 'spend-fate'
         await interaction.reply({ content: `This confirmation expired. Nothing was spent by this click; use /spooky ${purchase} to review a new purchase.`, ephemeral: true }).catch(() => {})
         return
       }

@@ -1,7 +1,9 @@
 {
   "version": 3,
   "developmentEnabled": true,
-  "productionEnabled": false,
+  "productionEnabled": true,
+  "developmentSpendingEnabled": true,
+  "productionSpendingEnabled": false,
   "capacity": 100,
   "starting": 100,
   "presenceReward": 2,

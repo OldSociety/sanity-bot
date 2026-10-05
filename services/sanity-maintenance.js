@@ -12,6 +12,6 @@ function start(client, User) {
   }
   void tick()
   const task = require('node-cron').schedule('5 0 * * *', tick, { timezone: 'America/Los_Angeles' })
-  return () => task.stop()
+  return async () => { task.stop(); await pending }
 }
 module.exports = { start }

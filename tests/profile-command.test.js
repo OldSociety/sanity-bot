@@ -108,14 +108,18 @@ test('profile wrapper rejects wrong guild and unsupported environments before lo
   }
 })
 
-test('production definition has only optional player; normal profiles skip Sanity and previews are rejected', async t => {
+test('production profiles show persisted Sanity and still reject previews', async t => {
   const f = await fixture(t), previous = process.env.NODE_ENV
   t.after(() => { process.env.NODE_ENV = previous })
   process.env.NODE_ENV = 'production'
+  await require('../migrations/sanity').up(f.User.sequelize.getQueryInterface())
+  await require('../migrations/sanity-daily').up(f.User.sequelize.getQueryInterface())
   let freshness
   f.interaction.guild.members.fetch = async input => { freshness = input; return { user: { bot: false }, roles: { cache: new Map() }, displayName: 'Alice', displayAvatarURL: f.interaction.user.displayAvatarURL } }
   await f.execute()
-  assert.deepEqual(freshness, { user: 'alice', force: true }); assert.equal(f.rendered[0].sanity, null)
+  assert.deepEqual(freshness, { user: 'alice', force: true }); assert.equal(f.rendered[0].sanity.balance, 100)
+  assert.equal(await require('../services/sanity').runtime(f.User).models.Account.count(), 1)
+  assert.equal(await f.User.count(), 0)
   assert.equal(require('../services/command-environment').commandEnabled(require('../commands/Server/Profile'), 'production'), true)
   f.interaction.options.getSubcommand = () => 'birthday'
   let reply
