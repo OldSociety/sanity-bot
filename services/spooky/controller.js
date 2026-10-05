@@ -67,7 +67,10 @@ function createController({
     )
   }
   async function executeCommand(interaction, purchaseApproval = null) {
-    if (!interaction.deferred) await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+    if (!interaction.deferred)
+      await interaction.deferReply({
+        ephemeral: interaction.options.getSubcommand() !== 'leaderboard',
+      })
     const subcommand = interaction.options.getSubcommand()
     const input = {
       eventId: event.eventId,
@@ -90,14 +93,20 @@ function createController({
     }
     if (subcommand === 'leaderboard') {
       const page = interaction.options.getInteger?.('page') ?? 1
-      const leaderboardMembers = await fetchMembers(input.guildId, { actorId: input.actorId })
+      const leaderboardMembers = await fetchMembers(input.guildId, {
+        actorId: input.actorId,
+      })
       const leaders = await require('./leaderboard').createLeaderboard({
         models,
         economy,
         User,
         badges,
         event,
-        eligibleUserIds: new Set(leaderboardMembers.filter(member => !member.bot).map(member => member.userId)),
+        eligibleUserIds: new Set(
+          leaderboardMembers
+            .filter((member) => !member.bot)
+            .map((member) => member.userId),
+        ),
       })({ eventId: event.eventId, guildId: input.guildId }, page)
       const emojis = interaction.guild?.emojis?.fetch
         ? [...(await interaction.guild.emojis.fetch()).values()]
@@ -105,27 +114,59 @@ function createController({
       const text = leaders
         .map(
           (row) =>
-            `**${row.nonCompetitive ? 'Community host ·' : `#${row.rank}`} ${require('../display-name').safeName(
-              row.name,
-            )}**\n${require('../badges').renderBadges(row.badges, emojis)}`,
+            `**${require('../display-name').safeName(row.name)} ${
+              row.nonCompetitive ? 'Community host: ' : `#${row.rank}`
+            } **\n${require('../badges').renderBadges(row.badges, emojis)}`,
         )
         .join('\n\n')
-      const latestBadge = badges?.latest ? await badges.latest(input.guildId) : require('../badges').badges.find(badge => badge.characterId === 'sel')
-      const badgeEmoji = emojis.find(emoji => emoji.available !== false &&
-        [latestBadge?.emojiName, `${latestBadge?.characterId === 'sel' ? 'selene' : latestBadge?.name?.toLowerCase()}_badge`].includes(emoji.name?.toLowerCase()))
-      const fallbackBadge = latestBadge?.imageAsset ? latestBadge : require('../badges').badges.find(badge => badge.characterId === 'sel')
-      const badgeThumbnail = badgeEmoji ? `https://cdn.discordapp.com/emojis/${badgeEmoji.id}.${badgeEmoji.animated ? 'gif' : 'png'}?size=128`
+      const latestBadge = badges?.latest
+        ? await badges.latest(input.guildId)
+        : require('../badges').badges.find(
+            (badge) => badge.characterId === 'sel',
+          )
+      const badgeEmoji = emojis.find(
+        (emoji) =>
+          emoji.available !== false &&
+          [
+            latestBadge?.emojiName,
+            `${
+              latestBadge?.characterId === 'sel'
+                ? 'spooky_selene'
+                : latestBadge?.name?.toLowerCase()
+            }_badge`,
+          ].includes(emoji.name?.toLowerCase()),
+      )
+      const fallbackBadge = latestBadge?.imageAsset
+        ? latestBadge
+        : require('../badges').badges.find(
+            (badge) => badge.characterId === 'sel',
+          )
+      const badgeThumbnail = badgeEmoji
+        ? `https://cdn.discordapp.com/emojis/${badgeEmoji.id}.${
+            badgeEmoji.animated ? 'gif' : 'png'
+          }?size=128`
         : `attachment://${fallbackBadge.imageAsset}`
-      const rankingScreen = privateScreen(`👻 SCREAM SUPREME • Rankings ${page}`, text || 'No tricks or treats have been scored yet.')
+      const rankingScreen = privateScreen(
+        `👻 SCREAM SUPREME RANKINGS`,
+        text || 'No tricks or treats have been scored yet.',
+      )
       rankingScreen.embeds[0].thumbnail = { url: badgeThumbnail }
-      if (!badgeEmoji) rankingScreen.files = [{ name: fallbackBadge.imageAsset, badgeAsset: fallbackBadge.imageAsset }]
+      if (!badgeEmoji)
+        rankingScreen.files = [
+          {
+            name: fallbackBadge.imageAsset,
+            badgeAsset: fallbackBadge.imageAsset,
+          },
+        ]
       return interaction.editReply(
-        require('./token-art').preparePayload(withBalances(
-          rankingScreen,
-          (await balanceSnapshot(input)) || {},
-          clock(),
-          event,
-        )),
+        require('./token-art').preparePayload(
+          withBalances(
+            rankingScreen,
+            (await balanceSnapshot(input)) || {},
+            clock(),
+            event,
+          ),
+        ),
       )
     }
     if (subcommand === 'register') {
@@ -213,7 +254,9 @@ function createController({
         withBalances(
           privateScreen(
             '🧩 Your Collection',
-            event.duplicates.allowDuplicates === false ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.` : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`,
+            event.duplicates.allowDuplicates === false
+              ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.`
+              : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`,
           ),
           player,
           clock(),
@@ -221,7 +264,10 @@ function createController({
         ),
       )
     }
-    if (['spend-fate', 'buy-quarter'].includes(subcommand) && !purchaseApproval) {
+    if (
+      ['spend-fate', 'buy-quarter'].includes(subcommand) &&
+      !purchaseApproval
+    ) {
       const saved = await economy.read((transaction) =>
         models.Operation.findByPk(`discord:${input.interactionId}`, {
           transaction,
@@ -260,20 +306,42 @@ function createController({
           throw new Error('Spooky actions are paused or closed')
         const user = await User.findByPk(input.actorId, { transaction })
         if (!user) throw new Error('Fate account does not exist')
-        const sanity = event.fate.paymentResource === 'sanity' ? require('../sanity').createSanity({ sequelize: User.sequelize }) : null
-        const view = sanity ? await sanity.viewInTransaction(input.guildId, input.actorId, clock(), transaction) : null
-        if (view && view.balance < event.fate.quarterCost) throw new Error('Insufficient Sanity')
-        const wallet = { bank: user.bank, fatePoints: user.fate_points, ...(view ? { sanity: view.balance } : {}) }
+        const sanity =
+          event.fate.paymentResource === 'sanity'
+            ? require('../sanity').createSanity({ sequelize: User.sequelize })
+            : null
+        const view = sanity
+          ? await sanity.viewInTransaction(
+              input.guildId,
+              input.actorId,
+              clock(),
+              transaction,
+            )
+          : null
+        if (view && view.balance < event.fate.quarterCost)
+          throw new Error('Insufficient Sanity')
+        const wallet = {
+          bank: user.bank,
+          fatePoints: user.fate_points,
+          ...(view ? { sanity: view.balance } : {}),
+        }
         return {
           ...(await balanceSnapshotInTransaction(input, transaction)),
           wallet,
-          payment: view ? { sanityBefore: view.balance, sanity: view.balance - event.fate.quarterCost, sanitySpent: event.fate.quarterCost,
-            bank: user.bank, fatePoints: user.fate_points } : require('./fate-purchases').planFatePayment(
-            user.bank,
-            user.fate_points,
-            event.fate.quarterCost,
-            event.fate.paymentResource,
-          ),
+          payment: view
+            ? {
+                sanityBefore: view.balance,
+                sanity: view.balance - event.fate.quarterCost,
+                sanitySpent: event.fate.quarterCost,
+                bank: user.bank,
+                fatePoints: user.fate_points,
+              }
+            : require('./fate-purchases').planFatePayment(
+                user.bank,
+                user.fate_points,
+                event.fate.quarterCost,
+                event.fate.paymentResource,
+              ),
         }
       })
       return require('./fate-confirmation').showConfirmation(interaction, {
@@ -302,7 +370,13 @@ function createController({
       receipt = { ...receipt, candy: player.candy, eyes: player.eyes }
       const registered = await models.Participant.findAll({
         attributes: ['userId', 'registeredAt'],
-        where: { ...ctx.scope, userId: require('./presentation').targetIds(receipt.result || receipt, input.actorId) },
+        where: {
+          ...ctx.scope,
+          userId: require('./presentation').targetIds(
+            receipt.result || receipt,
+            input.actorId,
+          ),
+        },
         transaction: ctx.transaction,
       })
       const registeredIds = new Set(
@@ -323,19 +397,32 @@ function createController({
           snapshot.map((member) => [member.userId, member.displayName]),
         ),
       })
-      const messages = (await require('./gifs').withRecentActionGif(receipt, actionMessages(receipt, {
-        actorId: input.actorId,
-        members: snapshot,
-        registeredIds,
-        mentionIds: new Set(mentions.allowed),
-        variantKey: ctx.operationId,
-        timestamp: ctx.now.toISOString(),
-        avatarURL:
-          typeof interaction.user.displayAvatarURL === 'function'
-            ? interaction.user.displayAvatarURL()
-            : undefined,
-      }), { operationId: ctx.operationId, routinePercent: event.gifs.routinePercent },
-      { models: notifications ? models : null, ctx, channelId: interaction.channelId })).map((message) => ({
+      const messages = (
+        await require('./gifs').withRecentActionGif(
+          receipt,
+          actionMessages(receipt, {
+            actorId: input.actorId,
+            members: snapshot,
+            registeredIds,
+            mentionIds: new Set(mentions.allowed),
+            variantKey: ctx.operationId,
+            timestamp: ctx.now.toISOString(),
+            avatarURL:
+              typeof interaction.user.displayAvatarURL === 'function'
+                ? interaction.user.displayAvatarURL()
+                : undefined,
+          }),
+          {
+            operationId: ctx.operationId,
+            routinePercent: event.gifs.routinePercent,
+          },
+          {
+            models: notifications ? models : null,
+            ctx,
+            channelId: interaction.channelId,
+          },
+        )
+      ).map((message) => ({
         ...message,
         payload: withBalances(message.payload, receipt, ctx.now, event),
       }))
@@ -380,13 +467,23 @@ function createController({
     const raw = progression.wrapHandlers({
       ...playful.handlers,
       ...theft.handlers,
-      ...require('./candy-events').createCandyEvents({ models, participants, effects, delivery, event, random, listMembers: () => snapshot }).handlers,
+      ...require('./candy-events').createCandyEvents({
+        models,
+        participants,
+        effects,
+        delivery,
+        event,
+        random,
+        listMembers: () => snapshot,
+      }).handlers,
     })
     const handlers = Object.fromEntries(
       Object.entries(raw).map(([key, handler]) => [
         key,
         async (ctx, plan) => {
-          const before = ['find_eye', 'steal_or_find_eye'].includes(key) ? await completed(ctx, input.actorId) : [],
+          const before = ['find_eye', 'steal_or_find_eye'].includes(key)
+              ? await completed(ctx, input.actorId)
+              : [],
             result = await handler(ctx, plan)
           return {
             ...result,
@@ -429,10 +526,26 @@ function createController({
           random,
           clock,
           prepareChoice: {
-            candidates: async (ctx, plan) => require('./theft').randomTargets(await playful.choiceCandidates(ctx, plan), 3, random),
-            choose: (selected, candidates, balances) => selected.outcome === 'break_curse' && candidates.length === 1 ? candidates[0].userId : require('./target-choice').chooseTarget(interaction, candidates, {
-              outcome: selected.outcome, timeoutMs: event.targetChoice.timeoutMs, random, balances, event,
-            }),
+            candidates: async (ctx, plan) =>
+              require('./theft').randomTargets(
+                await playful.choiceCandidates(ctx, plan),
+                3,
+                random,
+              ),
+            choose: (selected, candidates, balances) =>
+              selected.outcome === 'break_curse' && candidates.length === 1
+                ? candidates[0].userId
+                : require('./target-choice').chooseTarget(
+                    interaction,
+                    candidates,
+                    {
+                      outcome: selected.outcome,
+                      timeoutMs: event.targetChoice.timeoutMs,
+                      random,
+                      balances,
+                      event,
+                    },
+                  ),
           },
           handlers,
           getCurseState: effects.getCurseState,
@@ -451,7 +564,9 @@ function createController({
       result,
       // Only acquisitions can change badge ownership. Views/admin repair also
       // reconcile access independently, including previously failed projections.
-      badgeAccess: (result.receipt.result || result.receipt).awards?.length ? badgeAccess : null,
+      badgeAccess: (result.receipt.result || result.receipt).awards?.length
+        ? badgeAccess
+        : null,
       userId: input.actorId,
       payload:
         personal?.payload ||
@@ -482,16 +597,25 @@ function createController({
     })
     // Saved rewards are visible before Discord role/nickname projection waits.
     // Retry only this operation here; the minute worker repairs older intents.
-    if (delivery?.reconcile) await require('./post-commit').settleProjection(
-      () => delivery.reconcile({ eventId: input.eventId, guildId: input.guildId }, { revision: result.operationId }),
-      error => console.error('Spooky action projection pending:', error.message))
+    if (delivery?.reconcile)
+      await require('./post-commit').settleProjection(
+        () =>
+          delivery.reconcile(
+            { eventId: input.eventId, guildId: input.guildId },
+            { revision: result.operationId },
+          ),
+        (error) =>
+          console.error('Spooky action projection pending:', error.message),
+      )
   }
   async function execute(interaction) {
     // Prevent two deliveries for the same interaction in this process.
     if (locks.has(interaction.id)) return locks.get(interaction.id)
     const work = (async () => {
       if (!interaction.deferred)
-        await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+        await interaction.deferReply({
+          ephemeral: interaction.options.getSubcommand() !== 'leaderboard',
+        })
       const input = {
         eventId: event.eventId,
         guildId: interaction.guildId,
