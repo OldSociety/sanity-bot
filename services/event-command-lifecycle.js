@@ -1,7 +1,8 @@
 const { commandEnabled } = require('./command-environment')
+const { disabledMessage } = require('./disabled-commands')
 async function reconcile({ client, entries, environment, guildId, clientId, now = Date.now() }) {
   if (!['development', 'production'].includes(environment) || !guildId || !clientId || client.application?.id !== clientId) throw new Error('Event command application/guild must be pinned')
-  const inactive = new Set(entries.filter(entry => entry.command.eventKey && !commandEnabled(entry.command, environment, now)).map(entry => entry.name))
+  const inactive = new Set(entries.filter(entry => disabledMessage(entry.name) || (entry.command.eventKey && !commandEnabled(entry.command, environment, now))).map(entry => entry.name))
   if (!inactive.size) return []
   const guild = await client.guilds.fetch(guildId)
   if (guild.id !== guildId) throw new Error('Unexpected command guild')
@@ -26,7 +27,7 @@ function start(client, entries, { environment = process.env.NODE_ENV, guildId = 
     const now = Date.now()
     const remaining = entries.filter(entry => !retired.has(entry.name))
     pending = reconcile({ client, entries: remaining, environment, guildId, clientId, now }).then(() => {
-      for (const entry of remaining) if (entry.command.eventKey && !commandEnabled(entry.command, environment, now)) retired.add(entry.name)
+      for (const entry of remaining) if (disabledMessage(entry.name) || (entry.command.eventKey && !commandEnabled(entry.command, environment, now))) retired.add(entry.name)
     }).catch(error => console.error('Event command cleanup failed:', error.message)).finally(() => { pending = null })
     return pending
   }

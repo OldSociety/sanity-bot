@@ -5,12 +5,14 @@ const { HolidayStat } = require('../../Models/model')
 const activePlayers = new Set()
 
 module.exports = {
+  environments: [],
   eventKey: 'winter',
   data: new SlashCommandBuilder()
     .setName('slots')
     .setDescription('Spin the Winter Slot Machine! 🎰'),
 
   async execute(interaction) {
+    return interaction.reply({ content: 'Winter commands are currently disabled.', ephemeral: true, allowedMentions: { parse: [] } })
     const allowedChannelIds = [
       process.env.WINTERCHANNELID,
       process.env.BOTTESTCHANNELID,

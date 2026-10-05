@@ -11,6 +11,7 @@ const { Achievement, User, UserAchievement } = require('../../Models/model')
 const checkPermissions = require('../../utils/checkPermissions')
 
 module.exports = {
+  environments: [],
   data: new SlashCommandBuilder()
     .setName('achievement')
     .setDescription('Manage achievements')
@@ -90,6 +91,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    return interaction.reply({ content: 'Achievement commands are temporarily disabled.', ephemeral: true, allowedMentions: { parse: [] } })
     const subcommand = interaction.options.getSubcommand()
     console.log(`Subcommand triggered: ${subcommand}`)
     // Check permissions for all subcommands except 'view'

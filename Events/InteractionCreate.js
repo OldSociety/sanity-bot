@@ -34,6 +34,11 @@ module.exports = {
   async execute(interaction) {
     // Handle Slash Commands
     if (interaction.isChatInputCommand()) {
+      const disabled = require('../services/disabled-commands').disabledMessage(interaction.commandName)
+      if (disabled) {
+        await interaction.reply({ content: disabled, ephemeral: true, allowedMentions: { parse: [] } }).catch(() => {})
+        return
+      }
       const command = interaction.client.commands.get(interaction.commandName)
       if (interaction.commandName === 'shop') {
         await interaction.reply({ content: 'The Fate shop is temporarily closed while new rewards are being planned.', ephemeral: true }).catch(() => {})

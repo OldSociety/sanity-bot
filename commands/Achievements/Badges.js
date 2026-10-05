@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { createBadges, badgeField, renderBadges } = require('../../services/badges')
 module.exports = {
+  environments: [],
   data: new SlashCommandBuilder().setName('badges').setDescription('View permanent server badges.')
     .setDMPermission(false)
     .addSubcommand(command => command.setName('view').setDescription('View your badges or another member’s.')
@@ -8,6 +9,7 @@ module.exports = {
     .addSubcommand(command => command.setName('leaderboard').setDescription('See the most collected badges.')
       .addIntegerOption(option => option.setName('page').setDescription('Page number.').setMinValue(1))),
   async execute(interaction) {
+    return interaction.reply({ content: 'Use /profile to view your owned badges.', ephemeral: true, allowedMentions: { parse: [] } })
     await interaction.deferReply({ ephemeral: true })
     if (!interaction.guild || interaction.guildId !== process.env.GUILDID) return interaction.editReply('Use the configured server.')
     const sequelize = require('../../config/sequelize')

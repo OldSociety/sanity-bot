@@ -9,6 +9,7 @@ function eventWindow(key, environment) {
   return window
 }
 function commandEnabled(command, environment, now = Date.now()) {
+  if (require('./disabled-commands').disabledMessage(command.name || command.data?.name)) return false
   if (command.environments && !command.environments.includes(environment)) return false
   if (!command.eventKey) return true
   const window = eventWindow(command.eventKey, environment)
