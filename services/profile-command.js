@@ -5,17 +5,20 @@ const { renderProfileCard, recentBadges, discordImage } = require('./profile-car
 const { excludedMember, adminMember } = require('./member-policy')
 
 function createProfileCommand({ User, badgeService = createBadges({ sequelize: User.sequelize }),
-  render = renderProfileCard, download = discordImage, logger = console, sanityService = require('./sanity').runtime(User) }) {
+  render = renderProfileCard, download = discordImage, logger = console,
+  sanityService = process.env.NODE_ENV === 'development' ? require('./sanity').runtime(User) : null }) {
   return async interaction => {
     if (!interaction.guild) return interaction.reply({ content: 'Use /profile in a server.', ephemeral: true })
     const mode = interaction.options.getSubcommand?.(false) || 'view'
     const preview = ['birthday', 'level'].includes(mode)
+    if (preview && process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') return interaction.reply({ content: 'Profile previews are available only in development.', ephemeral: true })
     if (!['view', 'birthday', 'level'].includes(mode)) return interaction.reply({ content: 'Unknown profile mode.', ephemeral: true })
     await interaction.deferReply(preview ? { ephemeral: true } : {})
     try {
       const player = preview ? interaction.user : interaction.options.getUser('player') || interaction.user
-      const member = await interaction.guild.members.fetch(player.id).catch(() => null)
-      if (excludedMember(member || { user: player })) return interaction.editReply('Bots are excluded from production profiles.')
+      const member = await interaction.guild.members.fetch({ user: player.id, force: true }).catch(() => null)
+      if (!member) return interaction.editReply('That player is not available in this server. Please try again shortly.')
+      if (excludedMember(member)) return interaction.editReply('Bots are excluded from production profiles.')
       const user = await serialize(User.sequelize, () => User.findByPk(player.id))
       let rows = [], badgesUnavailable = false
       try { rows = await badgeService.details(interaction.guild.id, player.id) }

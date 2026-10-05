@@ -45,8 +45,8 @@ test('member option uses their wallet and guild-scoped newest badges', async t =
 test('profile definition supports optional member and disables DMs', () => {
   const data = require('../commands/Server/Profile').data.toJSON()
   assert.equal(data.name, 'profile'); assert.equal(data.dm_permission, false)
-  assert.deepEqual(data.options.map(option => option.name), ['view', 'birthday', 'level'])
-  assert.equal(data.options[0].options[0].name, 'player'); assert.equal(data.options[0].options[0].required, false)
+  assert.deepEqual(data.options.map(option => option.name), ['player'])
+  assert.equal(data.options[0].type, 6); assert.equal(data.options[0].required, false)
 })
 test('Admin card label comes from the selected member role', async t => {
   const f = await fixture(t)
@@ -92,18 +92,42 @@ test('profile shows only selected member ownership, regardless of available serv
   await f.execute({ badgeService: createBadges({ sequelize: f.User.sequelize }) })
   assert.deepEqual(f.rendered[1].badges, [])
 })
-test('profile wrapper rejects production and wrong guild before loading storage', async t => {
+test('profile wrapper rejects wrong guild and unsupported environments before loading storage', async t => {
   const oldEnv = process.env.NODE_ENV, oldGuild = process.env.GUILDID
   t.after(() => {
     if (oldEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldEnv
     if (oldGuild === undefined) delete process.env.GUILDID; else process.env.GUILDID = oldGuild
   })
-  for (const [environment, guildId] of [['production', 'dev-guild'], ['development', 'other-guild'], ['test', 'dev-guild']]) {
+  for (const [environment, guildId] of [['production', 'other-guild'], ['development', 'other-guild'], ['test', 'dev-guild']]) {
     process.env.NODE_ENV = environment; process.env.GUILDID = 'dev-guild'
     let rejected = false
     await require('../commands/Server/Profile').execute({ guildId, reply: async payload => {
-      rejected = true; assert.equal(payload.ephemeral, true); assert.match(payload.content, /development server only/)
+      rejected = true; assert.equal(payload.ephemeral, true); assert.match(payload.content, /configured server/)
     } })
     assert.equal(rejected, true)
   }
+})
+
+test('production definition has only optional player; normal profiles skip Sanity and previews are rejected', async t => {
+  const f = await fixture(t), previous = process.env.NODE_ENV
+  t.after(() => { process.env.NODE_ENV = previous })
+  process.env.NODE_ENV = 'production'
+  let freshness
+  f.interaction.guild.members.fetch = async input => { freshness = input; return { user: { bot: false }, roles: { cache: new Map() }, displayName: 'Alice', displayAvatarURL: f.interaction.user.displayAvatarURL } }
+  await f.execute()
+  assert.deepEqual(freshness, { user: 'alice', force: true }); assert.equal(f.rendered[0].sanity, null)
+  assert.equal(require('../services/command-environment').commandEnabled(require('../commands/Server/Profile'), 'production'), true)
+  f.interaction.options.getSubcommand = () => 'birthday'
+  let reply
+  f.interaction.reply = async payload => { reply = payload }
+  await f.execute(); assert.match(reply.content, /only in development/); assert.equal(f.rendered.length, 1)
+})
+
+test('unavailable members and production Bots-role targets cannot render cards', async t => {
+  const f = await fixture(t), previous = process.env.NODE_ENV
+  t.after(() => { process.env.NODE_ENV = previous }); process.env.NODE_ENV = 'production'
+  f.interaction.guild.members.fetch = async () => { throw Error('Member unavailable') }
+  await f.execute(); assert.match(f.edits[0], /not available/)
+  f.interaction.guild.members.fetch = async () => ({ user: { bot: false }, roles: { cache: new Map([['bots', { name: 'Bots' }]]) } })
+  await f.execute(); assert.match(f.edits[1], /Bots are excluded/); assert.equal(f.rendered.length, 0)
 })

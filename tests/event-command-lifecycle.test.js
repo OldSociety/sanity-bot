@@ -10,7 +10,7 @@ test('event registration is absent outside its exact window and inactive Winter 
     assert.ok(inside.includes('spooky')); assert.ok(inside.includes('spooky-admin'))
     assert.equal(after.includes('spooky'), false); assert.equal(after.includes('spooky-admin'), false)
     assert.equal(inside.includes('throw'), false); assert.equal(inside.includes('slots'), false)
-    assert.equal(inside.includes('profile'), environment === 'development')
+    assert.equal(inside.includes('profile'), true)
   }
   assert.equal(commandEnabled({ eventKey: 'spooky' }, 'production', Date.parse(event.startsAt) - 1), false)
 })

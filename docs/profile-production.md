@@ -1,0 +1,19 @@
+# Profile command in production
+
+The normal profile command is enabled as `/profile [player]` in both bot guilds. The optional member selector defaults to the person invoking it. Birthday/level/view subcommands have been removed from the registered definition. Preview rendering remains an offline/development helper and is rejected by the production command service; no new preview slash commands are introduced.
+
+Cards show the saved personal level and XP progress bar, Fate, Bank, total available, selected-member ADMIN label and up to10 most recent owned badges from the current guild. Available server emojis do not grant or imply ownership. Missing wallets render the default profile without creating an account. Production membership is fetched fresh; missing members and Bots-role/real-bot targets are rejected. The existing dispatcher also excludes production Bots-role actors. The wrapper rejects unsupported environments and wrong guilds before importing storage.
+
+Production Sanity remains disabled. The profile service avoids importing its runtime in production, so displaying a card adds no Sanity account, decay, reminder, spending or Community XP. This rollout enables only the requested command; production birthday and automatic level messages retain their existing text/embed behavior. Personal XP restrictions and the active launch overflow dates remain unchanged.
+
+The independent production deployment receives only the command, profile service, renderer, pure eye-rendering helper and unchanged default background. Its existing badge catalog/ownership and assets remain in use. Source changes are backed up and both stopped-writer database backups are hash/integrity verified. No database migration or balance/ownership grant is required. Registry changes are targeted: create/update only Profile, then verify every other live command unchanged, including development `/game`. Future registry generation uses the same player-only definition, preventing test subcommands from returning.
+
+Evidence is retained under ignored `.runtime/profile-production`: source/database backups, deployment hashes, process/error baselines, guild command snapshots, disposable-production PNG and test logs. Concurrent Spooky Crown reward and check-in design work in this checkout belongs to separate tasks and is preserved.
+
+## Verified live rollout
+
+508/508 full isolated tests and26/26 focused profile/registry/lifecycle checks pass. The two old development-only assertions were updated for the authorized production access. A separate probe against the actual deployed production service and Sharp dependency generated a1200x480 PNG using an owned badge fixture in memory, preserved its wallet, and required no Sanity or Community tables. Both real databases remained byte-identical during the stopped-writer source deployment; verified backups and source rollback files were preserved.
+
+Targeted production registration created only `/profile` with optional `player` (13total commands). Development updated only its existing Profile definition to the same optional `player` menu (12total commands); birthday/level/view options are absent. Post-write GETs verified the desired shape and every other command unchanged, including development `/game`. No public card message, reward, role grant, migration, leveling reset, Community enablement or production Sanity activation occurred.
+
+Production PID28444 and development PID1724 were fresh Ready after one named restart each. Fresh error-log baselines remained unchanged with zero new bytes, and PM2 was saved. Concurrent Crown fix files and its AGENTS context were left unstaged by this task; check-in design work was preserved. No main merge, push or worktree was created.
