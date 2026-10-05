@@ -1,15 +1,16 @@
 const { literal } = require('sequelize')
 const { serialize } = require('./spooky/economy')
 
-function levelReward(unwanted, booster) {
+function levelReward(unwanted, { now, overflowGrace }) {
   return unwanted ? { fate_points: literal('MIN(100, fate_points + 5)'),
-    bank: booster ? literal('MAX(bank, MIN(100, bank + MAX(0, fate_points + 5 - 100)))') : literal('bank') } : {}
+    bank: require('./fate-overflow-grace').activeGrace(now, overflowGrace)
+      ? literal('MAX(bank, MIN(100, bank + MAX(0, fate_points + 5 - 100)))') : literal('bank') } : {}
 }
 
 // This entry point runs outside economy callbacks. Sharing the connection queue
 // prevents chat writes entering a seasonal transaction; the conditional update
 // also claims the old XP/level/timestamp exactly once before awarding fate.
-async function applyChatMessage(User, { userId, userName, now, xp, unwanted, booster, rewardFate = true }) {
+async function applyChatMessage(User, { userId, userName, now, xp, unwanted, rewardFate = true, overflowGrace = require('./fate-overflow-grace').selectedGrace() }) {
   if (!Number.isSafeInteger(xp) || xp < 0 || !Number.isFinite(new Date(now).getTime())) throw new Error('Invalid chat progression')
   return serialize(User.sequelize, async () => {
     let user = await User.findByPk(userId)
@@ -29,12 +30,15 @@ async function applyChatMessage(User, { userId, userName, now, xp, unwanted, boo
     const levelUp = user.chat_exp + xp >= threshold
     const values = { chat_exp: user.chat_exp + xp - (levelUp ? threshold : 0),
       chat_level: user.chat_level + Number(levelUp), last_chat_message: now,
-      ...(levelUp && rewardFate ? levelReward(unwanted, booster) : {}) }
+      ...(levelUp && rewardFate ? levelReward(unwanted, { now, overflowGrace }) : {}) }
     const [changed] = await User.update(values, { where: { user_id: userId,
       chat_exp: user.chat_exp, chat_level: user.chat_level, last_chat_message: user.last_chat_message } })
+    const after = await User.findByPk(userId)
+    const overflow = changed === 1 && levelUp && unwanted && rewardFate ? Math.max(0, user.fate_points + 5 - 100) : 0
+    const bankedOverflow = changed === 1 && levelUp && unwanted && rewardFate ? Math.max(0, after.bank - user.bank) : 0
     return { credited: changed === 1, levelUp: changed === 1 && levelUp,
       before: { chat_level: user.chat_level, fate_points: user.fate_points, bank: user.bank },
-      overflow: levelUp && unwanted && rewardFate ? Math.max(0, user.fate_points + 5 - 100) : 0, user: await User.findByPk(userId) }
+      overflow, bankedOverflow, discardedOverflow: Math.max(0, overflow - bankedOverflow), user: after }
   })
 }
 
@@ -50,12 +54,12 @@ async function saveWallet(User, user) {
   if (changed !== 1) throw new Error('Your balance changed during this command. Please try again.')
 }
 
-async function awardLevelUp(User, userId, values, { unwanted, booster }) {
+async function awardLevelUp(User, userId, values, { unwanted, now = new Date(), overflowGrace = require('./fate-overflow-grace').selectedGrace() }) {
   // SQLite evaluates all RHS expressions from the same pre-update row. This
   // credits current balances atomically, rather than stale message snapshots.
   if (!Number.isSafeInteger(values.chat_level) || values.chat_level < 2) throw new Error('Invalid level transition')
   return serialize(User.sequelize, async () => {
-    await User.update({ ...values, ...levelReward(unwanted, booster) }, {
+    await User.update({ ...values, ...levelReward(unwanted, { now, overflowGrace }) }, {
       where: { user_id: userId, chat_level: values.chat_level - 1 },
     })
     return User.findByPk(userId)
@@ -63,14 +67,13 @@ async function awardLevelUp(User, userId, values, { unwanted, booster }) {
 }
 
 async function creditBank(User, userId, amount, { countBoost = false, withSnapshot = false } = {}) {
+  if (countBoost) throw new Error('Financial support no longer grants Fate rewards')
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Invalid bank reward')
   return serialize(User.sequelize, async () => {
     const credit = async transaction => {
     const options = transaction ? { transaction } : {}
     const before = withSnapshot ? (await User.findByPk(userId, options))?.get({ plain: true }) : null
-    await User.update({ bank: literal(`MAX(bank, MIN(100, bank + ${amount}))`), ...(countBoost ? {
-    boosterTotal: literal('boosterTotal + CASE WHEN bank < 100 THEN 1 ELSE 0 END'),
-  } : {}) }, { ...options, where: { user_id: userId } })
+    await User.update({ bank: literal(`MAX(bank, MIN(100, bank + ${amount}))`) }, { ...options, where: { user_id: userId } })
     const user = await User.findByPk(userId, options)
     return withSnapshot ? { user, before, after: user?.get({ plain: true }) } : user
     }

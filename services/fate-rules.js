@@ -5,9 +5,9 @@ function payment(bank, fate, { kind = 'purchase', cost = rules.rerollCost } = {}
   if (fate < fateSpent) throw new Error('Insufficient Fate Points')
   return { bankBefore: bank, bank: bank - bankSpent, fateBefore: fate, fatePoints: fate - fateSpent, bankSpent, fateSpent }
 }
-function reward(bank, fate, amount, { exceptional = false, bankCap = 100 } = {}) {
+function reward(bank, fate, amount, { exceptional = false, bankCap = 100, now = new Date(), overflowGrace = { enabled: false } } = {}) {
   if (![bank, fate, amount, bankCap].every(Number.isSafeInteger) || bank < 0 || fate < 0 || fate > rules.fateCap || amount < 0 || bankCap < 0) throw new Error('Invalid Fate reward')
   const fatePoints = Math.min(rules.fateCap, fate + amount), overflow = Math.max(0, fate + amount - rules.fateCap)
-  return { fatePoints, bank: exceptional ? Math.max(bank, Math.min(bankCap, bank + overflow)) : bank }
+  return { fatePoints, bank: exceptional || require('./fate-overflow-grace').activeGrace(now, overflowGrace) ? Math.max(bank, Math.min(bankCap, bank + overflow)) : bank }
 }
 module.exports = { payment, reward }

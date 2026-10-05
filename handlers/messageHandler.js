@@ -40,7 +40,12 @@ module.exports = (client, User, dependencies = {}) => {
     try { sanityActivity = await require('../services/sanity').handleMessage(message, User) }
     catch (error) { console.error('Sanity activity unavailable:', error.message) }
     try {
-      await handleCommunity(message)
+      const community = await handleCommunity(message)
+      if (community?.levelUp && !community.replayed) {
+        const banking = community.rewards?.some(reward => reward.bankCredited > 0)
+        await message.channel.send({ allowedMentions: { parse: [] }, embeds: [{ title: 'Community Level Up!', color: 0x497f91,
+          description: `The community reached **level ${community.level}**! Every current eligible campaign player receives **+5 Fate**, subject to balance caps.${banking ? '\n\nLaunch protection: for the first two months, earned Fate above 100 goes into Bank, up to its 100-point cap.' : ''}` }] })
+      }
     } catch (error) {
       console.error('Error updating community progression:', error.message)
     }
@@ -67,7 +72,6 @@ module.exports = (client, User, dependencies = {}) => {
       const unwanted = message.member.roles.cache.has(
         process.env.UNWANTEDROLEID,
       )
-      const booster = message.member.roles.cache.has(process.env.BOOSTERROLEID)
       // Preserve the legacy 10–13 XP range and one-minute cooldown.
       const result = await applyChatMessage(User, {
         userId: message.author.id,
@@ -75,7 +79,6 @@ module.exports = (client, User, dependencies = {}) => {
         now: clock(),
         xp: Math.floor(random() * 4) + 10,
         unwanted,
-        booster,
         rewardFate: true,
       })
       if (result.levelUp) {
@@ -87,7 +90,7 @@ module.exports = (client, User, dependencies = {}) => {
             `🎉 Congratulations, ${
               message.author.username
             }! You've reached **level ${user.chat_level}**${
-              unwanted ? ' and gained **5 fate points**!' : '!'
+              unwanted ? ` and gained **${Math.max(0, user.fate_points - result.before.fate_points) + (result.bankedOverflow || 0)} fate points**!` : '!'
             }`,
           )
           .setTimestamp()
@@ -102,12 +105,12 @@ module.exports = (client, User, dependencies = {}) => {
               inline: true,
             },
           )
-        if (result.overflow)
+        const launchNote = require('../services/fate-overflow-grace').graceNotice(result.bankedOverflow, result.discardedOverflow)
+        if (launchNote) embed.addFields({ name: 'Launch Protection', value: launchNote })
+        else if (result.overflow)
           embed.addFields({
-            name: booster ? 'Bank Update' : 'Note',
-            value: booster
-              ? 'Excess fate points were added to your bank, up to its cap of 100.'
-              : 'Fate is capped at 100; excess points were lost.',
+            name: 'Note',
+            value: 'Fate is capped at 100; excess points were lost.',
           })
         try {
           embed.addFields(
@@ -120,7 +123,7 @@ module.exports = (client, User, dependencies = {}) => {
         try { card = await profileNotification({ message, user: user.get({ plain: true }), before: result.before, occasion: 'level-up',
           ...(sanityActivity ? { sanity: { balance: sanityActivity.after, beforeBalance: sanityActivity.before, maximum: require('../config/sanity.json').capacity } } : {}) }) }
         catch (error) { console.error('Level-up card unavailable:', error.message) }
-        await message.channel.send(card || { embeds: [embed] })
+        await message.channel.send(card ? { ...card, ...(launchNote ? { content: launchNote } : {}) } : { embeds: [embed] })
       }
     } catch (error) {
       console.error('Error updating chat progression:', error.message)

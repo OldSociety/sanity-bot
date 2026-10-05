@@ -172,9 +172,9 @@ test('simultaneous level messages claim one XP transition and one fate reward, s
     f.run('concurrent-reward', async ctx => { await f.User.increment('bank', { by: 1, where: { user_id: 'alice' }, transaction: ctx.transaction }); return {} })])
   assert.equal(outcomes.filter(item => item.levelUp).length, 1)
   const user = await f.User.findByPk('alice')
-  assert.equal(user.chat_level, 2); assert.equal(user.chat_exp, 5); assert.equal(user.bank, 6)
+  assert.equal(user.chat_level, 2); assert.equal(user.chat_exp, 5); assert.equal(user.bank, 1)
   await awardLevelUp(f.User, 'alice', { chat_level: 2 }, { unwanted: true, booster: true })
-  assert.equal((await user.reload()).bank, 6)
+  assert.equal((await user.reload()).bank, 1)
 })
 
 test('message pipelines handle XP/haiku/send failures independently and ignore numeric DMs', async t => {

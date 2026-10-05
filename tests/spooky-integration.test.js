@@ -33,14 +33,14 @@ test('stale legacy fate mutation cannot overwrite a completed bank debit; fresh 
   await saveWallet(f.User, fresh)
   assert.equal((await f.User.findByPk('alice')).fate_points, 55)
 })
-test('level-up overflow credits current bank atomically and preserves purchase debit', async t => {
+test('financial support no longer banks level-up overflow and preserves purchase debit', async t => {
   const f = await fixture(t)
   await f.User.create({ user_id: 'alice', user_name: 'Alice', bank: 20, fate_points: 99 })
   await f.User.update({ bank: 10 }, { where: { user_id: 'alice' } })
   const updated = await awardLevelUp(f.User, 'alice', { chat_level: 2 }, { unwanted: true, booster: true })
-  assert.equal(updated.bank, 14); assert.equal(updated.fate_points, 100)
+  assert.equal(updated.bank, 10); assert.equal(updated.fate_points, 100)
   const capped = await awardLevelUp(f.User, 'alice', { chat_level: 3 }, { unwanted: true, booster: false })
-  assert.equal(capped.bank, 14)
+  assert.equal(capped.bank, 10)
 })
 
 test('normal purchases preserve pre-existing above-cap Bank, and wallet writes cannot manufacture more overflow', async t => {
@@ -114,13 +114,12 @@ test('wired slash command stays disabled in an allowed channel without loading t
   assert.ok(response.embeds[0].title.includes('Not Enabled'))
 })
 
-test('booster/birthday bank credits use current balances, respect cap and count actual booster rewards', async t => {
+test('birthday bank credits respect cap and legacy financial-support credits reject without writes', async t => {
   const f = await fixture(t)
   await f.User.create({ user_id: 'alice', user_name: 'Alice', bank: 99 })
-  const boosted = await creditBank(f.User, 'alice', 1, { countBoost: true })
-  assert.equal(boosted.bank, 100); assert.equal(boosted.boosterTotal, 1)
-  const capped = await creditBank(f.User, 'alice', 1, { countBoost: true })
-  assert.equal(capped.boosterTotal, 1)
+  await assert.rejects(creditBank(f.User, 'alice', 1, { countBoost: true }), /no longer grants/)
+  assert.equal((await f.User.findByPk('alice')).bank, 99)
+  assert.equal(f.User.rawAttributes.boosterTotal, undefined)
   await f.User.update({ bank: 90 }, { where: { user_id: 'alice' } })
   assert.equal((await creditBank(f.User, 'alice', 10)).bank, 100)
 })

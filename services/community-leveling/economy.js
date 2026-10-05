@@ -1,7 +1,7 @@
 const { Transaction } = require('sequelize')
 const { serialize } = require('../spooky/economy')
 const { rules, dayKey } = require('./config')
-function createCommunity({ User, models, config, resolveRecipients }) {
+function createCommunity({ User, models, config, resolveRecipients, overflowGrace = require('../fate-overflow-grace').selectedGrace() }) {
   const db = User.sequelize
   if (Object.values(models).some(model => model.sequelize !== db)) throw new Error('Community and Fate must share storage')
   async function attempt(input, recipients) {
@@ -32,9 +32,12 @@ function createCommunity({ User, models, config, resolveRecipients }) {
         for (const player of recipients) {
           const [user] = await User.findOrCreate({ where: { user_id: player.userId }, defaults: { user_name: player.userName }, transaction })
           if (!Number.isSafeInteger(user.fate_points) || user.fate_points < 0 || user.fate_points > rules.fateCap) throw new Error('Invalid Fate balance')
-          const before = user.fate_points, after = Math.min(rules.fateCap, before + rules.levelReward)
-          await user.update({ fate_points: after }, { transaction })
-          rewards.push({ userId: player.userId, before, after, credited: after - before })
+          const before = user.fate_points, bankBefore = user.bank
+          const planned = require('../fate-rules').reward(bankBefore, before, rules.levelReward, { now: input.now, overflowGrace })
+          const after = planned.fatePoints, bankCredited = planned.bank - bankBefore
+          await user.update({ fate_points: after, bank: planned.bank }, { transaction })
+          rewards.push({ userId: player.userId, before, after, credited: after - before, bankBefore, bank: planned.bank, bankCredited,
+            note: require('../fate-overflow-grace').graceNotice(bankCredited, rules.levelReward - (after - before) - bankCredited) })
         }
       }
       await guild.update({ level: guild.level + Number(levelUp), xp: guild.xp + 1 - (levelUp ? rules.levelRequirement : 0) }, { transaction })

@@ -41,11 +41,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 0,
     },
-    boosterTotal: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
     birthday: {
       type: DataTypes.DATE,
       allowNull: true,

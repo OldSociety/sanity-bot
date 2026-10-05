@@ -73,7 +73,6 @@ module.exports = {
     const member = interaction.member
 
     const isAdmin = require('../../utils/botAdmin').isBotAdmin(interaction)
-    const isBooster = member.roles.cache.has(process.env.BOOSTERROLEID)
     const hasUnwantedRole = member.roles.cache.has(process.env.UNWANTEDROLEID)
 
     // Check if the user has the Unwanted role
@@ -131,7 +130,7 @@ module.exports = {
         return
       }
 
-      if (excessPoints > 0 && (isBooster || isAdmin)) {
+      if (excessPoints > 0 && isAdmin) {
         bank += excessPoints
         if (bank > 100) {
           bank = 100
@@ -143,7 +142,7 @@ module.exports = {
       await saveWallet(User, userData)
 
       let description = `You have added ${pointsToAdd} fate points.`
-      if (excessPoints > 0 && (isBooster || isAdmin)) {
+      if (excessPoints > 0 && isAdmin) {
         description += `\nExcess points added to your bank.`
       } else if (excessPoints > 0) {
         description += `\nYou have reached the cap of 100 fate points. Excess points were not added.`
