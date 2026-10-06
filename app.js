@@ -28,23 +28,23 @@ const client = new Client({
 })
 
 // HOLIDAY EVENT
-client.once('ready', async () => {
-  // Check daily snowballs every hour
-  cron.schedule('*/300 * * * * *', async () => {
-    console.log('Cron scheduled:', cron.getTasks().size);
-    console.log(`[${new Date().toLocaleTimeString()}] tick`);
-    try {
-      const guild = await client.guilds.fetch(process.env.GUILDID)
-      if (guild) {
-        console.log('❄️ Running daily treat award...')
-        await awardSnowballs(guild)
-        console.log('✅ Hourly snow awarded successfully.')
-      }
-    } catch (error) {
-      console.error('❌ Error during daily treat award:', error)
-    }
-  })
-})
+// client.once('ready', async () => {
+//   // Check daily snowballs every hour
+//   cron.schedule('*/300 * * * * *', async () => {
+//     console.log('Cron scheduled:', cron.getTasks().size);
+//     console.log(`[${new Date().toLocaleTimeString()}] tick`);
+//     try {
+//       const guild = await client.guilds.fetch(process.env.GUILDID)
+//       if (guild) {
+//         console.log('❄️ Running daily treat award...')
+//         await awardSnowballs(guild)
+//         console.log('✅ Hourly snow awarded successfully.')
+//       }
+//     } catch (error) {
+//       console.error('❌ Error during daily treat award:', error)
+//     }
+//   })
+// })
 
 global.client = client // Set global client after client initialization
 

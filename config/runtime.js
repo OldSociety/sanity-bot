@@ -18,7 +18,9 @@ function resolveRuntime(environment, root = projectRoot) {
     database: {
       dialect: 'sqlite',
       storage: env === 'test' ? ':memory:' : path.join(root, 'config', env === 'development' ? 'dev.sqlite' : 'prod.sqlite'),
-      ...(env === 'test' && { logging: false }),
+      // Per-statement SQL floods PM2 output during gameplay and maintenance.
+      // Errors remain logged by the owning service.
+      logging: false,
     },
   }
 }

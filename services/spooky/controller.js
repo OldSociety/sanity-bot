@@ -114,9 +114,11 @@ function createController({
       const text = leaders
         .map(
           (row) =>
-            `**${require('../display-name').safeName(row.name)} ${
+            `**${
               row.nonCompetitive ? 'Community host: ' : `#${row.rank}`
-            } **\n${require('../badges').renderBadges(row.badges, emojis)}`,
+            } ${require('../display-name').safeName(
+              row.name,
+            )} **\n${require('../badges').renderBadges(row.badges, emojis)}`,
         )
         .join('\n\n')
       const latestBadge = badges?.latest
@@ -353,10 +355,11 @@ function createController({
     if (!['trick', 'treat', 'spend-fate', 'buy-quarter'].includes(subcommand))
       throw new Error('Unknown spooky command')
     // Discord fetches occur before any root database transaction; failures abort.
-    const snapshot = await fetchMembers(interaction.guildId, {
+    const snapshot = await require('./command-timing').phase(interaction, 'member_snapshot_ms', () => fetchMembers(interaction.guildId, {
       actorId: input.actorId,
       actorOnly: ['spend-fate', 'buy-quarter'].includes(subcommand),
-    })
+      actorMember: require('./command-timing').takeMember(interaction),
+    }))
     if (
       !Array.isArray(snapshot) ||
       !snapshot.some((member) => member.userId === input.actorId)
@@ -424,7 +427,14 @@ function createController({
         )
       ).map((message, index) => ({
         ...message,
-        payload: withBalances(message.payload, index > 0 && receipt.result?.collectionUserId ? receipt.result.collectionBalance : receipt, ctx.now, event),
+        payload: withBalances(
+          message.payload,
+          index > 0 && receipt.result?.collectionUserId
+            ? receipt.result.collectionBalance
+            : receipt,
+          ctx.now,
+          event,
+        ),
       }))
       if (mentions.allowed.length)
         messages[0].payload._spookyMentions = mentions.reservation
@@ -568,7 +578,9 @@ function createController({
       badgeAccess: (result.receipt.result || result.receipt).awards?.length
         ? badgeAccess
         : null,
-      userId: (result.receipt.result || result.receipt).collectionUserId || input.actorId,
+      userId:
+        (result.receipt.result || result.receipt).collectionUserId ||
+        input.actorId,
       payload:
         personal?.payload ||
         privateScreen(
@@ -578,7 +590,7 @@ function createController({
       hideAfterPublish: !personal,
       publish: async () => {
         if (notifications)
-          return notifications.deliver(result.operationId, interaction.channel)
+          return require('./command-timing').phase(interaction, 'public_delivery_ms', () => notifications.deliver(result.operationId, interaction.channel))
         else
           for (let index = 0; index < messages.length; index++)
             if (messages[index].public)

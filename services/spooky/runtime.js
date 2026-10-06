@@ -3,8 +3,9 @@ const { config } = require('./config')
 const { helpScreen, privateScreen } = require('./presentation')
 const instances = new WeakMap()
 
-async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false } = {}) {
-  const actorRequest = actorId ? guild.members.fetch({ user: actorId, force: true }) : Promise.resolve(null)
+async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false, actorMember = null } = {}) {
+  const verifiedActor = actorId && actorMember?.id === actorId && actorMember?.guild?.id === guild.id ? actorMember : null
+  const actorRequest = verifiedActor ? Promise.resolve(verifiedActor) : actorId ? guild.members.fetch({ user: actorId, force: true }) : Promise.resolve(null)
   if (actorOnly) {
     const actor = await actorRequest
     if (!actor || actor.id !== actorId) throw new Error('Actor membership unavailable')
@@ -111,14 +112,18 @@ async function execute(interaction) {
   // including help while disabled. Replies to rejections are always private.
   const restricted = require('./channels').channelRestriction(interaction)
   if (restricted) return interaction.deferred ? interaction.editReply(restricted) : interaction.reply({ ...restricted, ephemeral: true })
-  if (!config.enabled) return interaction.reply({ ...(subcommand === 'help' ? helpScreen() : privateScreen('🎃 Spooky Not Enabled', 'The redesigned event is not enabled yet.')), ephemeral: true })
+  if (!config.enabled) {
+    const payload = subcommand === 'help' ? helpScreen() : privateScreen('🎃 Spooky Not Enabled', 'The redesigned event is not enabled yet.')
+    return interaction.deferred ? interaction.editReply(payload) : interaction.reply({ ...payload, ephemeral: true })
+  }
   try {
     const service = runtime(interaction.client)
     if (interaction.guildId !== process.env.GUILDID) throw new Error('Use the configured Spooky server')
     // Keep expiry/closure safety immediate; full recovery runs in the worker.
-    await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
-    await service.beforeCommand(`before:${interaction.id}`)
-    await service.controller.execute(interaction)
+    if (!interaction.deferred) await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+    const timing = require('./command-timing')
+    await timing.phase(interaction, 'database_preparation_ms', () => service.beforeCommand(`before:${interaction.id}`))
+    await timing.phase(interaction, 'controller_ms', () => service.controller.execute(interaction))
   } catch (error) {
     // Keep player errors simple, but never discard the diagnostic that explains
     // why an acknowledged command could not complete.

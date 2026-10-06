@@ -26,17 +26,27 @@ test('runtime snapshot marks Bots-role targets excluded before gameplay sees the
 })
 test('command dispatch rejects Bots-role actors and targets in production, permits development', async t => {
   const previousEnv = process.env.NODE_ENV
-  t.after(() => { if (previousEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousEnv })
+  const keys = ['GUILDID', 'SPOOKYCHANNELID', 'BOTTESTCHANNELID']
+  const saved = Object.fromEntries(keys.map(key => [key, process.env[key]]))
+  Object.assign(process.env, { GUILDID: '100000000000000001', SPOOKYCHANNELID: '100000000000000002', BOTTESTCHANNELID: '' })
+  t.after(() => {
+    if (previousEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousEnv
+    for (const key of keys) { if (saved[key] === undefined) delete process.env[key]; else process.env[key] = saved[key] }
+  })
   const handler = require('../events/interactionCreate').execute
   for (const [environment, actorBot, targetBot, expected] of [['production', true, false, 0], ['production', false, true, 0], ['development', true, true, 1]]) {
     process.env.NODE_ENV = environment
     let executions = 0, rejected = false
     const value = isBot => member(false, isBot ? [{ id: 'role', name: 'Bots' }] : [])
-    await handler({ isChatInputCommand: () => true, commandName: 'spooky', user: { id: 'actor' },
+    const interaction = { isChatInputCommand: () => true, commandName: 'spooky', user: { id: 'actor' },
+      guildId: process.env.GUILDID, channelId: process.env.SPOOKYCHANNELID,
       client: { commands: new Map([['spooky', { execute: async () => { executions++ } }]]) },
-      options: { getUser: () => ({ id: 'target' }) },
+      options: { getUser: () => ({ id: 'target' }), getSubcommand: () => 'treat' },
       guild: { members: { fetch: async ({ user }) => value(user === 'actor' ? actorBot : targetBot) } },
-      reply: async payload => { rejected = true; assert.equal(payload.ephemeral, true) } })
+      deferReply: async payload => { interaction.deferred = true; assert.equal(payload.ephemeral, true) },
+      editReply: async payload => { rejected = true; assert.equal(payload.ephemeral, true) },
+      reply: async payload => { rejected = true; assert.equal(payload.ephemeral, true) } }
+    await handler(interaction)
     assert.equal(executions, expected); assert.equal(rejected, expected === 0)
   }
 })

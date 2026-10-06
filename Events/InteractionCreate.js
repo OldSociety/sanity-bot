@@ -57,18 +57,32 @@ module.exports = {
           await interaction.reply({ content: 'This command is not currently available.', ephemeral: true, allowedMentions: { parse: [] } })
           return
         }
+        if (interaction.commandName === 'spooky' && !interaction.deferred && !interaction.replied) {
+          const restricted = require('../services/spooky/channels').channelRestriction(interaction)
+          if (restricted) { await interaction.reply({ ...restricted, ephemeral: true }); return }
+          require('../services/spooky/command-timing').begin(interaction)
+          await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+        }
         if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
           const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
+          if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').rememberMember(interaction, member)
           if (require('../services/member-policy').excludedMember(member)) {
-            await interaction.reply({ content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            const payload = { content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } }
+            if (interaction.deferred && interaction.ephemeral === false) { await interaction.deleteReply(); await interaction.followUp(payload) }
+            else if (interaction.deferred) await interaction.editReply(payload)
+            else await interaction.reply(payload)
             return
           }
           const target = interaction.options.getUser('player')
           if (target && require('../services/member-policy').excludedMember(await interaction.guild.members.fetch({ user: target.id, force: true }))) {
-            await interaction.reply({ content: 'Bots cannot be selected for these commands in production.', ephemeral: true, allowedMentions: { parse: [] } })
+            const payload = { content: 'Bots cannot be selected for these commands in production.', ephemeral: true, allowedMentions: { parse: [] } }
+            if (interaction.deferred && interaction.ephemeral === false) { await interaction.deleteReply(); await interaction.followUp(payload) }
+            else if (interaction.deferred) await interaction.editReply(payload)
+            else await interaction.reply(payload)
             return
           }
         }
+        if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').mark(interaction, 'acknowledgement_and_eligibility')
         await command.execute(interaction)
         if (process.env.NODE_ENV === 'development') {
           try { await require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User) }
@@ -80,6 +94,8 @@ module.exports = {
         const payload = { content: 'The command could not complete. Check your saved state before trying another paid action; completed rewards remain saved.', ephemeral: true, allowedMentions: { parse: [] } }
         if (interaction.deferred && !interaction.replied) await interaction.editReply(payload).catch(() => {})
         if (!interaction.replied && !interaction.deferred) await interaction.reply(payload).catch(() => {})
+      } finally {
+        if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').finish(interaction)
       }
     }
     // Handle Button Interactions
