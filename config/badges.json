@@ -21,13 +21,14 @@
     {
       "characterId": "max",
       "name": "Maxim",
-      "emojiName": null,
+      "emojiName":  "spooky_maxim_badge",
       "imageAsset": "SPOOKY_MAXIM_BADGE.png"
     },
     {
       "characterId": "nik",
       "name": "Niklaus",
-      "emojiName": null
+      "emojiName":  "spooky_niklaus_badge",
+      "imageAsset": "SPOOKY_NIKLAUS_BADGE.png"
     },
     {
       "characterId": "qam",
