@@ -35,7 +35,7 @@ test('every normal table interval is reachable with exact boundaries and no inde
   }
 })
 
-test('Eye Candy stays at20%, personal Eyes and Trick Eye attempts stay at13% across spell buffers', () => {
+test('Eye Candy stays at10%, personal Eyes and Trick Eye attempts stay at10% across spell buffers', () => {
   for (const previousOutcome of [null, 'reverse_nickname', 'temporary_immunity', 'curse_target', 'break_curse', 'eye_candy', 'steal_or_find_eye']) {
     for (const action of ['treat', 'trick']) {
       const counts = {}
@@ -43,8 +43,8 @@ test('Eye Candy stays at20%, personal Eyes and Trick Eye attempts stay at13% acr
         const result = selectAction({ action, previousOutcome, crownHolderId: action === 'trick' ? 'bob' : null, actorId: 'alice', random: () => (i + .5) / 10000 })
         counts[result.outcome] = (counts[result.outcome] || 0) + 1
       }
-      if (action === 'treat') { assert.equal(counts.eye_candy, 2000); assert.equal(counts.find_eye, 1300); assert.equal(counts.sweet_tooth, 100) }
-      else { assert.equal(counts.steal_or_find_eye, 1300); assert.equal(counts.steal_crown, 100) }
+      if (action === 'treat') { assert.equal(counts.eye_candy, 1000); assert.equal(counts.find_eye, 1000); assert.equal(counts.sweet_tooth, 100) }
+      else { assert.equal(counts.steal_or_find_eye, 1000); assert.equal(counts.steal_crown, 100) }
     }
   }
 })
@@ -66,7 +66,7 @@ test('same-spell buffer reduces only repeated reversal and leaves Eye/Crown/fail
   counts[r.outcome]=(counts[r.outcome]||0)+1
  }
  assert.equal(counts.reverse_nickname,125)
- assert.equal(counts.steal_or_find_eye,1300)
+ assert.equal(counts.steal_or_find_eye,1000)
  assert.equal(counts.steal_crown,100)
  assert.equal(counts.caught_stealing,1600)
  assert.ok(counts.steal_candy>2500)
@@ -75,10 +75,10 @@ test('same-spell buffer reduces only repeated reversal and leaves Eye/Crown/fail
 })
 test('committed history discourages a repeated spell, ignores screens and survives reconstruction/replay', async t => {
  let calls=0
- const f=await fixture(t,{random:()=>{calls++;return .36},handlers:{reverse_nickname:async()=>({reversedUserId:'bob'})}})
+ const f=await fixture(t,{random:()=>{calls++;return .39},handlers:{reverse_nickname:async()=>({reversedUserId:'bob'})}})
  assert.equal((await f.service.execute(f.input('100'))).receipt.outcome,'reverse_nickname')
  await f.economy.execute({...f.input('101'),operationType:'collection_screen'},async()=>({}))
- const reconstructed=createActions({models:f.models,economy:f.economy,participants:f.participants,event:{...config,enabled:true},random:()=>{calls++;return .36},getCurseState:()=>false,handlers:{great_heist:async()=>({stolen:3})}})
+ const reconstructed=createActions({models:f.models,economy:f.economy,participants:f.participants,event:{...config,enabled:true},random:()=>{calls++;return .39},getCurseState:()=>false,handlers:{great_heist:async()=>({stolen:3})}})
  assert.equal((await reconstructed.execute(f.input('102'))).receipt.outcome,'great_heist')
  assert.equal((await reconstructed.execute(f.input('102'))).replayed,true);assert.equal(calls,2)
  assert.equal((await f.service.execute(f.input('103'))).receipt.outcome,'reverse_nickname')
@@ -168,7 +168,7 @@ test('choice wait holds no transaction; pause, depleted candy and changed curse 
 })
 
 
-test('Eye chance stays exactly13% for either action through every repeat family and Crown state', () => {
+test('Eye chance stays exactly10% for either action through every repeat family and Crown state', () => {
  const histories = [null, 'reverse_nickname', 'curse_target', 'curse_backfire', 'curse_spread', 'temporary_immunity', 'break_curse', 'marked_for_mischief', 'find_eye', 'steal_or_find_eye', 'steal_crown', 'caught_stealing'];
  for (const action of ['trick', 'treat']) for (const crownHolderId of [null, 'alice', 'bob']) for (const previousOutcome of histories) {
   let eyes = 0;
@@ -176,6 +176,6 @@ test('Eye chance stays exactly13% for either action through every repeat family 
    const result = selectAction({ action, actorId: 'alice', crownHolderId, previousOutcome, random: () => (i + .5) / 1000 });
    if (['find_eye', 'steal_or_find_eye'].includes(result.outcome)) eyes++;
   }
-  assert.equal(eyes, 130, action + '/' + crownHolderId + '/' + previousOutcome);
+  assert.equal(eyes, 100, action + '/' + crownHolderId + '/' + previousOutcome);
  }
 });

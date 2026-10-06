@@ -333,7 +333,7 @@ function registrationScreen(receipt, user) {
         ? 'You have joined the fun!'
         : 'You are already registered. Your collection and balances are kept.',
       '**Play:** `/spooky treat` or `/spooky trick` — each costs **1 🍬 candy**.',
-      '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random unowned quarter. Every new piece advances your collection! Complete a character to unlock its permanent badge.',
+      '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random piece. Incomplete characters always give you an unowned piece; completed characters can give duplicates. Every **5 duplicates** earns a new unowned piece! Complete a character to unlock its permanent badge.',
       '**Check in:** `/spooky collection` for quarters, badges and balances.',
       config.fate.paymentResource === 'sanity' ? '**More:** `/spooky buy-quarter` buys a quarter for **10 Sanity**. Fate and Bank stay untouched. `/spooky help` explains the full rules.' : `**More:** \`/spooky spend-fate\` buys a quarter for **10 Fate Points (${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'})**. \`/spooky help\` explains the full rules.`,
       'Candy refills **+1 every 18 minutes**. Keep spending so your bucket has room for more!',
@@ -358,7 +358,7 @@ function helpScreen() {
       '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
       config.fate.paymentResource === 'sanity' ? '**Extra quarter:** `/spooky buy-quarter` lets you confirm spending **10 Sanity**; Fate and Bank stay untouched.' : `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'}**; no daily limit.`,
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
-      'Five 🧿 Evil Eyes automatically award an unowned quarter. You can collect each piece only once; completed collections retain further Eyes.',
+      'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. After the full collection is complete, further duplicate pieces are kept.',
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
       'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',
       'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',

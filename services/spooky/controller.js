@@ -256,7 +256,7 @@ function createController({
             '🧩 Your Collection',
             event.duplicates.allowDuplicates === false
               ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.`
-              : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nEvery 5 duplicates will grant you a new unowned piece!`,
+              : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nDuplicates can only come from completed characters. Every 5 duplicates will grant you a new unowned piece!`,
           ),
           player,
           clock(),

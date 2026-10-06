@@ -16,7 +16,7 @@ async function fixture(t, { bank = 100, fate = 100, random = () => 0, enabled = 
   const User = defineUser(sequelize, Sequelize.DataTypes)
   await User.sync() // Actual User schema, solely on this disposable connection.
   await migration.up(sequelize.getQueryInterface())
-  const models = defineSpookyModels(sequelize), event = { ...config, enabled, duplicates: { ...config.duplicates, allowDuplicates: legacyDuplicates } }
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled, duplicates: { ...config.duplicates, allowDuplicates: legacyDuplicates, requireCompletedCharacter: false } }
   let now = new Date(config.startsAt)
   const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => now })
   const participants = createParticipants({ models, economy, event })

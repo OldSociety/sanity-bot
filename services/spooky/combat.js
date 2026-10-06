@@ -32,7 +32,10 @@ function createCombat({ models, participants, effects, delivery, event = default
     if (from === to || !Number.isSafeInteger(requested) || requested <= 0) throw new Error('Invalid combat transfer')
     const { participant: source } = await participants.prepare(ctx, from)
     const { participant: receiver } = await participants.prepare(ctx, to)
-    const base = Math.min(requested, source.candy, event.candy.capacity - receiver.candy)
+    // One shared allowance covers every hop, recipient and hole bonus in this
+    // operation. Availability and recipient capacity can reduce it further.
+    const allowance = event.candy.eventMaximum - (ctx.candyTransferred || 0)
+    const base = Math.max(0, Math.min(requested, source.candy, event.candy.capacity - receiver.candy, allowance))
     if (!base || await intercept(ctx, from)) return 0
     let extra = 0
     if (hole && await effects.active(ctx, from, 'bag_hole')) {
@@ -40,10 +43,11 @@ function createCombat({ models, participants, effects, delivery, event = default
       const previous = ctx.holeTransfers.get(from) || { base: 0, extra: 0 }
       const totalBase = previous.base + base
       const wanted = Math.min(event.combat.holeBonusCap, Math.ceil(totalBase * event.combat.holeBonusPercent / 100)) - previous.extra
-      extra = Math.max(0, Math.min(wanted, source.candy - base, event.candy.capacity - receiver.candy - base))
+      extra = Math.max(0, Math.min(wanted, source.candy - base, event.candy.capacity - receiver.candy - base, allowance - base))
       ctx.holeTransfers.set(from, { base: totalBase, extra: previous.extra + extra })
     }
     await ctx.transfer(from, to, 'candy', base + extra, { outcome, ...(extra ? { holeBonus: extra } : {}) })
+    ctx.candyTransferred = (ctx.candyTransferred || 0) + base + extra
     ctx.candyMovements ||= []
     ctx.candyMovements.push({ fromUserId: from, toUserId: to, candy: base + extra, holeBonus: extra })
     return base + extra

@@ -16,6 +16,7 @@ function validateOutcomes(outcomes, label) {
 }
 function validateEvent(config) {
   if (config.duplicates?.allowDuplicates !== undefined && typeof config.duplicates.allowDuplicates !== 'boolean') throw new Error('Invalid duplicate policy')
+  if (config.duplicates?.requireCompletedCharacter !== undefined && typeof config.duplicates.requireCompletedCharacter !== 'boolean') throw new Error('Invalid completed-character duplicate policy')
   if (config.competition && (!Array.isArray(config.competition.nonCompetitiveUserIds) ||
     config.competition.nonCompetitiveUserIds.some(id => !/^\d{17,20}$/.test(id)) ||
     new Set(config.competition.nonCompetitiveUserIds).size !== config.competition.nonCompetitiveUserIds.length)) throw new Error('Invalid competition identity policy')
@@ -28,6 +29,8 @@ function validateEvent(config) {
   for (const key of ['starting', 'capacity', 'refillAmount', 'refillIntervalMs', 'actionCost']) requirePositiveInteger(config.candy[key], `candy.${key}`)
   if (config.candy.starting > config.candy.capacity || config.candy.refillAmount > config.candy.capacity) throw new Error('Candy exceeds capacity')
   if (config.candy.actionCost !== 1) throw new Error('Every action costs exactly one candy')
+  requirePositiveInteger(config.candy.eventMaximum, 'Candy event maximum')
+  if (config.candy.eventMaximum > config.candy.capacity) throw new Error('Candy event maximum exceeds capacity')
   requirePositiveInteger(config.targetChoice?.timeoutMs, 'target choice timeout')
   requirePositiveInteger(config.nickname?.reversalDurationMs, 'reversal duration')
   requirePositiveInteger(config.actionBuffer?.specialWeightPercent, 'special outcome buffer weight')
@@ -43,6 +46,7 @@ function validateEvent(config) {
   if (config.eyes.dailyDrawLimit !== null || config.fate.dailyDrawLimit !== null) throw new Error('Hard daily draw limits are disabled')
   for (const key of ['theftProtectionMs', 'watchedCandyReward', 'giftCandyReward']) requirePositiveInteger(config.eyes[key], `eyes.${key}`)
   if (config.eyes.watchedCandyReward > config.candy.capacity || config.eyes.giftCandyReward > config.candy.capacity) throw new Error('Eye candy reward exceeds capacity')
+  if ([config.eyes.watchedCandyReward, config.eyes.giftCandyReward, config.crown.candyBonus].some(value => value > config.candy.eventMaximum)) throw new Error('Candy reward exceeds event maximum')
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
   if (!['bank-then-fate', 'normal-fate-only', 'sanity'].includes(config.fate.paymentResource)) throw new Error('Invalid Fate purchase policy')

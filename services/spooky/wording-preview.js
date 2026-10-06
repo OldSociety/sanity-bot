@@ -6,7 +6,7 @@ function wordingPages() {
     double_gift: { gifts: [{ userId: 'recipient' }], deliveredCandy: 2 },
     temporary_immunity: { shielded: ['actor', 'recipient'] }, break_curse: { freedUserId: 'recipient' },
     standard_gift: { gifts: [{ userId: 'recipient' }], deliveredCandy: 1 }, find_eye: {},
-    eye_candy: { eyeRecipientId: 'recipient', giftedEyes: 1, candyReward: 6 },
+    eye_candy: { eyeRecipientId: 'recipient', giftedEyes: 1, candyReward: 5 },
     steal_candy: { stolen: 1, victims: [{ userId: 'recipient' }] },
     great_heist: { stolen: 3, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
     reverse_nickname: { reversedUserId: 'recipient' }, curse_target: { cursedUserId: 'recipient' },
@@ -14,14 +14,14 @@ function wordingPages() {
     steal_or_find_eye: { stolen: 1, victims: [{ userId: 'recipient' }] },
     steal_crown: { awardedUserId: 'actor', crownWon: true, crownStolenFrom: 'recipient', crownFirstWin: true,
       fateBonus: 5, candyReward: 5, bankBefore: 71, bank: 76, fatePoints: 100 },
-    candy_raid: { stolen: 8, victims: [{ userId: 'recipient' }], candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 8 }] },
+    candy_raid: { stolen: 5, victims: [{ userId: 'recipient' }], candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 5 }] },
     bag_swap: { swapTargetUserId: 'recipient', swapped: true, redistributed: 5 },
     bag_explosion: { explosionTargetUserId: 'recipient', scattered: 2, candyMovements: [{ fromUserId: 'recipient', toUserId: 'other', candy: 2 }] },
     sticky_fingers: { stolen: 4, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
     reverse_robbery: { lost: 3, robberyTargetUserId: 'recipient', failure: 'reverse_robbery' },
     candy_ransom: { stolen: 3, ransomTaken: 5, ransomReturned: 2, victims: [{ userId: 'recipient' }] },
     boo: { explosionTargetUserId: 'recipient', scattered: 3 },
-    candy_shakedown: { stolen: 6, victims: [{ userId: 'recipient' }] },
+    candy_shakedown: { stolen: 5, victims: [{ userId: 'recipient' }] },
     trick_chain: { stolen: 4, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
     marked_for_mischief: { holeTargetUserId: 'recipient' },
   }
@@ -36,8 +36,8 @@ function wordingPages() {
     for (let i = 0; i < (['standard_gift', 'caught_stealing', 'lost_candy'].includes(outcome.id) ? 100 : 1); i++) add({ action, outcome: outcome.id, result: samples[outcome.id] }, String(i))
   }
   add({ action: 'trick', outcome: 'steal_or_find_eye', result: { found: 1 } })
-  add({ action: 'trick', outcome: 'steal_or_find_eye', result: { watchedUserId: 'recipient', candyReward: 8 } })
-  add({ action: 'treat', outcome: 'eye_candy', result: { eyeGiftUnavailable: true, candyReward: 6 } })
+  add({ action: 'trick', outcome: 'steal_or_find_eye', result: { watchedUserId: 'recipient', candyReward: 4 } })
+  add({ action: 'treat', outcome: 'eye_candy', result: { eyeGiftUnavailable: true, candyReward: 5 } })
   add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', swapped: false, redistributed: 5 } })
   add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', noEffect: 'equal_bags' } })
   add({ action: 'trick', outcome: 'candy_raid', result: { stolen: 2, candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 2, holeBonus: 1 }] } })
@@ -62,7 +62,7 @@ function wordingPages() {
     newlyCompletedCharacters: ['sel'], newlyAwardedBadges: ['spooky-2026:sel'] } },
   { actorId: 'actor', members: [{ userId: 'actor', displayName: 'Example Player' }], registeredIds: new Set() })[0].payload
   pages.push({ label: 'collection • Selene badge unlocked', payload: completion })
-  const duplicate = actionMessages({ candy: 50, eyes: 2, awards: [{ ...piece, duplicate: true, duplicates: 1, ownedPositions: ['tl', 'tr'] }] },
+  const duplicate = actionMessages({ candy: 50, eyes: 2, awards: [{ ...piece, duplicate: true, duplicates: 1, ownedPositions: ['tl', 'tr', 'bl', 'br'] }] },
     { actorId: 'actor', members: [{ userId: 'actor', displayName: 'Example Player' }], registeredIds: new Set() })[0].payload
   if (config.duplicates.allowDuplicates !== false) pages.push({ label: 'collection • duplicate piece', payload: duplicate })
   return pages

@@ -14,6 +14,14 @@ function createCandyEvents({ models, participants, effects, delivery, listMember
       .filter(member => !funded || member.previewCandy > 0)
   }
   async function balance(ctx, userId) { return (await participants.prepare(ctx, userId)).participant.candy }
+  function upperHalf(maximum) {
+    const maximumAllowed = Math.min(event.candy.eventMaximum, maximum)
+    if (maximumAllowed < 3) return maximumAllowed
+    const value = random()
+    if (!Number.isFinite(value) || value < 0 || value >= 1) throw new Error('Invalid Candy amount roll')
+    const minimum = Math.floor(maximumAllowed / 2) + 1
+    return minimum + Math.floor(value * (maximumAllowed - minimum + 1))
+  }
   async function fallback(ctx, plan) {
     const result = await ordinaryTheft.handlers.steal_candy(ctx, plan)
     if (!result.stolen && !ctx.shieldHits?.size) {
@@ -31,19 +39,20 @@ function createCandyEvents({ models, participants, effects, delivery, listMember
   async function theft(ctx, plan, amount) {
     const member = await target(ctx, plan)
     if (!member) return fallback(ctx, plan)
-    const requested = typeof amount === 'function' ? amount(await balance(ctx, member.userId)) : amount
+    const requested = upperHalf(typeof amount === 'function' ? amount(await balance(ctx, member.userId)) : amount)
     const stolen = await combat.transfer(ctx, member.userId, plan.actorId, requested, { outcome: plan.outcome })
     return { stolen, victims: [{ userId: member.userId, registered: true }], ...(!stolen ? { noEffect: 'shield_blocks_attack' } : {}) }
   }
   const handlers = {
-    candy_raid: (ctx, plan) => theft(ctx, plan, candy => Math.max(1, Math.min(8, Math.floor(candy / 4)))),
-    candy_shakedown: (ctx, plan) => theft(ctx, plan, candy => Math.max(2, Math.min(6, Math.floor(candy / 10)))),
+    candy_raid: (ctx, plan) => theft(ctx, plan, candy => Math.max(1, Math.min(event.candy.eventMaximum, Math.floor(candy / 4)))),
+    candy_shakedown: (ctx, plan) => theft(ctx, plan, candy => Math.max(2, Math.min(event.candy.eventMaximum, Math.floor(candy / 10)))),
     candy_ransom: async (ctx, plan) => {
       const room = event.candy.capacity - await balance(ctx, plan.actorId)
       const member = room >= 3 && await target(ctx, plan, async member => member.previewCandy >= 5)
       if (!member) return fallback(ctx, plan)
-      const stolen = await combat.transfer(ctx, member.userId, plan.actorId, 3, { outcome: plan.outcome })
-      return { stolen, ransomTaken: stolen ? 5 : 0, ransomReturned: stolen ? 2 : 0, victims: [{ userId: member.userId, registered: true }], ...(!stolen ? { noEffect: 'shield_blocks_attack' } : {}) }
+      const stolen = await combat.transfer(ctx, member.userId, plan.actorId, upperHalf(3), { outcome: plan.outcome })
+      const ransomTaken = stolen ? Math.min(event.candy.eventMaximum, stolen + 2) : 0
+      return { stolen, ransomTaken, ransomReturned: ransomTaken - stolen, victims: [{ userId: member.userId, registered: true }], ...(!stolen ? { noEffect: 'shield_blocks_attack' } : {}) }
     },
     bag_swap: async (ctx, plan) => {
       const member = await target(ctx, plan)
@@ -51,23 +60,24 @@ function createCandyEvents({ models, participants, effects, delivery, listMember
       const a = await balance(ctx, plan.actorId), b = await balance(ctx, member.userId)
       const difference = Math.abs(a - b)
       if (!difference) return { swapTargetUserId: member.userId, noEffect: 'equal_bags' }
-      const amount = difference <= 10 ? difference : Math.min(5, difference)
+      const swapped = difference <= event.candy.eventMaximum
+      const amount = swapped ? difference : upperHalf(event.candy.eventMaximum)
       const from = a > b ? plan.actorId : member.userId, to = a > b ? member.userId : plan.actorId
       const moved = await combat.transfer(ctx, from, to, amount, { hole: false, outcome: plan.outcome })
-      return { swapTargetUserId: member.userId, swapped: difference <= 10, redistributed: moved, ...(!moved ? { noEffect: 'shield_blocks_attack' } : {}) }
+      return { swapTargetUserId: member.userId, swapped, redistributed: moved, ...(!moved ? { noEffect: 'shield_blocks_attack' } : {}) }
     },
     reverse_robbery: async (ctx, plan) => {
       const candidates = []
       for (const member of await registered(ctx, plan.actorId)) if (member.previewCandy < event.candy.capacity) candidates.push(member)
       const member = randomTargets(candidates, 1, random)[0]
       if (!member || !await balance(ctx, plan.actorId)) return fallback(ctx, plan)
-      const lost = await combat.transfer(ctx, plan.actorId, member.userId, 3, { outcome: plan.outcome })
+      const lost = await combat.transfer(ctx, plan.actorId, member.userId, upperHalf(3), { outcome: plan.outcome })
       return { lost, robberyTargetUserId: member.userId, ...(lost ? { failure: 'reverse_robbery' } : { noEffect: 'shield_blocks_attack' }) }
     },
     sticky_fingers: async (ctx, plan) => {
       const first = await target(ctx, plan)
       if (!first) return fallback(ctx, plan)
-      let stolen = await combat.transfer(ctx, first.userId, plan.actorId, 3, { outcome: plan.outcome })
+      let stolen = await combat.transfer(ctx, first.userId, plan.actorId, upperHalf(3), { outcome: plan.outcome })
       const victims = [{ userId: first.userId, registered: true }]
       const roll = random(); if (!Number.isFinite(roll) || roll < 0 || roll >= 1) throw new Error('Invalid follow-up roll')
       if (roll < .5) {

@@ -56,7 +56,7 @@ test('nonparticipant theft materializes only chosen victim, excludes self/bots, 
 })
 
 test('heist picks random distinct funded victims and limits credit to caller capacity', async t => {
-  const f = await fixture(t, ['bob','carol','dan','eve'].map(id => human(id)), { outcomeRoll: .25, targetRandom: () => .999999 })
+  const f = await fixture(t, ['bob','carol','dan','eve'].map(id => human(id)), { outcomeRoll: .28, targetRandom: () => .999999 })
   await (await f.row('alice')).update({ candy: 79 })
   const result = await f.actions.execute(f.input('heist'))
   assert.deepEqual(result.receipt.result.victims.map(victim => victim.userId), ['eve','dan'])
@@ -175,7 +175,7 @@ test('12-hour victim protection survives reconstruction, covers all thieves and 
   f.time(Date.parse(config.startsAt) + config.eyes.theftProtectionMs - 1)
   const blocked = await f.economy.execute({ ...f.input('different-thief'), actorId: 'carol', operationType: 'test' },
     ctx => restored.handlers.steal_or_find_eye(ctx, { actorId: 'carol', outcome: 'steal_or_find_eye' }))
-  assert.equal(blocked.receipt.watchedUserId, 'bob'); assert.equal(blocked.receipt.candyReward, 8)
+  assert.equal(blocked.receipt.watchedUserId, 'bob'); assert.equal(blocked.receipt.candyReward, 4)
   assert.equal((await f.row('bob')).eyes, 3)
   f.time(Date.parse(config.startsAt) + config.eyes.theftProtectionMs)
   assert.equal((await f.actions.execute(f.input('at-expiry'))).receipt.result.stolen, 1)
@@ -217,20 +217,20 @@ test('an existing pre-upgrade Eye loss protects its victim without any backfill'
     await ctx.record({ userId: 'bob', resource: 'eyes', delta: -1, relatedUserId: 'carol', metadata: { reason: 'eye_theft' } }); return {}
   })
   const blocked = await f.actions.execute(f.input('historical-protection'))
-  assert.equal(blocked.receipt.result.watchedUserId, 'bob'); assert.equal(blocked.receipt.result.candyReward, 8)
+  assert.equal(blocked.receipt.result.watchedUserId, 'bob'); assert.equal(blocked.receipt.result.candyReward, 4)
   assert.equal((await f.row('bob')).eyes, 3)
   assert.equal(await f.models.Ledger.count({ where: { operationId: blocked.operationId, resource: 'eyes' } }), 0)
 })
 
-test('Eye Candy favors zero-Eye registered humans and awards the giver six Candy, once', async t => {
+test('Eye Candy favors zero-Eye registered humans and awards the giver five Candy, once', async t => {
   const f = await fixture(t, [human('alice'), human('robot', { bot: true }), human('unknown'), human('bob'), human('carol'), human('carol')],
-    { outcomeRoll: .8, targetRandom: () => .99 })
+    { outcomeRoll: .85, targetRandom: () => .99 })
   await f.register('bob', { eyes: 3 }); await f.register('carol', { eyes: 0 })
   const input = { ...f.input('gift'), action: 'treat' }
   const results = await Promise.all(Array.from({ length: 8 }, () => f.actions.execute(input)))
   const result = results[0].receipt.result
-  assert.equal(result.eyeRecipientId, 'carol'); assert.equal(result.giftedEyes, 1); assert.equal(result.candyReward, 6)
-  assert.equal((await f.row('alice')).candy, 15); assert.equal((await f.row('alice')).eyes, 0)
+  assert.equal(result.eyeRecipientId, 'carol'); assert.equal(result.giftedEyes, 1); assert.equal(result.candyReward, 5)
+  assert.equal((await f.row('alice')).candy, 14); assert.equal((await f.row('alice')).eyes, 0)
   assert.equal((await f.row('carol')).eyes, 1); assert.equal((await f.row('bob')).eyes, 3)
   assert.equal(await f.row('robot'), null); assert.equal(await f.row('unknown'), null)
   assert.equal(await f.models.Ledger.count({ where: { operationId: 'discord:gift', resource: 'eyes' } }), 1)
@@ -240,27 +240,27 @@ test('Eye Candy favors zero-Eye registered humans and awards the giver six Candy
 
 test('Eye Candy chooses randomly from nonempty recipients, respects cap and cannot gift itself in solo play', async t => {
   for (const targetRandom of [() => 0, () => .99]) {
-    const f = await fixture(t, [human('bob'), human('carol')], { outcomeRoll: .8, targetRandom })
+    const f = await fixture(t, [human('bob'), human('carol')], { outcomeRoll: .85, targetRandom })
     await f.register('bob', { eyes: 1 }); await f.register('carol', { eyes: 1 })
     await (await f.row('alice')).update({ candy: 79 })
     const result = await f.actions.execute({ ...f.input('nonempty'), action: 'treat' })
     assert.equal(result.receipt.result.eyeRecipientId, targetRandom() ? 'carol' : 'bob')
     assert.equal(result.receipt.result.candyReward, 2); assert.equal(result.receipt.candy, 80)
   }
-  const solo = await fixture(t, [human('alice')], { outcomeRoll: .8 })
+  const solo = await fixture(t, [human('alice')], { outcomeRoll: .85 })
   const result = await solo.actions.execute({ ...solo.input('alone'), action: 'treat' })
   assert.equal(result.receipt.result.eyeGiftUnavailable, true); assert.equal(result.receipt.eyes, 0)
-  assert.equal(result.receipt.candy, 15)
+  assert.equal(result.receipt.candy, 14)
 })
 
 test('gifted fifth Eye converts for recipient and failed piece draw rolls back giver cost, bonus and Eye', async t => {
-  const f = await fixture(t, [human('bob')], { outcomeRoll: .8, collectionRandom: () => 1 })
+  const f = await fixture(t, [human('bob')], { outcomeRoll: .85, collectionRandom: () => 1 })
   await f.register('bob', { eyes: 4 })
   await assert.rejects(() => f.actions.execute({ ...f.input('failed-gift'), action: 'treat' }), /Random value/)
   assert.equal((await f.row('alice')).candy, 10); assert.equal((await f.row('bob')).eyes, 4)
   assert.equal(await f.models.Operation.findByPk('discord:failed-gift'), null)
   assert.equal(await f.models.Ledger.count({ where: { operationId: 'discord:failed-gift' } }), 0)
-  const success = await fixture(t, [human('bob')], { outcomeRoll: .8 })
+  const success = await fixture(t, [human('bob')], { outcomeRoll: .85 })
   await success.register('bob', { eyes: 4 })
   const result = await success.actions.execute({ ...success.input('fifth-eye'), action: 'treat' })
   assert.equal(result.receipt.result.collectionUserId, 'bob'); assert.equal(result.receipt.result.awards.length, 1)

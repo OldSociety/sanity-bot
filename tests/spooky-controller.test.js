@@ -23,7 +23,7 @@ async function fixture(t, options = {}) {
   if (options.notifications) await notificationMigration.up(sequelize.getQueryInterface())
   const settings = { sequelize, User, models, delivery, fetchMembers: options.fetchMembers || (async () => members),
     roleIds: { curse: 'curse', sweetTooth: 'sweet', unwanted: 'unwanted' },
-    event: { ...config, enabled: options.enabled ?? true, gifs: { routinePercent: options.gifPercent ?? config.gifs.routinePercent } },
+    event: { ...config, duplicates: options.duplicates || config.duplicates, enabled: options.enabled ?? true, gifs: { routinePercent: options.gifPercent ?? config.gifs.routinePercent } },
     ...(options.notifications ? { notifications: require('../services/spooky/notifications').createNotifications({ models }) } : {}),
     clock: () => new Date(config.startsAt), mentionRoll: () => 0, random: () => options.roll ?? 0 }
   const controller = createController(settings)
@@ -63,33 +63,34 @@ test('private help/onboarding creates actual fate account atomically and never m
 })
 
 test('Eye Candy publishes the recipient badge once, preserves their footer and projects their access', async t => {
-  const f = await fixture(t, { roll: .8, notifications: true, gifPercent: 0 })
+  const f = await fixture(t, { notifications: true, gifPercent: 0 })
   for (const userId of ['alice', 'bob']) await f.controller.execute(f.interaction(`join-${userId}`, 'register', userId))
   const recipient = await f.models.Participant.findOne({ where: { userId: 'bob' } })
   await recipient.update({ eyes: 4 })
   const pieces = require('../services/spooky/config').pieces
-  await f.models.Inventory.bulkCreate(pieces.filter(piece => piece.id !== 'sel_br').map(piece => ({ participantId: recipient.id, pieceId: piece.id, quantity: 1 })))
+  await f.models.Inventory.bulkCreate(pieces.filter(piece => piece.characterId === 'had' && piece.id !== 'had_br').map(piece => ({ participantId: recipient.id, pieceId: piece.id, quantity: 1 })))
   const awards = [], projections = []
-  const controller = createController({ ...f.settings,
+  const rolls = [.85, 0, .8, 0]
+  const controller = createController({ ...f.settings, random: () => rolls.shift() ?? 0,
     badges: { award: async (_ctx, userId, characterId) => { awards.push([userId, characterId]); return `spooky-2026:${characterId}` } },
     badgeAccess: { reconcileUser: async (guild, userId) => projections.push([guild, userId]) } })
   const turn = f.interaction('gift-completion', 'treat')
   await controller.execute(turn)
-  assert.deepEqual(awards, [['bob', 'sel']]); assert.deepEqual(projections, [['guild', 'bob']])
+  assert.deepEqual(awards, [['bob', 'had']]); assert.deepEqual(projections, [['guild', 'bob']])
   assert.equal(turn.sent.length, 2)
   assert.equal(turn.sent[0].embeds[0].title, '🍬 Eye Candy!')
   assert.match(turn.sent[0].embeds[0].description, /<@bob> received \*\*1 🧿 Evil Eye/)
-  assert.equal(turn.sent[0].embeds[0].footer.text, 'Available: 🍬 15 • 🧿 0')
-  assert.match(turn.sent[1].embeds[0].title, /Selene Complete/)
+  assert.equal(turn.sent[0].embeds[0].footer.text, 'Available: 🍬 14 • 🧿 0')
+  assert.match(turn.sent[1].embeds[0].title, /Hadley Complete/)
   assert.match(turn.sent[1].embeds[0].description, /bob — Congratulations/)
   assert.doesNotMatch(turn.sent[1].embeds[0].description, /alice — Congratulations/)
   assert.equal(turn.sent[1].embeds[0].footer.text, 'Available: 🍬 10 • 🧿 0')
   const receipt = (await f.models.Operation.findByPk('discord:gift-completion')).receipt
-  assert.deepEqual(receipt.result.newlyCompletedCharacters, ['sel'])
+  assert.deepEqual(receipt.result.newlyCompletedCharacters, ['had'])
   assert.equal((await recipient.reload()).eyes, 0)
   await controller.execute(f.interaction('gift-completion', 'treat'))
-  assert.deepEqual(awards, [['bob', 'sel']])
-  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 15)
+  assert.deepEqual(awards, [['bob', 'had']])
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 14)
 })
 
 test('ordinary candy actions skip inventory/access scans and publish before operation-only projections', async t => {
@@ -354,14 +355,14 @@ test('a newly completed character gets one prominent notification; later draws d
 })
 
 
-test('collection describes unique progress rather than the retired duplicate exchange', async t => {
+test('collection explains completed-character duplicates and shows the exchange count', async t => {
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register-duplicates', 'register'))
   const player = await f.models.Participant.findOne()
   for (const [pieceId, quantity] of [['sel_tl',2], ['mrq_tr',3]]) await f.models.Inventory.create({ participantId: player.id, pieceId, quantity })
   const view = f.interaction('view-duplicates', 'collection'); await f.controller.execute(view)
-  assert.match(JSON.stringify(view), /Every new quarter/)
-  assert.doesNotMatch(JSON.stringify(view), /Current Duplicates/)
+  assert.match(JSON.stringify(view), /Duplicates can only come from completed characters/)
+  assert.match(JSON.stringify(view), /Current Duplicates: 3\/5/)
 })
 
 test('registered recipient references are spaced out; repeated immediate actions use names', async t => {

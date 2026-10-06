@@ -314,7 +314,7 @@ test('no eligible reversal rolls back the action candy and operation', async t =
   await f.participants.register({ ...f.scope, actorId: 'alice', interactionId: 'register-refund' })
   f.members.forEach(member => { member.canManageNickname = false })
   const actions = require('../services/spooky/actions').createActions({ models: f.models, economy: f.economy,
-    participants: f.participants, event: { ...config, enabled: true }, random: () => .36, handlers: f.playful.handlers, getCurseState: () => false })
+    participants: f.participants, event: { ...config, enabled: true }, random: () => .39, handlers: f.playful.handlers, getCurseState: () => false })
   await assert.rejects(actions.execute({ ...f.scope, actorId: 'alice', interactionId: 'refund-reverse', action: 'trick' }), /Nothing was spent/)
   assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 10)
   assert.equal(await f.models.Operation.findByPk('discord:refund-reverse'), null)

@@ -8,9 +8,13 @@ function createCollection({ models, participants, event = defaultConfig, random 
     return value
   }
   function select(list) { return list[Math.floor(roll() * list.length)] }
+  function canDuplicate(piece, owned) {
+    return event.duplicates.allowDuplicates !== false && (!event.duplicates.requireCompletedCharacter ||
+      pieces.filter(item => item.characterId === piece.characterId).every(item => owned.has(item.id)))
+  }
   function ordinaryPiece(percent = event.ordinaryRarity.percent, owned = new Map(), spotlight = null) {
     requireApprovedRarity(event)
-    const candidates = event.duplicates.allowDuplicates === false ? pieces.filter(piece => !owned.has(piece.id)) : pieces
+    const candidates = pieces.filter(piece => !owned.has(piece.id) || canDuplicate(piece, owned))
     if (!candidates.length) throw new Error('Your collection is complete; no more quarters are needed.')
     const available = ['common', 'rare', 'legendary'].filter(rarity => candidates.some(piece => piece.rarity === rarity))
     if (!spotlight || !candidates.some(piece => piece.characterId === spotlight.characterId)) {
@@ -56,7 +60,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
   }
   async function add(ctx, participant, owned, piece, reason) {
     const existing = owned.get(piece.id), before = existing?.quantity ?? 0
-    if (before && event.duplicates.allowDuplicates === false) throw new Error('This quarter is already owned.')
+    if (before && !canDuplicate(piece, owned)) throw new Error('This quarter is already owned; complete its character before receiving duplicates.')
     if (!Number.isSafeInteger(before + 1)) throw new Error('Inventory quantity overflow')
     if (existing) await existing.update({ quantity: before + 1 }, { transaction: ctx.transaction })
     else owned.set(piece.id, await models.Inventory.create({ participantId: participant.id, pieceId: piece.id, quantity: 1 }, { transaction: ctx.transaction }))

@@ -26,6 +26,29 @@ async function fixture(t, random = () => 0) {
  return {db,models,event,economy,participants,effects,playful,events,theft,delivery,members,scope,run,row,invoke,total,time:value=>{now=new Date(value)}}
 }
 
+test('large thefts sample the upper half, cap at five including holes, and conserve Candy on replay', async t => {
+ for (const [roll, expected] of [[0,3],[.34,4],[.999999,5]]) {
+  const draws = [0, roll], f = await fixture(t, () => draws.shift() ?? 0)
+  await (await f.row('bob')).update({ candy:80 })
+  const total = await f.total(), result = await f.invoke('range', 'candy_raid')
+  assert.equal(result.receipt.stolen, expected)
+  assert.equal(await f.total(), total - 1)
+  assert.deepEqual((await f.invoke('range', 'candy_raid')).receipt, result.receipt)
+ }
+ const f = await fixture(t, () => .999999)
+ await f.run('holes', async ctx => {
+  for (const id of ['bob','carol','dan','eve','frank']) await f.effects.put(ctx,id,'bag_hole',{expiresAt:config.endsAt,metadata:{}})
+  return {}
+ })
+ for (const outcome of ['candy_raid','candy_shakedown','sticky_fingers','trick_chain','bag_explosion','boo','bag_swap']) {
+  for (const member of f.members) await (await f.row(member.userId)).update({candy:member.userId==='alice'?20:80})
+  const total = await f.total(), result = await f.invoke('cap-'+outcome,outcome)
+  const moved = (result.receipt.candyMovements || []).reduce((sum,item)=>sum+item.candy,0)
+  assert.ok(moved <= 5,outcome)
+  assert.equal(await f.total(),total-1,outcome)
+ }
+})
+
 test('all nine candy outcomes conserve candy, charge once, freeze receipts and replay without a second debit',async t=>{
  const f=await fixture(t)
  for(const outcome of ['candy_raid','bag_swap','bag_explosion','sticky_fingers','reverse_robbery','candy_ransom','boo','candy_shakedown','trick_chain']) {
@@ -41,10 +64,10 @@ test('all nine candy outcomes conserve candy, charge once, freeze receipts and r
 })
 test('raid rounding, ransom, nearby swaps and conditional chain have their distinct bounded results',async t=>{
  const f=await fixture(t)
- await(await f.row('bob')).update({candy:80});assert.equal((await f.invoke('raid','candy_raid')).receipt.stolen,8)
- const ransom=(await f.invoke('ransom','candy_ransom')).receipt;assert.equal(ransom.ransomTaken,5);assert.equal(ransom.ransomReturned,2);assert.equal(ransom.stolen,3)
+ await(await f.row('bob')).update({candy:80});assert.equal((await f.invoke('raid','candy_raid')).receipt.stolen,3)
+ const ransom=(await f.invoke('ransom','candy_ransom')).receipt;assert.equal(ransom.ransomTaken,4);assert.equal(ransom.ransomReturned,2);assert.equal(ransom.stolen,2)
  await(await f.row('alice')).update({candy:20});await(await f.row('bob')).update({candy:25})
- await f.invoke('swap','bag_swap');assert.equal((await f.row('alice')).candy,25);assert.equal((await f.row('bob')).candy,19)
+ await f.invoke('swap','bag_swap');assert.equal((await f.row('alice')).candy,22);assert.equal((await f.row('bob')).candy,22)
  const chain=(await f.invoke('chain','trick_chain')).receipt;assert.equal(chain.stolen,4);assert.equal(new Set(chain.victims.map(v=>v.userId)).size,3)
 })
 test('persistent hole adds ceiling25% up to2, preserves conservation and repairs without a nickname change',async t=>{
@@ -53,12 +76,12 @@ test('persistent hole adds ceiling25% up to2, preserves conservation and repairs
  assert.equal(f.members[1].nickname,null)
  const one=(await f.invoke('one','steal_candy')).receipt;assert.equal(one.stolen,2)
  assert.equal(one.candyMovements[0].holeBonus,1)
- await(await f.row('bob')).update({candy:80});const raid=(await f.invoke('raid','candy_raid')).receipt;assert.equal(raid.stolen,10)
- assert.equal(raid.candyMovements[0].holeBonus,2)
+ await(await f.row('bob')).update({candy:80});const raid=(await f.invoke('raid','candy_raid')).receipt;assert.equal(raid.stolen,4)
+ assert.equal(raid.candyMovements[0].holeBonus,1)
  await(await f.row('bob')).update({candy:5})
  const ransom=(await f.invoke('hole-ransom','candy_ransom')).receipt
- assert.equal(ransom.ransomTaken,5);assert.equal(ransom.ransomReturned,2);assert.equal(ransom.stolen,4)
- assert.equal(ransom.candyMovements[0].holeBonus,1);assert.equal((await f.row('bob')).candy,1)
+ assert.equal(ransom.ransomTaken,5);assert.equal(ransom.ransomReturned,2);assert.equal(ransom.stolen,3)
+ assert.equal(ransom.candyMovements[0].holeBonus,1);assert.equal((await f.row('bob')).candy,2)
  assert.equal(await f.models.Effect.count({where:{effectType:'bag_hole'}}),1)
  const repaired=(await f.invoke('repair','break_curse')).receipt;assert.equal(repaired.bagRepairedUserId,'bob');assert.equal(await f.models.Effect.count({where:{effectType:'bag_hole'}}),0)
 })
@@ -123,15 +146,15 @@ test('hole amplification is aggregated per victim, bounded by room/funds, skippe
   for (const id of ['alice', 'carol', 'dan', 'eve', 'frank']) await f.events.combat.transfer(ctx, 'bob', id, 1);
   return f.events.combat.receipt(ctx, {});
  });
- assert.equal(r.receipt.candyMovements.reduce((n, x) => n + x.holeBonus, 0), 2);
- assert.equal(r.receipt.candyMovements.reduce((n, x) => n + x.candy, 0), 7);
+ assert.equal(r.receipt.candyMovements.reduce((n, x) => n + x.holeBonus, 0), 1);
+ assert.equal(r.receipt.candyMovements.reduce((n, x) => n + x.candy, 0), 5);
  assert.equal(await f.total(), before);
  await (await f.row('alice')).update({ candy: 79 }); await (await f.row('bob')).update({ candy: 1 });
  assert.equal((await f.run('bounded', async ctx => ({ moved: await f.events.combat.transfer(ctx, 'bob', 'alice', 8) }))).receipt.moved, 1);
  await (await f.row('alice')).update({ candy: 20 }); await (await f.row('bob')).update({ candy: 25 });
  const swap = (await f.invoke('swap', 'bag_swap')).receipt;
  assert.equal(swap.candyMovements[0].holeBonus, 0);
- assert.equal((await f.row('alice')).candy, 25); assert.equal((await f.row('bob')).candy, 19);
+ assert.equal((await f.row('alice')).candy, 22); assert.equal((await f.row('bob')).candy, 22);
  f.time(Date.parse(config.startsAt) + 43200000);
  await f.run('expire-hole', ctx => f.playful.cleanup(ctx));
  assert.equal(await f.models.Effect.count({ where: { effectType: 'bag_hole' } }), 0);
@@ -214,6 +237,6 @@ test('conditional follow-ups stop at their boundaries and use distinct victims',
   draws.push(...rolls); const r = (await f.invoke(key, 'trick_chain')).receipt;
   assert.equal(r.stolen, expected); assert.equal(new Set(r.victims.map(x => x.userId)).size, r.victims.length);
  }
- draws.push(0, .5); assert.equal((await f.invoke('sticky-stop', 'sticky_fingers')).receipt.stolen, 3);
- draws.push(0, .499, 0); assert.equal((await f.invoke('sticky-go', 'sticky_fingers')).receipt.stolen, 4);
+ draws.push(0, 0, .5); assert.equal((await f.invoke('sticky-stop', 'sticky_fingers')).receipt.stolen, 2);
+ draws.push(0, 0, .499, 0); assert.equal((await f.invoke('sticky-go', 'sticky_fingers')).receipt.stolen, 3);
 });

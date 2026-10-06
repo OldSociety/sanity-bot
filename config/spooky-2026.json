@@ -1,5 +1,5 @@
 {
-  "version": 22,
+  "version": 23,
   "competition": {
     "nonCompetitiveUserIds": ["138131238803210240"]
   },
@@ -26,7 +26,8 @@
     "refillAmount": 1,
     "refillIntervalMs": 1080000,
     "sharedRefill": true,
-    "actionCost": 1
+    "actionCost": 1,
+    "eventMaximum": 5
   },
   "eyes": {
     "quarterCost": 5,
@@ -50,7 +51,8 @@
     }
   },
   "duplicates": {
-    "allowDuplicates": false,
+    "allowDuplicates": true,
+    "requireCompletedCharacter": true,
     "exchangeCost": 5,
     "automaticConversion": true,
     "selection": "uniform-missing-piece",
@@ -86,29 +88,29 @@
     },
     {
       "id": "temporary_immunity",
-      "percent": 10
+      "percent": 12
     },
     {
       "id": "break_curse",
-      "percent": 5
+      "percent": 7
     },
     {
       "id": "standard_gift",
-      "percent": 16
+      "percent": 30
     },
     {
       "id": "eye_candy",
-      "percent": 20
+      "percent": 5
     },
     {
       "id": "find_eye",
-      "percent": 13
+      "percent": 10
     }
   ],
   "trickOutcomes": [
     {
       "id": "steal_candy",
-      "percent": 25
+      "percent": 28
     },
     {
       "id": "great_heist",
@@ -176,7 +178,7 @@
     },
     {
       "id": "steal_or_find_eye",
-      "percent": 13
+      "percent": 10
     }
   ],
   "ordinaryRarity": {

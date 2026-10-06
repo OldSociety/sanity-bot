@@ -13,7 +13,7 @@ async function fixture(t, random = () => 0, overrides = {}) {
   t.after(() => sequelize.close())
   await migration.up(sequelize.getQueryInterface())
   // Historical duplicate/replay fixtures explicitly retain the old policy.
-  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true, duplicates: { ...config.duplicates, allowDuplicates: true }, ...overrides }
+  const models = defineSpookyModels(sequelize), event = { ...config, enabled: true, duplicates: { ...config.duplicates, allowDuplicates: true, requireCompletedCharacter: false }, ...overrides }
   const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => new Date(config.startsAt) })
   const participants = createParticipants({ models, economy, event })
   const collection = createCollection({ models, participants, event, random })
@@ -27,6 +27,47 @@ async function fixture(t, random = () => 0, overrides = {}) {
   }
   return { models, event, economy, participants, collection, input, run, owner, seed }
 }
+
+test('current policy blocks partial-character duplicates, then allows extras and exchanges five after completion', async t => {
+  const f = await fixture(t, () => 0, { duplicates: config.duplicates })
+  await f.seed({ mrq_tl: 1, mrq_tr: 1, mrq_bl: 1 })
+  await assert.rejects(f.run('partial-repeat', ctx => f.collection.grantQuarter(ctx, 'alice', 'mrq_tl')), /complete its character/)
+  assert.equal((await f.models.Inventory.findOne({ where: { pieceId: 'mrq_tl' } })).quantity, 1)
+  assert.equal(await f.models.Operation.findByPk('discord:partial-repeat'), null)
+  const completion = await f.run('complete-marq', ctx => f.collection.grantQuarter(ctx, 'alice', 'mrq_br'))
+  assert.equal(completion.receipt.awards[0].duplicate, false)
+  let result
+  for (let i = 0; i < 5; i++) result = await f.run('extra-' + i, ctx => f.collection.grantQuarter(ctx, 'alice', 'mrq_tl'))
+  assert.equal(result.receipt.awards[0].duplicate, true)
+  assert.equal(result.receipt.awards[0].duplicates, 5)
+  assert.equal(result.receipt.awards[1].source, 'duplicate_exchange')
+  assert.equal(result.receipt.awards[1].duplicate, false)
+  assert.equal(result.receipt.duplicates, 0)
+  assert.deepEqual(result.receipt.completeCharacters, ['mrq'])
+  const replay = await f.run('extra-4', () => { throw Error('must replay') })
+  assert.deepEqual(replay.receipt, result.receipt)
+})
+
+test('ordinary and paid draws retain rarity weights while excluding owned pieces of incomplete characters', async t => {
+  const f = await fixture(t, () => 0, { duplicates: config.duplicates })
+  await f.seed({ had_tl: 1, had_tr: 1, had_bl: 1, had_br: 1, mrq_tl: 1, mrq_tr: 1, mrq_bl: 1 })
+  for (const paid of [false, true]) for (const [rarity, value] of paid ? [['common', .2], ['rare', .6], ['legendary', .9]] : [['common', .2], ['rare', .8], ['legendary', .95]]) {
+    const percent = paid ? config.fate.rarityPercent : config.ordinaryRarity.percent
+    const eligible = pieces.filter(piece => piece.rarity === rarity && (!['mrq_tl', 'mrq_tr', 'mrq_bl'].includes(piece.id)))
+    for (let i = 0; i < eligible.length; i++) {
+      const rolls = [value, (i + .5) / eligible.length]
+      const probe = createCollection({ models: f.models, participants: f.participants, event: f.event, random: () => rolls.shift() })
+      await assert.rejects(f.run(`pool-${paid}-${rarity}-${i}`, async ctx => {
+        const result = await probe[paid ? 'drawFateQuarter' : 'drawQuarter'](ctx, 'alice')
+        assert.equal(result.awards[0].id, eligible[i].id)
+        assert.equal(result.awards[0].rarity, rarity)
+        assert.equal(result.awards[0].duplicate, eligible[i].characterId === 'had')
+        throw Error('probe rollback')
+      }), /probe rollback/)
+    }
+    assert.ok(percent[rarity] > 0)
+  }
+})
 
 test('unique draws fill all28 quarters without repetition and retain Eyes after completion', async t => {
   const f = await fixture(t, () => 0, { duplicates: { ...config.duplicates, allowDuplicates: false } })
