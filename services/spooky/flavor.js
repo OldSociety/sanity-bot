@@ -46,6 +46,13 @@ function outcomeFlavor(
       )}'s crown. What a failure! Their shield stopped the theft.`,
       0xffa500,
     )
+  if (result.watchedUserId)
+    return say('👁 Nothing Gets Past It!',
+      `${actor} went looking for an Evil Eye, but ${label(result.watchedUserId)}'s remaining Evil Eyes were watching back.\nInstead, ${actor} made off with **${result.candyReward} Candy**.`)
+  if (receipt.outcome === 'eye_candy')
+    return { ...say('Eye Candy!', result.eyeRecipientId
+      ? `${actor} found something sweet—and someone else caught its attention.\n${label(result.eyeRecipientId)} received **1 Evil Eye!**\n${actor} received **${result.candyReward} Candy**.`
+      : `${actor} found something sweet, but there was nobody else to catch its attention.\n${actor} received **${result.candyReward} Candy**.`, 0x00ff00), title: '🍬 Eye Candy!' }
   if (result.bagRepairedUserId)
     return say(
       '🪡 Bag Repaired',

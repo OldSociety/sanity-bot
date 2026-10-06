@@ -132,8 +132,15 @@ function memoryGuild(specs, options, random) {
   }
   const matches = (row, where = {}) =>
     Object.entries(where).every(([k, v]) => {
-      if (v && typeof v === 'object' && Object.hasOwn(v, Op.in)) return v[Op.in].includes(row[k])
-      return row[k] === v
+      const value = k.split('.').reduce((current, key) => current?.[key], row)
+      if (Array.isArray(v)) return v.includes(value)
+      if (v && typeof v === 'object') {
+        if (Object.hasOwn(v, Op.in)) return v[Op.in].includes(value)
+        if (Object.hasOwn(v, Op.ne)) return value !== v[Op.ne]
+        if (Object.hasOwn(v, Op.lt)) return value < v[Op.lt]
+        if (Object.hasOwn(v, Op.gt)) return value > v[Op.gt]
+      }
+      return value === v
     })
   const row = (values) =>
     Object.assign(values, {
@@ -181,7 +188,8 @@ function memoryGuild(specs, options, random) {
     // outstanding restoration intents in this adapter (outages use DB tests).
     Delivery: { async findOne() { return null }, async findAll() { return [] } },
     Participant,
-    Ledger: { async findOne({ where }) { return crownAwards.filter(row => matches(row, where)).at(-1) || null } },
+    Ledger: { async findOne({ where }) { return crownAwards.filter(row => matches(row, where)).at(-1) || null },
+      async findAll({ where }) { return crownAwards.filter(row => matches(row, where)) } },
     EventState: {
       async findOne() {
         return null
@@ -333,15 +341,17 @@ function memoryGuild(specs, options, random) {
     ...theft.handlers,
     ...require('../services/spooky/candy-events').createCandyEvents({ models, participants, effects, delivery, listMembers, random }).handlers,
   })
+  let operationSequence = 0
   function context(now) {
     const ctx = {
+      operationId: `simulation:${++operationSequence}`,
       now: new Date(now),
       scope: { eventId: config.eventId, guildId: 'simulation' },
       transaction: null,
       async record(entry) {
-        // Only crown ownership is queried by gameplay. Retain its durable
-        // marker without storing millions of unrelated simulation audit rows.
-        if (['crown_award', 'crown_holder'].includes(entry.resource)) crownAwards.push({ id: crownAwards.length + 1, ...ctx.scope, ...entry })
+        // Retain Crown markers and Eye losses queried by gameplay; omit the
+        // millions of unrelated rows that only SQLite contract tests inspect.
+        if (['crown_award', 'crown_holder'].includes(entry.resource) || entry.resource === 'eyes') crownAwards.push({ id: crownAwards.length + 1, ...ctx.scope, operationId: ctx.operationId, timestamp: ctx.now, ...entry })
         if (entry.resource === 'candy' && entry.delta > 0)
           totals.candyMinted += entry.delta
       },
@@ -363,16 +373,17 @@ function memoryGuild(specs, options, random) {
           else totals.eyesSpent -= delta
         }
       },
-      async transfer(from, to, resource, amount) {
+      async transfer(from, to, resource, amount, metadata = {}) {
         const a = players.get(from),
           b = players.get(to)
         if (
           amount <= 0 ||
-          a[resource] < amount ||
+          a[resource] < amount || (resource === 'eyes' && a.eyes - amount < 1) ||
           (resource === 'candy' && b.candy + amount > config.candy.capacity)
         )
           throw new Error('Invalid simulated transfer')
         a[resource] -= amount
+        if (resource === 'eyes') await ctx.record({ userId: from, resource, delta: -amount, relatedUserId: to, metadata })
         b[resource] += amount
         if (resource === 'eyes') {
           totals.eyesTransferred += amount

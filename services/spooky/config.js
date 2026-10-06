@@ -41,6 +41,8 @@ function validateEvent(config) {
   for (const key of ['windowMs', 'registeredLimit', 'unregisteredLimit', 'registeredMinIntervalMs', 'chancePercent']) requirePositiveInteger(config.recipientMentions?.[key], `recipientMentions.${key}`)
   if (config.recipientMentions.chancePercent > 100 || config.recipientMentions.registeredMinIntervalMs > config.recipientMentions.windowMs) throw new Error('Invalid recipient mention cadence')
   if (config.eyes.dailyDrawLimit !== null || config.fate.dailyDrawLimit !== null) throw new Error('Hard daily draw limits are disabled')
+  for (const key of ['theftProtectionMs', 'watchedCandyReward', 'giftCandyReward']) requirePositiveInteger(config.eyes[key], `eyes.${key}`)
+  if (config.eyes.watchedCandyReward > config.candy.capacity || config.eyes.giftCandyReward > config.candy.capacity) throw new Error('Eye candy reward exceeds capacity')
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
   if (!['bank-then-fate', 'normal-fate-only', 'sanity'].includes(config.fate.paymentResource)) throw new Error('Invalid Fate purchase policy')

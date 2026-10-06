@@ -62,6 +62,10 @@ function createEconomy({ sequelize, models, configVersion = 1, clock = () => new
       async function transfer(fromUserId, toUserId, resource, amount, metadata = {}) {
         if (fromUserId === toUserId) throw new Error('Cannot transfer to self')
         if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Transfer amount must be a positive integer')
+        if (resource === 'eyes') {
+          const source = await models.Participant.findOne({ where: { ...scope, userId: fromUserId }, transaction })
+          if (!source || source.eyes - amount < 1) throw new Error('The last Evil Eye cannot be stolen')
+        }
         await changeBalance(fromUserId, resource, -amount, { relatedUserId: toUserId, metadata })
         await changeBalance(toUserId, resource, amount, { relatedUserId: fromUserId, metadata })
       }

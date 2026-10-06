@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "competition": {
     "nonCompetitiveUserIds": ["138131238803210240"]
   },
@@ -30,6 +30,9 @@
   },
   "eyes": {
     "quarterCost": 5,
+    "theftProtectionMs": 43200000,
+    "watchedCandyReward": 4,
+    "giftCandyReward": 5,
     "automaticConversion": true,
     "dailyDrawLimit": null
   },
@@ -91,7 +94,11 @@
     },
     {
       "id": "standard_gift",
-      "percent": 36
+      "percent": 16
+    },
+    {
+      "id": "eye_candy",
+      "percent": 20
     },
     {
       "id": "find_eye",

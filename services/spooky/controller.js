@@ -422,9 +422,9 @@ function createController({
             channelId: interaction.channelId,
           },
         )
-      ).map((message) => ({
+      ).map((message, index) => ({
         ...message,
-        payload: withBalances(message.payload, receipt, ctx.now, event),
+        payload: withBalances(message.payload, index > 0 && receipt.result?.collectionUserId ? receipt.result.collectionBalance : receipt, ctx.now, event),
       }))
       if (mentions.allowed.length)
         messages[0].payload._spookyMentions = mentions.reservation
@@ -485,6 +485,7 @@ function createController({
               ? await completed(ctx, input.actorId)
               : [],
             result = await handler(ctx, plan)
+          if (key === 'eye_candy') return result
           return {
             ...result,
             newlyCompletedCharacters: (result.completeCharacters || []).filter(
@@ -567,7 +568,7 @@ function createController({
       badgeAccess: (result.receipt.result || result.receipt).awards?.length
         ? badgeAccess
         : null,
-      userId: input.actorId,
+      userId: (result.receipt.result || result.receipt).collectionUserId || input.actorId,
       payload:
         personal?.payload ||
         privateScreen(

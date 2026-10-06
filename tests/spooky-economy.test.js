@@ -108,9 +108,9 @@ test('callback failure is atomic and failed operation can be retried without par
   assert.equal(await f.models.Ledger.count(), 1)
 })
 
-test('competing transfers cannot steal the same last Eye twice', async t => {
+test('competing transfers preserve the last Eye and can steal only the spare Eye', async t => {
   const f = await fixture(t)
-  await f.participant('alice'); await f.participant('carol'); await f.participant('bob', { eyes: 1 })
+  await f.participant('alice'); await f.participant('carol'); await f.participant('bob', { eyes: 2 })
   const steal = user => async ctx => { await ctx.transfer('bob', user, 'eyes', 1); return { stolen: 1 } }
   const outcomes = await Promise.allSettled([
     f.economy.execute(f.input('race-a'), steal('alice')),
@@ -118,9 +118,19 @@ test('competing transfers cannot steal the same last Eye twice', async t => {
   ])
   assert.equal(outcomes.filter(r => r.status === 'fulfilled').length, 1)
   const balances = await f.models.Participant.findAll()
-  assert.equal(balances.reduce((sum, p) => sum + p.eyes, 0), 1)
+  assert.equal(balances.reduce((sum, p) => sum + p.eyes, 0), 2)
+  assert.equal(balances.find(p => p.userId === 'bob').eyes, 1)
   assert.equal(await f.models.Operation.count(), 1)
   assert.equal(await f.models.Ledger.count(), 2)
+})
+
+test('owner can spend the final Eye but another player cannot transfer it away', async t => {
+  const f = await fixture(t)
+  await f.participant('alice'); await f.participant('bob', { eyes: 1 })
+  await assert.rejects(() => f.economy.execute(f.input('last-eye'), ctx => ctx.transfer('bob', 'alice', 'eyes', 1)), /last Evil Eye/)
+  assert.equal(await f.models.Ledger.count(), 0)
+  await f.economy.execute(f.input('owner-spends', { actorId: 'bob' }), async ctx => { await ctx.changeBalance('bob', 'eyes', -1); return {} })
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'bob' } })).eyes, 0)
 })
 
 test('balances are isolated by guild/event and worker keys do not collide across scopes', async t => {

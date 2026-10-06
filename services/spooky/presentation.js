@@ -87,6 +87,8 @@ function targetIds(result, actorId) {
         result.swapTargetUserId,
         result.robberyTargetUserId,
         result.explosionTargetUserId,
+        result.eyeRecipientId,
+        result.watchedUserId,
         ...(result.blockedShields || []).map(row => row.userId),
         ...(result.candyMovements || []).flatMap(row => [row.fromUserId, row.toUserId]),
       ].filter((id) => id && id !== actorId),
@@ -123,7 +125,7 @@ function actionMessages(
     !(receipt.outcome === 'sweet_tooth' && result.noEffect)
   )
     details.push(`**Banked fate bonus:** +${result.fateBonus}.`)
-  if (result.candyReward)
+  if (result.candyReward && !result.watchedUserId && receipt.outcome !== 'eye_candy')
     details.push(`**Candy reward:** +${result.candyReward}.`)
   if (result.goodwillFreedUserId)
     details.push(`**${actor}'s good will broke the curse!**`)
@@ -133,6 +135,11 @@ function actionMessages(
   const decoration = {
     ...(avatarURL ? { thumbnail: { url: avatarURL } } : {}),
     footer: balanceFooter(receipt, timestamp),
+  }
+  const collectionUserId = result.collectionUserId || actorId
+  const { thumbnail: giverAvatar, ...recipientDecoration } = decoration
+  const revealDecoration = collectionUserId === actorId ? decoration : {
+    ...recipientDecoration, footer: balanceFooter(result.collectionBalance || receipt, timestamp),
   }
   // Discoveries and earned wins belong in the channel, including personal finds.
   // No actor ping is needed; the root transaction supplies capped recipients.
@@ -194,7 +201,7 @@ function actionMessages(
               ? '**DUPLICATE PIECE FOUND!**'
               : '**NEW PIECE COLLECTED!**',
             color: parseInt(award.color.slice(1), 16),
-            ...decoration,
+            ...revealDecoration,
             ...(revealOnly &&
             messages.length === 0 &&
             fateBalanceFields(result).length
@@ -208,7 +215,7 @@ function actionMessages(
                 }
               : {}),
             description: `${safeName(
-              members.find((member) => member.userId === actorId)?.displayName,
+              members.find((member) => member.userId === collectionUserId)?.displayName,
             )} collected **${safeName(award.characterName)} #${pieceNumber(
               award.position,
             )}**!\nThis is a **${award.rarity.toUpperCase()} **piece.\n${
@@ -249,7 +256,7 @@ function actionMessages(
         !award.duplicate &&
         award.ownedPositions?.length === 4,
     )
-    const { thumbnail: avatar, ...completionDecoration } = decoration
+    const { thumbnail: avatar, ...completionDecoration } = revealDecoration
     messages.push({
       public: true,
       payload: {
@@ -270,7 +277,7 @@ function actionMessages(
               : {}),
             thumbnail: { url: `attachment://${image}` },
             description: `**${safeName(
-              members.find((member) => member.userId === actorId)?.displayName,
+              members.find((member) => member.userId === collectionUserId)?.displayName,
             )} — Congratulations! You have collected all four pieces of ${safeName(
               name,
             )}!**${

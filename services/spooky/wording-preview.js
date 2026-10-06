@@ -6,6 +6,7 @@ function wordingPages() {
     double_gift: { gifts: [{ userId: 'recipient' }], deliveredCandy: 2 },
     temporary_immunity: { shielded: ['actor', 'recipient'] }, break_curse: { freedUserId: 'recipient' },
     standard_gift: { gifts: [{ userId: 'recipient' }], deliveredCandy: 1 }, find_eye: {},
+    eye_candy: { eyeRecipientId: 'recipient', giftedEyes: 1, candyReward: 6 },
     steal_candy: { stolen: 1, victims: [{ userId: 'recipient' }] },
     great_heist: { stolen: 3, victims: [{ userId: 'recipient' }, { userId: 'other' }] },
     reverse_nickname: { reversedUserId: 'recipient' }, curse_target: { cursedUserId: 'recipient' },
@@ -35,6 +36,8 @@ function wordingPages() {
     for (let i = 0; i < (['standard_gift', 'caught_stealing', 'lost_candy'].includes(outcome.id) ? 100 : 1); i++) add({ action, outcome: outcome.id, result: samples[outcome.id] }, String(i))
   }
   add({ action: 'trick', outcome: 'steal_or_find_eye', result: { found: 1 } })
+  add({ action: 'trick', outcome: 'steal_or_find_eye', result: { watchedUserId: 'recipient', candyReward: 8 } })
+  add({ action: 'treat', outcome: 'eye_candy', result: { eyeGiftUnavailable: true, candyReward: 6 } })
   add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', swapped: false, redistributed: 5 } })
   add({ action: 'trick', outcome: 'bag_swap', result: { swapTargetUserId: 'recipient', noEffect: 'equal_bags' } })
   add({ action: 'trick', outcome: 'candy_raid', result: { stolen: 2, candyMovements: [{ fromUserId: 'recipient', toUserId: 'actor', candy: 2, holeBonus: 1 }] } })

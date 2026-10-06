@@ -62,8 +62,38 @@ test('private help/onboarding creates actual fate account atomically and never m
   assert.ok(status.replies.at(-1).embeds[0].footer.text.includes('🍬'))
 })
 
+test('Eye Candy publishes the recipient badge once, preserves their footer and projects their access', async t => {
+  const f = await fixture(t, { roll: .8, notifications: true, gifPercent: 0 })
+  for (const userId of ['alice', 'bob']) await f.controller.execute(f.interaction(`join-${userId}`, 'register', userId))
+  const recipient = await f.models.Participant.findOne({ where: { userId: 'bob' } })
+  await recipient.update({ eyes: 4 })
+  const pieces = require('../services/spooky/config').pieces
+  await f.models.Inventory.bulkCreate(pieces.filter(piece => piece.id !== 'sel_br').map(piece => ({ participantId: recipient.id, pieceId: piece.id, quantity: 1 })))
+  const awards = [], projections = []
+  const controller = createController({ ...f.settings,
+    badges: { award: async (_ctx, userId, characterId) => { awards.push([userId, characterId]); return `spooky-2026:${characterId}` } },
+    badgeAccess: { reconcileUser: async (guild, userId) => projections.push([guild, userId]) } })
+  const turn = f.interaction('gift-completion', 'treat')
+  await controller.execute(turn)
+  assert.deepEqual(awards, [['bob', 'sel']]); assert.deepEqual(projections, [['guild', 'bob']])
+  assert.equal(turn.sent.length, 2)
+  assert.equal(turn.sent[0].embeds[0].title, '🍬 Eye Candy!')
+  assert.match(turn.sent[0].embeds[0].description, /<@bob> received \*\*1 🧿 Evil Eye/)
+  assert.equal(turn.sent[0].embeds[0].footer.text, 'Available: 🍬 15 • 🧿 0')
+  assert.match(turn.sent[1].embeds[0].title, /Selene Complete/)
+  assert.match(turn.sent[1].embeds[0].description, /bob — Congratulations/)
+  assert.doesNotMatch(turn.sent[1].embeds[0].description, /alice — Congratulations/)
+  assert.equal(turn.sent[1].embeds[0].footer.text, 'Available: 🍬 10 • 🧿 0')
+  const receipt = (await f.models.Operation.findByPk('discord:gift-completion')).receipt
+  assert.deepEqual(receipt.result.newlyCompletedCharacters, ['sel'])
+  assert.equal((await recipient.reload()).eyes, 0)
+  await controller.execute(f.interaction('gift-completion', 'treat'))
+  assert.deepEqual(awards, [['bob', 'sel']])
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 15)
+})
+
 test('ordinary candy actions skip inventory/access scans and publish before operation-only projections', async t => {
-  const f = await fixture(t, { roll: 0.7, notifications: true })
+  const f = await fixture(t, { roll: 0.6, notifications: true })
   await f.controller.execute(f.interaction('speed-register', 'register'))
   let inventories = 0, accesses = 0
   const original = f.models.Inventory.findAll.bind(f.models.Inventory)
@@ -106,7 +136,7 @@ test('public leaderboard uses latest earned badge emoji and defaults to supplied
 })
 
 test('GIF rotation reads durable root history, charges once and preserves saved replay', async t => {
-  const f = await fixture(t, { roll: 0.7, notifications: true, gifPercent: 100 })
+  const f = await fixture(t, { roll: 0.6, notifications: true, gifPercent: 100 })
   await f.controller.execute(f.interaction('rotation-join', 'register'))
   const first = f.interaction('rotation-first', 'treat')
   await f.controller.execute(first)
