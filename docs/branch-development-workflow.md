@@ -32,6 +32,6 @@ pm2 save
 
 Use the explicit bot names instead of the old `--env` naming convention. Changes to shared source affect each bot when it next restarts; stop both before switching branches or replacing source during maintenance. Ordinary edits and restarts no longer need a production copy/deploy step. Keep exactly one running process for each bot name/database.
 
-The old production source is archived under `.runtime/main-consolidation/archived-production` solely for recovery. That folder is not an active runtime. Verified databases, credentials, source backups, the pre-merge Git bundle and PM2 configuration are retained alongside it. Restore only while both bots are stopped; never copy a database over an active writer.
+The old production source is archived under `C:\Users\headm\code\sanity-bot-backups\2026-10-06-runtime\main-consolidation\archived-production` solely for recovery. That folder is not an active runtime. Recovery copies now live outside the project; neither `.runtime` nor `.worktrees` remains in the project folder. Verified databases, credentials, source backups, the pre-merge Git bundle and PM2 configuration are retained alongside it. Restore only while both bots are stopped; never copy a database over an active writer.
 
 Production still uses Fate/Bank for Spooky purchases, while development's configured Sanity purchases remain separate. Sanity tracking stays active in both. Community XP remains paused; this consolidation does not activate it or redo the personal XP reset/grace window.
