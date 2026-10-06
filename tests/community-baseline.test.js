@@ -1,5 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict')
-const baseline = require('../artifacts/community-baseline-inspection.json')
+const baseline = require('./fixtures/community-baseline.json')
 const { selectConfig } = require('../services/community-leveling/config')
 const { qualifies } = require('../services/community-leveling/runtime')
 test('configured community recipients preserve the verified existing Unwanted Fate role in each guild', () => {

@@ -1,7 +1,0 @@
-{
-  "environment": "development",
-  "botAdminConfigured": true,
-  "humanMember": true,
-  "canSeeZeroDefaultCommands": true,
-  "databaseOpened": false
-}

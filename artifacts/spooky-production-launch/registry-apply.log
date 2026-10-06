@@ -1,6 +1,0 @@
-Environment: production; guild: 1259991510410334219; application: 1286400654985658368
-Desired commands: 1:achievement, 1:badges, 1:birthday, 1:fate, 1:throw, 1:slots, 1:spooky-admin, 1:spooky, 1:report, 1:server, 1:user, 1:shop, 1:timestamp
-Commands removed by replacement: none
-Review SHA-256: 389330d56b63cf5cdc86a2a973a614963dfe76de3c49b52fc363ef4e02f4ee35
-Registry snapshot: C:\Users\headm\code\sanity-bot-dev\artifacts\command-registry\before-apply-1790986299586-66f456e5-b3eb-4c6e-adda-f6e451e37bdc.json
-Successfully registered 13 reviewed guild commands.

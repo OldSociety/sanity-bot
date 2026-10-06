@@ -1,0 +1,184 @@
+[
+  {
+    "environment": "development",
+    "guildId": "684459745167671453",
+    "configured": {
+      "UNWANTEDROLEID": "1144411920766615574",
+      "BOTTESTCHANNELID": "1076618367294771200",
+      "MODERATORCHANNELID": "857826046988648458",
+      "MONDAYCHANNELID": "1048339435332325417",
+      "WEDNESDAYCHANNELID": "944467488341635092",
+      "SPOOKYCHANNELID": null,
+      "HELLBOUNDCHANNELID": "963830636467077181"
+    },
+    "roles": [
+      {
+        "id": "1144411920766615574",
+        "name": "Unwanted"
+      }
+    ],
+    "channels": [
+      {
+        "id": "696192976547872819",
+        "name": "game-updates",
+        "type": 0
+      },
+      {
+        "id": "840023352122671135",
+        "name": "maps",
+        "type": 0
+      },
+      {
+        "id": "857826046988648458",
+        "name": "personal",
+        "type": 0
+      },
+      {
+        "id": "944467488341635092",
+        "name": "wednesday-hellbound",
+        "type": 0
+      },
+      {
+        "id": "963830636467077181",
+        "name": "fuckery",
+        "type": 0
+      },
+      {
+        "id": "1048339435332325417",
+        "name": "monday-hellbound",
+        "type": 0
+      },
+      {
+        "id": "1076618367294771200",
+        "name": "discord-bot-tests",
+        "type": 0
+      },
+      {
+        "id": "1115748308418310185",
+        "name": "game-discussion",
+        "type": 15
+      },
+      {
+        "id": "1213230361602039840",
+        "name": "one-shot",
+        "type": 15
+      }
+    ]
+  },
+  {
+    "environment": "production",
+    "guildId": "1259991510410334219",
+    "configured": {
+      "UNWANTEDROLEID": "1262472426399469590",
+      "BOTTESTCHANNELID": "1262485722275905596",
+      "MODERATORCHANNELID": "1262465125521035385",
+      "MONDAYCHANNELID": "1272999269221142681",
+      "WEDNESDAYCHANNELID": "1272999370446602291",
+      "SPOOKYCHANNELID": "1296160672547213364",
+      "HELLBOUNDCHANNELID": "1262878387551342602"
+    },
+    "roles": [
+      {
+        "id": "1262472426399469590",
+        "name": "Unwanted"
+      }
+    ],
+    "channels": [
+      {
+        "id": "1259991510410334221",
+        "name": "fuckery-table",
+        "type": 0
+      },
+      {
+        "id": "1262465125521035385",
+        "name": "moderator-only",
+        "type": 0
+      },
+      {
+        "id": "1262465445974511678",
+        "name": "player-resources",
+        "type": 15
+      },
+      {
+        "id": "1262485722275905596",
+        "name": "bot-tests",
+        "type": 0
+      },
+      {
+        "id": "1262491825479094352",
+        "name": "looking-for-game",
+        "type": 15
+      },
+      {
+        "id": "1262878387551342602",
+        "name": "chat-in-hell",
+        "type": 0
+      },
+      {
+        "id": "1267920884291866675",
+        "name": "troubleshooting",
+        "type": 0
+      },
+      {
+        "id": "1272999269221142681",
+        "name": "amefyst-chat",
+        "type": 0
+      },
+      {
+        "id": "1272999370446602291",
+        "name": "board-chat",
+        "type": 0
+      },
+      {
+        "id": "1272999640522031266",
+        "name": "amefyst-private",
+        "type": 0
+      },
+      {
+        "id": "1272999663259091071",
+        "name": "board-private",
+        "type": 0
+      },
+      {
+        "id": "1282776842385752181",
+        "name": "fuckery-forums",
+        "type": 15
+      },
+      {
+        "id": "1292588774085234842",
+        "name": "introductions",
+        "type": 0
+      },
+      {
+        "id": "1296160672547213364",
+        "name": "🎃-spooky",
+        "type": 0
+      },
+      {
+        "id": "1306380304805789757",
+        "name": "general-chat",
+        "type": 0
+      },
+      {
+        "id": "1306437719353724928",
+        "name": "upcominggame-private",
+        "type": 0
+      },
+      {
+        "id": "1403107604812796054",
+        "name": "activities",
+        "type": 0
+      },
+      {
+        "id": "1418990330711244991",
+        "name": "pathos",
+        "type": 0
+      },
+      {
+        "id": "1481393641858662511",
+        "name": "general",
+        "type": 0
+      }
+    ]
+  }
+]
