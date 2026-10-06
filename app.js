@@ -1,11 +1,5 @@
 // app.js
 
-// Production uses its independent deployment, never this editable checkout.
-if (process.env.NODE_ENV === 'production' && require('node:fs').existsSync(
-  require('node:path').join(__dirname, '.runtime', 'production', 'app.js'))) {
-  throw new Error('Start production from .runtime/production using PM2, not the development checkout.')
-}
-
 const { loadDiscordEnvironment } = require('./config/runtime')
 const runtime = loadDiscordEnvironment()
 console.log(`Environment: ${runtime.env}`)

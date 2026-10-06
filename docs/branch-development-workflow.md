@@ -1,46 +1,37 @@
-# Branch development and independent production runtime
+# One-folder workflow
 
-The profile/leveling worktree was closed October 4, 2026 at the user's request. Open `C:\Users\headm\code\sanity-bot-dev` in your editor. It currently checks out `feature/S-1-leveling`; unfinished profile/Sanity changes remain available as working changes. Production is an independent deployment, not another Git worktree.
+Both bots now run from `C:\Users\headm\code\sanity-bot-dev` on `main`. Edit, commit and review code in this folder. No separate production source folder or additional Git worktree is needed.
 
-| Bot | Source folder | Database |
+| Bot | Environment file | Database |
 | --- | --- | --- |
-| SB-development | Main repository folder | `config/dev.sqlite` |
-| SB-production | `.runtime/production` | `.runtime/production/config/prod.sqlite` |
+| SB-development | `.env.development` | `config/dev.sqlite` |
+| SB-production | `.env.production` | `config/prod.sqlite` |
 
-Production has its own dependency copy and credentials. Its development environment file contains only the comparison guild ID, without development credentials. `.runtime` is ignored by Git and survives branch switches. Do not edit or delete this directory. The original `config/prod.sqlite` is now a retired pre-cutover copy, not the live production database. Production runtime resolution in this feature checkout points production tools to the independent deployment. No migration or player reset accompanied this relocation.
+Both use the same source and dependencies. Their credentials, guilds and saved data remain separate. Production's authoritative database was copied from its old deployment with every byte and table row verified; the retired root database was backed up first. Neither environment was reset. Credentials and databases remain ignored by Git.
 
-## Everyday development
+Start both bots:
 
-Use normal `git status`, `git add`, `git commit` and `git push` in the main folder. No separate worktree folder is needed. Changes saved there are the files development loads on restart:
+```powershell
+pm2 start ecosystem.config.js
+```
+
+Start only one:
+
+```powershell
+pm2 start ecosystem.config.js --only SB-development
+pm2 start ecosystem.config.js --only SB-production
+```
+
+After editing, restart whichever bot should load the changes:
 
 ```powershell
 pm2 restart SB-development
-```
-
-Commit or stash unfinished work before switching branches. Stop development while switching branches that change its runtime code, then restart it when the intended branch is checked out:
-
-```powershell
-pm2 stop SB-development
-git switch <branch>
-pm2 restart SB-development
-```
-
-Stopping before a switch prevents the running bot from loading a mixture of files from different branches. Production continues independently.
-
-## Production
-
-```powershell
 pm2 restart SB-production
+pm2 save
 ```
 
-This restarts the deployed snapshot. Committing, switching or merging development branches does not deploy new production code. A future production update requires a deliberate deployment into its runtime folder with appropriate checks; keep its live database intact and maintain one writer. Do not run the root `app.js` with production credentials or reuse historical worktree PM2 configs. The current feature's ecosystem configuration routes `--env production` into the independent deployment; saved named PM2 restarts are the normal workflow across branches.
+Use the explicit bot names instead of the old `--env` naming convention. Changes to shared source affect each bot when it next restarts; stop both before switching branches or replacing source during maintenance. Ordinary edits and restarts no longer need a production copy/deploy step. Keep exactly one running process for each bot name/database.
 
-## Preservation and rollback evidence
+The old production source is archived under `.runtime/main-consolidation/archived-production` solely for recovery. That folder is not an active runtime. Verified databases, credentials, source backups, the pre-merge Git bundle and PM2 configuration are retained alongside it. Restore only while both bots are stopped; never copy a database over an active writer.
 
-`.runtime/transition` contains a Git bundle of pre-transition branches, patches, a verified copy/hash manifest of 731 feature files, a retained Git stash reference, the prior PM2 dump, and verified stopped-writer backups of both databases. Stash restoration encountered only the three badge files already incorporated from main; their contents were preserved. Main's recent badge moves and Spooky wording changes were merged into the feature branch; its outdated title assertions were updated to match the edited text.
-
-Production was prepared from main commit `6713652`, including the approved badge resolver updates. Production dependencies exclude the repository's self-referencing `node_modules/sanity-bot` junction; the accidental recursive copy was removed. Both SQLite integrity and foreign-key checks passed, with byte/content-identical production copy at cutover. Development storage stayed in place. No commands, credentials, balances or event settings were changed by the relocation.
-
-PM2 entries were recreated to guarantee their new script/cwd paths, so restart counters begin again at zero. Production PID 28752 and development PID 12904 were online/Ready after relocation. Error-log sizes matched the fresh baseline, and PM2 was saved. `git worktree list` now contains only the main repository. Operational scripts and sanitized verification artifacts are in `.runtime/transition`.
-
-Final verification: 460/460 development tests, 40/40 production runtime checks and 26/26 final routing/flavor/profile checks pass. Both named processes remained online/Ready with unchanged fresh error-log sizes after worktree removal. Feature file preservation comparison differed only for the intended branch integration/operational changes and the two badge files deliberately moved into their Spooky folder.
+Production still uses Fate/Bank for Spooky purchases, while development's configured Sanity purchases remain separate. Sanity tracking stays active in both. Community XP remains paused; this consolidation does not activate it or redo the personal XP reset/grace window.

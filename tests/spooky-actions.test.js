@@ -35,7 +35,7 @@ test('every normal table interval is reachable with exact boundaries and no inde
   }
 })
 
-test('Eye Candy stays at10%, personal Eyes and Trick Eye attempts stay at10% across spell buffers', () => {
+test('Eye Candy stays at5%, personal Eyes and Trick Eye attempts stay at10% across spell buffers', () => {
   for (const previousOutcome of [null, 'reverse_nickname', 'temporary_immunity', 'curse_target', 'break_curse', 'eye_candy', 'steal_or_find_eye']) {
     for (const action of ['treat', 'trick']) {
       const counts = {}
@@ -43,7 +43,7 @@ test('Eye Candy stays at10%, personal Eyes and Trick Eye attempts stay at10% acr
         const result = selectAction({ action, previousOutcome, crownHolderId: action === 'trick' ? 'bob' : null, actorId: 'alice', random: () => (i + .5) / 10000 })
         counts[result.outcome] = (counts[result.outcome] || 0) + 1
       }
-      if (action === 'treat') { assert.equal(counts.eye_candy, 1000); assert.equal(counts.find_eye, 1000); assert.equal(counts.sweet_tooth, 100) }
+      if (action === 'treat') { assert.equal(counts.eye_candy, 500); assert.equal(counts.find_eye, 1000); assert.equal(counts.sweet_tooth, 100) }
       else { assert.equal(counts.steal_or_find_eye, 1000); assert.equal(counts.steal_crown, 100) }
     }
   }

@@ -26,20 +26,32 @@ test('unknown environments fail closed', () => {
   for (const env of ['', 'staging', 'Development']) assert.throws(() => resolveRuntime(env), /NODE_ENV/)
 })
 
-test('isolated development checkout can retain authoritative storage without redirecting production or test', t => {
+test('both bots use one checkout and stale worktree overrides cannot redirect storage', t => {
   const prior = process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT
   t.after(() => prior === undefined ? delete process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT : process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = prior)
   const root = fixture(t, dev, prod)
   process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = root
-  assert.equal(resolveRuntime('development').root, root)
-  assert.equal(resolveRuntime('development').database.storage, path.join(root, 'config', 'dev.sqlite'))
-  assert.notEqual(resolveRuntime('production').root, root)
+  const checkout = path.resolve(__dirname, '..')
+  assert.equal(resolveRuntime('development').root, checkout)
+  assert.equal(resolveRuntime('development').database.storage, path.join(checkout, 'config', 'dev.sqlite'))
+  assert.equal(resolveRuntime('production').root, checkout)
+  assert.equal(resolveRuntime('production').database.storage, path.join(checkout, 'config', 'prod.sqlite'))
   assert.equal(resolveRuntime('test').database.storage, ':memory:')
   const target = {}
-  assert.equal(loadDiscordEnvironment('development', { target }).root, root)
+  assert.equal(loadDiscordEnvironment('development', { root, target }).root, root)
   assert.equal(target.GUILDID, '222222222222222222')
   process.env.SANITY_DEVELOPMENT_RUNTIME_ROOT = 'relative-folder'
-  assert.throws(() => resolveRuntime('development'), /absolute/)
+  assert.equal(resolveRuntime('development').root, checkout)
+})
+
+test('PM2 names both bots explicitly and pins their shared source and separate environments', () => {
+  const { apps } = require('../ecosystem.config')
+  assert.deepEqual(apps.map(app => app.name), ['SB-development', 'SB-production'])
+  for (const app of apps) {
+    assert.equal(app.cwd, path.resolve(__dirname, '..'))
+    assert.equal(app.script, 'app.js')
+    assert.equal(app.env.NODE_ENV, app.name === 'SB-production' ? 'production' : 'development')
+  }
 })
 test('test environment is always memory-only and cannot load Discord credentials', () => {
   assert.equal(resolveRuntime('test').database.storage, ':memory:')

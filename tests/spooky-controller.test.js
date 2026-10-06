@@ -62,11 +62,11 @@ test('private help/onboarding creates actual fate account atomically and never m
   assert.ok(status.replies.at(-1).embeds[0].footer.text.includes('🍬'))
 })
 
-test('Eye Candy publishes the recipient badge once, preserves their footer and projects their access', async t => {
+test('Eye Candy gifts a fourth Eye publicly without awarding a piece or granting badge access', async t => {
   const f = await fixture(t, { notifications: true, gifPercent: 0 })
   for (const userId of ['alice', 'bob']) await f.controller.execute(f.interaction(`join-${userId}`, 'register', userId))
   const recipient = await f.models.Participant.findOne({ where: { userId: 'bob' } })
-  await recipient.update({ eyes: 4 })
+  await recipient.update({ eyes: 3 })
   const pieces = require('../services/spooky/config').pieces
   await f.models.Inventory.bulkCreate(pieces.filter(piece => piece.characterId === 'had' && piece.id !== 'had_br').map(piece => ({ participantId: recipient.id, pieceId: piece.id, quantity: 1 })))
   const awards = [], projections = []
@@ -76,20 +76,16 @@ test('Eye Candy publishes the recipient badge once, preserves their footer and p
     badgeAccess: { reconcileUser: async (guild, userId) => projections.push([guild, userId]) } })
   const turn = f.interaction('gift-completion', 'treat')
   await controller.execute(turn)
-  assert.deepEqual(awards, [['bob', 'had']]); assert.deepEqual(projections, [['guild', 'bob']])
-  assert.equal(turn.sent.length, 2)
+  assert.deepEqual(awards, []); assert.deepEqual(projections, [])
+  assert.equal(turn.sent.length, 1)
   assert.equal(turn.sent[0].embeds[0].title, '🍬 Eye Candy!')
   assert.match(turn.sent[0].embeds[0].description, /<@bob> received \*\*1 🧿 Evil Eye/)
   assert.equal(turn.sent[0].embeds[0].footer.text, 'Available: 🍬 14 • 🧿 0')
-  assert.match(turn.sent[1].embeds[0].title, /Hadley Complete/)
-  assert.match(turn.sent[1].embeds[0].description, /bob — Congratulations/)
-  assert.doesNotMatch(turn.sent[1].embeds[0].description, /alice — Congratulations/)
-  assert.equal(turn.sent[1].embeds[0].footer.text, 'Available: 🍬 10 • 🧿 0')
   const receipt = (await f.models.Operation.findByPk('discord:gift-completion')).receipt
-  assert.deepEqual(receipt.result.newlyCompletedCharacters, ['had'])
-  assert.equal((await recipient.reload()).eyes, 0)
+  assert.deepEqual(receipt.result.newlyCompletedCharacters, [])
+  assert.equal((await recipient.reload()).eyes, 4)
   await controller.execute(f.interaction('gift-completion', 'treat'))
-  assert.deepEqual(awards, [['bob', 'had']])
+  assert.deepEqual(awards, [])
   assert.equal((await f.models.Participant.findOne({ where: { userId: 'alice' } })).candy, 14)
 })
 

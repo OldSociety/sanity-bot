@@ -21,7 +21,8 @@
     {
       "characterId": "max",
       "name": "Maxim",
-      "emojiName": null
+      "emojiName": null,
+      "imageAsset": "SPOOKY_MAXIM_BADGE.png"
     },
     {
       "characterId": "nik",

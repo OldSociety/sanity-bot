@@ -1,4 +1,9 @@
 const test = require('node:test')
+test('Maxim completion uses its own existing image asset', () => {
+  const badge = require('../services/badges').badges.find(item => item.characterId === 'max')
+  require('node:assert/strict').equal(badge.imageAsset, 'SPOOKY_MAXIM_BADGE.png')
+  require('node:assert/strict').ok(require('node:fs').existsSync(require('node:path').join(__dirname, '..', 'assets', 'badges', 'Spooky', badge.imageAsset)))
+})
 const assert = require('node:assert/strict')
 const Sequelize = require('sequelize')
 const { createBadges, renderBadges, badgeField } = require('../services/badges')

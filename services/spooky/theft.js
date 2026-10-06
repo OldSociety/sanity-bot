@@ -34,7 +34,8 @@ function createTheft({ models, participants, collection, effects, delivery, list
     const byUser = new Map(rows.map(row => [row.userId, row]))
     return [...unique.values()].filter(member => {
       const row = byUser.get(member.userId)
-      if (resource === 'eyes' || resource === 'eye_gift') return Boolean(row?.registeredAt && (resource === 'eye_gift' || row.eyes >= 1))
+      if (resource === 'eye_gift') return Boolean(row?.registeredAt && row.eyes < event.eyes.quarterCost - 1)
+      if (resource === 'eyes') return Boolean(row?.registeredAt && row.eyes >= 1)
       // Preview lazily: selecting a victim must not enroll/materialize the guild.
       return (row ? calculateRefill({ candy: row.candy, refillAnchor: row.refillAnchor, now: ctx.now, event }).candy : event.candy.starting) >= 1
     })
