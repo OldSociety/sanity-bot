@@ -1,0 +1,11 @@
+{
+  "developmentEnabled": false,
+  "productionEnabled": false,
+  "thresholds": [10000, 15000, 25000],
+  "spookyChancePercent": 10,
+  "fallback": { "name": "Selene", "emojiName": "selene_badge", "imageAsset": "selene_badge.png", "imageCollection": "base" },
+  "events": {
+    "spooky-2026": { "spotlightProvider": "spooky", "emojiNames": { "had": "spooky_hadley_badge", "sel": "spooky_selene_badge", "mrq": "spooky_marq_badge" } }
+  },
+  "levelTwoBadge": { "id": "community:chapter-two", "name": "Chapter Two (placeholder)", "placeholder": true }
+}

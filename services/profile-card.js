@@ -52,10 +52,11 @@ async function label(value, font, width) {
   return sharp(input).resize({ width: Math.min(width, meta.width), withoutEnlargement: true }).png().toBuffer()
 }
 async function renderProfileCard({ displayName, username, user = {}, avatar, badges = [], badgesUnavailable = false, isAdmin = false,
-  occasion = 'profile', before = {}, sanity = null,
+  occasion = 'profile', before = {}, sanity = null, community = null,
   background = path.join(assetRoot, 'profile-backgrounds/default/blackhole.png') }) {
   if (!['profile', 'level-up', 'birthday', 'adjustment'].includes(occasion)) throw new Error('Unknown profile occasion')
-  const progress = progression(user), overlays = []
+  if (community) sanity = null
+  const progress = community?.progress || progression(user), overlays = []
   const eventCard = occasion !== 'profile'
   const number = value => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value)
   const balances = balanceLabels(user, before, occasion)
@@ -66,9 +67,9 @@ async function renderProfileCard({ displayName, username, user = {}, avatar, bad
   const text = (x, y, size, value, color = '#e8f0f3', weight = 400) => `<text x="${x}" y="${y}" font-family="Segoe UI, sans-serif" font-size="${size}" font-weight="${weight}" fill="${color}">${xml(value)}</text>`
   const badgeMarkup = badges.slice(0, MAX_BADGES).map((badge, i) => {
     const x = 288 + i * 86
-    return `<circle cx="${x}" cy="391" r="27" fill="#0d2029" stroke="#4f7f91" stroke-opacity=".6"/>` +
-      text(x - 8, 400, 25, initial(badge.name), '#aecbd6', 600) +
-      `<text x="${x}" y="440" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#bdced5">${xml(truncate(badge.name, 10))}</text>`
+    return `<circle cx="${x}" cy="391" r="27" fill="#0d2029" stroke="#4f7f91" stroke-opacity=".6"${badge.placeholder ? ' stroke-dasharray="4 4"' : ''}/>` +
+      text(x - 8, 400, 25, badge.placeholder ? '?' : initial(badge.name), '#aecbd6', 600) +
+      `<text x="${x}" y="440" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#bdced5">${xml(badge.placeholder ? 'Chapter 2' : truncate(badge.name, 10))}</text>`
   }).join('')
   const layout = svg(`<defs>
     <linearGradient id="shade"><stop stop-color="#031827" stop-opacity=".72"/><stop offset=".60" stop-color="#071923" stop-opacity=".38"/><stop offset="1" stop-color="#170e16" stop-opacity=".18"/></linearGradient>
@@ -81,23 +82,26 @@ async function renderProfileCard({ displayName, username, user = {}, avatar, bad
   ${text(120, 200, 45, initial(displayName || username || 'P'), '#aecbd6', 600)}
   <rect x="54" y="298" width="172" height="42" rx="21" fill="#527f91" fill-opacity=".20"/>
   <text x="140" y="325" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#c5dce5">LEVEL ${occasion === 'level-up' && Number.isSafeInteger(before.chat_level) && before.chat_level >= 1 && before.chat_level < progress.level ? `${before.chat_level} → ` : ''}${progress.level}</text>
-  ${text(260, eventCard ? 172 : 143, 18, '@' + truncate(username || 'player', 40), '#b1c4cd')}
+  ${text(260, eventCard ? 172 : 143, 18, community ? `Spotlight: ${truncate(require('./plot-points').spotlightName(community.spotlight), 40)}` : '@' + truncate(username || 'player', 40), '#b1c4cd')}
+  ${community ? text(community.currencyImage ? 294 : 260, 202, 18, 'PLOT POINTS', '#b1c4cd', 600) +
+    text(260, 237, 23, 'Every story moves us forward.', '#e8f0f3', 600) : `
   ${text(260, eventCard ? 207 : 193, 13, 'FATE POINTS', '#b1c4cd', 600)}
   ${metric(260, 'fate')}
   ${text(446, eventCard ? 207 : 193, 13, 'BANK', '#b1c4cd', 600)}
   ${metric(446, 'bank')}
   ${text(632, eventCard ? 207 : 193, 13, 'TOTAL AVAILABLE', '#b1c4cd', 600)}
-  ${metric(632, 'total')}
+  ${metric(632, 'total')}`}
   ${sanity ? `<rect x="916" y="139" width="256" height="32" rx="16" fill="#041623" fill-opacity=".66" stroke="#527f91" stroke-opacity=".24"/><text x="1044" y="160" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${sanityLabel.length > 6 ? 12 : 14}" font-weight="600" fill="#c5dce5">${xml(`SANITY ${sanityLabel} — ${stage.toUpperCase()}`)}</text>` : ''}
-  <text x="1118" y="272" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" fill="#c5dce5">LEVEL ${progress.level + 1}</text>
+  <text x="1118" y="272" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="14" fill="#c5dce5">${community && progress.required === null ? 'NEXT CHAPTER TO COME' : `LEVEL ${progress.level + 1}`}</text>
   <rect x="260" y="288" width="858" height="16" rx="8" fill="#527f91" fill-opacity=".30"/>
   ${progress.fraction > 0 ? `<rect x="260" y="288" width="${858 * progress.fraction}" height="16" rx="${Math.min(8, 429 * progress.fraction)}" fill="url(#bar)"/>` : ''}
-  ${text(260, 348, 12, 'RECENT UNLOCKS', '#b1c4cd', 600)}
+  ${text(260, 348, 12, community ? 'MOST POPULAR BADGES' : 'RECENT UNLOCKS', '#b1c4cd', 600)}
   ${badgeMarkup || text(260, 402, 18, badgesUnavailable ? 'Badges temporarily unavailable' : 'No badges unlocked yet.', '#a3bac4')}`)
   const name = await label(truncate(displayName || username || 'Player', 48), eventCard ? 'Segoe UI Bold 30' : 'Segoe UI Bold 38', sanity ? 650 : 820)
   // Text rasterization preserves Unicode names and measures before fitting.
   overlays.push({ input: layout }, { input: name, left: 260, top: eventCard ? 110 : 73 })
   if (sanity) overlays.push({ input: await sharp(Buffer.from(eyeSvg(stage))).png().toBuffer(), left: eyePlacement.left, top: eyePlacement.top })
+  if (community?.currencyImage) try { overlays.push({ input: await sharp(community.currencyImage).resize(26, 26).png().toBuffer(), left: 260, top: 181 }) } catch {}
   if (avatar) try { overlays.push({ input: await circle(avatar, 172), left: 54, top: 98 }) } catch {}
   await Promise.all(badges.slice(0, MAX_BADGES).map(async (badge, i) => {
     let input = badge.image

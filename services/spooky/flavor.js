@@ -38,6 +38,11 @@ function outcomeFlavor(
     description: currencyWords(description),
     color,
   })
+  if (receipt.outcome === 'plot_point')
+    return say('📖 The Plot Thickens',
+      `No candies this time, but ${actor}'s story added to the ${result.plotEmoji || '📖'} plot.` +
+      (result.unlockedLevels?.length ? `\nThe community reached level ${result.communityLevel}!` : '') +
+      (result.unlockedLevels?.includes(2) ? '\nEveryone unlocked Chapter Two (placeholder)!' : ''), 0x527f91)
   if (result.crownProtectedUserId)
     return say(
       '🛡️ What a Failure',

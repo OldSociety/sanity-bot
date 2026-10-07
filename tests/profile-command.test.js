@@ -45,8 +45,9 @@ test('member option uses their wallet and guild-scoped newest badges', async t =
 test('profile definition supports optional member and disables DMs', () => {
   const data = require('../commands/Server/Profile').data.toJSON()
   assert.equal(data.name, 'profile'); assert.equal(data.dm_permission, false)
-  assert.deepEqual(data.options.map(option => option.name), ['player'])
+  assert.deepEqual(data.options.map(option => option.name), ['player', 'community'])
   assert.equal(data.options[0].type, 6); assert.equal(data.options[0].required, false)
+  assert.equal(data.options[1].type, 5); assert.equal(data.options[1].required, false)
 })
 test('Admin card label comes from the selected member role', async t => {
   const f = await fixture(t)

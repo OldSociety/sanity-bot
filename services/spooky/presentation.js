@@ -144,6 +144,7 @@ function actionMessages(
   // Discoveries and earned wins belong in the channel, including personal finds.
   // No actor ping is needed; the root transaction supplies capped recipients.
   const rewardWin =
+    result.plotPoints > 0 ||
     (receipt.outcome === 'find_eye' && !result.noEffect) ||
     result.found > 0 ||
     result.fateBonus > 0 ||
@@ -360,6 +361,7 @@ function helpScreen() {
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
       'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. After the full collection is complete, further duplicate pieces are kept.',
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
+      ...(config.plotPointsEnabled ? ['Sometimes your story adds one 📖 Plot point to the community instead of a candy reward. View our shared progress with `/profile community:True`. Each new chapter brings the community closer to a shared badge.'] : []),
       'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',
       'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',
       'A shield usually protects the recipient and sometimes the giver too. Each attack weakens it until it bursts, or its magic fades. Shields protect candy, Eyes, names and even the Sweet Tooth Crown. Protection cast on a cursed player breaks their curse instead; it can also repair a hole in their bag. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',

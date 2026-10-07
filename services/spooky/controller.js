@@ -365,6 +365,9 @@ function createController({
       !snapshot.some((member) => member.userId === input.actorId)
     )
       throw new Error('Complete membership snapshot unavailable')
+    // Resolve cosmetic emoji IDs before entering the root database transaction.
+    const plotEmojis = event.plotPointsEnabled && ['trick', 'treat'].includes(subcommand)
+      ? [...(await interaction.guild.emojis.fetch()).values()] : []
     const finalizeReceipt = async (ctx, receipt) => {
       const player = await models.Participant.findOne({
         where: { ...ctx.scope, userId: input.actorId },
@@ -475,6 +478,12 @@ function createController({
       },
     })
     const raw = progression.wrapHandlers({
+      ...(event.plotPointsEnabled ? { plot_point: async (ctx, plan) => {
+        const plots = require('../plot-points')
+        const spotlight = await plots.resolveSpotlight({ ctx, models, event })
+        const result = await plots.createPlotPoints({ sequelize }).contribute(ctx, { userId: plan.actorId })
+        return { ...result, plotSpotlight: spotlight, plotEmoji: plots.plotEmoji(spotlight, plotEmojis) }
+      } } : {}),
       ...playful.handlers,
       ...theft.handlers,
       ...require('./candy-events').createCandyEvents({

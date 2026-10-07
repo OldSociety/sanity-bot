@@ -96,7 +96,7 @@ function selectEvent(data, environment) {
   // independently for each environment; untouched runtimes keep their policy.
   const communal = require('../community-leveling/config').selectConfig(environment)
   const sanity = require('../sanity').selected(environment)
-  return validateEvent({ ...data, fate: sanity.spendingEnabled ? { ...data.fate, paymentResource: 'sanity' } : communal.enabled ? { ...data.fate, paymentResource: 'normal-fate-only' } : data.fate,
+  return validateEvent({ ...data, plotPointsEnabled: require('../plot-points').enabled(environment), fate: sanity.spendingEnabled ? { ...data.fate, paymentResource: 'sanity' } : communal.enabled ? { ...data.fate, paymentResource: 'normal-fate-only' } : data.fate,
     enabled: data.enabled || (environment === 'development' && data.developmentEnabled === true) ||
     (environment === 'production' && data.productionEnabled === true) })
 }

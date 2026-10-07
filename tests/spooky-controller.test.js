@@ -44,6 +44,25 @@ async function fixture(t, options = {}) {
   }
   return { User, models, members, controller, interaction, settings }
 }
+
+test('Plot action commits shared progress and saved spotlight emoji with no candy gain or replay credit', async t => {
+  const f = await fixture(t)
+  await require('../migrations/plot-points').up(f.User.sequelize.getQueryInterface())
+  const event = { ...f.settings.event, plotPointsEnabled: true }
+  const controller = createController({ ...f.settings, event, clock: () => new Date('2026-10-06T20:00:00Z') })
+  await controller.execute(f.interaction('plot-register','register'))
+  const turn = f.interaction('plot-action','treat')
+  turn.guild = { emojis: { fetch: async () => new Map([['had', {name:'spooky_hadley_badge',id:'100000000000000001'}]]) } }
+  await controller.execute(turn)
+  const receipt = (await f.models.Operation.findByPk('discord:plot-action')).receipt
+  assert.equal(receipt.outcome,'plot_point')
+  assert.equal(receipt.result.plotPoints,1)
+  assert.equal(receipt.candy,9)
+  assert.match(turn.sent[0].embeds[0].description,/<:spooky_hadley_badge:100000000000000001> plot/)
+  assert.equal((await require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize}).view('guild')).total,1)
+  await controller.execute(turn)
+  assert.equal((await require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize}).view('guild')).total,1)
+})
 test('private help/onboarding creates actual fate account atomically and never mentions others', async t => {
   const f = await fixture(t)
   const help = f.interaction('help', 'help'); await f.controller.execute(help)

@@ -33,7 +33,8 @@
     {
       "characterId": "qam",
       "name": "Qam",
-      "emojiName": null
+      "emojiName": "spooky_qam_badge",
+      "imageAsset": "SPOOKY_QAM_BADGE.png"
     },
     {
       "characterId": "sel",

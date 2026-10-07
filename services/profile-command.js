@@ -9,6 +9,11 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
   sanityService = require('./sanity').runtime(User) }) {
   return async interaction => {
     if (!interaction.guild) return interaction.reply({ content: 'Use /profile in a server.', ephemeral: true })
+    if (interaction.options.getBoolean?.('community')) {
+      if (interaction.options.getUser('player')) return interaction.reply({ content: 'Choose either a player or the community profile.', ephemeral: true })
+      if (!require('./plot-points').enabled()) return interaction.reply({ content: 'The community profile is not available yet.', ephemeral: true })
+      return require('./community-profile').showCommunity(interaction, { sequelize: User.sequelize, render, download, logger })
+    }
     const mode = interaction.options.getSubcommand?.(false) || 'view'
     const preview = ['birthday', 'level'].includes(mode)
     if (preview && process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') return interaction.reply({ content: 'Profile previews are available only in development.', ephemeral: true })
@@ -24,6 +29,10 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
       try { rows = await badgeService.details(interaction.guild.id, player.id) }
       catch { badgesUnavailable = true; logger.error('Profile badge data unavailable') }
       const recent = recentBadges(rows, catalog)
+      if (require('./plot-points').enabled()) {
+        const sharedBadge = await require('./plot-points').createPlotPoints({ sequelize: User.sequelize }).unlockedBadge(interaction.guild.id)
+        if (sharedBadge) { recent.unshift(sharedBadge); recent.splice(10) }
+      }
       let emojis = []
       if (recent.some(badge => badge.emojiName)) {
         emojis = [...(await interaction.guild.emojis.fetch().catch(() => new Map())).values()]
