@@ -22,6 +22,7 @@ async function fixture(t, options = {}) {
   const delivery = createDelivery({ models, adapter: {} })
   if (options.notifications) await notificationMigration.up(sequelize.getQueryInterface())
   const settings = { sequelize, User, models, delivery, fetchMembers: options.fetchMembers || (async () => members),
+    preparePermissions: options.preparePermissions || null,
     roleIds: { curse: 'curse', sweetTooth: 'sweet', unwanted: 'unwanted' },
     event: { ...config, duplicates: options.duplicates || config.duplicates, enabled: options.enabled ?? true, gifs: { routinePercent: options.gifPercent ?? config.gifs.routinePercent } },
     ...(options.notifications ? { notifications: require('../services/spooky/notifications').createNotifications({ models }) } : {}),
@@ -44,6 +45,31 @@ async function fixture(t, options = {}) {
   }
   return { User, models, members, controller, interaction, settings }
 }
+
+test('both environments prepare permissions only for relevant outcomes and return before cosmetic work', async t => {
+  const before = process.env.NODE_ENV
+  t.after(() => { if (before === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = before })
+  for (const environment of ['development', 'production']) {
+  process.env.NODE_ENV = environment
+  for (const [roll, permissionsExpected] of [[.7, 0], [.42, 1]]) {
+    let permissions = 0, finishProjection
+    const pending = new Promise(resolve => { finishProjection = resolve })
+    const f = await fixture(t, { roll, preparePermissions: async () => { permissions++ } })
+    await f.controller.execute(f.interaction('register-fast', 'register'))
+    f.settings.delivery.reconcile = async () => pending
+    const interaction = f.interaction('fast-' + roll, 'treat')
+    let completed = false
+    const task = f.controller.execute(interaction).then(() => { completed = true })
+    await Promise.race([task, new Promise(resolve => setTimeout(resolve, 2000))])
+    const returnedBeforeProjection = completed
+    finishProjection()
+    await task
+    assert.equal(returnedBeforeProjection, true)
+    assert.equal(permissions, permissionsExpected)
+    assert.equal(await f.models.Operation.count({ where: { interactionId: interaction.id } }), 1)
+  }
+  }
+})
 
 test('Plot action commits shared progress and saved spotlight emoji with no candy gain or replay credit', async t => {
   const f = await fixture(t)

@@ -30,6 +30,7 @@ function createController({
   notifications = null,
   badges = null,
   badgeAccess = null,
+  preparePermissions = null,
 }) {
   if (User.sequelize !== sequelize)
     throw new Error('User and seasonal database must match')
@@ -545,6 +546,12 @@ function createController({
           event,
           random,
           clock,
+          prepareOutcome: preparePermissions ? async selected => {
+            require('./command-timing').detail(interaction, 'outcome', selected.outcome)
+            if (['curse_target', 'curse_spread', 'curse_backfire', 'break_curse', 'temporary_immunity', 'reverse_nickname', 'sweet_tooth', 'steal_crown'].includes(selected.outcome)) {
+              await preparePermissions(input.guildId, snapshot, interaction)
+            }
+          } : null,
           prepareChoice: {
             candidates: async (ctx, plan) =>
               require('./theft').randomTargets(
@@ -564,6 +571,9 @@ function createController({
                       random,
                       balances,
                       event,
+                      ...(require('./development-performance').enabled() ? {
+                        promptProbability: require('../../config/spooky-performance.json').targetChoiceProbability,
+                      } : {}),
                     },
                   ),
           },
@@ -589,7 +599,11 @@ function createController({
         : null,
       userId:
         (result.receipt.result || result.receipt).collectionUserId ||
-        input.actorId,
+      input.actorId,
+      ...(require('./development-performance').enabled() ? {
+        onResult: () => require('./command-timing').resultDelivered(interaction),
+        background: work => require('./development-performance').background('badge access', work),
+      } : {}),
       payload:
         personal?.payload ||
         privateScreen(
@@ -619,7 +633,10 @@ function createController({
     })
     // Saved rewards are visible before Discord role/nickname projection waits.
     // Retry only this operation here; the minute worker repairs older intents.
-    if (delivery?.reconcile)
+    if (delivery?.reconcile && require('./development-performance').enabled()) {
+      require('./development-performance').background('cosmetic projection', () => delivery.reconcile(
+        { eventId: input.eventId, guildId: input.guildId }, { revision: result.operationId }))
+    } else if (delivery?.reconcile)
       await require('./post-commit').settleProjection(
         () =>
           delivery.reconcile(
@@ -643,54 +660,66 @@ function createController({
         guildId: interaction.guildId,
         actorId: interaction.user.id,
       }
-      let nudge = false
-      if (
-        interaction.guildId &&
-        (!allowedChannelIds.length ||
-          allowedChannelIds.includes(interaction.channelId))
-      ) {
-        try {
-          nudge = await require('./private-nudges').claimNudge({
-            economy,
-            models,
-            input,
-            event,
-            now: clock(),
-          })
-        } catch (error) {
-          console.error('Spooky private nudge failed:', error.message)
+      const fastRequests = require('./development-performance').enabled()
+      const optionalNudge = async () => {
+        let nudge = false
+        if (
+          interaction.guildId &&
+          (!allowedChannelIds.length ||
+            allowedChannelIds.includes(interaction.channelId))
+        ) {
+          try {
+            nudge = await require('./private-nudges').claimNudge({
+              economy,
+              models,
+              input,
+              event,
+              now: clock(),
+            })
+          } catch (error) {
+            console.error('Spooky private nudge failed:', error.message)
+          }
+        }
+        if (!fastRequests) await executeCommand(interaction)
+        if (nudge && typeof interaction.followUp === 'function') {
+          const player = await balanceSnapshot(input)
+          if (
+            !player ||
+            (nudge === 'bucket'
+              ? player.candy < event.candy.capacity
+              : player.candy < 50 || player.candy >= event.candy.capacity)
+          )
+            return
+          await interaction
+            .followUp({
+              ...withBalances(
+                privateScreen(
+                  nudge === 'bucket'
+                    ? '🍬 Your Candy Bucket Is Overflowing!'
+                    : '🍬 A Sweet Welcome Back!',
+                  nudge === 'bucket'
+                    ? 'Your bucket is brimming with candy! Enjoy a trick or treat before more sweets tumble into the shadows.'
+                    : 'Nice to see you! You have a lovely stash of sweets ready for some Halloween mischief. Enjoy a trick or treat whenever you feel like it.',
+                ),
+                player || {},
+                clock(),
+                event,
+              ),
+              ephemeral: true,
+            })
+            .catch(() => {})
         }
       }
-      await executeCommand(interaction)
-      if (nudge && typeof interaction.followUp === 'function') {
-        const player = await balanceSnapshot(input)
-        if (
-          !player ||
-          (nudge === 'bucket'
-            ? player.candy < event.candy.capacity
-            : player.candy < 50 || player.candy >= event.candy.capacity)
-        )
-          return
-        await interaction
-          .followUp({
-            ...withBalances(
-              privateScreen(
-                nudge === 'bucket'
-                  ? '🍬 Your Candy Bucket Is Overflowing!'
-                  : '🍬 A Sweet Welcome Back!',
-                nudge === 'bucket'
-                  ? 'Your bucket is brimming with candy! Enjoy a trick or treat before more sweets tumble into the shadows.'
-                  : 'Nice to see you! You have a lovely stash of sweets ready for some Halloween mischief. Enjoy a trick or treat whenever you feel like it.',
-              ),
-              player || {},
-              clock(),
-              event,
-            ),
-            ephemeral: true,
-          })
-          .catch(() => {})
-      }
+      if (fastRequests) {
+        await executeCommand(interaction)
+        require('./development-performance').background('private nudge', optionalNudge)
+      } else await optionalNudge()
     })().catch(async (error) => {
+      if (require('./development-performance').enabled()) {
+        require('./command-timing').detail(interaction, 'failed', true)
+        console.error(`Spooky ${process.env.NODE_ENV} command rejected:`, JSON.stringify({ interactionId: interaction.id,
+          command: interaction.options.getSubcommand(), code: error.code || error.name, message: String(error.message).replace(/https?:\/\/\S+/g, '[url]').slice(0, 300) }))
+      }
       const player = await balanceSnapshot({
         eventId: event.eventId,
         guildId: interaction.guildId,

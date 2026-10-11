@@ -61,10 +61,18 @@ module.exports = {
           const restricted = require('../services/spooky/channels').channelRestriction(interaction)
           if (restricted) { await interaction.reply({ ...restricted, ephemeral: true }); return }
           require('../services/spooky/command-timing').begin(interaction)
-          await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+          if (require('../services/spooky/development-performance').enabled()) {
+            const timing = require('../services/spooky/command-timing')
+            const [_, member] = await Promise.all([
+              timing.phase(interaction, 'acknowledgement_ms', () => interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })),
+              timing.phase(interaction, 'actor_membership_ms', () => interaction.guild.members.fetch({ user: interaction.user.id, force: true })),
+            ])
+            timing.rememberMember(interaction, member)
+          } else await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
         }
         if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
-          const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
+          const savedMember = interaction.commandName === 'spooky' ? require('../services/spooky/command-timing').takeMember(interaction) : null
+          const member = savedMember || await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
           if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').rememberMember(interaction, member)
           if (require('../services/member-policy').excludedMember(member)) {
             const payload = { content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } }
@@ -83,9 +91,16 @@ module.exports = {
           }
         }
         if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').mark(interaction, 'acknowledgement_and_eligibility')
-        await command.execute(interaction)
+        if (interaction.commandName === 'spooky' && require('../services/spooky/development-performance').enabled()) {
+          await require('../services/spooky/development-performance').run(interaction, () => command.execute(interaction))
+        } else await command.execute(interaction)
+        if (interaction.commandName === 'spooky' && require('../services/spooky/development-performance').enabled()) require('../services/spooky/command-timing').resultDelivered(interaction)
         if (process.env.NODE_ENV === 'development') {
-          try { await require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User) }
+          try {
+            const work = () => require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User)
+            if (interaction.commandName === 'spooky') await require('../services/spooky/command-timing').phase(interaction, 'sanity_reminder_ms', work)
+            else await work()
+          }
           catch (error) { console.error('Sanity reminder unavailable:', error.message) }
         }
       } catch (error) {

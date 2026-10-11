@@ -58,7 +58,7 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
 }
 
 function createActions({ models, economy, participants, handlers, getCurseState, event = defaultConfig,
-  random = Math.random, prepareChoice = null, getCrownHolder = async () => null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
+  random = Math.random, prepareChoice = null, prepareOutcome = null, getCrownHolder = async () => null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (typeof getCurseState !== 'function') throw new Error('Trusted curse state resolver is required')
   async function previousAction(ctx, actorId, registeredAt) {
     return models.Operation.findOne({ where: { ...ctx.scope, actorId,
@@ -85,8 +85,17 @@ function createActions({ models, economy, participants, handlers, getCurseState,
         const previous = await previousAction(ctx, input.actorId, participant.registeredAt)
         const crownHolderId = await getCrownHolder(ctx)
         const selected = selectAction({ action: input.action, cursed, crownHolderId, actorId: input.actorId, previousOutcome: previous?.receipt?.outcome, event, random })
-        return { selected, cursed, crownHolderId, previousId: previous?.operationId || null, balances: { candy, eyes: participant.eyes }, candidates: await prepareChoice.candidates(ctx, { ...selected, actorId: input.actorId }) }
+        return { selected, cursed, crownHolderId, previousId: previous?.operationId || null, balances: { candy, eyes: participant.eyes },
+          candidates: prepareOutcome ? [] : await prepareChoice.candidates(ctx, { ...selected, actorId: input.actorId }) }
       })
+      if (planned && prepareOutcome) {
+        // Permission preparation uses Discord outside the DB queue.
+        await prepareOutcome(planned.selected)
+        if (['break_curse', 'curse_target', 'curse_spread', 'temporary_immunity'].includes(planned.selected.outcome)) {
+          planned.candidates = await economy.read(transaction => prepareChoice.candidates({ transaction,
+            scope: { eventId: input.eventId, guildId: input.guildId }, now: clock() }, { ...planned.selected, actorId: input.actorId }))
+        }
+      }
       if (planned?.candidates.length) planned.selected.targetUserId = await prepareChoice.choose(planned.selected, planned.candidates, planned.balances)
     }
     return economy.execute({ ...input, operationType: `spooky_${input.action}` }, async ctx => {

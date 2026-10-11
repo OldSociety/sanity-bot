@@ -15,6 +15,20 @@ function fixture() {
 }
 const tick = () => new Promise(resolve => setImmediate(resolve))
 const candidates = ['bob','carol','dan'].map(userId => ({ userId, displayName: userId }))
+
+test('reduced prompt odds choose automatically at the boundary without Discord prompt calls', async () => {
+  const f = fixture(), rolls = [0.9, 1 / 3]
+  assert.equal(await chooseTarget(f.interaction, candidates, { outcome: 'temporary_immunity', promptProbability: 1 / 3, random: () => rolls.shift() }), 'dan')
+  assert.equal(f.edits.length, 0)
+  assert.equal(hasSession(f.button(0).customId), false)
+  const prompt = fixture(), promptRolls = [0, 1 / 3 - Number.EPSILON]
+  const work = chooseTarget(prompt.interaction, candidates, { outcome: 'curse_target', promptProbability: 1 / 3, random: () => promptRolls.shift() })
+  await tick()
+  assert.equal(prompt.edits[0].components[0].components.length, 3)
+  prompt.collector.emit('collect', prompt.button(1))
+  assert.equal(await work, 'carol')
+  await assert.rejects(chooseTarget(f.interaction, candidates, { outcome: 'curse_target', promptProbability: -1 }), /Invalid target choice probability/)
+})
 test('three choices enforce ownership and acknowledge one selection before finishing', async () => {
   const f = fixture(), work = chooseTarget(f.interaction, candidates, { outcome: 'curse_target', random: () => 0 })
   await tick()

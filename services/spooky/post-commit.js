@@ -11,11 +11,14 @@ async function settleProjection(work, onError, timeoutMs = 1000) {
   finally { clearTimeout(timer) }
 }
 // A webhook failure cannot roll back an operation or suppress its durable outbox.
-async function finishSaved({ interaction, result, payload, publish, badgeAccess, userId, savedTitle = '🎃 Action Saved', hideAfterPublish = false }) {
-  if (!hideAfterPublish) await safeEdit(interaction, payload, result.operationId)
+async function finishSaved({ interaction, result, payload, publish, badgeAccess, userId, savedTitle = '🎃 Action Saved', hideAfterPublish = false, onResult = () => {}, background = null }) {
+  let visible = false
+  const resultVisible = () => { if (!visible) { visible = true; onResult() } }
+  if (!hideAfterPublish && await safeEdit(interaction, payload, result.operationId)) resultVisible()
   try {
     const delivery = publish ? await publish() : null
     if (hideAfterPublish && delivery?.allSent === false) throw new Error('Public result remains undelivered')
+    if (hideAfterPublish) resultVisible()
     if (hideAfterPublish) {
       // The public flavor embed is the result. Remove the deferred private
       // acknowledgement only after delivery succeeds, keeping failures visible.
@@ -32,7 +35,9 @@ async function finishSaved({ interaction, result, payload, publish, badgeAccess,
   // Access is a repairable cosmetic projection. It must not delay saved rewards.
   if (badgeAccess && userId) {
     let timer
-    const access = Promise.resolve().then(() => badgeAccess.reconcileUser(interaction.guildId, userId))
+    const work = () => badgeAccess.reconcileUser(interaction.guildId, userId)
+    if (background) { background(work); return }
+    const access = Promise.resolve().then(work)
       .catch(error => log('badge access', result.operationId, error))
     // Settle quick projections before returning, while bounding optional REST
     // latency. Late failures stay observed; ownership/views repair interrupted work.
