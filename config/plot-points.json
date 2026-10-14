@@ -1,5 +1,5 @@
 {
-  "developmentEnabled": false,
+  "developmentEnabled": true,
   "productionEnabled": false,
   "thresholds": [10000, 15000, 25000],
   "spookyChancePercent": 10,

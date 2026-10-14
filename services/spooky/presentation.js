@@ -173,8 +173,12 @@ function actionMessages(
                 ...(fateBalanceFields(result).length
                   ? { fields: fateBalanceFields(result) }
                   : {}),
+                ...(result.unlockedLevels?.length ? { image: { url: 'attachment://community-level-up.png' } } : {}),
               },
             ],
+            ...(result.unlockedLevels?.length && result.plotSpotlight ? { communityBanner: {
+              level: result.communityLevel, progress: result.communityProgress, spotlight: result.plotSpotlight,
+            } } : {}),
           },
         },
       ]

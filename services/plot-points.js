@@ -74,7 +74,8 @@ function createPlotPoints({ sequelize, models = defineModels(sequelize), setting
       const [, created] = await models.Milestone.findOrCreate({ where: { guildId: where.guildId, level }, defaults: { unlockedAt: ctx.now }, transaction: ctx.transaction })
       if (created) unlocked.push(level)
     }
-    const result = { plotPoints: 1, communityLevel: after.level, unlockedLevels: unlocked }
+    const result = { plotPoints: 1, communityLevel: after.level, communityTotal: after.total,
+      communityProgress: after, unlockedLevels: unlocked }
     await models.Contribution.create({ ...where, userId, eventId, result, createdAt: ctx.now }, { transaction: ctx.transaction })
     await ctx.record({ userId, resource: 'plotPoints', delta: 1, before: before.total, after: after.total, metadata: { community: true, sourceId, unlockedLevels: unlocked } })
     return result

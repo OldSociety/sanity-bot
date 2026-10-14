@@ -162,7 +162,7 @@ function createController({
           },
         ]
       return interaction.editReply(
-        require('./token-art').preparePayload(
+        await require('./token-art').preparePayload(
           withBalances(
             rankingScreen,
             (await balanceSnapshot(input)) || {},
@@ -618,7 +618,7 @@ function createController({
           for (let index = 0; index < messages.length; index++)
             if (messages[index].public)
               await interaction.channel.send({
-                ...require('./token-art').preparePayload(
+                ...await require('./token-art').preparePayload(
                   messages[index].payload,
                   {
                     operationId: result.operationId,

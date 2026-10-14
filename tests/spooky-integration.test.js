@@ -78,6 +78,21 @@ test('ambiguous notification failure stays uncertain and is not resent automatic
   assert.equal(sends, 1)
 })
 
+test('community banner rendering failure stays pending before the Discord send is claimed', async t => {
+  const f = await fixture(t)
+  const result = await f.run('banner-render-failure', async ctx => {
+    await f.notifications.enqueue(ctx, 'channel', [{ public: true, payload: {
+      communityBanner: { level: 1, progress: { level: 1 }, spotlight: {} },
+    } }])
+    return {}
+  })
+  let sends = 0
+  await assert.rejects(() => f.notifications.deliver(result.operationId, { id: 'channel', send: async () => { sends++ } }), /Invalid community level banner data/)
+  const row = await f.models.Notification.findOne({ where: { operationId: result.operationId } })
+  assert.equal(row.status, 'pending')
+  assert.equal(sends, 0)
+})
+
 test('cancelled or missing cursed replacement retains the original; confirmed delivery permits deletion', async () => {
   let deleted = 0, allSent = false
   const service = { notifications: { deliver: async () => ({ allSent }) } }

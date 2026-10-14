@@ -77,14 +77,14 @@ async function renderProfileCard({ displayName, username, user = {}, avatar, bad
   </defs><rect width="1200" height="480" fill="url(#shade)"/>
   <rect x="20" y="20" width="1160" height="440" rx="25" fill="none" stroke="#527f91" stroke-opacity=".40"/>
   ${isAdmin ? '<text x="1148" y="48" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#c5dce5">ADMIN</text>' : ''}
-  ${eventCard ? text(260, 82, occasion === 'adjustment' ? 38 : 44, { 'level-up': 'LEVEL UP!', birthday: 'HAPPY BIRTHDAY!', adjustment: 'BALANCE UPDATE' }[occasion], '#e8f0f3', 800) : ''}
+  ${eventCard ? text(260, 82, occasion === 'adjustment' ? 38 : 44, community && occasion === 'level-up' ? 'COMMUNITY LEVEL UP!' : { 'level-up': 'LEVEL UP!', birthday: 'HAPPY BIRTHDAY!', adjustment: 'BALANCE UPDATE' }[occasion], '#e8f0f3', 800) : ''}
   <circle cx="140" cy="184" r="92" fill="#0d2029" stroke="#527f91" stroke-width="2"/>
   ${text(120, 200, 45, initial(displayName || username || 'P'), '#aecbd6', 600)}
   <rect x="54" y="298" width="172" height="42" rx="21" fill="#527f91" fill-opacity=".20"/>
   <text x="140" y="325" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#c5dce5">LEVEL ${occasion === 'level-up' && Number.isSafeInteger(before.chat_level) && before.chat_level >= 1 && before.chat_level < progress.level ? `${before.chat_level} → ` : ''}${progress.level}</text>
   ${text(260, eventCard ? 172 : 143, 18, community ? `Spotlight: ${truncate(require('./plot-points').spotlightName(community.spotlight), 40)}` : '@' + truncate(username || 'player', 40), '#b1c4cd')}
   ${community ? text(community.currencyImage ? 294 : 260, 202, 18, 'PLOT POINTS', '#b1c4cd', 600) +
-    text(260, 237, 23, 'Every story moves us forward.', '#e8f0f3', 600) : `
+    text(260, 237, 23, community.levelUpLabel || 'Every story moves us forward.', '#e8f0f3', 600) : `
   ${text(260, eventCard ? 207 : 193, 13, 'FATE POINTS', '#b1c4cd', 600)}
   ${metric(260, 'fate')}
   ${text(446, eventCard ? 207 : 193, 13, 'BANK', '#b1c4cd', 600)}

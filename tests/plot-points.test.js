@@ -109,3 +109,21 @@ test('community profile read has no account creation, no Sanity or personal bala
   assert.equal(await f.service.models.Guild.count(),0)
   assert.equal(await f.models.Operation.count(),0)
 })
+
+test('level-two community reward is delivered with its spotlight profile banner attachment', async () => {
+  const badge = require('../config/badges.json').badges.find(item => item.characterId === 'had')
+  const payload = { embeds: [{ title: 'Community reached level two', image: { url: 'attachment://community-level-up.png' } }],
+    communityBanner: { level: 2, progress: plots.progression(10000),
+      spotlight: { ...badge, imageCollection: 'Spooky', emojiName: 'spooky_hadley_badge' } } }
+  const ready = await require('../services/spooky/token-art').preparePayload(payload, { now: new Date('2026-10-13T12:00:00Z') })
+  assert.equal(ready.communityBanner, undefined)
+  assert.equal(ready.files.length, 1)
+  assert.equal(ready.files[0].name, 'community-level-up.png')
+  assert.ok(Buffer.isBuffer(ready.files[0].attachment) && ready.files[0].attachment.length > 10000)
+  assert.equal(ready.embeds[0].image.url, 'attachment://community-level-up.png')
+  const evidence = require('../services/spooky/token-art').evidenceEmbeds(payload, {
+    embeds: [{ image: { url: 'https://cdn.discordapp.com/attachments/1/community-level-up.png' } }],
+    attachments: [{ name: 'community-level-up.png', url: 'https://cdn.discordapp.com/attachments/1/community-level-up.png' }],
+  })
+  assert.equal(evidence[0].image.url, 'attachment://community-level-up.png')
+})

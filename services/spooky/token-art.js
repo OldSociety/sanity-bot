@@ -23,20 +23,26 @@ function validateFiles(files) {
   }
   return files
 }
-function preparePayload(payload, deliveryContext) {
+async function preparePayload(payload, deliveryContext) {
   payload = require('./mentions').prepareMentionPayload(payload, deliveryContext)
-  if (!payload.files) return payload
-  return { ...payload, files: validateFiles(payload.files).map(file => ({
+  const { communityBanner, ...cleanPayload } = payload
+  let files = payload.files ? validateFiles(payload.files).map(file => ({
     attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', 'Spooky', file.badgeAsset)
       : path.join(__dirname, '..', '..', 'assets', 'spooky', 'tokens', file.tokenAsset), name: file.name,
-  })) }
+  })) : []
+  if (communityBanner) {
+    const attachment = await require('../community-level-banner').renderCommunityLevelBanner(communityBanner)
+    files.push({ attachment, name: 'community-level-up.png' })
+  }
+  return files.length ? { ...cleanPayload, files } : cleanPayload
 }
 // Discord expands attachment:// references into CDN URLs. Resolve only against
 // freshly fetched attachments, keeping acknowledgement evidence fail-closed.
 function evidenceEmbeds(payload, evidence) {
-  if (!payload.files) return evidence.embeds || []
-  validateFiles(payload.files)
-  const attachments = payload.files.map(file => ({ file, attachment: evidence.attachments?.find(item => item.name === file.name) }))
+  const files = [...(payload.files || []), ...(payload.communityBanner ? [{ name: 'community-level-up.png' }] : [])]
+  if (!files.length) return evidence.embeds || []
+  if (payload.files) validateFiles(payload.files)
+  const attachments = files.map(file => ({ file, attachment: evidence.attachments?.find(item => item.name === file.name) }))
   if (attachments.some(item => !item.attachment?.url)) return []
   const portableURL = url => attachments.find(item => item.attachment.url === url)
   const resolve = url => portableURL(url) ? `attachment://${portableURL(url).file.name}` : url
