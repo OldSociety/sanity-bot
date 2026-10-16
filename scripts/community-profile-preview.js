@@ -6,12 +6,14 @@ const { progression } = require('../services/plot-points')
 async function main() {
   const root = path.resolve(__dirname, '../docs/previews')
   await fs.mkdir(root, { recursive: true })
-  const spotlight = { name: 'Hadley', emojiName: 'spooky_hadley_badge', imageAsset: 'SPOOKY_HADLEY_BADGE.png' }
+  const spotlight = { name: 'Marq', emojiName: 'spooky_marq_badge', imageAsset: 'SPOOKY_MARQ_BADGE.png' }
   const avatar = await fs.readFile(path.resolve(__dirname,'../assets/badges/Spooky',spotlight.imageAsset))
-  for (const [name,total] of [['community-level-one',2500],['community-level-two',15000]]) {
-    const badges = total >= 10000 ? [require('../config/plot-points.json').levelTwoBadge] : []
-    const output = await renderProfileCard({displayName:'Community preview',avatar,badges,
-      community:{spotlight,progress:progression(total),currencyImage:avatar}})
+  const popular = require('../config/badges.json').badges.filter(badge => ['mrq', 'sel'].includes(badge.characterId))
+    .sort((a, b) => a.characterId.localeCompare(b.characterId))
+  for (const [name,total] of [['community-level-one',0],['community-level-two',15000]]) {
+    const badges = [...(total >= 10000 ? [require('../config/plot-points.json').levelTwoBadge] : []), ...popular]
+    const output = await renderProfileCard({displayName:'Meridian Campaign Setting',avatar,badges,
+      community:{spotlight,currentEvent:'Spooky Season',currentEventEmoji:'🎃',progress:progression(total)}})
     await fs.writeFile(path.join(root,`${name}.png`),output)
   }
 }

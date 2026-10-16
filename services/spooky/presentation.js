@@ -97,7 +97,7 @@ function targetIds(result, actorId) {
 }
 function actionMessages(
   receipt,
-  { actorId, members, registeredIds, mentionIds, variantKey, avatarURL, timestamp },
+  { actorId, members, registeredIds, mentionIds, variantKey, avatarURL, timestamp, guildName },
 ) {
   const result = receipt.result || receipt
   const ids = targetIds(result, actorId),
@@ -178,6 +178,9 @@ function actionMessages(
             ],
             ...(result.unlockedLevels?.length && result.plotSpotlight ? { communityBanner: {
               level: result.communityLevel, progress: result.communityProgress, spotlight: result.plotSpotlight,
+              displayName: guildName || 'Our Server',
+              currentEvent: require('../../config/plot-points.json').events[result.plotSpotlight.eventId]?.name || null,
+              currentEventEmoji: require('../../config/plot-points.json').events[result.plotSpotlight.eventId]?.emoji || null,
             } } : {}),
           },
         },
@@ -363,7 +366,7 @@ function helpScreen() {
       '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
       config.fate.paymentResource === 'sanity' ? '**Extra quarter:** `/spooky buy-quarter` lets you confirm spending **10 Sanity**; Fate and Bank stay untouched.' : `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'}**; no daily limit.`,
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
-      'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. After the full collection is complete, further duplicate pieces are kept.',
+      'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. Once all seven characters are complete, you stop receiving pieces and paid draws close. Existing pieces, duplicates and unspent Eyes are kept.',
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
       ...(config.plotPointsEnabled ? ['Sometimes your story adds one 📖 Plot point to the community instead of a candy reward. View our shared progress with `/profile community:True`. Each new chapter brings the community closer to a shared badge.'] : []),
       'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',

@@ -257,7 +257,9 @@ function createController({
         withBalances(
           privateScreen(
             '🧩 Your Collection',
-            event.duplicates.allowDuplicates === false
+            rows.length === pieces.length
+              ? `${text}\n\n**All seven characters unlocked!** You no longer receive token pieces or need paid draws. Your existing pieces, duplicates (${duplicates}) and unspent Eyes are kept.`
+              : event.duplicates.allowDuplicates === false
               ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.`
               : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nDuplicates can only come from completed characters. Every 5 duplicates will grant you a new unowned piece!`,
           ),
@@ -301,6 +303,9 @@ function createController({
         })
         if (!player?.registeredAt)
           throw new Error('Use /spooky register to join first.')
+        const owned = await models.Inventory.count({ where: { participantId: player.id }, transaction })
+        if (owned === require('./config').pieces.length)
+          throw new Error('Your collection is complete; no more quarters are needed.')
         const state = await models.EventState.findOne({
           where: { eventId: input.eventId, guildId: input.guildId },
           transaction,
@@ -414,6 +419,7 @@ function createController({
             mentionIds: new Set(mentions.allowed),
             variantKey: ctx.operationId,
             timestamp: ctx.now.toISOString(),
+            guildName: interaction.guild?.name,
             avatarURL:
               typeof interaction.user.displayAvatarURL === 'function'
                 ? interaction.user.displayAvatarURL()

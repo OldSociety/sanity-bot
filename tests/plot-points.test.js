@@ -89,10 +89,14 @@ test('spotlight follows frozen Spooky rotation, with year-round Selene and safe 
 })
 test('popular badges count distinct current human owners, deterministic ties and shared unlocks', () => {
   const {popularBadges}=require('../services/community-profile')
-  const humans=new Set(['alice','bob'])
-  const rows=[{userId:'alice',badgeId:'spooky-2026:had'},{userId:'alice',badgeId:'spooky-2026:had'},{userId:'bob',badgeId:'spooky-2026:sel'}, {userId:'bot',badgeId:'spooky-2026:sel'}]
+  const humans=new Set(['alice','bob','138131238803210240'])
+  const rows=[{userId:'alice',badgeId:'spooky-2026:had'},{userId:'alice',badgeId:'spooky-2026:had'},
+    {userId:'138131238803210240',badgeId:'spooky-2026:had'},
+    ...['alice','bob','bot'].flatMap(userId=>['sel','mrq'].map(id=>({userId,badgeId:`spooky-2026:${id}`})))]
   const badges=popularBadges(rows,humans,require('../config/plot-points.json').levelTwoBadge)
-  assert.deepEqual(badges.map(b=>[b.id,b.ownerCount]),[['community:chapter-two',2],['spooky-2026:had',1],['spooky-2026:sel',1]])
+  assert.deepEqual(badges.map(b=>[b.id,b.ownerCount]),[['community:chapter-two',2],['spooky-2026:mrq',2],['spooky-2026:sel',2]])
+  assert.deepEqual(popularBadges(rows,new Set(['alice','138131238803210240']),require('../config/plot-points.json').levelTwoBadge),[])
+  assert.equal(humans.size,3)
 })
 test('community profile read has no account creation, no Sanity or personal balances', async t => {
   const f=await fixture(t)
@@ -105,16 +109,31 @@ test('community profile read has no account creation, no Sanity or personal bala
   assert.equal(calls[0].files[0].name,'community-profile.png')
   assert.equal(rendered.sanity,null)
   assert.equal(rendered.user,undefined)
+  assert.equal(rendered.displayName,'Story')
+  assert.equal(rendered.community.currentEvent,'Spooky Season')
+  assert.equal(rendered.community.currentEventEmoji,'🎃')
+  assert.equal(rendered.community.currencyImage,undefined)
   assert.equal(rendered.community.spotlight.name,'Hadley')
+  await require('../services/community-profile').showCommunity(interaction,{sequelize:f.db,event:f.event,clock:()=>new Date('2026-11-03T20:00:00Z'),
+    directory:async()=>new Map(),render:async data=>{rendered=data;return Buffer.from('png')}})
+  assert.equal(rendered.community.currentEvent,null)
+  assert.equal(rendered.community.currentEventEmoji,null)
+  assert.equal(rendered.community.spotlight.name,'Selene')
   assert.equal(await f.service.models.Guild.count(),0)
   assert.equal(await f.models.Operation.count(),0)
 })
 
 test('level-two community reward is delivered with its spotlight profile banner attachment', async () => {
   const badge = require('../config/badges.json').badges.find(item => item.characterId === 'had')
-  const payload = { embeds: [{ title: 'Community reached level two', image: { url: 'attachment://community-level-up.png' } }],
-    communityBanner: { level: 2, progress: plots.progression(10000),
-      spotlight: { ...badge, imageCollection: 'Spooky', emojiName: 'spooky_hadley_badge' } } }
+  const payload = require('../services/spooky/presentation').actionMessages({ outcome: 'plot_point', result: {
+    plotPoints: 1, communityLevel: 2, communityProgress: plots.progression(10000), unlockedLevels: [2],
+    plotSpotlight: { ...badge, eventId: 'spooky-2026', imageCollection: 'Spooky', emojiName: 'spooky_hadley_badge' },
+  } }, { actorId: 'alice', members: [{ userId: 'alice', displayName: 'Alice' }], registeredIds: new Set(['alice']),
+    guildName: 'Meridian Campaign Setting' })[0].payload
+  assert.equal(payload.communityBanner.displayName,'Meridian Campaign Setting')
+  assert.equal(payload.communityBanner.currentEvent,'Spooky Season')
+  assert.equal(payload.communityBanner.currentEventEmoji,'🎃')
+  assert.equal(JSON.parse(JSON.stringify(payload)).communityBanner.currentEvent,'Spooky Season')
   const ready = await require('../services/spooky/token-art').preparePayload(payload, { now: new Date('2026-10-13T12:00:00Z') })
   assert.equal(ready.communityBanner, undefined)
   assert.equal(ready.files.length, 1)

@@ -77,17 +77,24 @@ test('Plot action commits shared progress and saved spotlight emoji with no cand
   const event = { ...f.settings.event, plotPointsEnabled: true }
   const controller = createController({ ...f.settings, event, clock: () => new Date('2026-10-06T20:00:00Z') })
   await controller.execute(f.interaction('plot-register','register'))
+  const plots = require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize})
+  await plots.models.Guild.create({guildId:'guild',total:9999})
   const turn = f.interaction('plot-action','treat')
-  turn.guild = { emojis: { fetch: async () => new Map([['had', {name:'spooky_hadley_badge',id:'100000000000000001'}]]) } }
+  turn.guild = { name: 'Meridian Campaign Setting', emojis: { fetch: async () => new Map([['had', {name:'spooky_hadley_badge',id:'100000000000000001'}]]) } }
   await controller.execute(turn)
   const receipt = (await f.models.Operation.findByPk('discord:plot-action')).receipt
   assert.equal(receipt.outcome,'plot_point')
   assert.equal(receipt.result.plotPoints,1)
   assert.equal(receipt.candy,9)
   assert.match(turn.sent[0].embeds[0].description,/<:spooky_hadley_badge:100000000000000001> plot/)
-  assert.equal((await require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize}).view('guild')).total,1)
+  assert.deepEqual(receipt.result.unlockedLevels,[2])
+  assert.equal(receipt.messages[0].payload.communityBanner.displayName,'Meridian Campaign Setting')
+  assert.equal(receipt.messages[0].payload.communityBanner.currentEvent,'Spooky Season')
+  assert.equal(turn.sent[0].files[0].name,'community-level-up.png')
+  assert.ok(Buffer.isBuffer(turn.sent[0].files[0].attachment))
+  assert.equal((await plots.view('guild')).total,10000)
   await controller.execute(turn)
-  assert.equal((await require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize}).view('guild')).total,1)
+  assert.equal((await plots.view('guild')).total,10000)
 })
 test('private help/onboarding creates actual fate account atomically and never mentions others', async t => {
   const f = await fixture(t)
@@ -331,6 +338,24 @@ test('nonregistered targets get one embed mention per 72h; later effects stay pu
   assert.equal(treat.sent.length, 0)
   assert.equal(treat.replies[0].ephemeral, true)
 })
+test('completed collection closes paid confirmation and explains that token rewards have ended', async t => {
+  const f = await fixture(t)
+  await f.controller.execute(f.interaction('register-complete', 'register'))
+  const player = await f.models.Participant.findOne({ where: { userId: 'alice' } })
+  await f.models.Inventory.bulkCreate(require('../services/spooky/config').pieces.map(piece => ({ participantId: player.id, pieceId: piece.id, quantity: 1 })))
+  await f.User.update({ bank: 20 }, { where: { user_id: 'alice' } })
+  const turn = f.interaction('closed-purchase', 'spend-fate')
+  await f.controller.execute(turn)
+  assert.equal(turn.sent.length, 0)
+  assert.match(turn.replies.at(-1).embeds[0].description, /collection is complete/)
+  assert.deepEqual(turn.replies.at(-1).components, [])
+  assert.equal((await f.User.findByPk('alice')).bank, 20)
+  assert.equal(await f.models.Operation.findByPk('discord:closed-purchase'), null)
+  const view = f.interaction('completed-view', 'collection')
+  await f.controller.execute(view)
+  assert.match(view.replies.at(-1).embeds[0].description, /All seven characters unlocked/)
+})
+
 test('fate purchase publicly reveals quarter; replay retains render plan and debits only once', async t => {
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register', 'register'))

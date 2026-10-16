@@ -23,16 +23,18 @@ function validateFiles(files) {
   }
   return files
 }
-async function preparePayload(payload, deliveryContext) {
+function preparePayload(payload, deliveryContext) {
   payload = require('./mentions').prepareMentionPayload(payload, deliveryContext)
   const { communityBanner, ...cleanPayload } = payload
-  let files = payload.files ? validateFiles(payload.files).map(file => ({
+  const files = payload.files ? validateFiles(payload.files).map(file => ({
     attachment: file.badgeAsset ? path.join(__dirname, '..', '..', 'assets', 'badges', 'Spooky', file.badgeAsset)
       : path.join(__dirname, '..', '..', 'assets', 'spooky', 'tokens', file.tokenAsset), name: file.name,
   })) : []
   if (communityBanner) {
-    const attachment = await require('../community-level-banner').renderCommunityLevelBanner(communityBanner)
-    files.push({ attachment, name: 'community-level-up.png' })
+    // Ordinary token/badge payloads retain their synchronous API. Only the
+    // generated community banner needs asynchronous image rendering.
+    return require('../community-level-banner').renderCommunityLevelBanner(communityBanner)
+      .then(attachment => ({ ...cleanPayload, files: [...files, { attachment, name: 'community-level-up.png' }] }))
   }
   return files.length ? { ...cleanPayload, files } : cleanPayload
 }

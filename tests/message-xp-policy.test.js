@@ -26,6 +26,33 @@ test('Spooky channel and threads award no XP/Fate while cursed messages still ru
   assert.deepEqual(f.cursed, ['spooky-chat','spooky-thread'])
 })
 
+test('guild owner earns no chat XP, Fate or level-up notification while seasonal processing continues', async t => {
+  let cards = 0
+  const sent = []
+  const f = await fixture(t, { handleCommunity: async () => null,
+    profileNotification: async () => { cards++; return null } })
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 30, bank: 17 })
+  const before = (await f.User.findByPk('alice')).get({ plain: true })
+  await f.run({ guild: { id: 'guild', ownerId: 'alice' },
+    member: { roles: { cache: new Map([['unwanted', { name: 'Unwanted' }], ['admin', { name: 'Admin' }]]) } },
+    channel: { send: async payload => sent.push(payload) } })
+  assert.deepEqual((await f.User.findByPk('alice')).get({ plain: true }), before)
+  assert.equal(cards, 0); assert.deepEqual(sent, [])
+  assert.deepEqual(f.cursed, ['message'])
+})
+
+test('owner chat creates no XP account; ownership transfer changes eligibility without hardcoded player IDs', async t => {
+  const f = await fixture(t, { handleCommunity: async () => null })
+  await f.run({ guild: { id: 'guild', ownerId: 'alice' } })
+  assert.equal(await f.User.count(), 0)
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 0 })
+  await f.run({ guild: { id: 'guild', ownerId: 'bob' } })
+  assert.equal((await f.User.findByPk('alice')).chat_exp, 10)
+  await f.run({ guild: { id: 'guild', ownerId: 'bob' }, author: { id: 'bob', username: 'Bob', bot: false } })
+  assert.equal(await f.User.findByPk('bob'), null)
+  assert.deepEqual(f.cursed, ['message', 'message', 'message'])
+})
+
 test('community pipeline failure preserves personal XP and capped Fate rewards and seasonal processing', async t => {
   let messages = 0
   const f = await fixture(t, { communityConfig: () => ({ enabled: true, guildId: 'guild' }),
@@ -98,4 +125,52 @@ test('personal channel restriction blocks XP and user creation without blocking 
   await f.run({ channelId: 'forum-post', channel: { type: 11, parentId: 'forum' } })
   assert.equal((await f.User.findByPk('alice')).chat_exp, 10)
   assert.equal(f.cursed.length, 3)
+})
+
+test('production chat level-up sends the designed PNG with the committed level and reward balances', async t => {
+  const environment = process.env.NODE_ENV
+  t.after(() => { process.env.NODE_ENV = environment })
+  let notify, captured
+  const sent = []
+  const f = await fixture(t, { handleCommunity: async () => null,
+    profileNotification: request => notify({ ...request, sanity: null }),
+    badgeField: async () => ({ name: 'Badges', value: 'None' }) })
+  process.env.NODE_ENV = 'production'
+  notify = require('../services/profile-notification').createProfileNotification({ User: f.User,
+    environment: 'production', guildId: 'guild', badgeService: { details: async () => [] },
+    download: async () => null, render: async input => {
+      captured = input
+      return require('../services/profile-card').renderProfileCard(input)
+    } })
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 5, bank: 17 })
+  await f.run({ channel: { send: async payload => sent.push(payload) },
+    member: { id: 'alice', displayName: 'Alice', user: { username: 'alice' }, displayAvatarURL: () => null,
+      roles: { cache: new Map([['unwanted', { name: 'Unwanted' }]]) } } })
+  assert.equal(sent.length, 1)
+  assert.equal(sent[0].files[0].name, 'profile-level-up.png')
+  assert.equal(sent[0].embeds, undefined)
+  assert.deepEqual(sent[0].allowedMentions, { parse: [] })
+  const metadata = await require('sharp')(sent[0].files[0].attachment).metadata()
+  assert.equal(metadata.width, 1200); assert.equal(metadata.height, 480)
+  assert.equal(captured.occasion, 'level-up')
+  assert.equal(captured.before.chat_level, 1); assert.equal(captured.user.chat_level, 2)
+  assert.equal(captured.before.fate_points, 5); assert.equal(captured.user.fate_points, 10)
+  assert.equal(captured.user.bank, 17)
+  const saved = await f.User.findByPk('alice')
+  assert.equal(saved.chat_level, 2); assert.equal(saved.fate_points, 10); assert.equal(saved.bank, 17)
+  assert.deepEqual(f.cursed, ['message'])
+})
+
+test('a failed level-up render retains the awarded level and sends the fallback once', async t => {
+  const sent = []
+  const f = await fixture(t, { handleCommunity: async () => null,
+    profileNotification: async () => { throw new Error('Synthetic render failure') },
+    badgeField: async () => ({ name: 'Badges', value: 'None' }) })
+  await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_exp: 150, fate_points: 5 })
+  await f.run({ channel: { send: async payload => sent.push(payload) },
+    member: { roles: { cache: new Map([['unwanted', { name: 'Unwanted' }]]) } } })
+  assert.equal(sent.length, 1); assert.equal(sent[0].embeds[0].data.title, 'Level Up!')
+  const saved = await f.User.findByPk('alice')
+  assert.equal(saved.chat_level, 2); assert.equal(saved.fate_points, 10)
+  assert.deepEqual(f.cursed, ['message'])
 })

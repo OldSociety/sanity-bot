@@ -69,7 +69,9 @@ module.exports = (client, User, dependencies = {}) => {
     const spookyChannel = process.env.GUILDID && process.env.SPOOKYCHANNELID &&
       message.guild.id === process.env.GUILDID &&
       (message.channelId === process.env.SPOOKYCHANNELID || message.channel.parentId === process.env.SPOOKYCHANNELID)
-    if (!spookyChannel && qualifiesPersonalXp(message) && !require('../services/member-policy').excludedMember(message.member)) try {
+    // The current guild owner does not participate in personal chat leveling.
+    // Keep the other activity pipelines running, including Sanity and Spooky.
+    if (!spookyChannel && message.author.id !== message.guild.ownerId && qualifiesPersonalXp(message) && !require('../services/member-policy').excludedMember(message.member)) try {
       const unwanted = message.member.roles.cache.has(
         process.env.UNWANTEDROLEID,
       )

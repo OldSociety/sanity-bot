@@ -8,15 +8,19 @@ const { excludedMember } = require('./member-policy')
 const { renderProfileCard, discordImage } = require('./profile-card')
 const assetRoot = path.resolve(__dirname, '../assets/badges/Spooky')
 function popularBadges(rows, eligibleIds, unlockedBadge = null) {
+  const settings = require('../config/plot-points.json').popularBadges
+  const excluded = new Set(settings.excludedUserIds)
+  const eligibleOwners = new Set([...eligibleIds].filter(id => !excluded.has(id)))
   const owners = new Map()
   for (const row of rows) {
-    if (!eligibleIds.has(row.userId) || !catalog.some(badge => badge.id === row.badgeId)) continue
+    if (!eligibleOwners.has(row.userId) || !catalog.some(badge => badge.id === row.badgeId)) continue
     if (!owners.has(row.badgeId)) owners.set(row.badgeId, new Set())
     owners.get(row.badgeId).add(row.userId)
   }
   const result = [...owners].map(([id, people]) => ({ ...catalog.find(badge => badge.id === id), ownerCount: people.size }))
-  if (unlockedBadge && eligibleIds.size) result.push({ ...unlockedBadge, ownerCount: eligibleIds.size })
-  return result.sort((a, b) => b.ownerCount - a.ownerCount || a.id.localeCompare(b.id)).slice(0, 10)
+  if (unlockedBadge && eligibleOwners.size) result.push({ ...unlockedBadge, ownerCount: eligibleOwners.size })
+  return result.filter(badge => badge.ownerCount >= settings.minimumOwners)
+    .sort((a, b) => b.ownerCount - a.ownerCount || a.id.localeCompare(b.id)).slice(0, 10)
 }
 async function showCommunity(interaction, { sequelize, render = renderProfileCard, download = discordImage,
   directory = guild => require('./guild-members').memberDirectory(guild).get(guild), event = require('./spooky/config').config,
@@ -27,11 +31,15 @@ async function showCommunity(interaction, { sequelize, render = renderProfileCar
     const eligibleIds = new Set([...members.values()].filter(member => !member.user?.bot && !excludedMember(member)).map(member => member.id))
     const models = require('./spooky/models').defineSpookyModels(sequelize)
     const Ownership = defineBadgeModel(sequelize), service = plots.createPlotPoints({ sequelize })
+    const now = clock()
     const data = await serialize(sequelize, () => sequelize.transaction(async transaction => {
       const progress = await service.view(interaction.guild.id, transaction)
-      const spotlight = await plots.resolveSpotlight({ ctx: { scope: { eventId: event.eventId, guildId: interaction.guild.id }, now: clock(), transaction }, models, event, readOnly: true })
+      const spotlight = await plots.resolveSpotlight({ ctx: { scope: { eventId: event.eventId, guildId: interaction.guild.id }, now, transaction }, models, event, readOnly: true })
       const rows = await Ownership.findAll({ where: { guildId: interaction.guild.id }, transaction })
-      return { progress, spotlight, badges: popularBadges(rows, eligibleIds, progress.level >= 2 ? require('../config/plot-points.json').levelTwoBadge : null) }
+      const active = event.enabled && require('./spooky/config').getEventState(now, event) === 'ACTIVE'
+      const currentEvent = active ? require('../config/plot-points.json').events[event.eventId]?.name || null : null
+      const currentEventEmoji = active ? require('../config/plot-points.json').events[event.eventId]?.emoji || null : null
+      return { progress, spotlight, currentEvent, currentEventEmoji, badges: popularBadges(rows, eligibleIds, progress.level >= 2 ? require('../config/plot-points.json').levelTwoBadge : null) }
     }))
     const emojis = [...(await interaction.guild.emojis.fetch().catch(() => new Map())).values()]
     const imageFor = async name => {
@@ -41,8 +49,8 @@ async function showCommunity(interaction, { sequelize, render = renderProfileCar
     const avatar = data.spotlight.imageAsset && path.basename(data.spotlight.imageAsset) === data.spotlight.imageAsset
       ? await fs.readFile(path.join(data.spotlight.imageCollection === 'base' ? path.dirname(assetRoot) : assetRoot, data.spotlight.imageAsset)).catch(() => null) : null
     const badges = await Promise.all(data.badges.map(async badge => ({ ...badge, image: await imageFor(badge.emojiName) })))
-    const buffer = await render({ displayName: `${interaction.guild.name || 'Our'} Community`, avatar, badges,
-      community: { ...data, currencyImage: await imageFor(data.spotlight.emojiName) || avatar }, sanity: null })
+    const buffer = await render({ displayName: interaction.guild.name || 'Our Server', avatar, badges,
+      community: data, sanity: null })
     return interaction.editReply({ files: [new AttachmentBuilder(buffer, { name: 'community-profile.png', description: 'Community story progress and most popular badges' })], allowedMentions: { parse: [] } })
   } catch (error) {
     logger.error('Community profile failed:', error.message)
