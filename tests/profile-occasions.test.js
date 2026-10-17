@@ -54,7 +54,7 @@ test('changing Sanity changes the background-eye area without changing landscape
   const eye = input => sharp(input).extract({ left: 924, top: 18, width: 240, height: 160 }).raw().toBuffer()
   assert.notDeepEqual(await eye(clear), await eye(hollow))
 })
-test('automatic artwork remains development-only and uses committed snapshots rather than reading a new Fate balance', async () => {
+test('birthday artwork remains development-only and uses committed snapshots rather than reading a new Fate balance', async () => {
   const { createProfileNotification } = require('../services/profile-notification')
   let captured
   const options = { User: { sequelize: {} }, guildId: 'guild', badgeService: { details: async () => [] },
@@ -66,4 +66,29 @@ test('automatic artwork remains development-only and uses committed snapshots ra
   const payload = await createProfileNotification({ ...options, environment: 'development' })(request)
   assert.deepEqual(captured.user, request.user); assert.deepEqual(captured.before, request.before)
   assert.equal(payload.files[0].name, 'profile-birthday.png')
+})
+
+test('production level-up artwork uses committed snapshots and guards guild, environment and bot eligibility', async () => {
+  const { createProfileNotification } = require('../services/profile-notification')
+  const rendered = []
+  const options = { User: { sequelize: {} }, guildId: 'guild', environment: 'production',
+    badgeService: { details: async () => [] }, download: async () => null,
+    render: async input => { rendered.push(input); return Buffer.from('png') } }
+  const member = { id: 'alice', displayName: 'Alice', user: { username: 'alice' },
+    roles: { cache: new Map() }, displayAvatarURL: () => null }
+  const request = { guild: { id: 'guild' }, member, occasion: 'level-up',
+    user: { chat_level: 3, chat_exp: 7, bank: 0, fate_points: 10 },
+    before: { chat_level: 2, bank: 0, fate_points: 5 }, sanity: { balance: 90, maximum: 100 } }
+  const notify = createProfileNotification(options)
+  const payload = await notify(request)
+  assert.equal(payload.files[0].name, 'profile-level-up.png')
+  assert.deepEqual(payload.allowedMentions, { parse: [] })
+  assert.deepEqual(rendered[0].user, request.user)
+  assert.deepEqual(rendered[0].before, request.before)
+  assert.deepEqual(rendered[0].sanity, request.sanity)
+  assert.equal(await notify({ ...request, guild: { id: 'other' } }), null)
+  assert.equal(await notify({ ...request, member: { ...member, user: { bot: true } } }), null)
+  assert.equal(await notify({ ...request, member: { ...member, roles: { cache: new Map([['bot', { name: 'Bots' }]]) } } }), null)
+  assert.equal(await createProfileNotification({ ...options, environment: 'test' })(request), null)
+  assert.equal(rendered.length, 1)
 })

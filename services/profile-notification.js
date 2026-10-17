@@ -1,12 +1,14 @@
 const { AttachmentBuilder } = require('discord.js')
 const { renderProfileCard, recentBadges, discordImage } = require('./profile-card')
 const { createBadges, badges: catalog } = require('./badges')
-const { adminMember } = require('./member-policy')
+const { adminMember, excludedMember } = require('./member-policy')
 function createProfileNotification({ User, badgeService = createBadges({ sequelize: User.sequelize }), render = renderProfileCard,
   download = discordImage, environment = process.env.NODE_ENV, guildId = process.env.GUILDID, logger = console }) {
   return async ({ message, member = message?.member, guild = message?.guild, user, before, occasion, sanity }) => {
-    // Automatic profile artwork retains the existing development-only rollout.
-    if (environment !== 'development' || guild?.id !== guildId) return null
+    // Production chat level-ups share the profile design. Other automatic
+    // occasions retain their existing development rollout.
+    if (guild?.id !== guildId || !['development', 'production'].includes(environment)) return null
+    if (environment === 'production' && (occasion !== 'level-up' || excludedMember(member, { environment }))) return null
     if (sanity === undefined) sanity = await require('./sanity').runtime(User)?.view(guild.id, member.id)
     let rows = [], badgesUnavailable = false
     try { rows = await badgeService.details(guild.id, member.id) } catch { badgesUnavailable = true; logger.error('Notification badge data unavailable') }

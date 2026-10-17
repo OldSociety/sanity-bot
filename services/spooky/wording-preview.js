@@ -78,7 +78,7 @@ function previewPayload(pages, index) {
 async function showPreview(interaction, authorize) {
   const pages = wordingPages(); let index = 0
   const preview = () => require('./token-art').preparePayload({ ...previewPayload(pages, index), attachments: [] })
-  await interaction.editReply(preview())
+  await interaction.editReply(await preview())
   const message = await interaction.fetchReply()
   const collector = message.createMessageComponentCollector({ time: 10 * 60 * 1000,
     filter: button => button.user.id === interaction.user.id && button.customId.startsWith('spooky-wording:') })
@@ -87,7 +87,7 @@ async function showPreview(interaction, authorize) {
       await button.deferUpdate()
       await authorize()
       index = Math.max(0, Math.min(pages.length - 1, index + (button.customId.endsWith(':next') ? 1 : -1)))
-      await interaction.editReply(preview())
+      await interaction.editReply(await preview())
     } catch { collector.stop(); await interaction.editReply({ content: 'This private preview session is no longer available.', components: [], embeds: [] }).catch(() => {}) }
   })
   collector.on('end', () => { void interaction.editReply({ components: [] }).catch(() => {}) })

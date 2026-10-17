@@ -20,6 +20,9 @@ function createNotifications({ models, clock = () => new Date() }) {
       // Scheduled reminders may expire or pause while resolving their channel.
       // A definite pre-claim skip leaves the row pending for audited expiry.
       if (await canDeliver(row) !== true) { allSent = false; continue }
+      // Render local attachments before claiming the durable send. A renderer
+      // failure is safely retryable because no Discord request has started.
+      const preparedPayload = await preparePayload(row.payload, { operationId, ordinal: row.ordinal, now: clock() })
       // Claim before sending. A crash/network ambiguity never silently resends
       // after Discord's short nonce window: admin repair must resolve uncertainty.
       const [claimed] = await store(() => models.Notification.update({ status: 'sending', lastError: null }, { where: { id: row.id, status: 'pending' } }))
@@ -40,7 +43,7 @@ function createNotifications({ models, clock = () => new Date() }) {
         const dispatch = await store(async () => {
           const current = await models.Notification.findByPk(row.id)
           if (current?.status !== 'sending') return null
-          return { response: channel.send({ ...preparePayload(row.payload, { operationId, ordinal: row.ordinal, now: clock() }), nonce, enforceNonce: true }) }
+          return { response: channel.send({ ...preparedPayload, nonce, enforceNonce: true }) }
         })
         if (!dispatch) { allSent = false; continue }
         const message = await dispatch.response

@@ -1,0 +1,6 @@
+{
+  "developmentEnabled": true,
+  "productionEnabled": true,
+  "permissionMaxAgeMs": 60000,
+  "targetChoiceProbability": 0.3333333333333333
+}

@@ -4,13 +4,14 @@
     {
       "characterId": "had",
       "name": "Hadley",
-      "emojiName": null,
+      "emojiName": "spooky_hadley_badge",
       "imageAsset": "SPOOKY_HADLEY_BADGE.png"
     },
     {
       "characterId": "hfm",
       "name": "Hellfed Marq",
-      "emojiName": null
+      "emojiName": "spooky_hellfed_badge",
+      "imageAsset": "SPOOKY_HELLFED_BADGE.png"
     },
     {
       "characterId": "mrq",
@@ -33,7 +34,8 @@
     {
       "characterId": "qam",
       "name": "Qam",
-      "emojiName": null
+      "emojiName": "spooky_qam_badge",
+      "imageAsset": "SPOOKY_QAM_BADGE.png"
     },
     {
       "characterId": "sel",

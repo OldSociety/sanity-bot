@@ -36,3 +36,8 @@ yarn-error.log**.sqlite
 /docs/
 /artifacts/
 /AGENTS.md
+/config/arena-message-leases.json
+/config/arena-message-leases.json.tmp
+
+/config/arena-selection-preferences.json
+/config/arena-selection-preferences.json.tmp

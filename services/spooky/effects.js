@@ -1,10 +1,11 @@
 const { config: defaultConfig, getEventState } = require('./config')
 
 const types = new Set(['curse', 'theft_protection', 'reversed_nickname', 'bag_hole'])
-function createEffects({ models, participants, event = defaultConfig }) {
+function createEffects({ models, participants, event = defaultConfig, cacheEnabled = require('./development-performance').enabled() }) {
   async function active(ctx, userId, effectType) {
     if (!types.has(effectType)) throw new Error('Unknown spooky effect')
     if (!event.enabled || ctx.scope.eventId !== event.eventId || getEventState(ctx.now, event) !== 'ACTIVE') return null
+    if (cacheEnabled) return (await snapshot(ctx)).active(userId, effectType)
     const participant = await models.Participant.findOne({ where: { ...ctx.scope, userId }, transaction: ctx.transaction })
     if (!participant) return null
     const state = await models.EventState.findOne({ where: ctx.scope, transaction: ctx.transaction })
@@ -47,7 +48,7 @@ function createEffects({ models, participants, event = defaultConfig }) {
   }
   // Fresh, transaction-local roster checks. Never cache gameplay state across
   // the chooser wait or a mutation; the chosen target is checked again at commit.
-  async function snapshot(ctx) {
+  async function readSnapshot(ctx) {
     const players = await models.Participant.findAll({ attributes: ['id', 'userId'], where: ctx.scope, transaction: ctx.transaction })
     const rows = players.length ? await models.Effect.findAll({ where: { participantId: players.map(player => player.id) }, transaction: ctx.transaction }) : []
     const state = await models.EventState.findOne({ where: ctx.scope, transaction: ctx.transaction })
@@ -63,6 +64,14 @@ function createEffects({ models, participants, event = defaultConfig }) {
       const row = stored(userId, type)
       return enabled && row && new Date(row.expiresAt) > ctx.now ? row : null
     } }
+  }
+  async function snapshot(ctx) {
+    if (!cacheEnabled) return readSnapshot(ctx)
+    const cache = require('./transaction-effect-cache')
+    cache.install(models.Effect)
+    cache.install(models.EventState)
+    cache.install(models.Participant, { updates: false })
+    return cache.get(ctx.transaction, ctx.scope, () => readSnapshot(ctx))
   }
   return { active, snapshot, put, remove, getCurseState: async (ctx, userId) => Boolean(await active(ctx, userId, 'curse')) }
 }

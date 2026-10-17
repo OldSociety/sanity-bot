@@ -1,0 +1,190 @@
+{
+  "aiBasicPercent": 2.75,
+  "finisherWindowMs": 1500,
+  "costs": {
+    "special1": {
+      "stress": 1,
+      "hope": 0
+    },
+    "special2": {
+      "stress": 0,
+      "hope": 3
+    },
+    "special3": {
+      "stress": 0,
+      "hope": 5
+    }
+  },
+  "characters": {
+    "spooky-marq": {
+      "special1": {
+        "name": "Overwhelm",
+        "type": "direct",
+        "percent": 4,
+        "stressRemovalChance": 20
+      },
+      "special2": {
+        "name": "Combo Strike",
+        "type": "combo",
+        "percent": 1,
+        "flatPercent": 10
+      },
+      "special3": {
+        "name": "Not Done Yet",
+        "type": "playerFinisher"
+      }
+    },
+    "maxim": {
+      "special1": {
+        "name": "Deadly Focus",
+        "type": "direct",
+        "percent": 10,
+        "stressCost": 2,
+        "requiredRecharge": 3
+      },
+      "special2": {
+        "name": "Slayer",
+        "type": "buff",
+        "percent": 8,
+        "hits": 3
+      },
+      "special3": {
+        "name": "No Mercy",
+        "type": "playerFinisher"
+      }
+    }
+  },
+  "finisher": {
+    "rangeByLevel": [
+      [
+        20,
+        30
+      ],
+      [
+        20,
+        30
+      ],
+      [
+        25,
+        35
+      ],
+      [
+        25,
+        35
+      ],
+      [
+        30,
+        45
+      ],
+      [
+        30,
+        45
+      ],
+      [
+        35,
+        50
+      ],
+      [
+        35,
+        50
+      ],
+      [
+        40,
+        60
+      ],
+      [
+        40,
+        60
+      ]
+    ],
+    "timeoutMultiplier": 0.75
+  },
+  "ai": {
+    "stressChanceByAvailable": [
+      0,
+      5,
+      15,
+      25,
+      30,
+      35,
+      40
+    ],
+    "special2ChanceByFear": [
+      0,
+      0,
+      0,
+      40,
+      20,
+      10
+    ],
+    "special3Chance": 90,
+    "characters": {
+      "spooky-marq": {
+        "special1": {
+          "name": "Overwhelm",
+          "type": "direct",
+          "percent": 4,
+          "stressRemovalChance": 20
+        },
+        "special2": {
+          "name": "Combo Strike",
+          "type": "combo",
+          "percent": 1,
+          "flatPercent": 15
+        },
+        "special3": {
+          "name": "Not Done Yet",
+          "type": "aiFinisher"
+        }
+      },
+      "maxim": {
+        "special1": {
+          "name": "Deadly Focus",
+          "type": "direct",
+          "percent": 12,
+          "stressCost": 2,
+          "requiredRecharge": 3
+        },
+        "special2": {
+          "name": "Slayer",
+          "type": "buff",
+          "percent": 11,
+          "hits": 3
+        },
+        "special3": {
+          "name": "No Mercy",
+          "type": "aiFinisher"
+        }
+      }
+    },
+    "costs": {
+      "special1": {
+        "stress": 1,
+        "hope": 0
+      },
+      "special2": {
+        "stress": 0,
+        "hope": 3
+      },
+      "special3": {
+        "stress": 0,
+        "hope": 5
+      }
+    },
+    "finisherPercent": 45
+  },
+  "playerFinisher": {
+    "basePercent": 30,
+    "choicePercent": 5
+  },
+  "baseStats": {
+    "spooky-marq": {
+      "attack": 200,
+      "hp": 260
+    },
+    "maxim": {
+      "attack": 220,
+      "hp": 220
+    }
+  }
+}

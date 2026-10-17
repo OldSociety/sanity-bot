@@ -22,6 +22,7 @@ async function fixture(t, options = {}) {
   const delivery = createDelivery({ models, adapter: {} })
   if (options.notifications) await notificationMigration.up(sequelize.getQueryInterface())
   const settings = { sequelize, User, models, delivery, fetchMembers: options.fetchMembers || (async () => members),
+    preparePermissions: options.preparePermissions || null,
     roleIds: { curse: 'curse', sweetTooth: 'sweet', unwanted: 'unwanted' },
     event: { ...config, duplicates: options.duplicates || config.duplicates, enabled: options.enabled ?? true, gifs: { routinePercent: options.gifPercent ?? config.gifs.routinePercent } },
     ...(options.notifications ? { notifications: require('../services/spooky/notifications').createNotifications({ models }) } : {}),
@@ -44,6 +45,57 @@ async function fixture(t, options = {}) {
   }
   return { User, models, members, controller, interaction, settings }
 }
+
+test('both environments prepare permissions only for relevant outcomes and return before cosmetic work', async t => {
+  const before = process.env.NODE_ENV
+  t.after(() => { if (before === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = before })
+  for (const environment of ['development', 'production']) {
+  process.env.NODE_ENV = environment
+  for (const [roll, permissionsExpected] of [[.7, 0], [.42, 1]]) {
+    let permissions = 0, finishProjection
+    const pending = new Promise(resolve => { finishProjection = resolve })
+    const f = await fixture(t, { roll, preparePermissions: async () => { permissions++ } })
+    await f.controller.execute(f.interaction('register-fast', 'register'))
+    f.settings.delivery.reconcile = async () => pending
+    const interaction = f.interaction('fast-' + roll, 'treat')
+    let completed = false
+    const task = f.controller.execute(interaction).then(() => { completed = true })
+    await Promise.race([task, new Promise(resolve => setTimeout(resolve, 2000))])
+    const returnedBeforeProjection = completed
+    finishProjection()
+    await task
+    assert.equal(returnedBeforeProjection, true)
+    assert.equal(permissions, permissionsExpected)
+    assert.equal(await f.models.Operation.count({ where: { interactionId: interaction.id } }), 1)
+  }
+  }
+})
+
+test('Plot action commits shared progress and saved spotlight emoji with no candy gain or replay credit', async t => {
+  const f = await fixture(t)
+  await require('../migrations/plot-points').up(f.User.sequelize.getQueryInterface())
+  const event = { ...f.settings.event, plotPointsEnabled: true }
+  const controller = createController({ ...f.settings, event, clock: () => new Date('2026-10-06T20:00:00Z') })
+  await controller.execute(f.interaction('plot-register','register'))
+  const plots = require('../services/plot-points').createPlotPoints({sequelize:f.User.sequelize})
+  await plots.models.Guild.create({guildId:'guild',total:9999})
+  const turn = f.interaction('plot-action','treat')
+  turn.guild = { name: 'Meridian Campaign Setting', emojis: { fetch: async () => new Map([['had', {name:'spooky_hadley_badge',id:'100000000000000001'}]]) } }
+  await controller.execute(turn)
+  const receipt = (await f.models.Operation.findByPk('discord:plot-action')).receipt
+  assert.equal(receipt.outcome,'plot_point')
+  assert.equal(receipt.result.plotPoints,1)
+  assert.equal(receipt.candy,9)
+  assert.match(turn.sent[0].embeds[0].description,/<:spooky_hadley_badge:100000000000000001> plot/)
+  assert.deepEqual(receipt.result.unlockedLevels,[2])
+  assert.equal(receipt.messages[0].payload.communityBanner.displayName,'Meridian Campaign Setting')
+  assert.equal(receipt.messages[0].payload.communityBanner.currentEvent,'Spooky Season')
+  assert.equal(turn.sent[0].files[0].name,'community-level-up.png')
+  assert.ok(Buffer.isBuffer(turn.sent[0].files[0].attachment))
+  assert.equal((await plots.view('guild')).total,10000)
+  await controller.execute(turn)
+  assert.equal((await plots.view('guild')).total,10000)
+})
 test('private help/onboarding creates actual fate account atomically and never mentions others', async t => {
   const f = await fixture(t)
   const help = f.interaction('help', 'help'); await f.controller.execute(help)
@@ -286,6 +338,24 @@ test('nonregistered targets get one embed mention per 72h; later effects stay pu
   assert.equal(treat.sent.length, 0)
   assert.equal(treat.replies[0].ephemeral, true)
 })
+test('completed collection closes paid confirmation and explains that token rewards have ended', async t => {
+  const f = await fixture(t)
+  await f.controller.execute(f.interaction('register-complete', 'register'))
+  const player = await f.models.Participant.findOne({ where: { userId: 'alice' } })
+  await f.models.Inventory.bulkCreate(require('../services/spooky/config').pieces.map(piece => ({ participantId: player.id, pieceId: piece.id, quantity: 1 })))
+  await f.User.update({ bank: 20 }, { where: { user_id: 'alice' } })
+  const turn = f.interaction('closed-purchase', 'spend-fate')
+  await f.controller.execute(turn)
+  assert.equal(turn.sent.length, 0)
+  assert.match(turn.replies.at(-1).embeds[0].description, /collection is complete/)
+  assert.deepEqual(turn.replies.at(-1).components, [])
+  assert.equal((await f.User.findByPk('alice')).bank, 20)
+  assert.equal(await f.models.Operation.findByPk('discord:closed-purchase'), null)
+  const view = f.interaction('completed-view', 'collection')
+  await f.controller.execute(view)
+  assert.match(view.replies.at(-1).embeds[0].description, /All seven characters unlocked/)
+})
+
 test('fate purchase publicly reveals quarter; replay retains render plan and debits only once', async t => {
   const f = await fixture(t)
   await f.controller.execute(f.interaction('register', 'register'))

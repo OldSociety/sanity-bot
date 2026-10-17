@@ -32,6 +32,21 @@ module.exports.run = async (client, message, args) => {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (interaction.isAutocomplete?.() && interaction.commandName === 'arena') {
+      try {
+        if (process.env.NODE_ENV !== 'development' || !process.env.GUILDID || interaction.guildId !== process.env.GUILDID) {
+          await interaction.respond([])
+          return
+        }
+        const command = interaction.client.commands.get('arena')
+        if (command?.autocomplete) await command.autocomplete(interaction)
+        else await interaction.respond([])
+      } catch (error) {
+        console.error('Arena autocomplete unavailable:', error.message)
+        if (!interaction.responded) await interaction.respond([]).catch(() => {})
+      }
+      return
+    }
     // Handle Slash Commands
     if (interaction.isChatInputCommand()) {
       const disabled = require('../services/disabled-commands').disabledMessage(interaction.commandName)
@@ -61,10 +76,18 @@ module.exports = {
           const restricted = require('../services/spooky/channels').channelRestriction(interaction)
           if (restricted) { await interaction.reply({ ...restricted, ephemeral: true }); return }
           require('../services/spooky/command-timing').begin(interaction)
-          await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
+          if (require('../services/spooky/development-performance').enabled()) {
+            const timing = require('../services/spooky/command-timing')
+            const [_, member] = await Promise.all([
+              timing.phase(interaction, 'acknowledgement_ms', () => interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })),
+              timing.phase(interaction, 'actor_membership_ms', () => interaction.guild.members.fetch({ user: interaction.user.id, force: true })),
+            ])
+            timing.rememberMember(interaction, member)
+          } else await interaction.deferReply({ ephemeral: interaction.options.getSubcommand() !== 'leaderboard' })
         }
         if (process.env.NODE_ENV !== 'development' && ['spooky', 'spooky-admin', 'badges', 'profile', 'user'].includes(interaction.commandName) && interaction.guild) {
-          const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
+          const savedMember = interaction.commandName === 'spooky' ? require('../services/spooky/command-timing').takeMember(interaction) : null
+          const member = savedMember || await interaction.guild.members.fetch({ user: interaction.user.id, force: true })
           if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').rememberMember(interaction, member)
           if (require('../services/member-policy').excludedMember(member)) {
             const payload = { content: 'Bots are excluded from these commands in production.', ephemeral: true, allowedMentions: { parse: [] } }
@@ -83,9 +106,16 @@ module.exports = {
           }
         }
         if (interaction.commandName === 'spooky') require('../services/spooky/command-timing').mark(interaction, 'acknowledgement_and_eligibility')
-        await command.execute(interaction)
-        if (process.env.NODE_ENV === 'development') {
-          try { await require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User) }
+        if (interaction.commandName === 'spooky' && require('../services/spooky/development-performance').enabled()) {
+          await require('../services/spooky/development-performance').run(interaction, () => command.execute(interaction))
+        } else await command.execute(interaction)
+        if (interaction.commandName === 'spooky' && require('../services/spooky/development-performance').enabled()) require('../services/spooky/command-timing').resultDelivered(interaction)
+        if (process.env.NODE_ENV === 'development' && interaction.commandName !== 'arena') {
+          try {
+            const work = () => require('../services/sanity-reminder').nudge(interaction, require('../Models/model').User)
+            if (interaction.commandName === 'spooky') await require('../services/spooky/command-timing').phase(interaction, 'sanity_reminder_ms', work)
+            else await work()
+          }
           catch (error) { console.error('Sanity reminder unavailable:', error.message) }
         }
       } catch (error) {
@@ -99,8 +129,16 @@ module.exports = {
       }
     }
     // Handle Button Interactions
-    else if (interaction.isButton()) {
+    else if (interaction.isButton() || (interaction.isStringSelectMenu?.() && interaction.customId?.startsWith('arena:'))) {
       const customId = interaction.customId;
+      if (customId.startsWith('arena:')) {
+        if (process.env.NODE_ENV !== 'development' || !process.env.GUILDID || interaction.guildId !== process.env.GUILDID) {
+          await interaction.reply({ content: 'Arena is available in the development server only.', ephemeral: true, allowedMentions: { parse: [] } }).catch(() => {})
+          return
+        }
+        await require('../services/arena/controller').arena.handleButton(interaction)
+        return
+      }
       if (customId.startsWith('spooky-target:') && !require('../services/spooky/target-choice').hasSession(customId)) {
         await interaction.reply({ content: 'This Halloween choice has ended. This click cannot spend candy or change its result.', ephemeral: true }).catch(() => {})
         return

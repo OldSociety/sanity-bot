@@ -10,7 +10,14 @@ function roll(random) {
 function selectAction({ action, cursed = false, previousOutcome = null, crownHolderId = null, actorId = null, event = defaultConfig, random = Math.random }) {
   if (!['trick', 'treat'].includes(action)) throw new Error('Unknown spooky action')
   if (typeof cursed !== 'boolean') throw new Error('Curse state must be boolean')
-  if (cursed && roll(random) < event.curse.overridePercent / 100) {
+  let plotRoll = null
+  const plotChance = event.plotPointsEnabled ? require('../../config/plot-points.json').spookyChancePercent / 100 : 0
+  if (plotChance) {
+    plotRoll = roll(random)
+    if (plotRoll < plotChance) return { action, overridden: false, outcome: 'plot_point' }
+  }
+  const curseChance = cursed ? event.curse.overridePercent / 100 : 0
+  if (cursed && (plotRoll === null ? roll(random) < curseChance : plotRoll < plotChance + curseChance)) {
     return { action, overridden: true, outcome: action === 'trick' ? 'curse_distribute_two'
       : roll(random) < event.curse.treatSpreadPercent / 100 ? 'curse_spread' : 'curse_distribute_three' }
   }
@@ -32,7 +39,16 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
     if (freed && !pool) throw new Error('Repeated spell has no candy redistribution pool')
     for (const row of weights) if (candy.has(row.id)) row.weight += freed * row.weight / pool
   }
-  const value = roll(random) * weights.reduce((sum, outcome) => sum + outcome.weight, 0)
+  if (plotChance) {
+    // Reserve Plot odds from the ordinary candy pool, keeping absolute Eye,
+    // spell and curse odds intact, including after the repeat buffer.
+    for (const row of weights) row.weight *= 1 - curseChance
+    const candy = weights.filter(row => row.id === (action === 'treat' ? 'standard_gift' : 'steal_candy')).sort((a, b) => b.weight - a.weight)[0]
+    if (!candy || candy.weight < plotChance * 100) throw new Error('Plot points require a sufficient candy outcome pool')
+    candy.weight -= plotChance * 100
+  }
+  const selection = plotRoll === null ? roll(random) : (plotRoll - plotChance - curseChance) / (1 - plotChance - curseChance)
+  const value = selection * weights.reduce((sum, outcome) => sum + outcome.weight, 0)
   let boundary = 0
   for (const outcome of weights) {
     boundary += outcome.weight
@@ -42,7 +58,7 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
 }
 
 function createActions({ models, economy, participants, handlers, getCurseState, event = defaultConfig,
-  random = Math.random, prepareChoice = null, getCrownHolder = async () => null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
+  random = Math.random, prepareChoice = null, prepareOutcome = null, getCrownHolder = async () => null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (typeof getCurseState !== 'function') throw new Error('Trusted curse state resolver is required')
   async function previousAction(ctx, actorId, registeredAt) {
     return models.Operation.findOne({ where: { ...ctx.scope, actorId,
@@ -69,8 +85,17 @@ function createActions({ models, economy, participants, handlers, getCurseState,
         const previous = await previousAction(ctx, input.actorId, participant.registeredAt)
         const crownHolderId = await getCrownHolder(ctx)
         const selected = selectAction({ action: input.action, cursed, crownHolderId, actorId: input.actorId, previousOutcome: previous?.receipt?.outcome, event, random })
-        return { selected, cursed, crownHolderId, previousId: previous?.operationId || null, balances: { candy, eyes: participant.eyes }, candidates: await prepareChoice.candidates(ctx, { ...selected, actorId: input.actorId }) }
+        return { selected, cursed, crownHolderId, previousId: previous?.operationId || null, balances: { candy, eyes: participant.eyes },
+          candidates: prepareOutcome ? [] : await prepareChoice.candidates(ctx, { ...selected, actorId: input.actorId }) }
       })
+      if (planned && prepareOutcome) {
+        // Permission preparation uses Discord outside the DB queue.
+        await prepareOutcome(planned.selected)
+        if (['break_curse', 'curse_target', 'curse_spread', 'temporary_immunity'].includes(planned.selected.outcome)) {
+          planned.candidates = await economy.read(transaction => prepareChoice.candidates({ transaction,
+            scope: { eventId: input.eventId, guildId: input.guildId }, now: clock() }, { ...planned.selected, actorId: input.actorId }))
+        }
+      }
       if (planned?.candidates.length) planned.selected.targetUserId = await prepareChoice.choose(planned.selected, planned.candidates, planned.balances)
     }
     return economy.execute({ ...input, operationType: `spooky_${input.action}` }, async ctx => {

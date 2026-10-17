@@ -30,6 +30,7 @@ function createController({
   notifications = null,
   badges = null,
   badgeAccess = null,
+  preparePermissions = null,
 }) {
   if (User.sequelize !== sequelize)
     throw new Error('User and seasonal database must match')
@@ -161,7 +162,7 @@ function createController({
           },
         ]
       return interaction.editReply(
-        require('./token-art').preparePayload(
+        await require('./token-art').preparePayload(
           withBalances(
             rankingScreen,
             (await balanceSnapshot(input)) || {},
@@ -256,7 +257,9 @@ function createController({
         withBalances(
           privateScreen(
             '🧩 Your Collection',
-            event.duplicates.allowDuplicates === false
+            rows.length === pieces.length
+              ? `${text}\n\n**All seven characters unlocked!** You no longer receive token pieces or need paid draws. Your existing pieces, duplicates (${duplicates}) and unspent Eyes are kept.`
+              : event.duplicates.allowDuplicates === false
               ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.`
               : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nDuplicates can only come from completed characters. Every 5 duplicates will grant you a new unowned piece!`,
           ),
@@ -300,6 +303,9 @@ function createController({
         })
         if (!player?.registeredAt)
           throw new Error('Use /spooky register to join first.')
+        const owned = await models.Inventory.count({ where: { participantId: player.id }, transaction })
+        if (owned === require('./config').pieces.length)
+          throw new Error('Your collection is complete; no more quarters are needed.')
         const state = await models.EventState.findOne({
           where: { eventId: input.eventId, guildId: input.guildId },
           transaction,
@@ -365,6 +371,9 @@ function createController({
       !snapshot.some((member) => member.userId === input.actorId)
     )
       throw new Error('Complete membership snapshot unavailable')
+    // Resolve cosmetic emoji IDs before entering the root database transaction.
+    const plotEmojis = event.plotPointsEnabled && ['trick', 'treat'].includes(subcommand)
+      ? [...(await interaction.guild.emojis.fetch()).values()] : []
     const finalizeReceipt = async (ctx, receipt) => {
       const player = await models.Participant.findOne({
         where: { ...ctx.scope, userId: input.actorId },
@@ -410,6 +419,7 @@ function createController({
             mentionIds: new Set(mentions.allowed),
             variantKey: ctx.operationId,
             timestamp: ctx.now.toISOString(),
+            guildName: interaction.guild?.name,
             avatarURL:
               typeof interaction.user.displayAvatarURL === 'function'
                 ? interaction.user.displayAvatarURL()
@@ -475,6 +485,12 @@ function createController({
       },
     })
     const raw = progression.wrapHandlers({
+      ...(event.plotPointsEnabled ? { plot_point: async (ctx, plan) => {
+        const plots = require('../plot-points')
+        const spotlight = await plots.resolveSpotlight({ ctx, models, event })
+        const result = await plots.createPlotPoints({ sequelize }).contribute(ctx, { userId: plan.actorId })
+        return { ...result, plotSpotlight: spotlight, plotEmoji: plots.plotEmoji(spotlight, plotEmojis) }
+      } } : {}),
       ...playful.handlers,
       ...theft.handlers,
       ...require('./candy-events').createCandyEvents({
@@ -536,6 +552,12 @@ function createController({
           event,
           random,
           clock,
+          prepareOutcome: preparePermissions ? async selected => {
+            require('./command-timing').detail(interaction, 'outcome', selected.outcome)
+            if (['curse_target', 'curse_spread', 'curse_backfire', 'break_curse', 'temporary_immunity', 'reverse_nickname', 'sweet_tooth', 'steal_crown'].includes(selected.outcome)) {
+              await preparePermissions(input.guildId, snapshot, interaction)
+            }
+          } : null,
           prepareChoice: {
             candidates: async (ctx, plan) =>
               require('./theft').randomTargets(
@@ -555,6 +577,9 @@ function createController({
                       random,
                       balances,
                       event,
+                      ...(require('./development-performance').enabled() ? {
+                        promptProbability: require('../../config/spooky-performance.json').targetChoiceProbability,
+                      } : {}),
                     },
                   ),
           },
@@ -580,7 +605,11 @@ function createController({
         : null,
       userId:
         (result.receipt.result || result.receipt).collectionUserId ||
-        input.actorId,
+      input.actorId,
+      ...(require('./development-performance').enabled() ? {
+        onResult: () => require('./command-timing').resultDelivered(interaction),
+        background: work => require('./development-performance').background('badge access', work),
+      } : {}),
       payload:
         personal?.payload ||
         privateScreen(
@@ -595,7 +624,7 @@ function createController({
           for (let index = 0; index < messages.length; index++)
             if (messages[index].public)
               await interaction.channel.send({
-                ...require('./token-art').preparePayload(
+                ...await require('./token-art').preparePayload(
                   messages[index].payload,
                   {
                     operationId: result.operationId,
@@ -610,7 +639,10 @@ function createController({
     })
     // Saved rewards are visible before Discord role/nickname projection waits.
     // Retry only this operation here; the minute worker repairs older intents.
-    if (delivery?.reconcile)
+    if (delivery?.reconcile && require('./development-performance').enabled()) {
+      require('./development-performance').background('cosmetic projection', () => delivery.reconcile(
+        { eventId: input.eventId, guildId: input.guildId }, { revision: result.operationId }))
+    } else if (delivery?.reconcile)
       await require('./post-commit').settleProjection(
         () =>
           delivery.reconcile(
@@ -634,54 +666,66 @@ function createController({
         guildId: interaction.guildId,
         actorId: interaction.user.id,
       }
-      let nudge = false
-      if (
-        interaction.guildId &&
-        (!allowedChannelIds.length ||
-          allowedChannelIds.includes(interaction.channelId))
-      ) {
-        try {
-          nudge = await require('./private-nudges').claimNudge({
-            economy,
-            models,
-            input,
-            event,
-            now: clock(),
-          })
-        } catch (error) {
-          console.error('Spooky private nudge failed:', error.message)
+      const fastRequests = require('./development-performance').enabled()
+      const optionalNudge = async () => {
+        let nudge = false
+        if (
+          interaction.guildId &&
+          (!allowedChannelIds.length ||
+            allowedChannelIds.includes(interaction.channelId))
+        ) {
+          try {
+            nudge = await require('./private-nudges').claimNudge({
+              economy,
+              models,
+              input,
+              event,
+              now: clock(),
+            })
+          } catch (error) {
+            console.error('Spooky private nudge failed:', error.message)
+          }
+        }
+        if (!fastRequests) await executeCommand(interaction)
+        if (nudge && typeof interaction.followUp === 'function') {
+          const player = await balanceSnapshot(input)
+          if (
+            !player ||
+            (nudge === 'bucket'
+              ? player.candy < event.candy.capacity
+              : player.candy < 50 || player.candy >= event.candy.capacity)
+          )
+            return
+          await interaction
+            .followUp({
+              ...withBalances(
+                privateScreen(
+                  nudge === 'bucket'
+                    ? '🍬 Your Candy Bucket Is Overflowing!'
+                    : '🍬 A Sweet Welcome Back!',
+                  nudge === 'bucket'
+                    ? 'Your bucket is brimming with candy! Enjoy a trick or treat before more sweets tumble into the shadows.'
+                    : 'Nice to see you! You have a lovely stash of sweets ready for some Halloween mischief. Enjoy a trick or treat whenever you feel like it.',
+                ),
+                player || {},
+                clock(),
+                event,
+              ),
+              ephemeral: true,
+            })
+            .catch(() => {})
         }
       }
-      await executeCommand(interaction)
-      if (nudge && typeof interaction.followUp === 'function') {
-        const player = await balanceSnapshot(input)
-        if (
-          !player ||
-          (nudge === 'bucket'
-            ? player.candy < event.candy.capacity
-            : player.candy < 50 || player.candy >= event.candy.capacity)
-        )
-          return
-        await interaction
-          .followUp({
-            ...withBalances(
-              privateScreen(
-                nudge === 'bucket'
-                  ? '🍬 Your Candy Bucket Is Overflowing!'
-                  : '🍬 A Sweet Welcome Back!',
-                nudge === 'bucket'
-                  ? 'Your bucket is brimming with candy! Enjoy a trick or treat before more sweets tumble into the shadows.'
-                  : 'Nice to see you! You have a lovely stash of sweets ready for some Halloween mischief. Enjoy a trick or treat whenever you feel like it.',
-              ),
-              player || {},
-              clock(),
-              event,
-            ),
-            ephemeral: true,
-          })
-          .catch(() => {})
-      }
+      if (fastRequests) {
+        await executeCommand(interaction)
+        require('./development-performance').background('private nudge', optionalNudge)
+      } else await optionalNudge()
     })().catch(async (error) => {
+      if (require('./development-performance').enabled()) {
+        require('./command-timing').detail(interaction, 'failed', true)
+        console.error(`Spooky ${process.env.NODE_ENV} command rejected:`, JSON.stringify({ interactionId: interaction.id,
+          command: interaction.options.getSubcommand(), code: error.code || error.name, message: String(error.message).replace(/https?:\/\/\S+/g, '[url]').slice(0, 300) }))
+      }
       const player = await balanceSnapshot({
         eventId: event.eventId,
         guildId: interaction.guildId,

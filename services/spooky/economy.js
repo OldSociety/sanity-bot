@@ -6,7 +6,13 @@ const { Transaction } = require('sequelize')
 const queues = new WeakMap()
 function serialize(sequelize, work) {
   const previous = queues.get(sequelize) || Promise.resolve()
-  const current = previous.catch(() => {}).then(work)
+  const fastRequests = require('./development-performance').enabled()
+  const start = fastRequests ? require('node:perf_hooks').performance.now() : 0
+  const current = previous.catch(() => {}).then(fastRequests ? () => {
+    const timing = require('./development-performance')
+    timing.add('database_queue_wait_ms', require('node:perf_hooks').performance.now() - start)
+    return timing.measure('database_work_ms', work)
+  } : work)
   queues.set(sequelize, current.then(() => {}, () => {}))
   return current
 }

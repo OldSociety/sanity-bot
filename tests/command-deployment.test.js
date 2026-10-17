@@ -2,6 +2,16 @@ const test = require('node:test'), assert = require('node:assert/strict')
 const { runDeployment, offlineDefinitions } = require('../deploy-commands')
 const { commandEntry, inventory, validateDefinition, loadRegistry } = require('../services/command-registry')
 const root = require('node:path').resolve(__dirname, '..')
+
+test('Arena and Cocoa stay development-only even without optional environment metadata', () => {
+  const { commandEnabled } = require('../services/command-environment')
+  for (const name of ['arena', 'cocoa']) {
+    assert.equal(commandEnabled({ name }, 'production'), false)
+    assert.equal(commandEnabled({ data: { name } }, 'test'), false)
+    assert.equal(commandEnabled({ name }, 'development'), true)
+    assert.equal(offlineDefinitions(root, 'production').some(command => command.name === name), false)
+  }
+})
 test('Discord omissions preserve false defaults and empty lists while enforcing supplied constraints', () => {
   const { matches } = require('../deploy-commands')
   const desired = { name: 'fixture', options: [{ name: 'empty', type: 1, options: [] }, { name: 'optional', type: 3, required: false, autocomplete: false }] }
@@ -41,7 +51,9 @@ test('actual registry builders fail closed for incomplete exports, duplicate nam
     const entry = require('../scripts/command-registry-audit').definition(require('node:fs').readFileSync(require('node:path').join(root, file), 'utf8'), file)
     return entry.inactive ? {} : { data: { toJSON: () => entry.definition }, execute() {} }
   })
-  assert.deepEqual(runtime.active.map(item => item.definition), defs); assert.equal(defs.length, 14)
+  assert.deepEqual(runtime.active.map(item => item.definition), defs)
+  assert.equal(defs.filter(item => !['arena', 'cocoa'].includes(item.name)).length, 14)
+  assert.ok(defs.some(item => item.name === 'arena'))
 })
 test('default deployment plans and snapshots live-only removals; apply binds definitions and live versions', async () => {
   const live = [{ id: 'old', version: '1', name: 'server_only', type: 1, description: 'Existing command' }]

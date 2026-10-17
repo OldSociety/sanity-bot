@@ -39,8 +39,8 @@ test('community launch purchases spend normal Fate only, never special Bank, wit
   await f.user.reload(); assert.equal(f.user.bank, 63); assert.equal(f.user.fate_points, 2)
   assert.equal(await f.models.Ledger.count({ where: { resource: 'bank' } }), 0)
 })
-test('complete collection rejects paid draw and rolls back both Fate and Bank debits', async t => {
-  const f = await fixture(t), participant = await f.models.Participant.findOne()
+test('complete collection rejects paid draw with duplicates enabled and rolls back both Fate and Bank debits', async t => {
+  const f = await fixture(t, { legacyDuplicates: true }), participant = await f.models.Participant.findOne()
   for (const piece of require('../services/spooky/config').pieces) await f.models.Inventory.create({ participantId: participant.id, pieceId: piece.id, quantity: 1 })
   const before = await f.models.Ledger.count()
   await assert.rejects(f.service.purchase(f.input('complete-buy')), /complete/)

@@ -14,6 +14,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
   }
   function ordinaryPiece(percent = event.ordinaryRarity.percent, owned = new Map(), spotlight = null) {
     requireApprovedRarity(event)
+    if (owned.size === pieces.length) throw new Error('Your collection is complete; no more quarters are needed.')
     const candidates = pieces.filter(piece => !owned.has(piece.id) || canDuplicate(piece, owned))
     if (!candidates.length) throw new Error('Your collection is complete; no more quarters are needed.')
     const available = ['common', 'rare', 'legendary'].filter(rarity => candidates.some(piece => piece.rarity === rarity))
@@ -59,6 +60,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
     return new Map(rows.map(row => [row.pieceId, row]))
   }
   async function add(ctx, participant, owned, piece, reason) {
+    if (owned.size === pieces.length) throw new Error('Your collection is complete; no more quarters are needed.')
     const existing = owned.get(piece.id), before = existing?.quantity ?? 0
     if (before && !canDuplicate(piece, owned)) throw new Error('This quarter is already owned; complete its character before receiving duplicates.')
     if (!Number.isSafeInteger(before + 1)) throw new Error('Inventory quantity overflow')
@@ -140,7 +142,7 @@ function createCollection({ models, participants, event = defaultConfig, random 
     } else await ctx.changeBalance(userId, 'eyes', amount, { metadata })
     const balance = await models.Participant.findByPk(participant.id, { transaction: ctx.transaction })
     const owned = await inventory(ctx, participant), awards = []
-    while (balance.eyes >= event.eyes.quarterCost && (event.duplicates.allowDuplicates !== false || owned.size < pieces.length)) {
+    while (balance.eyes >= event.eyes.quarterCost && owned.size < pieces.length) {
       const spotlight = await require('./spotlight').ensureSpotlight(ctx, models, event)
       await ctx.changeBalance(userId, 'eyes', -event.eyes.quarterCost, { metadata: { reason: 'automatic_quarter' } })
       balance.eyes -= event.eyes.quarterCost

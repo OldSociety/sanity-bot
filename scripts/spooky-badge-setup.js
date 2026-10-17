@@ -3,9 +3,11 @@
 const fs = require('node:fs'), path = require('node:path')
 const root = path.resolve(__dirname, '..')
 async function main(args) {
-  if (args.length !== 5 || args[0] !== '--environment' || !['development','production'].includes(args[1]) || args[2] !== '--character' || !['sel','mrq'].includes(args[3]) || !['--inspect','--setup'].includes(args[4])) throw new Error('Use --environment development|production --character sel|mrq --inspect|--setup')
-  const environment = args[1], characterId = args[3], mode = args[4], characterName = characterId === 'sel' ? 'Selene' : 'Marq'
-  const emojiName = 'spooky_' + (characterId === 'sel' ? 'selene' : 'marq') + '_badge'
+  if (args.length !== 5 || args[0] !== '--environment' || !['development','production'].includes(args[1]) || args[2] !== '--character' || !['sel','mrq','had','nik'].includes(args[3]) || !['--inspect','--setup'].includes(args[4])) throw new Error('Use --environment development|production --character sel|mrq|had|nik --inspect|--setup')
+  const environment = args[1], characterId = args[3], mode = args[4]
+  const badge = require('../config/badges.json').badges.find(item => item.characterId === characterId)
+  const characterName = badge.name
+  const emojiName = `spooky_${characterName.toLowerCase()}_badge`
   process.env.NODE_ENV = environment
   const runtime = require('../config/runtime').loadDiscordEnvironment(environment)
   const { REST, Routes, PermissionFlagsBits: P } = require('discord.js')
@@ -50,8 +52,8 @@ async function main(args) {
     managedBotRoleId: botRole?.id || null, ownedManagedRoles: mine.filter(role => role.managed).map(role => ({ id: role.id, name: role.name, tags: role.tags || null })),
     productionChanged: environment === 'production' && mode === '--setup', databaseOpened: false }
   if (mode === '--inspect') return report
-  if (!report.canManageRoles || !report.canManageExpressions) throw new Error('Development bot requires ManageRoles and ManageGuildExpressions')
-  const image = fs.readFileSync(path.join(root, 'assets/badges/Spooky/SPOOKY_' + characterName.toUpperCase() + '_BADGE.png'))
+  if (!report.canManageRoles || !report.canManageExpressions) throw new Error('Selected bot requires ManageRoles and ManageGuildExpressions')
+  const image = fs.readFileSync(path.join(root, 'assets/badges/Spooky', badge.imageAsset))
   if (image.length > 256 * 1024 || image.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error('Invalid/oversized badge PNG')
   if (!botRole) {
     botRole = renderers[0] || await rest.post(Routes.guildRoles(guild.id), { body: { name: rendererName, permissions: '0', hoist: false, mentionable: false }, reason: 'Development bot-only badge rendering' })
@@ -68,11 +70,11 @@ async function main(args) {
     const fresh = await rest.get(Routes.guildMember(guild.id, identity.id))
     if (!fresh.roles.includes(botRole.id)) throw new Error('Bot renderer membership verification failed')
   }
-  if (!role) role = await rest.post(Routes.guildRoles(guild.id), { body: { name: roleName, permissions: '0', hoist: false, mentionable: false }, reason: 'Development Selene badge access testing' })
+  if (!role) role = await rest.post(Routes.guildRoles(guild.id), { body: { name: roleName, permissions: '0', hoist: false, mentionable: false }, reason: `${characterName} earned badge access` })
   validateRole(role)
   const allowedRoles = [role.id, botRole.id]
-  if (!emoji) emoji = await rest.post(Routes.guildEmojis(guild.id), { body: { name: emojiName, image: `data:image/png;base64,${image.toString('base64')}`, roles: allowedRoles }, reason: 'Development earned Selene badge emoji' })
-  else emoji = await rest.patch(Routes.guildEmoji(guild.id, emoji.id), { body: { roles: allowedRoles }, reason: 'Restrict Selene badge to its collectors and bot' })
+  if (!emoji) emoji = await rest.post(Routes.guildEmojis(guild.id), { body: { name: emojiName, image: `data:image/png;base64,${image.toString('base64')}`, roles: allowedRoles }, reason: `${characterName} earned badge emoji` })
+  else emoji = await rest.patch(Routes.guildEmoji(guild.id, emoji.id), { body: { roles: allowedRoles }, reason: `Restrict ${characterName} badge to its collectors and bot` })
   const verified = await rest.get(Routes.guildEmoji(guild.id, emoji.id))
   if (verified.managed || verified.available === false || JSON.stringify([...(verified.roles || [])].sort()) !== JSON.stringify([...allowedRoles].sort())) throw new Error('Emoji restriction verification failed; configuration remains disabled')
   const developmentRoles = Object.fromEntries(Object.keys(settings.roles).map(key => [key,

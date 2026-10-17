@@ -11,6 +11,13 @@ async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false, act
     if (!actor || actor.id !== actorId) throw new Error('Actor membership unavailable')
     return [{ userId: actor.id, bot: require('../member-policy').excludedMember(actor), displayName: actor.displayName, nickname: actor.nickname, roleIds: [...actor.roles.cache.keys()] }]
   }
+  if (require('./development-performance').enabled()) {
+    const [actor, members] = await Promise.all([actorRequest, require('../guild-members').memberDirectory(guild).get(guild)])
+    if (actor) { if (!members.has(actor.id)) throw new Error('Actor missing from complete directory'); members.set(actor.id, actor) }
+    // Permission information is populated only for outcomes that need it.
+    return [...members.values()].map(member => ({ userId: member.id, bot: require('../member-policy').excludedMember(member),
+      displayName: member.displayName, nickname: member.nickname, roleIds: [...member.roles.cache.keys()] }))
+  }
   const [actor, members, bot, roles] = await Promise.all([actorRequest, require('../guild-members').memberDirectory(guild).get(guild), guild.members.fetchMe({ force: true }), guild.roles.fetch()])
   if (actor) { if (!members.has(actor.id)) throw new Error('Actor missing from complete directory'); members.set(actor.id, actor) }
   return [...members.values()].map(member => {
@@ -46,7 +53,16 @@ function runtime(client) {
   const badges = require('../badges').createBadges({ sequelize })
   const badgeAccess = require('../badge-access').createBadgeAccess({ service: badges, getGuild: guild, guildId })
   const controller = require('./controller').createController({ sequelize, User, models, delivery, notifications, roleIds,
-    badges, badgeAccess, allowedChannelIds: channels, fetchMembers: async (id, options) => snapshotMembers(await guild(id), roleIds, options) })
+    badges, badgeAccess, allowedChannelIds: channels, fetchMembers: async (id, options) => snapshotMembers(await guild(id), roleIds, options),
+    ...(require('./development-performance').enabled() ? {
+      preparePermissions: async (id, snapshot, interaction) => require('./permission-snapshot').hydratePermissions(await guild(id), snapshot, roleIds, interaction),
+    } : {}) })
+  if (require('./development-performance').enabled()) {
+    require('./development-performance').background('snapshot warmup', async () => {
+      const target = await guild(guildId)
+      await Promise.all([require('../guild-members').memberDirectory(target).get(target), require('./permission-snapshot').permissionSnapshot(target).get(target)])
+    })
+  }
   const participants = require('./participants').createParticipants({ models, economy })
   const effects = require('./effects').createEffects({ models, participants })
   const playful = require('./playful').createPlayful({ models, participants, effects, delivery,
