@@ -4,7 +4,7 @@ const rawAdvance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) 
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
-  for (const fighter of [battle.marq, battle.warrior]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
+  for (const fighter of [battle.player, battle.enemy]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
   return battle
 }
 const { screen, actionLog, historyFields } = require('../services/arena/interface')
@@ -37,13 +37,13 @@ async function start(f, level = 1) { await f.arena.execute(f.interaction, undefi
 test('player critical success readies a later doubled basic hit and misses do not consume it', () => {
   const seed = newBattle(); seed.marq.stress = 3
   let battle = advance(seed, 'continue', undefined, sequence([1, 1]))
-  assert.equal(battle.marqDamage, 6); assert.equal(battle.marq.criticalReady, true)
-  assert.equal(battle.marq.hope, 1); assert.equal(battle.marq.stress, 4)
+  assert.equal(battle.playerDamage, 6); assert.equal(battle.player.criticalReady, true)
+  assert.equal(battle.player.hope, 1); assert.equal(battle.player.stress, 4)
   assert.match(actionLog(battle.history), /Next basic hit ×2/)
   battle = advance(battle, 'continue', undefined, sequence([2, 3]))
-  assert.equal(battle.marqDamage, 0); assert.equal(battle.marq.criticalReady, true)
+  assert.equal(battle.playerDamage, 0); assert.equal(battle.player.criticalReady, true)
   battle = advance(battle, 'continue', undefined, sequence([7, 5]))
-  assert.equal(battle.marqDamage, 12); assert.equal(battle.marq.criticalReady, false)
+  assert.equal(battle.playerDamage, 12); assert.equal(battle.player.criticalReady, false)
   assert.match(actionLog(battle.history), /Marq scored a critical hit! 12 damage/)
   assert.equal(advance(battle, 'continue', undefined, sequence([7, 5])).marqDamage, 6)
   assert.equal(seed.marq.criticalReady, false); assert.equal(newBattle().marq.criticalReady, false)
@@ -65,15 +65,15 @@ test('neither a critical-success tick nor a saved critical doubles any player sp
 test('successive critical successes rearm without stacking more than double', () => {
   let battle = advance(newBattle(), 'continue', undefined, sequence([1, 1]))
   battle = advance(battle, 'continue', undefined, sequence([2, 2]))
-  assert.equal(battle.marqDamage, 12); assert.equal(battle.marq.criticalReady, true)
+  assert.equal(battle.playerDamage, 12); assert.equal(battle.player.criticalReady, true)
   battle = advance(battle, 'continue', undefined, sequence([7, 5]))
-  assert.equal(battle.marqDamage, 12); assert.equal(battle.marq.criticalReady, false)
+  assert.equal(battle.playerDamage, 12); assert.equal(battle.player.criticalReady, false)
   assert.equal(advance(battle, 'continue', undefined, sequence([7, 5])).marqDamage, 6)
 })
 
 test('player saved critical stacks with Maxim passive and vulnerability once, including Idle', () => {
   const character = require('../services/arena/characters').resolveCharacter('Maxim [Spooky]')
-  const battle = newBattle(0, { character }); battle.marq.criticalReady = true; battle.marq.opportunityReady = true; battle.warrior.stress = 0
+  const battle = newBattle(0, { character }); battle.player.criticalReady = true; battle.player.opportunityReady = true; battle.enemy.stress = 0
   const hit = advance(battle)
   assert.equal(hit.marqDamage, 30); assert.equal(hit.marq.criticalReady, false); assert.equal(hit.marq.opportunityReady, false)
   let idle = newBattle(0, { mode: 'idle' })
@@ -119,7 +119,7 @@ test('ordinary Hope rolls do not restore Stress and Idle criticals follow the sa
 })
 
 test('available Stress fills blue, zero Stress disables Combo, and critical recovery re-enables it', () => {
-  const battle = newBattle(); battle.marq.stress = 0
+  const battle = newBattle(); battle.player.stress = 0
   const full = screen({ id: 's', revision: 0, battle })
   assert.match(allText(full), /``⬛⬛⬛⬛⬛⬛`` Stress 0\/6/)
   assert.equal(button(full, 'special1').data.disabled, true)
@@ -145,26 +145,26 @@ test('both selectable characters have their own passive and Maxim fights start u
   const { characters } = require('../services/arena/characters')
   for (const character of characters) {
     const battle = rawNewBattle(0, { character })
-    assert.equal(abilityAvailable(battle.marq, 'passive'), ['spooky-2026:max', 'spooky-2026:mrq'].includes(character.id))
-    assert.equal(battle.marq.opportunityReady, false); assert.equal(battle.warrior.opportunityReady, false)
-    assert.equal(abilityAvailable(battle.warrior, 'passive'), true)
+    assert.equal(abilityAvailable(battle.player, 'passive'), ['spooky-2026:max', 'spooky-2026:mrq'].includes(character.id))
+    assert.equal(battle.player.opportunityReady, false); assert.equal(battle.enemy.opportunityReady, false)
+    assert.equal(abilityAvailable(battle.enemy, 'passive'), true)
   }
 })
 
 test('both Maxim passives can arm on simultaneous misses and then spend independently without stacking', () => {
   const character = require('../services/arena/characters').resolveCharacter('Maxim [Spooky]')
   let battle = rawAdvance(newBattle(0, { character }), 'continue', undefined, sequence([2, 3]), () => 99, () => 85)
-  assert.equal(battle.marqDamage, 0); assert.equal(battle.maximDamage, 0)
-  assert.equal(battle.marq.opportunityReady, true); assert.equal(battle.warrior.opportunityReady, true)
+  assert.equal(battle.playerDamage, 0); assert.equal(battle.maximDamage, 0)
+  assert.equal(battle.player.opportunityReady, true); assert.equal(battle.enemy.opportunityReady, true)
   battle = rawAdvance(battle, 'continue', undefined, sequence([2, 3]), () => 99, () => 85)
-  assert.equal(battle.marq.opportunityReady, true); assert.equal(battle.warrior.opportunityReady, true)
+  assert.equal(battle.player.opportunityReady, true); assert.equal(battle.enemy.opportunityReady, true)
   battle = advance(battle)
-  assert.equal(battle.marqDamage, 12); assert.equal(battle.maximDamage, 15)
-  assert.equal(battle.marq.opportunityReady, false); assert.equal(battle.warrior.opportunityReady, false)
+  assert.equal(battle.playerDamage, 12); assert.equal(battle.maximDamage, 15)
+  assert.equal(battle.player.opportunityReady, false); assert.equal(battle.enemy.opportunityReady, false)
   assert.ok(!allText(screen({ id: 's', revision: 0, battle, character })).includes('opportunity'))
   assert.match(actionLog(battle.history), /Your Maxim hit Maxim for 12/)
   battle = advance(battle)
-  assert.equal(battle.marqDamage, 6); assert.equal(battle.maximDamage, 9)
+  assert.equal(battle.playerDamage, 6); assert.equal(battle.maximDamage, 9)
 })
 
 test('passives affect Idle basics and a new fight resets their readiness', async () => {
@@ -234,11 +234,11 @@ test('balance simulations are reproducible and count attack outcomes', () => {
 test('test progression scales both fighters together, defaults ranks to one, and validates level bounds', () => {
   for (const [level, hp, attack] of [[1, 300, 300], [5, 420, 420], [20, 870, 870], [60, 2070, 2070]]) {
     const battle = newBattle(0, { level })
-    for (const fighter of [battle.marq, battle.warrior]) {
+    for (const fighter of [battle.player, battle.enemy]) {
       assert.equal(fighter.level, level); assert.equal(fighter.hp, hp); assert.equal(fighter.maxHp, hp)
       assert.equal(fighter.attack, attack); assert.equal(fighter.rank, 1)
     }
-    assert.deepEqual(battle.marq.abilityRanks, { special1: 1, special2: 1, special3: 1 })
+    assert.deepEqual(battle.player.abilityRanks, { special1: 1, special2: 1, special3: 1 })
   }
   for (const value of [0, 61, 1.5, NaN, '5', null]) assert.throws(() => statsForLevel(value), /level/)
 })
@@ -249,19 +249,19 @@ test('all special upgrade ranks scale original damage and damage rounds only aft
   assert.equal(damageFor(301, 3, 1, 1.5), 14)
   assert.equal(damageFor(300, 3, 2, 1.5), 15)
   for (const rank of [0, 11, 1.5]) assert.throws(() => damageFor(300, 2, rank), /rank/)
-  const battle = newBattle(); battle.marq.attack = 301; battle.warrior.attack = 401
+  const battle = newBattle(); battle.player.attack = 301; battle.enemy.attack = 401
   assert.equal(advance(battle).marqDamage, 7); assert.equal(advance(battle).maximDamage, 12)
-  battle.marq.abilityRanks.special1 = 2; battle.warrior.stress = 0
+  battle.player.abilityRanks.special1 = 2; battle.enemy.stress = 0
   assert.equal(advance(battle, 'special1', sequence([2, 1])).special1Damage, 17)
-  battle.marq.rank = 10; battle.warrior.rank = 20
+  battle.player.rank = 10; battle.enemy.rank = 20
   assert.equal(advance(battle).maximDamage, 12) // Character rank never boosts damage.
 })
 
 test('all abilities are unlocked at level one, including fallback kits; resource costs still apply', () => {
   const character = require('../services/arena/characters').resolveCharacter('Selene [Classic]')
   const battle = newBattle(6, { character })
-  for (const slot of ['special1', 'special2', 'special3']) assert.equal(abilityAvailable(battle.marq, slot), true)
-  assert.equal(abilityAvailable(battle.marq, 'passive'), false)
+  for (const slot of ['special1', 'special2', 'special3']) assert.equal(abilityAvailable(battle.player, slot), true)
+  assert.equal(abilityAvailable(battle.player, 'passive'), false)
   assert.equal(button(screen({ id: 's', revision: 0, battle }), 'special2').data.disabled, false)
   assert.equal(advance(battle, 'special2', undefined, sequence([2, 3])).special2Damage, 60)
 })
@@ -319,9 +319,9 @@ test('slash command has no level option and direct sessions remain at level one'
 
 test('fresh characters have 300 HP, six available Stress each, zero currencies and pure tick calculations', () => {
   const battle = newBattle(), next = advance(battle)
-  for (const character of [battle.marq, battle.warrior]) { assert.equal(character.hp, 300); assert.equal(character.stress, 6); assert.equal(character.maxStress, 6) }
-  assert.equal(battle.marq.hope, 0); assert.equal(battle.warrior.fear, 0)
-  assert.equal(next.marq.hp, 291); assert.equal(next.warrior.hp, 294); assert.equal(battle.marq.hp, 300)
+  for (const character of [battle.player, battle.enemy]) { assert.equal(character.hp, 300); assert.equal(character.stress, 6); assert.equal(character.maxStress, 6) }
+  assert.equal(battle.player.hope, 0); assert.equal(battle.enemy.fear, 0)
+  assert.equal(next.marq.hp, 291); assert.equal(next.warrior.hp, 294); assert.equal(battle.player.hp, 300)
 })
 
 test('Combo Dice stop only on a lower predecessor comparison and include every result', () => {
@@ -334,7 +334,7 @@ test('Combo Dice stop only on a lower predecessor comparison and include every r
 test('Combo spends one Stress; zero Stress rejects Combo without rolling or advancing', () => {
   const combo = advance(newBattle(), 'special1', sequence([1, 1, 3, 1]))
   assert.equal(combo.marq.stress, 5); assert.equal(combo.special1Damage, 12); assert.equal(combo.warrior.hp, 282)
-  const battle = newBattle(); battle.marq.stress = 0
+  const battle = newBattle(); battle.player.stress = 0
   assert.equal(advance(battle, 'special1', () => { throw Error('No roll') }), battle)
   assert.equal(button(screen({ id: 's', revision: 0, battle }), 'special1').data.disabled, true)
   assert.equal(advance(battle).tick, 1)
@@ -355,8 +355,8 @@ test('all 144 duality pairs preserve Difficulty 12, critical doubles, Hope gain 
     const battle = advance(newBattle(), 'continue', undefined, sequence([hope, fear]))
     const success = hope === fear || hope + fear >= 12
     assert.equal(battle.duality.success, success); assert.equal(battle.duality.critical, hope === fear)
-    assert.equal(battle.marqDamage, Number(success) * 6); assert.equal(battle.maximDamage, Number(!success || fear > hope) * 9)
-    assert.equal(battle.marq.hope, hope >= fear ? 1 : 0)
+    assert.equal(battle.playerDamage, Number(success) * 6); assert.equal(battle.maximDamage, Number(!success || fear > hope) * 9)
+    assert.equal(battle.player.hope, hope >= fear ? 1 : 0)
   }
   for (const value of [0, 13, NaN, 1.5]) assert.throws(() => dualityDice(12, () => value), /d12/)
 })
@@ -414,7 +414,7 @@ test('battle history keeps five actions at the bottom and retains the latest com
 })
 
 test('health stays red and percentage-based; blue Stress has exactly one segment per available point', () => {
-  const battle = newBattle(); battle.marq.stress = 3; battle.warrior.stress = 0; battle.marq.hp = 150
+  const battle = newBattle(); battle.player.stress = 3; battle.enemy.stress = 0; battle.player.hp = 150
   const view = screen({ id: 's', revision: 0, battle }), status = view.embeds[0].data.fields[0].value
   assert.match(status, /50%/); assert.match(status, /``🟦🟦🟦⬛⬛⬛`` Stress 3\/6/)
   assert.match(status, /``⬛⬛⬛⬛⬛⬛`` Stress 0\/6\n⚠️ Takes ×1.25/)
@@ -596,10 +596,10 @@ test('Idle rolls Duality Dice and earns Hope/Fear but never uses abilities or Fe
   assert.equal(actualAdvance(funded, 'special2', noSpecial, noSpecial, noSpecial), funded)
   for (let i = 0; i < 34; i++) {
     battle = actualAdvance(battle, 'continue', noSpecial, sequence([6, 7]), noSpecial)
-    assert.equal(battle.marq.hope, 0); assert.equal(battle.warrior.fear, i + 1)
-    assert.equal(battle.marq.stress, 6); assert.equal(battle.warrior.stress, 6)
+    assert.equal(battle.player.hope, 0); assert.equal(battle.enemy.fear, i + 1)
+    assert.equal(battle.player.stress, 6); assert.equal(battle.enemy.stress, 6)
     assert.equal(battle.duality.total, 13); assert.equal(battle.fearSpent, 0)
-    assert.equal(battle.marqDamage, 6); assert.equal(battle.maximDamage, 9)
+    assert.equal(battle.playerDamage, 6); assert.equal(battle.maximDamage, 9)
   }
   assert.equal(battle.status, 'defeat'); assert.equal(battle.tiedVictory, false)
   assert.equal(battle.history.length, 102); assert.equal(battle.mode, 'idle')
@@ -632,11 +632,11 @@ test('Idle misses, criticals and enemy turns follow every Duality pair while spe
   for (let hope = 1; hope <= 12; hope++) for (let fear = 1; fear <= 12; fear++) {
     const battle = actualAdvance(newBattle(0, { mode: 'idle' }), 'continue', undefined, sequence([hope, fear]), () => { throw Error('No Fear spending') })
     const success = hope === fear || hope + fear >= 12
-    assert.equal(battle.warrior.hp, success ? 294 : 300)
-    assert.equal(battle.marq.hp, !success || fear > hope ? 291 : 300)
-    assert.equal(battle.marq.hope, hope >= fear ? 1 : 0)
-    assert.equal(battle.warrior.fear, fear > hope ? 1 : 0)
-    assert.equal(battle.enemySpecial, null); assert.equal(battle.marq.stress, 6)
+    assert.equal(battle.enemy.hp, success ? 294 : 300)
+    assert.equal(battle.player.hp, !success || fear > hope ? 291 : 300)
+    assert.equal(battle.player.hope, hope >= fear ? 1 : 0)
+    assert.equal(battle.enemy.fear, fear > hope ? 1 : 0)
+    assert.equal(battle.enemySpecial, null); assert.equal(battle.player.stress, 6)
   }
 })
 

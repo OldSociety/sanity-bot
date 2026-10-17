@@ -4,7 +4,7 @@ const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => 
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
-  for (const fighter of [battle.marq, battle.warrior]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
+  for (const fighter of [battle.player, battle.enemy]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
   return battle
 }
 const { resolveCharacter, characterChoices, defaultCharacter } = require('../services/arena/characters')
@@ -23,11 +23,11 @@ test('Maxim Deadly Focus starts ready, costs two Stress and retains independent 
 
 test('Slayer misses preserve charges; recasting refreshes without stacking',()=>{
  let battle=step(newBattle(6,{character:maxim}),'special2')
- battle=step(battle,'continue',{dice:[2,1]});assert.equal(battle.marq.slayerCharges,3)
- battle=step(battle);assert.equal(battle.marqDamage,30);assert.equal(battle.special2Damage,24);assert.equal(battle.marq.slayerCharges,2)
- battle=step(battle,'special2');assert.equal(battle.marqDamage,30);assert.equal(battle.marq.slayerCharges,3)
+ battle=step(battle,'continue',{dice:[2,1]});assert.equal(battle.player.slayerCharges,3)
+ battle=step(battle);assert.equal(battle.playerDamage,30);assert.equal(battle.special2Damage,24);assert.equal(battle.player.slayerCharges,2)
+ battle=step(battle,'special2');assert.equal(battle.playerDamage,30);assert.equal(battle.player.slayerCharges,3)
  for(let i=0;i<3;i++)battle=step(battle)
- assert.equal(battle.marq.slayerCharges,0);assert.equal(step(battle).marqDamage,6)
+ assert.equal(battle.player.slayerCharges,0);assert.equal(step(battle).marqDamage,6)
 })
 
 test('passive applies only to the underlying basic; saved criticals double the combined empowered basic',()=>{

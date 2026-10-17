@@ -4,7 +4,7 @@ const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => 
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
-  for (const fighter of [battle.marq, battle.warrior]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
+  for (const fighter of [battle.player, battle.enemy]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
   return battle
 }
 const { resolveCharacter } = require('../services/arena/characters')
@@ -60,7 +60,7 @@ test('Deadly Focus starts ready, costs two Stress and recharges only on landed b
  const miss=step(seed,'special1',[2,1]);assert.equal(miss.special1Damage,30);assert.equal(miss.marq.stress,4);assert.equal(miss.marq.focusHits,0)
  assert.equal(step(miss,'special1'),miss)
  let battle=miss;for(let i=0;i<3;i++)battle=step(battle,'continue',[6,7])
- assert.equal(battle.marq.focusHits,3);assert.equal(canUse(battle.marq,'special1'),true)
+ assert.equal(battle.player.focusHits,3);assert.equal(canUse(battle.player,'special1'),true)
 })
 
 test('Deadly Focus needs no hit prerequisite and adds direct damage on a missed basic', () => {
@@ -70,7 +70,7 @@ test('Deadly Focus needs no hit prerequisite and adds direct damage on a missed 
 })
 
 test('Idle uses neither Slayer nor Overwhelm, while character kits and passive remain distinct', () => {
-  const battle = newBattle(6, { character: maxim, level: 20, mode: 'idle' }); battle.marq.basicHits = 3
+  const battle = newBattle(6, { character: maxim, level: 20, mode: 'idle' }); battle.player.basicHits = 3
   for (const action of ['special1', 'special2', 'special3']) assert.equal(step(battle, action), battle)
   const next = step(battle, 'continue', [6, 7], 99)
   assert.equal(next.enemySpecial, null); assert.equal(next.warrior.stress, 6)

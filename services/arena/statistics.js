@@ -55,7 +55,7 @@ function recordRound(before, next, details) {
   return stats
 }
 function combatReport(battle) {
-  return { ruleset: 'character-stats-v4', playerAttack: battle.marq.attack, playerMaxHp: battle.marq.maxHp, opponentAttack: battle.warrior.attack, opponentMaxHp: battle.warrior.maxHp, character: battle.marq.label, opponent: battle.warrior.name, playerLevel: battle.marq.level, opponentLevel: battle.warrior.level,
+  return { ruleset: 'character-stats-v4', playerAttack: battle.player.attack, playerMaxHp: battle.player.maxHp, opponentAttack: battle.enemy.attack, opponentMaxHp: battle.enemy.maxHp, character: battle.player.label, opponent: battle.enemy.name, playerLevel: battle.player.level, opponentLevel: battle.enemy.level,
     rounds: battle.tick, winner: battle.status === 'victory' ? 'player' : battle.status === 'defeat' ? 'enemy' : null,
     simultaneousKnockout: battle.tiedVictory, mode: battle.mode, ...structuredClone(battle.statistics) }
 }

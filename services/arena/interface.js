@@ -397,7 +397,7 @@ function screen(session) {
   }
   embed.addFields({
     name: `${player.name} · Lv ${player.level} · Rank ${player.rank}`,
-    value: status(player, false) + '\n' + status(battle.warrior),
+    value: status(player, false) + '\n' + status(battle.enemy),
   })
   const lines = actionLines(battle.actions)
   if (battle.latestCombo && !battle.actions.includes(battle.latestCombo))

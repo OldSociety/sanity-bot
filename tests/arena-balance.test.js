@@ -4,7 +4,7 @@ const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => 
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
-  for (const fighter of [battle.marq, battle.warrior]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
+  for (const fighter of [battle.player, battle.enemy]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
   return battle
 }
 const { resolveCharacter } = require('../services/arena/characters')
@@ -38,7 +38,7 @@ test('Overwhelm can repeat, independently removes one Stress on exactly 20% of e
   assert.equal(count, 20)
   let battle = newBattle()
   for (let i = 0; i < 6; i++) battle = step(battle, 'special1')
-  assert.equal(battle.marq.stress, 0); assert.equal(canUse(battle.marq, 'special1'), false)
+  assert.equal(battle.player.stress, 0); assert.equal(canUse(battle.player, 'special1'), false)
   const seed = newBattle(); seed.warrior.stress = 0
   const empty = step(seed, 'special1', { effect: 0 }); assert.equal(empty.stressRemoved, 0); assert.equal(empty.warrior.stress, 0)
   for (const effect of [-1, 100, NaN]) assert.throws(() => step(newBattle(), 'special1', { effect }), /effect percentile/)
@@ -59,14 +59,14 @@ test('removal follows AI spending and applies zero-Stress vulnerability to this 
 
 test('Deadly Focus begins ready, recharges on three landed basics and can be charged but unaffordable', () => {
   let battle = newBattle(0, { character: maxim })
-  assert.equal(battle.marq.focusHits, 3)
+  assert.equal(battle.player.focusHits, 3)
   battle = step(battle, 'special1', { dice: [2, 1] })
-  assert.equal(battle.special1Damage, 30); assert.equal(battle.marq.stress, 4); assert.equal(battle.marq.focusHits, 0)
+  assert.equal(battle.special1Damage, 30); assert.equal(battle.player.stress, 4); assert.equal(battle.player.focusHits, 0)
   assert.equal(step(battle, 'special1'), battle)
   for (const dice of [[6, 7], [2, 1], [1, 1], [7, 5]]) battle = step(battle, 'continue', { dice })
-  assert.equal(battle.marq.focusHits, 3); assert.equal(canUse(battle.marq, 'special1'), true)
+  assert.equal(battle.player.focusHits, 3); assert.equal(canUse(battle.player, 'special1'), true)
   const next = step(battle, 'special1'); assert.equal(next.marq.focusHits, 1)
-  battle.marq.stress = 1; assert.equal(battle.marq.focusHits, 3); assert.equal(canUse(battle.marq, 'special1'), false)
+  battle.player.stress = 1; assert.equal(battle.player.focusHits, 3); assert.equal(canUse(battle.player, 'special1'), false)
 })
 
 test('Combo Strike sums every d4, includes a flat ten percentage points, costs three Hope and remains uncapped', () => {
@@ -81,11 +81,11 @@ test('Combo Strike sums every d4, includes a flat ten percentage points, costs t
 
 test('Slayer grants three future empowered basics and each landed charge contributes only incremental Special 2 damage', () => {
   let battle = step(newBattle(3, { character: maxim }), 'special2')
-  assert.equal(battle.marq.slayerCharges, 3); assert.equal(battle.marqDamage, 6); assert.equal(battle.special2Damage, 0)
+  assert.equal(battle.player.slayerCharges, 3); assert.equal(battle.playerDamage, 6); assert.equal(battle.special2Damage, 0)
   assert.equal(battle.statistics.player.attempts.special2, 0); assert.equal(battle.statistics.player.uses.special2, 1)
   for (let i = 0; i < 3; i++) {
-    battle = step(battle); assert.equal(battle.marqDamage, 30); assert.equal(battle.special2Damage, 24)
-    assert.equal(battle.marq.slayerCharges, 2 - i)
+    battle = step(battle); assert.equal(battle.playerDamage, 30); assert.equal(battle.special2Damage, 24)
+    assert.equal(battle.player.slayerCharges, 2 - i)
   }
   assert.equal(battle.statistics.player.damage.basic, 24); assert.equal(battle.statistics.player.damage.special2, 72)
   assert.equal(battle.statistics.player.slayerChargesConsumed, 3); assert.equal(step(battle).marqDamage, 6)

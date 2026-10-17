@@ -29,7 +29,7 @@ test('Marq survives a lethal exchange at 26 HP once, then can be defeated normal
   assert.equal(revived.statistics.player.hpRestored, 26)
   let battle = revived
   while (battle.status === 'playing') battle = step(battle)
-  assert.equal(battle.status, 'defeat'); assert.equal(battle.marq.hp, 0)
+  assert.equal(battle.status, 'defeat'); assert.equal(battle.player.hp, 0)
   assert.equal(battle.statistics.player.brinkActivations, 1)
 })
 
@@ -77,12 +77,12 @@ test('tactics cannot claim a knockout through unused Brink; survival estimates i
 test('repeated opponent misses do not stack Maxim bonus; misses preserve it and a successful basic consumes it', () => {
   let battle = newBattle(0, { character: maxim })
   for (let i = 0; i < 3; i++) battle = step(battle, 'continue', { dice: [2, 3], accuracy: 99 })
-  assert.equal(battle.marq.opportunityReady, true); assert.equal(battle.warrior.opportunityReady, true)
+  assert.equal(battle.player.opportunityReady, true); assert.equal(battle.enemy.opportunityReady, true)
   battle = step(battle)
-  assert.equal(battle.marqDamage, 9); assert.equal(battle.maximDamage, 11)
-  assert.equal(battle.marq.opportunityReady, false); assert.equal(battle.warrior.opportunityReady, false)
+  assert.equal(battle.playerDamage, 9); assert.equal(battle.maximDamage, 11)
+  assert.equal(battle.player.opportunityReady, false); assert.equal(battle.enemy.opportunityReady, false)
   battle = step(battle)
-  assert.equal(battle.marqDamage, 5); assert.equal(battle.maximDamage, 7)
+  assert.equal(battle.playerDamage, 5); assert.equal(battle.maximDamage, 7)
 })
 
 test('Maxim adds percentage points before critical and exhaustion multipliers, without multiplying Slayer or specials', () => {

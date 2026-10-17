@@ -4,7 +4,7 @@ const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => 
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
-  for (const fighter of [battle.marq, battle.warrior]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
+  for (const fighter of [battle.player, battle.enemy]) { Object.assign(fighter, { hp: stat, maxHp: stat, attack: stat }); if (fighter.passive === 'on-the-brink') fighter.passive = null }
   return battle
 }
 const { resolveCharacter } = require('../services/arena/characters')
@@ -15,26 +15,26 @@ const step = (battle, action = 'continue', { dice = [6, 7], ability = 99.999, ac
 
 test('AI Focus starts ready, spends two Stress on a miss and only AI landed basics recharge it', () => {
   let battle = newBattle()
-  assert.equal(battle.warrior.focusHits, 3)
+  assert.equal(battle.enemy.focusHits, 3)
   battle = step(battle, 'continue', { dice: [2, 1], ability: 0, accuracy: 85 })
-  assert.equal(battle.warrior.stress, 4); assert.equal(battle.warrior.focusHits, 0)
+  assert.equal(battle.enemy.stress, 4); assert.equal(battle.enemy.focusHits, 0)
   assert.equal(battle.statistics.enemy.focusActivations, 1); assert.equal(battle.statistics.enemy.damage.special1, 0)
   battle = step(battle, 'continue', { dice: [7, 5] })
-  assert.equal(battle.enemyOutcome, null); assert.equal(battle.warrior.focusHits, 0)
-  for (let i = 1; i <= 3; i++) { battle = step(battle); assert.equal(battle.warrior.focusHits, i) }
+  assert.equal(battle.enemyOutcome, null); assert.equal(battle.enemy.focusHits, 0)
+  for (let i = 1; i <= 3; i++) { battle = step(battle); assert.equal(battle.enemy.focusHits, i) }
   battle = step(battle, 'continue', { dice: [2, 1], ability: 40 })
-  assert.equal(battle.enemySpecial, 'special1'); assert.equal(battle.warrior.focusHits, 1)
-  assert.equal(battle.statistics.enemy.damage.special1, 36); assert.equal(battle.warrior.stress, 2)
+  assert.equal(battle.enemySpecial, 'special1'); assert.equal(battle.enemy.focusHits, 1)
+  assert.equal(battle.statistics.enemy.damage.special1, 36); assert.equal(battle.enemy.stress, 2)
 })
 
 test('AI Slayer activates on a miss, waits through unavailable opportunities and delivers exactly three +11% hits', () => {
   const seed = newBattle(); seed.warrior.fear = 2
   let battle = step(seed, 'continue', { ability: 0, accuracy: 85 })
-  assert.equal(battle.warrior.slayerCharges, 3); assert.equal(battle.statistics.enemy.uses.special2, 1)
+  assert.equal(battle.enemy.slayerCharges, 3); assert.equal(battle.statistics.enemy.uses.special2, 1)
   battle = step(battle, 'continue', { dice: [7, 5] })
-  assert.equal(battle.warrior.slayerCharges, 3); assert.equal(battle.statistics.enemy.attempts.special2, 0)
+  assert.equal(battle.enemy.slayerCharges, 3); assert.equal(battle.statistics.enemy.attempts.special2, 0)
   for (let i = 0; i < 3; i++) {
-    battle = step(battle); assert.equal(battle.warrior.slayerCharges, 2 - i)
+    battle = step(battle); assert.equal(battle.enemy.slayerCharges, 2 - i)
     assert.equal(battle.statistics.enemy.damage.special2, 33 * (i + 1))
   }
   assert.equal(battle.statistics.enemy.slayerChargesConsumed, 3)

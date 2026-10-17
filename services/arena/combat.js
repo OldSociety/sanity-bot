@@ -87,7 +87,7 @@ function newBattle(
     actions: [],
     history: [],
   }
-  battle.statistics = createStatistics(battle.marq, battle.warrior)
+  battle.statistics = createStatistics(battle.player, battle.enemy)
   return battle
 }
 function dualityDice(difficulty = 12, roll = () => randomInt(1, 13)) {
@@ -200,37 +200,37 @@ function advance(
         selected.choice > 5)) ||
     (slot &&
       !(slot === 'special3' && battle.finisherPaid) &&
-      !canUse(battle.marq, slot)) ||
+      !canUse(battle.player, slot)) ||
     (battle.finisherPaid && slot !== 'special3') ||
     (battle.mode === 'idle' && slot)
   )
     return battle
-  const playerKit = kitFor(battle.marq),
-    enemyKit = kitFor(battle.warrior)
+  const playerKit = kitFor(battle.player),
+    enemyKit = kitFor(battle.enemy)
   const definition = slot ? playerKit[slot] : null
   const hopeSpent =
     slot === 'special3' && battle.finisherPaid ? 0 : definition?.hopeCost || 0
   const stressSpent = definition?.stressCost || 0
-  const duality = dualityDice(battle.warrior.difficulty, rollDuality)
-  const hopeAfterSpend = battle.marq.hope - hopeSpent
+  const duality = dualityDice(battle.enemy.difficulty, rollDuality)
+  const hopeAfterSpend = battle.player.hope - hopeSpent
   const hopeGained = duality.withHope
-    ? Math.min(1, battle.marq.maxHope - hopeAfterSpend)
+    ? Math.min(1, battle.player.maxHope - hopeAfterSpend)
     : 0
   const fearGained = Number(duality.withFear),
-    availableFear = battle.warrior.fear + fearGained
+    availableFear = battle.enemy.fear + fearGained
   const enemyAttacks = !duality.success || duality.withFear
   const enemyDecision =
     battle.mode !== 'idle' && enemyAttacks
       ? aiPolicy === 'legacy'
         ? {
             slot: selectEnemySpecial(
-              battle.warrior,
+              battle.enemy,
               availableFear,
               rollFearSpend,
             ),
             reason: 'legacy',
           }
-        : decide(battle.warrior, battle.marq, {
+        : decide(battle.enemy, battle.player, {
             resource: availableFear,
             roll: rollFearSpend,
             context: {
@@ -252,7 +252,7 @@ function advance(
   const fearSpent = enemyDefinition?.hopeCost || 0,
     enemyStressSpent = enemyDefinition?.stressCost || 0
   const stressRestored = duality.critical
-    ? Math.min(1, battle.marq.maxStress - (battle.marq.stress - stressSpent))
+    ? Math.min(1, battle.player.maxStress - (battle.player.stress - stressSpent))
     : 0
   // Both independent removal effects see reserves after costs/recovery, before
   // damage. A miss does not cancel an activated buff or independent effect.
@@ -263,33 +263,40 @@ function advance(
       throw Error('Expected effect percentile from 0 to below 100')
     return Number(value < ability.stressRemovalChance && available > 0)
   }
-  const playerReserve = battle.marq.stress - stressSpent + stressRestored
-  const enemyReserve = battle.warrior.stress - enemyStressSpent
-  const stressRemoved = removal(definition, enemyReserve),
-    enemyStressRemoved = removal(enemyDefinition, playerReserve)
-  const playerStress = Math.max(0, playerReserve - enemyStressRemoved),
-    enemyStress = Math.max(0, enemyReserve - stressRemoved)
+  const playerReserve = battle.player.stress - stressSpent + stressRestored
+  const enemyReserve = battle.enemy.stress - enemyStressSpent
+
+  const criticalStressRemoved = Number(duality.critical && enemyReserve > 0)
+
+  const stressRemoved = Math.min(
+    enemyReserve,
+    removal(definition, enemyReserve) + criticalStressRemoved,
+  )
+  const enemyStressRemoved = removal(enemyDefinition, playerReserve)
+
+  const playerStress = Math.max(0, playerReserve - enemyStressRemoved)
+  const enemyStress = Math.max(0, enemyReserve - stressRemoved)
   const playerVulnerability = playerStress === 0 ? exhaustedStressMultiplier : 1
   const enemyVulnerability = enemyStress === 0 ? exhaustedStressMultiplier : 1
   const enemyOutcome = enemyAttacks
-    ? enemyAttackOutcome(battle.warrior, rollAccuracy, rollCritical)
+    ? enemyAttackOutcome(battle.enemy, rollAccuracy, rollCritical)
     : null
   const enemyHit = ['hit', 'critical'].includes(enemyOutcome)
   const playerOpportunity =
-    battle.marq.passive === 'not-good-enough' &&
-    battle.marq.opportunityReady &&
+    battle.player.passive === 'not-good-enough' &&
+    battle.player.opportunityReady &&
     duality.success
   const enemyOpportunity =
-    battle.warrior.passive === 'not-good-enough' &&
-    battle.warrior.opportunityReady &&
+    battle.enemy.passive === 'not-good-enough' &&
+    battle.enemy.opportunityReady &&
     enemyHit
-  const playerCritical = Boolean(battle.marq.criticalReady && duality.success)
+  const playerCritical = Boolean(battle.player.criticalReady && duality.success)
   const enemyCritical =
-    enemyOutcome === 'critical' ? battle.warrior.criticalMultiplier : 1
-  const slayerActive = battle.marq.slayerCharges > 0
+    enemyOutcome === 'critical' ? battle.enemy.criticalMultiplier : 1
+  const slayerActive = battle.player.slayerCharges > 0
   const slayerPercent = slayerActive ? playerKit.special2.percent : 0
   const playerBase = duality.success
-    ? basicDamage(battle.marq, battle.warrior, {
+    ? basicDamage(battle.player, battle.enemy, {
         critical: playerCritical,
         buff: false,
         targetStress: enemyStress,
@@ -298,16 +305,16 @@ function advance(
   const playerCombinedPercent =
     2 + (playerOpportunity ? opportunityBonusPercent : 0) + slayerPercent
   const marqDamage = duality.success
-    ? basicDamage(battle.marq, battle.warrior, {
+    ? basicDamage(battle.player, battle.enemy, {
         critical: playerCritical,
         targetStress: enemyStress,
       })
     : 0
   const slayerBonusDamage = marqDamage - playerBase
-  const enemySlayerActive = battle.warrior.slayerCharges > 0
+  const enemySlayerActive = battle.enemy.slayerCharges > 0
   const enemySlayerPercent = enemySlayerActive ? enemyKit.special2.percent : 0
   const enemyBase = enemyHit
-    ? basicDamage(battle.warrior, battle.marq, {
+    ? basicDamage(battle.enemy, battle.player, {
         critical: enemyOutcome === 'critical',
         buff: false,
         targetStress: playerStress,
@@ -318,23 +325,23 @@ function advance(
     (enemyOpportunity ? opportunityBonusPercent : 0) +
     enemySlayerPercent
   const enemyBasicDamage = enemyHit
-    ? basicDamage(battle.warrior, battle.marq, {
+    ? basicDamage(battle.enemy, battle.player, {
         critical: enemyOutcome === 'critical',
         targetStress: playerStress,
       })
     : 0
   const enemySlayerBonus = enemyBasicDamage - enemyBase
   const playerSpecial = specialResult(
-    battle.marq,
+    battle.player,
     slot,
     selected.choice || 0,
     roll,
-    slot ? battle.marq.abilityRanks[slot] : 1,
+    slot ? battle.player.abilityRanks[slot] : 1,
     enemyVulnerability,
   )
   playerSpecial.stressRemoved = stressRemoved
   const enemyResult = specialResult(
-    battle.warrior,
+    battle.enemy,
     enemySpecial,
     3,
     roll,
@@ -345,19 +352,19 @@ function advance(
   enemyResult.stressRemoved = enemyStressRemoved
   // Finishers always land; other AI direct specials share basic accuracy.
   const enemySpecialHit =
-    enemyHit || specialAlwaysHits(battle.warrior, enemySpecial)
+    enemyHit || specialAlwaysHits(battle.enemy, enemySpecial)
   if (!enemySpecialHit) enemyResult.damage = 0
   const maximDamage = enemyBasicDamage + enemyResult.damage
   const marq = {
-    ...battle.marq,
-    hp: Math.max(0, battle.marq.hp - maximDamage),
+    ...battle.player,
+    hp: Math.max(0, battle.player.hp - maximDamage),
     stress: playerStress,
     hope: hopeAfterSpend + hopeGained,
     focusHits:
-      battle.marq.kit === 'maxim'
+      battle.player.kit === 'maxim'
         ? Math.min(
             3,
-            (definition?.requiredRecharge ? 0 : battle.marq.focusHits) +
+            (definition?.requiredRecharge ? 0 : battle.player.focusHits) +
               Number(duality.success),
           )
         : 0,
@@ -366,30 +373,30 @@ function advance(
         ? definition.hits
         : Math.max(
             0,
-            battle.marq.slayerCharges - Number(duality.success && slayerActive),
+            battle.player.slayerCharges - Number(duality.success && slayerActive),
           ),
     basicHits:
-      battle.marq.kit === 'maxim'
+      battle.player.kit === 'maxim'
         ? Math.min(
             3,
-            (definition?.requiredHits ? 0 : battle.marq.basicHits) +
+            (definition?.requiredHits ? 0 : battle.player.basicHits) +
               Number(duality.success),
           )
         : 0,
     criticalReady:
-      duality.critical || Boolean(battle.marq.criticalReady && !playerCritical),
+      duality.critical || Boolean(battle.player.criticalReady && !playerCritical),
     opportunityReady:
-      battle.marq.passive === 'not-good-enough' &&
+      battle.player.passive === 'not-good-enough' &&
       (enemyOutcome === 'miss' ||
-        (battle.marq.opportunityReady && !playerOpportunity)),
+        (battle.player.opportunityReady && !playerOpportunity)),
   }
   const warrior = {
-    ...battle.warrior,
+    ...battle.enemy,
     focusHits:
-      battle.warrior.kit === 'maxim'
+      battle.enemy.kit === 'maxim'
         ? Math.min(
             3,
-            (enemyDefinition?.requiredRecharge ? 0 : battle.warrior.focusHits) +
+            (enemyDefinition?.requiredRecharge ? 0 : battle.enemy.focusHits) +
               Number(enemyHit),
           )
         : 0,
@@ -398,24 +405,24 @@ function advance(
         ? enemyDefinition.hits
         : Math.max(
             0,
-            battle.warrior.slayerCharges -
+            battle.enemy.slayerCharges -
               Number(enemyHit && enemySlayerActive),
           ),
-    hp: Math.max(0, battle.warrior.hp - marqDamage - playerSpecial.damage),
+    hp: Math.max(0, battle.enemy.hp - marqDamage - playerSpecial.damage),
     stress: enemyStress,
     fear: availableFear - fearSpent,
     basicHits:
-      battle.warrior.kit === 'maxim'
+      battle.enemy.kit === 'maxim'
         ? Math.min(
             3,
-            (enemyDefinition?.requiredHits ? 0 : battle.warrior.basicHits) +
+            (enemyDefinition?.requiredHits ? 0 : battle.enemy.basicHits) +
               Number(enemyHit),
           )
         : 0,
     opportunityReady:
-      battle.warrior.passive === 'not-good-enough' &&
+      battle.enemy.passive === 'not-good-enough' &&
       (!duality.success ||
-        (battle.warrior.opportunityReady && !enemyOpportunity)),
+        (battle.enemy.opportunityReady && !enemyOpportunity)),
   }
   // Both exchanges finish before evaluating defeat. Each Marq can prevent
   // one lethal exchange, independently, including simultaneous knockouts.
@@ -426,16 +433,16 @@ function advance(
       warrior.hp === 0 ? 'victory' : marq.hp === 0 ? 'defeat' : 'playing',
     tick = battle.tick + 1
   const playerName =
-    battle.marq.name === battle.warrior.name
-      ? `Your ${battle.marq.name}`
-      : battle.marq.name
+    battle.player.name === battle.enemy.name
+      ? `Your ${battle.player.name}`
+      : battle.player.name
   const events = [
     { kind: 'roll', tick, ...duality, hopeGained, stressRestored },
     {
       kind: 'hit',
       tick,
       actor: playerName,
-      target: battle.warrior.name,
+      target: battle.enemy.name,
       damage: marqDamage,
       outcome: playerCritical ? 'critical' : duality.success ? 'hit' : 'miss',
     },
@@ -444,7 +451,7 @@ function advance(
     events.push({
       kind: 'hit',
       tick,
-      actor: battle.warrior.name,
+      actor: battle.enemy.name,
       target: playerName,
       damage: enemyBasicDamage,
       outcome: enemyOutcome,
@@ -463,7 +470,7 @@ function advance(
     events.push(
       specialEvent(
         enemyResult,
-        battle.warrior.name,
+        battle.enemy.name,
         tick,
         enemyStressSpent ? 'Stress' : 'Fear',
         enemyStressSpent || fearSpent,
@@ -474,7 +481,7 @@ function advance(
   if (enemyBrink)
     events.push({
       kind: 'survival',
-      actor: battle.warrior.name,
+      actor: battle.enemy.name,
       hp: enemyBrink,
       tick,
     })
@@ -518,7 +525,7 @@ function advance(
   const playerNoVulnerability =
     (duality.success
       ? damageFor(
-          battle.marq.attack,
+          battle.player.attack,
           playerCombinedPercent,
           1,
           playerCritical ? playerCriticalMultiplier : 1,
@@ -526,17 +533,17 @@ function advance(
       : 0) +
     (slot && playerSpecial.type !== 'buff'
       ? damageFor(
-          battle.marq.attack,
+          battle.player.attack,
           playerSpecial.percent,
-          battle.marq.abilityRanks[slot],
+          battle.player.abilityRanks[slot],
         )
       : 0)
   const enemyNoVulnerability =
     (enemyHit
-      ? damageFor(battle.warrior.attack, enemyCombinedPercent, 1, enemyCritical)
+      ? damageFor(battle.enemy.attack, enemyCombinedPercent, 1, enemyCritical)
       : 0) +
     (enemySpecialHit && enemySpecial && enemyResult.type !== 'buff'
-      ? specialDamage(battle.warrior, enemySpecial, {
+      ? specialDamage(battle.enemy, enemySpecial, {
           total: enemyResult.total,
           choice: 3,
           criticalMultiplier: enemyCritical,
@@ -566,7 +573,7 @@ function advance(
     focusActivation: Number(Boolean(definition?.requiredRecharge)),
     slayerActivation: Number(definition?.type === 'buff'),
     slayerConsumed: Number(duality.success && slayerActive),
-    affordable: battle.marq.hope >= 5 || marq.hope >= 5 || battle.finisherPaid,
+    affordable: battle.player.hope >= 5 || marq.hope >= 5 || battle.finisherPaid,
     vulnerabilityExtra:
       marqDamage + playerSpecial.damage - playerNoVulnerability,
   })
@@ -610,7 +617,7 @@ function advance(
   }
   addBuffDelivery(
     playerDetails,
-    battle.marq,
+    battle.player,
     playerSpecial,
     slayerActive,
     duality.success,
@@ -618,7 +625,7 @@ function advance(
   )
   addBuffDelivery(
     enemyDetails,
-    battle.warrior,
+    battle.enemy,
     enemyResult,
     enemySlayerActive,
     enemyHit,
@@ -642,18 +649,18 @@ function beginFinisher(battle) {
     battle.status !== 'playing' ||
     battle.mode === 'idle' ||
     battle.finisherPaid ||
-    !canUse(battle.marq, 'special3')
+    !canUse(battle.player, 'special3')
   )
     return battle
-  const cost = kitFor(battle.marq).special3.hopeCost,
+  const cost = kitFor(battle.player).special3.hopeCost,
     statistics = structuredClone(battle.statistics)
   statistics.player.spent += cost
-  statistics.player.remaining = battle.marq.hope - cost
+  statistics.player.remaining = battle.player.hope - cost
   return {
     ...battle,
     statistics,
     finisherPaid: true,
-    marq: { ...battle.marq, hope: battle.marq.hope - cost },
+    marq: { ...battle.player, hope: battle.player.hope - cost },
   }
 }
 module.exports = { newBattle, comboDice, dualityDice, advance, beginFinisher }

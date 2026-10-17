@@ -46,17 +46,17 @@ function simulate({ trials = 10000, seed = 1792, finisherChoice = 3, strategy = 
     for (let trial = 0; trial < trials; trial++) {
       let battle = newBattle(0, { level, character: resolveCharacter(playerCharacter), opponent })
       for (let safety = 0; battle.status === 'playing' && safety < 10000; safety++) {
-        const special1 = canUse(battle.marq, 'special1'), special2 = canUse(battle.marq, 'special2'), special3 = canUse(battle.marq, 'special3')
-        const useSpecial2 = strategy === 'spend-special2' && special2 && (battle.marq.kit !== 'maxim' || battle.marq.slayerCharges === 0)
-        const playerDecision = strategy === 'tactical' ? decide(battle.marq, battle.warrior, { choice: finisherChoice, context: {
+        const special1 = canUse(battle.player, 'special1'), special2 = canUse(battle.player, 'special2'), special3 = canUse(battle.player, 'special3')
+        const useSpecial2 = strategy === 'spend-special2' && special2 && (battle.player.kit !== 'maxim' || battle.player.slayerCharges === 0)
+        const playerDecision = strategy === 'tactical' ? decide(battle.player, battle.enemy, { choice: finisherChoice, context: {
           rounds: battle.tick, ownSpecialDamage: ['special1', 'special2', 'special3'].reduce((n, key) => n + battle.statistics.player.damage[key], 0),
           opponentSpecialDamage: ['special1', 'special2', 'special3'].reduce((n, key) => n + battle.statistics.enemy.damage[key], 0) } })
           : { slot: special3 ? 'special3' : useSpecial2 ? 'special2' : special1 ? 'special1' : null, reason: strategy }
         const action = playerDecision.slot === 'special3' ? { special3: true, choice: finisherChoice } : playerDecision.slot || 'continue'
         const next = advance(battle, action, d4, d12, abilityPercentile, percentile, percentile, abilityPercentile, { aiPolicy })
         if (next === battle) throw Error('Simulation selected an unavailable action')
-        decisionAudit.record(decisions.player, battle.marq, battle.warrior, battle.marq.hope, playerDecision, finisherChoice)
-        if (next.enemyDecision) decisionAudit.record(decisions.enemy, battle.warrior, battle.marq, battle.warrior.fear + next.fearGained, next.enemyDecision)
+        decisionAudit.record(decisions.player, battle.player, battle.enemy, battle.player.hope, playerDecision, finisherChoice)
+        if (next.enemyDecision) decisionAudit.record(decisions.enemy, battle.enemy, battle.player, battle.enemy.fear + next.fearGained, next.enemyDecision)
         for (const side of ['player', 'enemy']) decisionAudit.knockout(decisions[side], battle, next, side)
         if (playerDecision.slot === 'special3') {
           const key = `${finisherChoice}:${next.history.find(event => event.tick === next.tick && event.kind === 'special' && event.resource === 'Hope')?.percent}%`
@@ -67,7 +67,7 @@ function simulate({ trials = 10000, seed = 1792, finisherChoice = 3, strategy = 
       }
       if (battle.status === 'playing') throw Error('Simulation did not terminate')
       const report = combatReport(battle)
-      for (const [side, fighter] of [['player', battle.marq], ['enemy', battle.warrior]]) report[side].availableSpecialAtKnockout =
+      for (const [side, fighter] of [['player', battle.player], ['enemy', battle.enemy]]) report[side].availableSpecialAtKnockout =
         fighter.hp === 0 && ['special2', 'special3'].some(slot => canUse({ ...fighter, hope: fighter.isAI ? fighter.fear : fighter.hope }, slot))
       reports.push(report)
     }

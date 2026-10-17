@@ -12,7 +12,7 @@ for (const level of [1]) test(`character defaults and both combat roles scale co
     const name = player === 'marq' ? 'Marq' : 'Maxim'
     const character = resolveCharacter(`${name} [Spooky]`)
     const battle = newBattle(0, { level, character, opponent })
-    for (const [fighter, kit] of [[battle.marq, player], [battle.warrior, opponent]]) {
+    for (const [fighter, kit] of [[battle.player, player], [battle.enemy, opponent]]) {
       assert.equal(fighter.attack, (kit === 'marq' ? 200 : 220) + gain)
       assert.equal(fighter.hp, (kit === 'marq' ? 260 : 220) + gain)
       assert.equal(fighter.maxHp, fighter.hp)
@@ -20,8 +20,8 @@ for (const level of [1]) test(`character defaults and both combat roles scale co
     }
     const lobby = screen({ id: 'test', revision: 0, level, character, opponent })
     const description = lobby.embeds[0].data.description
-    assert.ok(description.includes(`${name}: ${battle.marq.maxHp} HP · ${battle.marq.attack} Attack`))
-    assert.ok(description.includes(`${opponent === 'marq' ? 'Marq' : 'Maxim'}: ${battle.warrior.maxHp} HP · ${battle.warrior.attack} Attack`))
+    assert.ok(description.includes(`${name}: ${battle.player.maxHp} HP · ${battle.player.attack} Attack`))
+    assert.ok(description.includes(`${opponent === 'marq' ? 'Marq' : 'Maxim'}: ${battle.enemy.maxHp} HP · ${battle.enemy.attack} Attack`))
   }
 })
 

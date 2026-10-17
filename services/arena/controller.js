@@ -223,14 +223,14 @@ function createArena({ roll, rollDuality, rollFearSpend, rollAccuracy, rollCriti
     if (lateGame) { cancel(session); session.minigame.claimed = true; session.minigame.choice = 0; session.revision++ }
     const start = current && session.page === 'prefight' && !match[4] && ['start', 'idle'].includes(match[3]) && (!session.battle || session.battle.status !== 'playing' || session.stopped)
     const special = current && !match[4] && ['special1', 'special2', 'special3'].includes(match[3]) && !session.stopped && !session.minigame &&
-      session.battle?.status === 'playing' && session.battle.mode !== 'idle' && session.pendingSpecial !== match[3] && canUse(session.battle.marq, match[3])
+      session.battle?.status === 'playing' && session.battle.mode !== 'idle' && session.pendingSpecial !== match[3] && canUse(session.battle.player, match[3])
     // Shuffling moves numbered buttons but does not invalidate that game's
     // controls. A new game receives a fresh revision, so old fights stay stale.
     const pick = !lateGame && game && Number(match[2]) === game.revision && match[3] === 'pick' && match[4] && !game.claimed
     let gameStarted = false
     if (quit) {
       cancel(session); session.minigame = null; session.pendingSpecial = null
-      session.battle = { ...session.battle, status: 'quit', marq: { ...session.battle.marq, slayerCharges: 0,
+      session.battle = { ...session.battle, status: 'quit', marq: { ...session.battle.player, slayerCharges: 0,
         criticalReady: false, opportunityReady: false } }; session.revision++
       armExpiry(session)
     } else if (opponent) {
