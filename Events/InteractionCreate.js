@@ -129,7 +129,7 @@ module.exports = {
       }
     }
     // Handle Button Interactions
-    else if (interaction.isButton()) {
+    else if (interaction.isButton() || (interaction.isStringSelectMenu?.() && interaction.customId?.startsWith('arena:'))) {
       const customId = interaction.customId;
       if (customId.startsWith('arena:')) {
         if (process.env.NODE_ENV !== 'development' || !process.env.GUILDID || interaction.guildId !== process.env.GUILDID) {

@@ -6,6 +6,8 @@ async function fixture(t) {
   const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
   t.after(() => sequelize.close())
   const User = require('../models/User/User')(sequelize, DataTypes); await User.sync()
+  // Production profiles read the shared entitlement after the Plot rollout.
+  await require('../migrations/plot-points').up(sequelize.getQueryInterface())
   const edits = [], rendered = []
   const player = { id: 'alice', username: 'alice', displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png' }
   const interaction = { user: player, options: { getUser: () => null }, guild: { id: 'guild',

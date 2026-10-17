@@ -32,9 +32,23 @@ function withBalances(payload, receipt, now, event) {
 const { safeName } = require('../display-name')
 function fateBalanceFields(result) {
   const valid = (value) => Number.isSafeInteger(value) && value >= 0
-  if (valid(result.sanity)) return [{ name: 'Sanity', value: valid(result.sanityBefore) && result.sanityBefore !== result.sanity ? `${result.sanityBefore} → ${result.sanity}` : `${result.sanity}`, inline: true },
-    ...(valid(result.fatePoints) ? [{ name: 'Fate', value: `${result.fatePoints}`, inline: true }] : []),
-    ...(valid(result.bank) ? [{ name: 'Bank', value: `${result.bank}`, inline: true }] : [])]
+  if (valid(result.sanity))
+    return [
+      {
+        name: 'Sanity',
+        value:
+          valid(result.sanityBefore) && result.sanityBefore !== result.sanity
+            ? `${result.sanityBefore} → ${result.sanity}`
+            : `${result.sanity}`,
+        inline: true,
+      },
+      ...(valid(result.fatePoints)
+        ? [{ name: 'Fate', value: `${result.fatePoints}`, inline: true }]
+        : []),
+      ...(valid(result.bank)
+        ? [{ name: 'Bank', value: `${result.bank}`, inline: true }]
+        : []),
+    ]
   if (!valid(result.bank)) return []
   const before = valid(result.bankBefore) ? result.bankBefore : null
   const bank = {
@@ -89,15 +103,27 @@ function targetIds(result, actorId) {
         result.explosionTargetUserId,
         result.eyeRecipientId,
         result.watchedUserId,
-        ...(result.blockedShields || []).map(row => row.userId),
-        ...(result.candyMovements || []).flatMap(row => [row.fromUserId, row.toUserId]),
+        ...(result.blockedShields || []).map((row) => row.userId),
+        ...(result.candyMovements || []).flatMap((row) => [
+          row.fromUserId,
+          row.toUserId,
+        ]),
       ].filter((id) => id && id !== actorId),
     ),
   ]
 }
 function actionMessages(
   receipt,
-  { actorId, members, registeredIds, mentionIds, variantKey, avatarURL, timestamp, guildName },
+  {
+    actorId,
+    members,
+    registeredIds,
+    mentionIds,
+    variantKey,
+    avatarURL,
+    timestamp,
+    guildName,
+  },
 ) {
   const result = receipt.result || receipt
   const ids = targetIds(result, actorId),
@@ -117,15 +143,26 @@ function actionMessages(
     variantKey,
   })
   const details = []
-  for (const shield of result.blockedShields || []) details.push(shield.popped
-    ? `💥 ${label(shield.userId)}'s shield burst into sparks! It stopped the attack, but the magic is gone.`
-    : `✨ ${label(shield.userId)}'s shield caught the attack and flickered.`)
+  for (const shield of result.blockedShields || [])
+    details.push(
+      shield.popped
+        ? `💥 ${label(
+            shield.userId,
+          )}'s shield burst into sparks! It stopped the attack, but the magic is gone.`
+        : `✨ ${label(
+            shield.userId,
+          )}'s shield caught the attack and flickered.`,
+    )
   if (
     result.fateBonus &&
     !(receipt.outcome === 'sweet_tooth' && result.noEffect)
   )
     details.push(`**Banked fate bonus:** +${result.fateBonus}.`)
-  if (result.candyReward && !result.watchedUserId && receipt.outcome !== 'eye_candy')
+  if (
+    result.candyReward &&
+    !result.watchedUserId &&
+    receipt.outcome !== 'eye_candy'
+  )
     details.push(`**Candy reward:** +${result.candyReward}.`)
   if (result.goodwillFreedUserId)
     details.push(`**${actor}'s good will broke the curse!**`)
@@ -138,9 +175,13 @@ function actionMessages(
   }
   const collectionUserId = result.collectionUserId || actorId
   const { thumbnail: giverAvatar, ...recipientDecoration } = decoration
-  const revealDecoration = collectionUserId === actorId ? decoration : {
-    ...recipientDecoration, footer: balanceFooter(result.collectionBalance || receipt, timestamp),
-  }
+  const revealDecoration =
+    collectionUserId === actorId
+      ? decoration
+      : {
+          ...recipientDecoration,
+          footer: balanceFooter(result.collectionBalance || receipt, timestamp),
+        }
   // Discoveries and earned wins belong in the channel, including personal finds.
   // No actor ping is needed; the root transaction supplies capped recipients.
   const rewardWin =
@@ -173,15 +214,29 @@ function actionMessages(
                 ...(fateBalanceFields(result).length
                   ? { fields: fateBalanceFields(result) }
                   : {}),
-                ...(result.unlockedLevels?.length ? { image: { url: 'attachment://community-level-up.png' } } : {}),
+                ...(result.unlockedLevels?.length
+                  ? { image: { url: 'attachment://community-level-up.png' } }
+                  : {}),
               },
             ],
-            ...(result.unlockedLevels?.length && result.plotSpotlight ? { communityBanner: {
-              level: result.communityLevel, progress: result.communityProgress, spotlight: result.plotSpotlight,
-              displayName: guildName || 'Our Server',
-              currentEvent: require('../../config/plot-points.json').events[result.plotSpotlight.eventId]?.name || null,
-              currentEventEmoji: require('../../config/plot-points.json').events[result.plotSpotlight.eventId]?.emoji || null,
-            } } : {}),
+            ...(result.unlockedLevels?.length && result.plotSpotlight
+              ? {
+                  communityBanner: {
+                    level: result.communityLevel,
+                    progress: result.communityProgress,
+                    spotlight: result.plotSpotlight,
+                    displayName: guildName || 'Our Server',
+                    currentEvent:
+                      require('../../config/plot-points.json').events[
+                        result.plotSpotlight.eventId
+                      ]?.name || null,
+                    currentEventEmoji:
+                      require('../../config/plot-points.json').events[
+                        result.plotSpotlight.eventId
+                      ]?.emoji || null,
+                  },
+                }
+              : {}),
           },
         },
       ]
@@ -223,7 +278,8 @@ function actionMessages(
                 }
               : {}),
             description: `${safeName(
-              members.find((member) => member.userId === collectionUserId)?.displayName,
+              members.find((member) => member.userId === collectionUserId)
+                ?.displayName,
             )} collected **${safeName(award.characterName)} #${pieceNumber(
               award.position,
             )}**!\nThis is a **${award.rarity.toUpperCase()} **piece.\n${
@@ -285,7 +341,8 @@ function actionMessages(
               : {}),
             thumbnail: { url: `attachment://${image}` },
             description: `**${safeName(
-              members.find((member) => member.userId === collectionUserId)?.displayName,
+              members.find((member) => member.userId === collectionUserId)
+                ?.displayName,
             )} — Congratulations! You have collected all four pieces of ${safeName(
               name,
             )}!**${
@@ -343,7 +400,13 @@ function registrationScreen(receipt, user) {
       '**Play:** `/spooky treat` or `/spooky trick` — each costs **1 🍬 candy**.',
       '**Collect:** Every **5 🧿 Evil Eyes** automatically earns a random piece. Incomplete characters always give you an unowned piece; completed characters can give duplicates. Every **5 duplicates** earns a new unowned piece! Complete a character to unlock its permanent badge.',
       '**Check in:** `/spooky collection` for quarters, badges and balances.',
-      config.fate.paymentResource === 'sanity' ? '**More:** `/spooky buy-quarter` buys a quarter for **10 Sanity**. Fate and Bank stay untouched. `/spooky help` explains the full rules.' : `**More:** \`/spooky spend-fate\` buys a quarter for **10 Fate Points (${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'})**. \`/spooky help\` explains the full rules.`,
+      config.fate.paymentResource === 'sanity'
+        ? '**More:** `/spooky buy-quarter` buys a quarter for **10 Sanity**. Fate and Bank stay untouched. `/spooky help` explains the full rules.'
+        : `**More:** \`/spooky spend-fate\` buys a quarter for **10 Fate Points (${
+            config.fate.paymentResource === 'normal-fate-only'
+              ? 'normal Fate only'
+              : 'Bank first, then Fate'
+          })**. \`/spooky help\` explains the full rules.`,
       'Candy refills **+1 every 18 minutes**. Keep spending so your bucket has room for more!',
     ].join('\n\n'),
   )
@@ -364,11 +427,21 @@ function helpScreen() {
     [
       '**Play:** `/spooky register`, `/spooky trick`, `/spooky treat`.',
       '**View:** `/spooky collection`, `/spooky leaderboard`, `/spooky help`. Balances appear in the footer.',
-      config.fate.paymentResource === 'sanity' ? '**Extra quarter:** `/spooky buy-quarter` lets you confirm spending **10 Sanity**; Fate and Bank stay untouched.' : `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${config.fate.paymentResource === 'normal-fate-only' ? 'normal Fate only' : 'Bank first, then Fate'}**; no daily limit.`,
+      config.fate.paymentResource === 'sanity'
+        ? '**Extra quarter:** `/spooky buy-quarter` lets you confirm spending **10 Sanity**; Fate and Bank stay untouched.'
+        : `**Extra quarter:** \`/spooky spend-fate\` lets you confirm spending **10 Fate Points**, using **${
+            config.fate.paymentResource === 'normal-fate-only'
+              ? 'normal Fate only'
+              : 'Bank first, then Fate'
+          }**; no daily limit.`,
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
       'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. Once all seven characters are complete, you stop receiving pieces and paid draws close. Existing pieces, duplicates and unspent Eyes are kept.',
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
-      ...(config.plotPointsEnabled ? ['Sometimes your story adds one 📖 Plot point to the community instead of a candy reward. View our shared progress with `/profile community:True`. Each new chapter brings the community closer to a shared badge.'] : []),
+      ...(config.plotPointsEnabled
+        ? [
+            'Sometimes your story adds one 📖 Plot point to the community instead of a candy reward. View our shared progress with `/profile community:True`. Each new chapter brings the community closer to a shared badge.',
+          ]
+        : []),
       'Curse and protection spells offer up to three eligible people to choose from privately. After 20 seconds, Halloween magic picks one of them. Backfiring curses still affect the giver.',
       'Curse-breaking offers the same choice when at least two people are cursed; a single cursed person is freed automatically.',
       'A shield usually protects the recipient and sometimes the giver too. Each attack weakens it until it bursts, or its magic fades. Shields protect candy, Eyes, names and even the Sweet Tooth Crown. Protection cast on a cursed player breaks their curse instead; it can also repair a hole in their bag. Existing spells cannot be renewed. Curses show ☠ Name ☠; shields show ✨( Name )✨ when the bot can edit the nickname. Original names return when their effects end.',

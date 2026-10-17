@@ -1,12 +1,10 @@
-const fs = require('node:fs/promises')
-const path = require('node:path')
 const { AttachmentBuilder } = require('discord.js')
 const plots = require('./plot-points')
 const { serialize } = require('./spooky/economy')
 const { badges: catalog, defineBadgeModel } = require('./badges')
 const { excludedMember } = require('./member-policy')
 const { renderProfileCard, discordImage } = require('./profile-card')
-const assetRoot = path.resolve(__dirname, '../assets/badges/Spooky')
+const { readBadgeImage } = require('./profile-badge-art')
 function popularBadges(rows, eligibleIds, unlockedBadge = null) {
   const settings = require('../config/plot-points.json').popularBadges
   const excluded = new Set(settings.excludedUserIds)
@@ -46,8 +44,7 @@ async function showCommunity(interaction, { sequelize, render = renderProfileCar
       const emoji = emojis.find(item => item.name === name && item.available !== false && /^\d{17,20}$/.test(item.id))
       return emoji ? download(`https://cdn.discordapp.com/emojis/${emoji.id}.png?size=96`).catch(() => null) : null
     }
-    const avatar = data.spotlight.imageAsset && path.basename(data.spotlight.imageAsset) === data.spotlight.imageAsset
-      ? await fs.readFile(path.join(data.spotlight.imageCollection === 'base' ? path.dirname(assetRoot) : assetRoot, data.spotlight.imageAsset)).catch(() => null) : null
+    const avatar = await readBadgeImage(data.spotlight)
     const badges = await Promise.all(data.badges.map(async badge => ({ ...badge, image: await imageFor(badge.emojiName) })))
     const buffer = await render({ displayName: interaction.guild.name || 'Our Server', avatar, badges,
       community: data, sanity: null })

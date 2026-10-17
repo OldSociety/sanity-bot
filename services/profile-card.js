@@ -7,6 +7,7 @@ const WIDTH = 1200,
   MAX_BADGES = 10
 const assetRoot = path.resolve(__dirname, '../assets')
 const { sanityStage, eyeSvg, placement: eyePlacement } = require('./sanity-eye')
+const { badgeSkin, readBadgeImage } = require('./profile-badge-art')
 const xml = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -143,6 +144,7 @@ async function renderProfileCard({
   before = {},
   sanity = null,
   community = null,
+  unlockPreview = process.env.NODE_ENV === 'development',
   background = path.join(
     assetRoot,
     'profile-backgrounds/default/blackhole.png',
@@ -154,6 +156,7 @@ async function renderProfileCard({
   const progress = community?.progress || progression(user),
     overlays = []
   const eventCard = occasion !== 'profile'
+  const showUnlock = unlockPreview && !eventCard
   const barY = community && !eventCard ? 252 : 288
   const barHeight = community ? 22 : 16
   const badgeSize = community ? 64 : 48
@@ -189,8 +192,11 @@ async function renderProfileCard({
     .slice(0, MAX_BADGES)
     .map((badge, i) => {
       const x = (community ? 292 : 288) + i * 86
+      const skin = badge.placeholder ? null : badgeSkin(badge)
       return (
-        `<circle cx="${x}" cy="${badgeCenterY}" r="${community ? 35 : 27}" fill="#0d2029" stroke="#4f7f91" stroke-opacity=".6"${
+        `<circle cx="${x}" cy="${badgeCenterY}" r="${
+          community ? 35 : 27
+        }" fill="#0d2029" stroke="#4f7f91" stroke-opacity=".6"${
           badge.placeholder ? ' stroke-dasharray="4 4"' : ''
         }/>` +
         text(
@@ -201,8 +207,11 @@ async function renderProfileCard({
           '#aecbd6',
           600,
         ) +
-        `<text x="${x}" y="${badgeLabelY}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${community ? 14 : 12}" fill="#bdced5">${xml(
-          badge.placeholder ? 'Chapter 2' : truncate(badge.name, 10),
+        (skin ? `<text x="${x}" y="${badgeLabelY - 7}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${community ? 10 : 9}" fill="#8daab9">${skin}</text>` : '') +
+        `<text x="${x}" y="${badgeLabelY + (skin ? 9 : 0)}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${
+          community ? 14 : 12
+        }" fill="#bdced5">${xml(
+          badge.placeholder ? 'Chapter 2' : truncate(badge.name, 13),
         )}</text>`
       )
     })
@@ -246,19 +255,25 @@ async function renderProfileCard({
       ? `${before.chat_level} → `
       : ''
   }${progress.level}</text>
-  ${community ? '' : text(
-    260,
-    eventCard ? 172 : community ? 150 : 143,
-    community ? 26 : 18,
-    community
-      ? `Current Event: ${community.currentEvent || 'None'}`
-      : '@' + truncate(username || 'player', 40),
-    '#b1c4cd',
-    community ? 700 : 400,
-  )}
   ${
     community
-      ? community.levelUpLabel ? text(260, 226, 21, community.levelUpLabel, '#e8f0f3', 600) : ''
+      ? ''
+      : text(
+          260,
+          eventCard ? 172 : community ? 150 : 143,
+          community ? 26 : 18,
+          community
+            ? `Current Event: ${community.currentEvent || 'None'}`
+            : '@' + truncate(username || 'player', 40),
+          '#b1c4cd',
+          community ? 700 : 400,
+        )
+  }
+  ${
+    community
+      ? community.levelUpLabel
+        ? text(260, 226, 21, community.levelUpLabel, '#e8f0f3', 600)
+        : ''
       : `
   ${text(260, eventCard ? 207 : 193, 13, 'FATE POINTS', '#b1c4cd', 600)}
   ${metric(260, 'fate')}
@@ -277,12 +292,34 @@ async function renderProfileCard({
       : ''
   }
   ${community ? text(260, barY - 14, 15, 'PLOT POINTS', '#c5dce5', 700) : ''}
-  <text x="1118" y="${community ? barY - 14 : 272}" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="${community ? 15 : 14}" fill="#c5dce5">${
+  <text x="${showUnlock ? 1038 : 1118}" y="${
+    community ? barY - 14 : 272
+  }" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="${
+    community ? 15 : 14
+  }" fill="#c5dce5">${
     community && progress.required === null
       ? 'NEXT CHAPTER TO COME'
-      : community ? `LEVEL ${progress.level} ➡ LEVEL ${progress.level + 1}` : `LEVEL ${progress.level + 1}`
+      : community
+      ? `NEXT UNLOCK: LEVEL ${progress.level + 1}`
+      : showUnlock
+      ? 'NEXT UNLOCK: LEVEL 5'
+      : `LEVEL ${progress.level + 1}`
   }</text>
-  <rect x="260" y="${barY}" width="858" height="${barHeight}" rx="${barHeight / 2}" fill="#527f91" fill-opacity="${community ? '.45' : '.30'}"${community ? ' stroke="#7195a4" stroke-opacity=".35"' : ''}/>
+  ${
+    showUnlock && community
+      ? `<circle cx="1086" cy="${
+          barY - 30
+        }" r="24" fill="#0d2029" stroke="#7b9aa8" stroke-dasharray="4 4"/>
+         <text x="1086" y="${
+           barY - 21
+         }" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="28" fill="#aecbd6">?</text>`
+      : ''
+  }
+  <rect x="260" y="${barY}" width="858" height="${barHeight}" rx="${
+    barHeight / 2
+  }" fill="#527f91" fill-opacity="${community ? '.45' : '.30'}"${
+    community ? ' stroke="#7195a4" stroke-opacity=".35"' : ''
+  }/>
   ${
     progress.fraction > 0
       ? `<rect x="260" y="${barY}" width="${
@@ -297,7 +334,11 @@ async function renderProfileCard({
     260,
     community && !eventCard ? 318 : 348,
     community ? 15 : 12,
-    community ? occasion === 'level-up' ? 'SHARED UNLOCKS' : 'MOST POPULAR BADGES' : 'RECENT UNLOCKS',
+    community
+      ? occasion === 'level-up'
+        ? 'SHARED UNLOCKS'
+        : 'MOST POPULAR BADGES'
+      : 'RECENT UNLOCKS',
     community ? '#c5dce5' : '#b1c4cd',
     community ? 700 : 600,
   )}
@@ -309,7 +350,9 @@ async function renderProfileCard({
       18,
       badgesUnavailable
         ? 'Badges temporarily unavailable'
-        : community && occasion === 'profile' ? 'No badges have two owners yet.' : 'No badges unlocked yet.',
+        : community && occasion === 'profile'
+        ? 'No badges have two owners yet.'
+        : 'No badges unlocked yet.',
       '#a3bac4',
     )
   }`)
@@ -323,11 +366,36 @@ async function renderProfileCard({
     { input: layout },
     { input: name, left: 260, top: eventCard ? 110 : 73 },
   )
+  // Unlock previews are separate from earned badges and never grant ownership.
+  if (showUnlock && !community) {
+    const badge = await fs.readFile(
+      path.join(assetRoot, 'badges', 'Classic', 'AZULIS_BADGE.png'),
+    )
+    overlays.push({
+      input: await sharp(badge)
+        .resize(64, 64, { fit: 'contain', background: '#00000000' })
+        .png()
+        .toBuffer(),
+      left: 1054,
+      top: barY - 70,
+    })
+  }
   if (community) {
     const eventName = community.currentEvent || 'None'
-    const eventEmoji = community.currentEvent && community.currentEventEmoji ? `${community.currentEventEmoji} ` : ''
-    overlays.push({ input: await label(`Current Event: ${eventEmoji}${eventName}`, 'Segoe UI Bold 26', 858, '#b1c4cd'),
-      left: 260, top: eventCard ? 147 : 125 })
+    const eventEmoji =
+      community.currentEvent && community.currentEventEmoji
+        ? `${community.currentEventEmoji} `
+        : ''
+    overlays.push({
+      input: await label(
+        `Current Event: ${eventEmoji}${eventName}`,
+        'Segoe UI Bold 26',
+        858,
+        '#b1c4cd',
+      ),
+      left: 260,
+      top: eventCard ? 147 : 125,
+    })
   }
   if (sanity)
     overlays.push({
@@ -343,16 +411,9 @@ async function renderProfileCard({
     } catch {}
   await Promise.all(
     badges.slice(0, MAX_BADGES).map(async (badge, i) => {
-      let input = badge.image
-      if (
-        !input &&
-        badge.imageAsset &&
-        path.basename(badge.imageAsset) === badge.imageAsset
-      ) {
-        input = await fs
-          .readFile(path.join(assetRoot, 'badges', 'Spooky', badge.imageAsset))
-          .catch(() => null)
-      }
+      // Replacement artwork on disk is authoritative; a server emoji may still
+      // contain the old drawing. Keep it only as a missing-file fallback.
+      const input = await readBadgeImage(badge) || badge.image
       if (input)
         try {
           overlays.push({
