@@ -8,6 +8,7 @@ const {
 const { exhausted } = require('./resources')
 const { blockedDamage, basic_damage } = require('./damage-types')
 const selene = require('./selene')
+const resistance = require('./resistance')
 const isHendrix = (fighter) => fighter.kit === config.identity.kit
 function duration(roll) {
   const p = roll()
@@ -148,6 +149,7 @@ function preview(fighter, target, slot, choice, mainBranches) {
     target.passive,
     target.brinkUsed,
     selene.wallActive(target, undefined, fighter),
+    slot === 'special3' ? resistance.probability(fighter, target) : 0,
     slot,
     choice,
   ])
@@ -218,20 +220,28 @@ function preview(fighter, target, slot, choice, mainBranches) {
               : 0,
           ]
     for (const percent of percents)
-      for (const [total, p] of mass) {
-        const damage =
-          total +
-          damageFor(
-            fighter.attack,
-            percent,
-            fighter.abilityRanks?.[slot] || 1,
-            multiplier
-          )
-        minimum = Math.min(minimum, damage)
-        expected += (damage * p * mainChance) / percents.length
-        knockout +=
-          (Number(damage >= target.hp) * p * mainChance) / percents.length
-      }
+      for (const [total, p] of mass)
+        for (const [resisted, resistanceChance] of slot === 'special3'
+          ? resistance.branches(fighter, target)
+          : [[false, 1]]) {
+          const damage =
+            total +
+            resistance.damage(
+              damageFor(
+                fighter.attack,
+                percent,
+                fighter.abilityRanks?.[slot] || 1,
+                multiplier
+              ),
+              resisted
+            )
+          minimum = Math.min(minimum, damage)
+          expected +=
+            (damage * p * mainChance * resistanceChance) / percents.length
+          knockout +=
+            (Number(damage >= target.hp) * p * mainChance * resistanceChance) /
+            percents.length
+        }
   }
   if (require('./passives').brinkAvailable(target)) knockout = 0
   const result = Object.freeze({

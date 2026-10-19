@@ -52,7 +52,8 @@ function statusIcons(fighter) {
       label: 'Wind Wall · Slow',
       value: String(
         Math.min(
-          seleneBuild.abilities.special2.duration,
+          seleneBuild.abilities.special2.duration +
+            Number(seleneBuild.abilities.special2.protectActivationRound),
           fighter.windWall.endRound - (fighter.combatRound || 1) + 1
         )
       ),

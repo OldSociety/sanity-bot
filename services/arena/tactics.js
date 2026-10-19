@@ -12,6 +12,7 @@ const { brinkAvailable, brinkHealth } = require('./passives')
 const outcomes = require('./outcomes')
 const Duality = require('./duality')
 const selene = require('./selene')
+const resistance = require('./resistance')
 
 // Enumerate only public dice mechanics, never the upcoming random draws.
 const rates = { success: 0, opportunity: 0, fear: 0, hope: 0 }
@@ -92,6 +93,7 @@ function preview(fighter, target, slot = null, choice = 3) {
     fighter.lifeUses,
     selene.isSelene(fighter) ? Duality.value(fighter) : null,
     selene.wallActive(target, undefined, fighter),
+    slot === 'special3' ? resistance.probability(fighter, target) : 0,
     target.kit,
     fighter.passive,
     fighter.opportunityReady,
@@ -303,7 +305,7 @@ function modernPreview(fighter, target, slot, choice, key) {
       const basic = basicHit
         ? rawBasic
         : outcomes.blockDamage(rawBasic, 'basic_damage')
-      const direct = (total = 0, percent) => {
+      const direct = (total = 0, percent, resisted = false) => {
         if (!slot) return 0
         const raw = specialDamage(attacker, slot, {
           total,
@@ -311,7 +313,10 @@ function modernPreview(fighter, target, slot, choice, key) {
           multiplier,
           percent,
         }).damage
-        return specialHit ? raw : outcomes.blockDamage(raw)
+        return resistance.damage(
+          specialHit ? raw : outcomes.blockDamage(raw),
+          resisted
+        )
       }
       const weight = chance * effectChance
       minimum = Math.min(
@@ -343,15 +348,27 @@ function modernPreview(fighter, target, slot, choice, key) {
       ) {
         const [min, max] = balance.ai.finisherRange
         for (let percent = min; percent <= max; percent++) {
-          const damage = basic + direct(0, percent)
-          minimum = Math.min(minimum, damage)
-          knockout += (weight * Number(damage >= target.hp)) / (max - min + 1)
-          expected += (weight * damage) / (max - min + 1)
+          for (const [resisted, resistanceChance] of resistance.branches(
+            fighter,
+            target
+          )) {
+            const damage = basic + direct(0, percent, resisted)
+            minimum = Math.min(minimum, damage)
+            knockout +=
+              (weight * resistanceChance * Number(damage >= target.hp)) /
+              (max - min + 1)
+            expected += (weight * resistanceChance * damage) / (max - min + 1)
+          }
         }
       } else {
-        const damage = basic + direct()
-        knockout += weight * Number(damage >= target.hp)
-        expected += weight * damage
+        for (const [resisted, resistanceChance] of slot === 'special3'
+          ? resistance.branches(fighter, target)
+          : [[false, 1]]) {
+          const damage = basic + direct(0, undefined, resisted)
+          minimum = Math.min(minimum, damage)
+          knockout += weight * resistanceChance * Number(damage >= target.hp)
+          expected += weight * resistanceChance * damage
+        }
       }
     }
   }
@@ -562,11 +579,19 @@ function decide(
           basicDamage({ ...actor, slayerCharges: 0 }, target))
       : 0
   const s2Value = s2 ? s2.expected - base.expected + delayedValue : 0
+  const finisherDirect = specialDamage(actor, 'special3', { choice }).damage
+  const finisherValue = resistance
+    .branches(actor, target)
+    .reduce(
+      (sum, [resisted, chance]) =>
+        sum + chance * resistance.damage(finisherDirect, resisted),
+      0
+    )
   const saving =
     resource < finisherCost &&
     resource >= Duality.cost(kitFor(actor).special2) &&
     horizon.window > waitForFinisher + 2 &&
-    specialDamage(actor, 'special3', { choice }).damage > s2Value * 1.25
+    finisherValue > s2Value * 1.25
   const exhaustedHorizon = exhausts
     ? survival({ ...actor, stress: 0 }, target, context)
     : horizon

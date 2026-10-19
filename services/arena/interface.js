@@ -106,7 +106,7 @@ function actionLines(actions = []) {
         if (event.type === 'heal') {
           text = `${event.actor} used ${event.name}: restored ${event.healing} HP. ${cost}`
         } else if (event.type === 'windWall') {
-          text = `${event.actor} used Wind Wall: Slow gives 75% Block during the next two rounds. ${cost}`
+          text = `${event.actor} used Wind Wall: Slow gives 75% Block this round and the next two rounds, plus 75% Super Move resistance. ${cost}`
         } else if (event.type === 'rage') {
           text = `${event.actor} · STOKE THE FLAMES · Gained 1 Rage · Rage ${event.rage}/3`
         } else if (event.type === 'combo') {
@@ -127,7 +127,9 @@ function actionLines(actions = []) {
           text = `${event.actor} used ${event.name}: next ${event.hits} landed basics +${event.percent}% Attack. ${cost}`
         } else if (event.slot === 'special3') {
           text =
-            event.resource === 'Fear' && event.damage === 0
+            event.resource === 'Fear' &&
+            event.damage === 0 &&
+            !require('./resistance').enabled()
               ? `${event.actor}: ${event.name} missed! ${cost}`
               : `${event.actor}: ${event.name}: ${
                   event.resource === 'Fear'
@@ -135,7 +137,11 @@ function actionLines(actions = []) {
                     : event.choice
                     ? `picked ${event.choice}`
                     : 'no choice'
-                } · ${event.percent}% · ${event.damage} damage. ${cost}`
+                } · ${event.percent}% · ${event.damage} damage.${
+                  event.resisted
+                    ? ` Resisted: 50% damage (${event.resistancePrevented} prevented).`
+                    : ''
+                } ${cost}`
         } else
           text = `${event.actor} used ${event.name} for ${
             event.damage
@@ -355,7 +361,11 @@ function screen(session) {
           name: 'Attack rules',
           value:
             (require('./rules').balance.damageRules
-              ? 'Offensive specials include a basic. Only basics can crit. Block: 75% basic / 50% special damage. Bleeding ignores Block; Finishers are guaranteed.'
+              ? `Offensive specials include a basic. Only basics can crit. Block: 75% basic / 50% special damage. Bleeding ignores Block; Finishers are guaranteed.${
+                  require('./resistance').enabled()
+                    ? ' Super Moves can be resisted for 50% damage at the defender’s Block chance.'
+                    : ''
+                }`
               : 'Offensive specials include a basic. Only basics can crit. Block: 25% damage; no on-hit effects.') +
             (balance.damageRounding === 'floor'
               ? ' All damage rounds down.'

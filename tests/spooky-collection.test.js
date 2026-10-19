@@ -12,6 +12,7 @@ async function fixture(t, random = () => 0, overrides = {}) {
   const sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
   t.after(() => sequelize.close())
   await migration.up(sequelize.getQueryInterface())
+  if (overrides.plotPointsEnabled) await require('../migrations/plot-points').up(sequelize.getQueryInterface())
   // Historical duplicate/replay fixtures explicitly retain the old policy.
   const models = defineSpookyModels(sequelize), event = { ...config, enabled: true, duplicates: { ...config.duplicates, allowDuplicates: true, requireCompletedCharacter: false }, ...overrides }
   const economy = createEconomy({ sequelize, models, configVersion: event.version, clock: () => new Date(config.startsAt) })
@@ -25,7 +26,7 @@ async function fixture(t, random = () => 0, overrides = {}) {
     const participant = await owner()
     for (const [pieceId, quantity] of Object.entries(quantities)) await models.Inventory.create({ participantId: participant.id, pieceId, quantity })
   }
-  return { models, event, economy, participants, collection, input, run, owner, seed }
+  return { sequelize, models, event, economy, participants, collection, input, run, owner, seed }
 }
 
 test('current policy blocks partial-character duplicates, then allows extras and exchanges five after completion', async t => {
@@ -344,4 +345,83 @@ test('duplicate award snapshots fifth extra before exchange and replays that cou
   assert.equal(result.receipt.duplicates, 0)
   const replay = await f.run('fifth-extra', () => { throw new Error('must replay') })
   assert.equal(replay.receipt.awards[0].duplicates, 5)
+})
+
+test('completed collection converts each five Eyes to five community Plot points and replays once', async t => {
+  const f = await fixture(t, () => { throw Error('No piece roll after completion') }, { plotPointsEnabled: true })
+  await f.seed(Object.fromEntries(pieces.map(piece => [piece.id, piece.id === 'had_tl' ? 7 : 1])))
+  await (await f.owner()).update({ eyes: 3 })
+  const plots = require('../services/plot-points').createPlotPoints({ sequelize: f.sequelize })
+  const below = await f.run('below-five', ctx => f.collection.creditEyes(ctx, 'alice', 1))
+  assert.equal(below.receipt.eyes, 4)
+  assert.equal(below.receipt.plotPoints, undefined)
+  assert.equal((await plots.view('guild')).total, 0)
+  await plots.models.Guild.create({ guildId: 'guild', total: 9999 })
+  const before = (await f.models.Inventory.findAll()).map(row => row.get({ plain: true }))
+  const earn = () => f.run('completed-plots', ctx => f.collection.creditEyes(ctx, 'alice', 1))
+  const results = await Promise.all([earn(), earn()])
+  assert.equal(results.filter(row => row.replayed).length, 1)
+  const reward = results[0].receipt
+  assert.equal(reward.plotPoints, 5)
+  assert.equal(reward.eyesConverted, 5)
+  assert.equal(reward.eyes, 0)
+  assert.deepEqual(reward.unlockedLevels, [2])
+  assert.equal(reward.awards.length, 0)
+  assert.equal(reward.duplicates, 6)
+  assert.equal((await plots.view('guild')).total, 10004)
+  assert.equal(await plots.models.Contribution.count(), 1)
+  assert.deepEqual((await f.models.Inventory.findAll()).map(row => row.get({ plain: true })), before)
+  const batch = await f.run('batch-plots', ctx => f.collection.creditEyes(ctx, 'alice', 12))
+  assert.equal(batch.receipt.plotPoints, 10)
+  assert.equal(batch.receipt.eyes, 2)
+  assert.equal((await plots.view('guild')).total, 10014)
+  const entries = await f.models.Ledger.findAll({ where: { resource: 'plotPoints' } })
+  assert.deepEqual(entries.map(row => row.delta), [5, 10])
+})
+
+test('last piece consumes five Eyes before remaining full sets become Plot points', async t => {
+  const f = await fixture(t, () => 0, { plotPointsEnabled: true, duplicates: { ...config.duplicates, allowDuplicates: false } })
+  await f.seed(Object.fromEntries(pieces.filter(piece => piece.id !== 'sel_br').map(piece => [piece.id, 1])))
+  const result = await f.run('last-piece-plots', ctx => f.collection.creditEyes(ctx, 'alice', 17))
+  assert.equal(result.receipt.awards.length, 1)
+  assert.equal(result.receipt.awards[0].id, 'sel_br')
+  assert.equal(result.receipt.plotPoints, 10)
+  assert.equal(result.receipt.eyes, 2)
+})
+
+test('completion by duplicate exchange converts remaining full Eye sets immediately', async t => {
+  const f = await fixture(t, () => 0, { plotPointsEnabled: true, duplicates: config.duplicates })
+  await f.seed(Object.fromEntries(pieces.filter(piece => piece.id !== 'sel_br').map(piece => [piece.id, piece.id === 'had_tl' ? 5 : 1])))
+  const result = await f.run('exchange-completion-plots', ctx => f.collection.creditEyes(ctx, 'alice', 15))
+  assert.deepEqual(result.receipt.awards.map(award => award.source), ['eye_draw', 'duplicate_exchange'])
+  assert.equal(result.receipt.awards[1].id, 'sel_br')
+  assert.equal(result.receipt.plotPoints, 10)
+  assert.equal(result.receipt.eyes, 0)
+  assert.equal(result.receipt.duplicates, 0)
+})
+
+test('completed collector receives gift credit and stolen Eye conversion rolls back atomically', async t => {
+  const f = await fixture(t, () => 0, { plotPointsEnabled: true })
+  await f.seed(Object.fromEntries(pieces.map(piece => [piece.id, 1])))
+  await f.participants.register({ ...f.input('bob-register'), actorId: 'bob' })
+  await (await f.owner()).update({ eyes: 4 })
+  await f.models.Participant.update({ eyes: 2 }, { where: { userId: 'bob' } })
+  const plots = require('../services/plot-points').createPlotPoints({ sequelize: f.sequelize })
+  await assert.rejects(f.run('failed-conversion', async ctx => {
+    await f.collection.creditEyes(ctx, 'alice', 1, { fromUserId: 'bob' })
+    throw Error('forced rollback')
+  }), /forced rollback/)
+  assert.equal((await f.owner()).eyes, 4)
+  assert.equal((await f.models.Participant.findOne({ where: { userId: 'bob' } })).eyes, 2)
+  assert.equal((await plots.view('guild')).total, 0)
+  assert.equal(await plots.models.Contribution.count(), 0)
+  assert.equal(await f.models.Operation.findByPk('discord:failed-conversion'), null)
+  const gifted = await f.economy.execute({ ...f.input('gift'), actorId: 'bob' }, ctx => f.collection.creditEyes(ctx, 'alice', 1))
+  assert.equal(gifted.receipt.plotUserId, 'alice')
+  assert.equal(gifted.receipt.plotPoints, 5)
+  assert.equal((await plots.models.Contribution.findOne()).userId, 'alice')
+  const messages = require('../services/spooky/presentation').actionMessages({ outcome: 'eye_candy', action: 'treat', result: { ...gifted.receipt, eyeRecipientId: 'alice', giftedEyes: 1 } }, { actorId: 'bob', members: [], registeredIds: new Set(['alice', 'bob']) })
+  assert.match(messages[0].payload.embeds[0].description, /5.*Plot points/)
+  assert.match(messages[0].payload.embeds[0].description, /<@alice>/)
+  assert.deepEqual(messages[0].payload.allowedMentions.parse, [])
 })

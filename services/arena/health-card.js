@@ -5,6 +5,13 @@ const { resourceMeter } = require('./resources')
 const { statusIcons, iconSvg } = require('./status-icons')
 const { frameVersion, frameFor, frameMarkup } = require('./portrait-frame')
 const { portraitVersion, framingFor, renderPortrait } = require('./portrait')
+const { preparedPortrait } = require('./portrait')
+const { createBufferCache, createRenderQueue } = require('./presentation-cache')
+const templateCache = createBufferCache({
+  maxEntries: 64,
+  maxBytes: 16 * 1024 * 1024,
+})
+const renderQueue = createRenderQueue()
 
 // Match Discord's usual 400px embed image width at an exact 2x pixel density.
 const logicalWidth = 400,
@@ -59,6 +66,7 @@ function cardData(session) {
   return {
     frameVersion,
     portraitVersion,
+    ...(session.assetVersion ? { assetVersion: session.assetVersion } : {}),
     fighters: [
       fighter(session.battle.player, character, 'YOU'),
       fighter(session.battle.enemy, opponent, 'OPPONENT'),
@@ -174,8 +182,58 @@ function cardSvg(data) {
     .join('')
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${logicalWidth}" height="${logicalHeight}" font-family="Segoe UI, sans-serif"><rect width="${logicalWidth}" height="${logicalHeight}" rx="16" fill="#15151e"/>${panels}</svg>`
 }
-async function renderHealthCard(session) {
+async function renderHealthCard(
+  session,
+  { optimized = process.env.NODE_ENV !== 'production' } = {}
+) {
   const data = cardData(session)
+  if (optimized)
+    return renderQueue.run(async () => {
+      const prepared = await Promise.all(
+        data.fighters.map((fighter) =>
+          preparedPortrait(fighter, 72, 100, scale)
+        )
+      )
+      const key = JSON.stringify([
+        frameVersion,
+        prepared.map((portrait) => portrait.key),
+        data.fighters.map((fighter) => fighter.rarityFrame),
+      ])
+      // Reuse a prepared composition template, preserving the original overlay
+      // order and alpha math instead of flattening portraits into another PNG.
+      const template = await templateCache.get(key, async () => {
+        const frames = await sharp(Buffer.from(portraitFramesSvg(data)), {
+          density: 72 * scale,
+        })
+          .png()
+          .toBuffer()
+        return {
+          byteLength:
+            frames.byteLength +
+            prepared.reduce(
+              (bytes, portrait) => bytes + portrait.attachment.byteLength,
+              0
+            ),
+          overlays: [
+            ...prepared.map((portrait, index) => ({
+              input: portrait.attachment,
+              left: 16 * scale,
+              top: (22 + index * 140) * scale,
+            })),
+            { input: frames, left: 0, top: 0 },
+          ],
+        }
+      })
+      return {
+        name: cardName(session),
+        attachment: await sharp(Buffer.from(cardSvg(data)), {
+          density: 72 * scale,
+        })
+          .composite(template.overlays)
+          .png()
+          .toBuffer(),
+      }
+    })
   const portraits = await Promise.all(
     data.fighters.map(async (fighter, index) => ({
       input: await renderPortrait(fighter, 72, 100, scale),
@@ -224,6 +282,10 @@ function portraitFramesSvg(data) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${logicalWidth}" height="${logicalHeight}">${frames}</svg>`
 }
 module.exports = {
+  renderStats: () => ({
+    templates: templateCache.snapshot(),
+    queue: renderQueue.snapshot(),
+  }),
   renderHealthCard,
   cardName,
   cardData,

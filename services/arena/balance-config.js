@@ -61,6 +61,9 @@ function loadBalance(environment = process.env.NODE_ENV) {
   development.damageRules = structuredClone(
     require('./damage-types').proposedRules
   )
+  if (development.superMoveResistance?.enabled)
+    development.damageRules.final_special_damage.blockedMultiplier =
+      development.superMoveResistance.damageMultiplier
   development.damageRounding = 'floor'
   development.manualOpponentSelection = true
   development.offensiveSpecialBasics = true

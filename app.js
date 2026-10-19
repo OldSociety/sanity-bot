@@ -71,10 +71,13 @@ const eventFiles = fs
 for (const file of eventFiles) {
   const filePath = path.join(eventsPath, file)
   const event = require(filePath)
+  const execute = (...args) => runtime.env === 'development'
+    ? require('./services/event-errors').runEvent(event, args)
+    : event.execute(...args)
   if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args))
+    client.once(event.name, execute)
   } else {
-    client.on(event.name, (...args) => event.execute(...args))
+    client.on(event.name, execute)
   }
 }
 

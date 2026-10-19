@@ -23,6 +23,7 @@ const outcomes = require('./outcomes')
 const hendrix = require('./hendrix')
 const Duality = require('./duality')
 const selene = require('./selene')
+const resistance = require('./resistance')
 const { basic_damage } = require('./damage-types')
 const {
   usesRage,
@@ -238,6 +239,7 @@ function advance(
     actor = 'exchange',
     enemySpendableFear,
     rollBlock = abilityPercentile,
+    rollResistance = abilityPercentile,
     rollRecovery = abilityPercentile,
     rollFinisher = () =>
       randomInt(balance.ai.finisherRange[0], balance.ai.finisherRange[1] + 1),
@@ -310,34 +312,10 @@ function advance(
   // accompanying basic can receive critical damage or critical resource effects.
   if (modern && !playerActs) duality.critical = false
   const round = battle.tick + 1
-  // Wind Wall replaces ordinary Block chance, preserving native critical rolls
-  // only when the wall lets the attack through. Guaranteed Stoke stays guaranteed.
-  if (
-    modern &&
-    playerActs &&
-    !definition?.guaranteedBasic &&
-    selene.wallActive(battle.enemy, round, battle.player)
-  ) {
-    const result = selene.wallOutcome(
-      duality.critical ? 'critical' : duality.success ? 'hit' : 'block',
-      battle.enemy,
-      battle.player,
-      round,
-      rollBlock
-    )
-    duality.success = result !== 'block'
-    duality.critical = result === 'critical'
+  if (definition?.type === 'windWall') {
+    battle = { ...battle, player: { ...battle.player } }
+    selene.activateWall(battle.player, battle.enemy, round)
   }
-  const playerHit = Boolean(
-    playerActs && (duality.success || definition?.guaranteedBasic)
-  )
-  const playerSpecialHit = Boolean(
-    slot &&
-      (slot === 'special3' ||
-        !modern ||
-        duality.success ||
-        definition?.guaranteedHit)
-  )
   const hopeAfterSpend = Duality.value(Duality.spend(battle.player, hopeSpent))
   const hopeGained = duality.withHope
     ? Math.min(1, Duality.capacity(battle.player) - hopeAfterSpend)
@@ -414,6 +392,38 @@ function advance(
       : null
   const enemySpecial = enemyDecision?.slot || null
   const enemyDefinition = enemySpecial ? enemyKit[enemySpecial] : null
+  if (enemyDefinition?.type === 'windWall') {
+    battle = { ...battle, enemy: { ...battle.enemy } }
+    selene.activateWall(battle.enemy, battle.player, round)
+  }
+  // Resolve activation-round defense before either incoming attack. This also
+  // covers the primitive simultaneous exchange used by the diagnostic engine.
+  if (
+    modern &&
+    playerActs &&
+    !definition?.guaranteedBasic &&
+    selene.wallActive(battle.enemy, round, battle.player)
+  ) {
+    const result = selene.wallOutcome(
+      duality.critical ? 'critical' : duality.success ? 'hit' : 'block',
+      battle.enemy,
+      battle.player,
+      round,
+      rollBlock
+    )
+    duality.success = result !== 'block'
+    duality.critical = result === 'critical'
+  }
+  const playerHit = Boolean(
+    playerActs && (duality.success || definition?.guaranteedBasic)
+  )
+  const playerSpecialHit = Boolean(
+    slot &&
+      (slot === 'special3' ||
+        !modern ||
+        duality.success ||
+        definition?.guaranteedHit)
+  )
   const enemyHpSpent = healthCost(battle.enemy, enemyDefinition)
   const fearSpent = Duality.cost(enemyDefinition),
     enemyStressSpent = enemyDefinition?.stressCost || 0
@@ -683,6 +693,14 @@ function advance(
     if (!playerSpecialHit)
       playerSpecial.damage = outcomes.blockDamage(playerSpecial.damage)
   }
+  if (modern)
+    resistance.resolve(
+      playerSpecial,
+      battle.player,
+      battle.enemy,
+      round,
+      rollResistance
+    )
   playerSpecial.stressRemoved = modern
     ? Math.max(0, stressRemoved - criticalStressRemoved)
     : stressRemoved
@@ -735,6 +753,14 @@ function advance(
   if (modern && outcomes.isAttack(enemyDefinition, enemySpecial))
     enemyResult.outcome =
       enemySpecial === 'special3' ? 'hit' : enemySpecialHit ? 'hit' : 'block'
+  if (modern)
+    resistance.resolve(
+      enemyResult,
+      battle.enemy,
+      battle.player,
+      round,
+      rollResistance
+    )
   const enemyDamage = enemyBasicDamage + enemyResult.damage
   const healing = selene.healing
   const playerHealing = healing(battle.player, definition)
@@ -859,9 +885,6 @@ function advance(
         : playerActs && !playerHit) ||
         (battle.enemy.opportunityReady && !enemyOpportunity)),
   }
-  if (definition?.type === 'windWall') selene.activateWall(player, enemy, round)
-  if (enemyDefinition?.type === 'windWall')
-    selene.activateWall(enemy, player, round)
   if (actor === 'enemy' || actor === 'exchange') {
     for (const fighter of [player, enemy]) {
       if (fighter.windWall?.endRound <= round) delete fighter.windWall
@@ -1124,7 +1147,8 @@ function advance(
       criticalMultiplier,
       percent,
     }).damage
-    return landed ? damage : outcomes.blockDamage(damage)
+    const delivered = landed ? damage : outcomes.blockDamage(damage)
+    return resistance.damage(delivered, result.resisted)
   }
   const playerVulnerabilityExtra = modern
     ? playerBasicDamage +
@@ -1171,6 +1195,26 @@ function advance(
     ...extra,
   })
   const playerDetails = details(playerBase, playerHit, playerSpecial, {
+    ...(modern && playerSpecial.slot === 'special3' && resistance.enabled()
+      ? {
+          resistanceMetrics: {
+            attempts: 1,
+            resisted: Number(playerSpecial.resisted),
+            prevented: playerSpecial.resistancePrevented,
+            wallAttempts: Number(
+              playerSpecial.resistanceSource === 'wind-wall'
+            ),
+            wallResisted: Number(
+              playerSpecial.resistanceSource === 'wind-wall' &&
+                playerSpecial.resisted
+            ),
+            wallPrevented:
+              playerSpecial.resistanceSource === 'wind-wall'
+                ? playerSpecial.resistancePrevented
+                : 0,
+          },
+        }
+      : {}),
     basicAttempt: Number(playerActs),
     specialHit:
       !modern || (outcomes.isAttack(definition, slot) && playerSpecialHit),
@@ -1203,6 +1247,24 @@ function advance(
     vulnerabilityExtra: playerVulnerabilityExtra,
   })
   const enemyDetails = details(enemyBase, enemyHit, enemyResult, {
+    ...(modern && enemyResult.slot === 'special3' && resistance.enabled()
+      ? {
+          resistanceMetrics: {
+            attempts: 1,
+            resisted: Number(enemyResult.resisted),
+            prevented: enemyResult.resistancePrevented,
+            wallAttempts: Number(enemyResult.resistanceSource === 'wind-wall'),
+            wallResisted: Number(
+              enemyResult.resistanceSource === 'wind-wall' &&
+                enemyResult.resisted
+            ),
+            wallPrevented:
+              enemyResult.resistanceSource === 'wind-wall'
+                ? enemyResult.resistancePrevented
+                : 0,
+          },
+        }
+      : {}),
     basicAttempt: Number(enemyAttacks),
     specialHit: enemySpecialHit,
     ...(modern

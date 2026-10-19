@@ -149,7 +149,20 @@ function createCollection({ models, participants, event = defaultConfig, random 
       awards.push(await add(ctx, participant, owned, ordinaryPiece(event.ordinaryRarity.percent, owned, spotlight), 'eye_draw'))
       awards.push(...await exchange(ctx, participant, owned))
     }
-    return { ...summary(owned, awards), eyes: balance.eyes }
+    let plotReward = {}
+    if (event.plotPointsEnabled && owned.size === pieces.length && balance.eyes >= event.eyes.quarterCost) {
+      const eyesConverted = Math.floor(balance.eyes / event.eyes.quarterCost) * event.eyes.quarterCost
+      const amount = eyesConverted / event.eyes.quarterCost * 5
+      await ctx.changeBalance(userId, 'eyes', -eyesConverted, { metadata: { reason: 'completed_collection_plot_points', plotPoints: amount } })
+      balance.eyes -= eyesConverted
+      const plots = require('../plot-points')
+      const contribution = await plots.createPlotPoints({ sequelize: ctx.transaction.sequelize }).contribute(ctx, {
+        userId, sourceId: `${ctx.operationId}:completed-eyes:${userId}`, amount,
+      })
+      const plotSpotlight = await plots.resolveSpotlight({ ctx, models, event })
+      plotReward = { ...contribution, eyesConverted, plotUserId: userId, plotSpotlight, plotEmoji: plots.plotEmoji(plotSpotlight) }
+    }
+    return { ...summary(owned, awards), ...plotReward, eyes: balance.eyes }
   }
   async function exchangeDuplicates(ctx, userId) {
     const participant = await player(ctx, userId), owned = await inventory(ctx, participant)

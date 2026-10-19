@@ -268,7 +268,7 @@ module.exports = {
     ) {
       const customId = interaction.customId
       if (customId.startsWith('arena:')) {
-        if (!(await require('../services/arena/access').access.authorize(interaction))) return
+        // The controller authorizes both routed and direct calls.
         await require('../services/arena/controller').arena.handleButton(
           interaction,
         )

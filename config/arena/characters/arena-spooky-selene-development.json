@@ -8,7 +8,7 @@
   "baseStats": { "hp": 180, "attack": 240 },
   "passive": {
     "name": "Celestial Alignment",
-    "stackPercent": 2,
+    "stackPercent": 1,
     "maxStacks": 10
   },
   "abilities": {
@@ -29,6 +29,7 @@
       "percent": 0,
       "blockChance": 75,
       "duration": 2,
+      "protectActivationRound": true,
       "rollBasic": true,
       "stressCost": 0,
       "dualityCost": 2

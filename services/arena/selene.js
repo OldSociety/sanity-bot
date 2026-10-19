@@ -51,10 +51,10 @@ function wallBranches(branches, defender, attacker, guaranteed = false) {
   ]
 }
 function activateWall(fighter, target, round) {
-  const old = fighter.windWall
   fighter.windWall = {
     activationRound: round,
-    startRound: wallActive(fighter, round, target) ? old.startRound : round + 1,
+    startRound:
+      round + (config.abilities.special2.protectActivationRound ? 0 : 1),
     endRound: round + config.abilities.special2.duration,
     targetKit: target.kit,
   }

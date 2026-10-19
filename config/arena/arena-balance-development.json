@@ -24,5 +24,9 @@
     },
     "special2ChanceByFear": [0, 0, 40, 20, 10, 5, 5]
   },
-  "criticalEffects": true
+  "criticalEffects": true,
+  "superMoveResistance": {
+    "enabled": true,
+    "damageMultiplier": 0.5
+  }
 }

@@ -59,25 +59,25 @@ async function resolveSpotlight({ ctx, models, event, settings = defaults, readO
 }
 function createPlotPoints({ sequelize, models = defineModels(sequelize), settings = defaults }) {
   async function contribute(ctx, { userId, sourceId = ctx.operationId, eventId = ctx.scope.eventId, amount = 1 }) {
-    if (ctx.transaction?.sequelize !== sequelize || !ctx.scope.guildId || !userId || !sourceId || !eventId || amount !== 1) throw new Error('Invalid Plot contribution context')
+    if (ctx.transaction?.sequelize !== sequelize || !ctx.scope.guildId || !userId || !sourceId || !eventId || !Number.isSafeInteger(amount) || amount <= 0) throw new Error('Invalid Plot contribution context')
     const where = { guildId: ctx.scope.guildId, sourceId }
     const prior = await models.Contribution.findOne({ where, transaction: ctx.transaction })
     if (prior) {
-      if (prior.userId !== userId || prior.eventId !== eventId) throw new Error('Plot contribution replay identity mismatch')
+      if (prior.userId !== userId || prior.eventId !== eventId || prior.result.plotPoints !== amount) throw new Error('Plot contribution replay identity mismatch')
       return prior.result
     }
     const [guild] = await models.Guild.findOrCreate({ where: { guildId: where.guildId }, transaction: ctx.transaction })
-    const before = progression(guild.total, settings), after = progression(guild.total + 1, settings)
+    const before = progression(guild.total, settings), after = progression(guild.total + amount, settings)
     await guild.update({ total: after.total }, { transaction: ctx.transaction })
     const unlocked = []
     for (let level = before.level + 1; level <= after.level; level++) {
       const [, created] = await models.Milestone.findOrCreate({ where: { guildId: where.guildId, level }, defaults: { unlockedAt: ctx.now }, transaction: ctx.transaction })
       if (created) unlocked.push(level)
     }
-    const result = { plotPoints: 1, communityLevel: after.level, communityTotal: after.total,
+    const result = { plotPoints: amount, communityLevel: after.level, communityTotal: after.total,
       communityProgress: after, unlockedLevels: unlocked }
     await models.Contribution.create({ ...where, userId, eventId, result, createdAt: ctx.now }, { transaction: ctx.transaction })
-    await ctx.record({ userId, resource: 'plotPoints', delta: 1, before: before.total, after: after.total, metadata: { community: true, sourceId, unlockedLevels: unlocked } })
+    await ctx.record({ userId, resource: 'plotPoints', delta: amount, before: before.total, after: after.total, metadata: { community: true, sourceId, unlockedLevels: unlocked } })
     return result
   }
   async function view(guildId, transaction) {

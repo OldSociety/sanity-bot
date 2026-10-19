@@ -258,7 +258,7 @@ function createController({
           privateScreen(
             '🧩 Your Collection',
             rows.length === pieces.length
-              ? `${text}\n\n**All seven characters unlocked!** You no longer receive token pieces or need paid draws. Your existing pieces, duplicates (${duplicates}) and unspent Eyes are kept.`
+              ? `${text}\n\n**All seven characters unlocked!** You no longer receive token pieces or need paid draws. Your existing pieces and duplicates (${duplicates}) are kept. ${event.plotPointsEnabled ? 'Every five Eyes now automatically contribute five 📖 Plot points to the community when you receive Eyes; leftover Eyes count toward your next set.' : 'Unspent Eyes are kept.'}`
               : event.duplicates.allowDuplicates === false
               ? `${text}\n\nEvery new quarter is a piece you haven’t collected yet.`
               : `${text}\n\n**Current Duplicates: ${duplicates}/5**\nDuplicates can only come from completed characters. Every 5 duplicates will grant you a new unowned piece!`,

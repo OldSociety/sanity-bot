@@ -132,6 +132,23 @@ function createPreferenceStore(
     },
   }
 }
+function createAsyncPreferenceStore(
+  file = require('node:path').resolve(
+    __dirname,
+    '../../config/arena/state/arena-selection-preferences.json'
+  )
+) {
+  const store = require('./async-state').createJsonStore(file, {
+    empty: () => ({}),
+    validate: (data) =>
+      Boolean(data && typeof data === 'object' && !Array.isArray(data)),
+  })
+  return {
+    get: async (guild, user) => (await store.read())[`${guild}:${user}`],
+    set: (guild, user, value) =>
+      store.update((data) => ({ ...data, [`${guild}:${user}`]: value })),
+  }
+}
 const preferredVariant = (saved, explicit) =>
   explicit ||
   characters.find(
@@ -148,5 +165,6 @@ module.exports = {
   groupsFor,
   createMemoryPreferences,
   createPreferenceStore,
+  createAsyncPreferenceStore,
   preferredVariant,
 }

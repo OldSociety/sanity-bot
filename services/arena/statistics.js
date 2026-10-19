@@ -65,6 +65,17 @@ function recordRound(before, next, details) {
   ]) {
     const data = details[side],
       row = stats[side]
+    if (data.resistanceMetrics) {
+      const defender = stats[other]
+      defender.superMoveResistance ||= {
+        attempts: 0,
+        resisted: 0,
+        prevented: 0,
+      }
+      for (const [key, value] of Object.entries(data.resistanceMetrics))
+        defender.superMoveResistance[key] =
+          (defender.superMoveResistance[key] || 0) + value
+    }
     if (data.strikeMetrics) {
       row.strikeMetrics ||= {}
       for (const [key, value] of Object.entries(data.strikeMetrics))
@@ -187,6 +198,11 @@ function saveCombatReport(report) {
       ? '../../artifacts/arena-combat-production.jsonl'
       : '../../artifacts/arena-combat.jsonl'
   )
+  if (process.env.NODE_ENV === 'development')
+    return require('./async-state').appendReport(
+      file,
+      JSON.stringify({ recordedAt: new Date().toISOString(), ...report }) + '\n'
+    )
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.appendFileSync(
     file,

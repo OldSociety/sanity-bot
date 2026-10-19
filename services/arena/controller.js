@@ -10,12 +10,19 @@ const {
   groupsFor,
   createMemoryPreferences,
   createPreferenceStore,
+  createAsyncPreferenceStore,
   preferredVariant,
 } = require('./selection')
 const { combatReport, saveCombatReport } = require('./statistics')
 const { canUse, kitFor, sessionTimeoutMs } = require('./rules')
 const { balance } = require('./rules')
 const { availableOpponents, initialOpponent } = require('./opponents')
+const {
+  createMessageTransport,
+  lockedControls,
+} = require('./message-transport')
+const { snapshot, buildPresentation } = require('./presentation')
+const { createTiming } = require('./timing')
 const shuffle = () => {
   const values = [1, 2, 3, 4, 5]
   for (let i = 4; i > 0; i--) {
@@ -51,8 +58,13 @@ function createArena({
   now = Date.now,
   onComplete = () => {},
   renderCard = renderHealthCard,
+  renderLegend = legendFile,
+  engine = { newBattle, takeTurn, beginFinisher },
+  responsive = process.env.NODE_ENV !== 'production',
+  retryDelay,
 } = {}) {
   const sessions = new Map()
+  let disposed = false
   const privateReply = (interaction, content) =>
     interaction
       .reply({ content, ephemeral: true, allowedMentions: { parse: [] } })
@@ -70,6 +82,52 @@ function createArena({
     session.expiryTimer = null
   }
   async function render(session, unlock = false) {
+    if (responsive) {
+      // Expiry may invalidate a snapshot while native rendering is in flight.
+      // Discard it before publishing, then render the new terminal revision.
+      for (;;) {
+        const state = snapshot(session, unlock)
+        const presentation = await buildPresentation(state, {
+          renderCard,
+          renderLegend,
+          logger,
+          now,
+          timing: session.timing,
+        })
+        if (state.revision !== session.revision) continue
+        Object.assign(session, {
+          card: presentation.card,
+          cardRetryAt: presentation.cardRetryAt,
+          legendRetryAt: presentation.legendRetryAt,
+        })
+        try {
+          const send = () =>
+            session.transport.send(presentation.view, presentation.files)
+          if (session.timing) await session.timing.phase('deliveryMs', send)
+          else await send()
+          session.deliveredRevision = state.revision
+          session.deliveryPending = false
+          return true
+        } catch (error) {
+          // The committed battle remains valid. Refresh/retry only republishes
+          // that revision; it must never repeat the paid action or random draw.
+          session.deliveryPending = true
+          logger.warn?.(
+            `Arena message delivery failed: ${error.code || error.name}`
+          )
+          // Avoid inserting/removing a recovery button on every normal turn.
+          // Only offer it after result delivery actually failed, without PNGs.
+          if (
+            !session.expired &&
+            ![10003, 10008, 50001, 50013, 50027].includes(Number(error.code))
+          )
+            await session.transport
+              .recover(session.id, session.revision)
+              .catch(() => {})
+          return false
+        }
+      }
+    }
     const view = screen(unlock ? { ...session, busy: false } : session)
     let files =
       view.embeds[0].data.image || view.embeds[0].data.thumbnail
@@ -137,12 +195,12 @@ function createArena({
     sessions.delete(session.id)
     return enqueue(session, async () => {
       try {
-        await render(session)
-        leases?.remove(session.messageId)
+        if ((await render(session)) !== false)
+          await leases?.remove(session.messageId)
       } catch (error) {
         logger.warn?.(`Arena button cleanup failed: ${error.message}`)
       }
-      if (notify)
+      if (notify && !responsive)
         await session
           .notify({
             content: 'Session expired. Please use /arena to try again.',
@@ -206,7 +264,7 @@ function createArena({
     cancel(session)
     session.minigame = null
     session.revision++
-    session.battle = takeTurn(
+    session.battle = engine.takeTurn(
       session.battle,
       { special3: true, choice },
       roll,
@@ -262,6 +320,11 @@ function createArena({
     return chosen
   }
   async function execute(interaction, character, { selection = false } = {}) {
+    if (disposed)
+      return privateReply(
+        interaction,
+        'Arena is restarting. Please try again shortly.'
+      )
     if (authorize && !(await authorize(interaction))) return
     const deferred = Boolean(interaction.deferReply)
     if (deferred) await interaction.deferReply()
@@ -269,7 +332,7 @@ function createArena({
     let saved
     if (selection) {
       try {
-        saved = preferences.get(interaction.guildId, interaction.user.id)
+        saved = await preferences.get(interaction.guildId, interaction.user.id)
       } catch (error) {
         logger.warn?.(`Arena preference read failed: ${error.message}`)
       }
@@ -323,6 +386,8 @@ function createArena({
       expiryTimer: null,
       expiryGeneration: 0,
       work: Promise.resolve(),
+      deliveredRevision: 0,
+      deliveryPending: false,
       edit: (payload) => interaction.editReply(payload),
       notify: (payload) =>
         interaction.followUp
@@ -343,15 +408,21 @@ function createArena({
         ? interaction.editReply(initial)
         : interaction.reply(initial))
       session.messageId = message.id
+      if (responsive)
+        session.transport = createMessageTransport(message, {
+          fallback: (payload) => interaction.editReply(payload),
+          retryDelay,
+          onRetry: () => logger.warn?.('Arena message delivery retry'),
+        })
       session.initializing = false
-      leases?.add({
+      await leases?.add({
         guildId: session.guildId,
         channelId: session.channelId,
         messageId: message.id,
       })
       if (session.expired) {
         await render(session)
-        leases?.remove(session.messageId)
+        await leases?.remove(session.messageId)
         return
       }
       armExpiry(session)
@@ -365,7 +436,7 @@ function createArena({
   async function handleButton(interaction) {
     if (authorize && !(await authorize(interaction))) return
     const match =
-      /^arena:([^:]+):(0|[1-9]\d*):(start|basic|opponent|quit|special1|special2|special3|pick|selectgroup|selectcharacter|selectskin|chooseskin|backcharacters|backskins|confirmfighter|changefighter)(?::([1-5]))?$/.exec(
+      /^arena:([^:]+):(0|[1-9]\d*):(start|basic|opponent|quit|special1|special2|special3|pick|selectgroup|selectcharacter|selectskin|chooseskin|backcharacters|backskins|confirmfighter|changefighter|refresh)(?::([1-5]))?$/.exec(
         interaction.customId
       )
     const session = match && sessions.get(match[1])
@@ -387,17 +458,19 @@ function createArena({
         'Only the player who opened this arena can control it. Use /arena for your own fight.'
       )
     if (session.expiresAt !== null && now() >= session.expiresAt) {
-      await expire(session)
-      return privateReply(
+      const reply = privateReply(
         interaction,
         'This arena session expired. Use /arena for a new fight.'
       )
+      await expire(session)
+      return reply
     }
     // Start the acknowledgement before any state work or queued message edit.
     // A failed acknowledgement must not strand an already-paid Finisher.
     const pendingGame = session.minigame
     const reservedPick =
       !session.busy &&
+      (!responsive || !session.deliveryPending) &&
       pendingGame &&
       !pendingGame.claimed &&
       Number(match[2]) === pendingGame.revision &&
@@ -412,13 +485,40 @@ function createArena({
       if (reservedPick.endTimer != null) clearTimer(reservedPick.endTimer)
       reservedPick.endTimer = null
     }
-    const acknowledgement = interaction.deferUpdate().then(
-      () => null,
-      (error) => error
-    )
+    const timing = responsive ? createTiming({ logger }) : null
+    const visibleControl = interaction.message.components
+      ?.flatMap((row) => row.components || row.toJSON?.().components || [])
+      .map((component) =>
+        component.toJSON ? component.toJSON() : component.data || component
+      )
+      .some(
+        (component) =>
+          component.custom_id === interaction.customId && !component.disabled
+      )
+    const lock =
+      responsive &&
+      !session.busy &&
+      (Number(match[2]) === session.revision ||
+        match[3] === 'refresh' ||
+        session.deliveryPending) &&
+      visibleControl &&
+      interaction.update
+    const acknowledge = () =>
+      lock
+        ? interaction.update(
+            lockedControls(interaction.message, session.id, session.revision)
+          )
+        : interaction.deferUpdate()
+    const acknowledgement = Promise.resolve()
+      .then(() => (timing ? timing.phase('ackMs', acknowledge) : acknowledge()))
+      .then(
+        () => null,
+        (error) => error
+      )
     // Drop repeat/stale input immediately; never append it to the edit queue.
     if (session.busy) {
       await acknowledgement
+      timing?.finish({ action: 'duplicate' })
       return
     }
     session.busy = true
@@ -430,11 +530,30 @@ function createArena({
         armFinisher(session, reservedPick)
       }
       logger.warn?.(`Arena acknowledgement failed: ${ackError.message}`)
+      timing?.finish({ action: match[3], failed: true })
       return
     }
     if (session.expired) {
       session.busy = false
+      timing?.finish({ action: 'expired' })
       return
+    }
+    session.timing = timing
+    // A stale display can only refresh the committed state, never spend again.
+    if (responsive && (match[3] === 'refresh' || session.deliveryPending)) {
+      cancelExpiry(session)
+      return enqueue(session, async () => {
+        await render(session, true)
+        session.busy = false
+        if (session.minigame && !session.deliveryPending) armFinisher(session)
+        armExpiry(session)
+        timing?.finish({
+          action: 'refresh',
+          revision: session.revision,
+          failed: session.deliveryPending,
+        })
+        session.timing = null
+      })
     }
     const current = Number(match[2]) === session.revision
     const game = session.minigame
@@ -535,7 +654,7 @@ function createArena({
         session.page = 'prefight'
         navigation = true
         try {
-          preferences.set(session.guildId, session.ownerId, {
+          await preferences.set(session.guildId, session.ownerId, {
             familyId: family.id,
             variantId: session.character.id,
           })
@@ -602,7 +721,7 @@ function createArena({
       cancel(session)
       if (session.battle && !session.manualOpponentSelection)
         session.opponent = opponent()
-      session.battle = newBattle(0, {
+      session.battle = engine.newBattle(0, {
         character: session.character,
         level: session.level,
         opponent: session.opponent,
@@ -618,7 +737,7 @@ function createArena({
       if (match[3] === 'special3') {
         const values = order()
         cancel(session)
-        session.battle = beginFinisher(session.battle)
+        session.battle = engine.beginFinisher(session.battle)
         session.minigame = {
           revision: session.revision + 1,
           order: values,
@@ -637,45 +756,69 @@ function createArena({
       armExpiry(session)
     }
     if (!quit && !start && !basic && !special && !navigation && !pick) {
+      if (lock) await render(session, true)
       session.busy = false
+      timing?.finish({ action: 'stale' })
+      session.timing = null
       return
     }
     cancelExpiry(session)
     session.expiresAt = null
+    const queuedAt = now()
     return enqueue(session, async () => {
-      if (pick && session.minigame === game && !session.expired)
-        return resolveGame(session, Number(match[4]))
-      if (basic || (special && !gameStarted)) {
-        await render(session)
-        session.battle = takeTurn(
-          session.battle,
-          basic ? 'basic' : { [match[3]]: true },
-          roll,
-          rollDuality,
-          rollFearSpend,
-          rollAccuracy,
-          rollCritical,
-          rollEffect,
-          { aiPolicy, rollFinisher, rollRecovery }
-        )
-        complete(session)
-        if (session.battle.status !== 'playing') {
-          cancel(session)
-          armExpiry(session)
+      const queueMs = now() - queuedAt
+      try {
+        if (pick && session.minigame === game && !session.expired)
+          return await resolveGame(session, Number(match[4]))
+        if (session.expired) return
+        if (basic || (special && !gameStarted)) {
+          if (!responsive) await render(session)
+          const advance = () =>
+            engine.takeTurn(
+              session.battle,
+              basic ? 'basic' : { [match[3]]: true },
+              roll,
+              rollDuality,
+              rollFearSpend,
+              rollAccuracy,
+              rollCritical,
+              rollEffect,
+              { aiPolicy, rollFinisher, rollRecovery }
+            )
+          session.battle = timing
+            ? await timing.phase('combatMs', advance)
+            : advance()
+          complete(session)
+          if (session.battle.status !== 'playing') {
+            cancel(session)
+            armExpiry(session)
+          }
         }
+        await render(session, true)
+        session.busy = false
+        if (session.minigame && !session.deliveryPending) armFinisher(session)
+        armExpiry(session)
+      } finally {
+        timing?.finish({
+          action: match[3],
+          revision: session.revision,
+          queueMs,
+          failed: session.deliveryPending,
+        })
+        session.timing = null
       }
-      await render(session, true)
-      session.busy = false
-      if (session.minigame) armFinisher(session)
-      armExpiry(session)
     })
   }
   function dispose() {
+    disposed = true
     const pending = [...sessions.values()].map((session) =>
       expire(session, false)
     )
     sessions.clear()
-    return Promise.allSettled(pending)
+    return Promise.allSettled(pending).then(async (results) => {
+      if (responsive) await require('./async-state').flushState()
+      return results
+    })
   }
   return { execute, handleButton, dispose }
 }
@@ -686,7 +829,12 @@ module.exports = {
   arena: createArena({
     authorize: require('./access').access.authorize,
     leases,
-    preferences: live ? createPreferenceStore() : createMemoryPreferences(),
+    preferences:
+      process.env.NODE_ENV === 'development'
+        ? createAsyncPreferenceStore()
+        : live
+        ? createPreferenceStore()
+        : createMemoryPreferences(),
     onComplete: live ? saveCombatReport : () => {},
   }),
 }

@@ -71,12 +71,17 @@ test('a failed reward rolls back the point, milestone and action cost together; 
   assert.equal(win.receipt.eyes,0)
   assert.equal((await actions.execute(input)).replayed,true)
 })
-test('contribution rejects larger amounts and conflicting duplicate identities', async t => {
+test('contribution accepts positive integer amounts and rejects invalid amounts or conflicting replays', async t => {
   const f=await fixture(t)
-  await assert.rejects(f.economy.execute(f.input('bad'),ctx=>f.service.contribute(ctx,{userId:'alice',amount:2})),/Invalid/)
+  for (const amount of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])
+    await assert.rejects(f.economy.execute(f.input('bad'),ctx=>f.service.contribute(ctx,{userId:'alice',amount})),/Invalid/)
   await f.economy.execute(f.input('one'),ctx=>f.service.contribute(ctx,{userId:'alice',sourceId:'source'}))
   await assert.rejects(f.economy.execute(f.input('two'),ctx=>f.service.contribute(ctx,{userId:'bob',sourceId:'source'})),/identity mismatch/)
   assert.equal((await f.service.view('guild')).total,1)
+  await assert.rejects(f.economy.execute(f.input('amount-mismatch'),ctx=>f.service.contribute(ctx,{userId:'alice',sourceId:'source',amount:5})),/identity mismatch/)
+  const batch = await f.economy.execute(f.input('five'),ctx=>f.service.contribute(ctx,{userId:'alice',sourceId:'five',amount:5}))
+  assert.equal(batch.receipt.plotPoints,5)
+  assert.equal((await f.service.view('guild')).total,6)
 })
 test('spotlight follows frozen Spooky rotation, with year-round Selene and safe emoji fallback', async t => {
   const f=await fixture(t)

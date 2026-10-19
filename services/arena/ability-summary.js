@@ -49,7 +49,13 @@ function abilitySummary(fighter, slot) {
       )} HP at this level). Capped at missing HP; includes a basic.`
     }
     if (slot === 'special2')
-      return `Slow the opponent: ${ability.blockChance}% Block chance during the next ${ability.duration} rounds after activation. Refreshes without stacking. Includes a basic; Finishers and Bleeding bypass the wall.`
+      return `Slow the opponent: ${ability.blockChance}% Block chance ${
+        ability.protectActivationRound
+          ? 'on activation and during the next'
+          : 'during the next'
+      } ${
+        ability.duration
+      } rounds. Refreshes without stacking. Includes a basic; Super Moves can be resisted for half damage. Bleeding ignores Block.`
   }
   if (require('./hendrix').isHendrix(fighter)) {
     if (slot === 'special1')
@@ -85,6 +91,10 @@ function abilitySummary(fighter, slot) {
     return `Guaranteed Finisher: buttons 1–5 deal ${low}–${high}% Attack; timeout ${timeout}%. Choose within ${
       (definition.responseMs || 5000) / 1000
     }s.${
+      require('./resistance').enabled()
+        ? ' Can be resisted for 50% damage at the defender’s Block chance; always lands and never crits.'
+        : ''
+    }${
       definition.ragePercent
         ? ` Add ${definition.ragePercent}% Attack per Rage; Rage is kept.`
         : ''

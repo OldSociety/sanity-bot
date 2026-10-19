@@ -14,7 +14,11 @@ const items = [
   [
     'windWall',
     'Wind Wall / Slow',
-    `${seleneBuild.abilities.special2.blockChance}% Block; next ${seleneBuild.abilities.special2.duration} rounds`,
+    `${seleneBuild.abilities.special2.blockChance}% Block; ${
+      seleneBuild.abilities.special2.protectActivationRound
+        ? 'activation + '
+        : ''
+    }next ${seleneBuild.abilities.special2.duration} rounds`,
   ],
   ['bleeding', 'Bleeding', 'Extra damage per Hendrix strike'],
   ['brink', 'Brink available', 'Survive one lethal hit'],
@@ -59,6 +63,8 @@ function legendData(battle = defaultBattle) {
       : []),
   ]
   if (require('./outcomes').enabled()) {
+    if (require('./resistance').enabled())
+      notes.push('Super Move resistance: Block chance, 50% damage')
     notes.push(
       require('./rules').balance.damageRules
         ? 'Block: 75% basic / 50% special damage'

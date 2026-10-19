@@ -166,6 +166,16 @@ function actionMessages(
     details.push(`**Candy reward:** +${result.candyReward}.`)
   if (result.goodwillFreedUserId)
     details.push(`**${actor}'s good will broke the curse!**`)
+  if (result.eyesConverted > 0) {
+    const collector = result.plotUserId && result.plotUserId !== actorId
+      ? label(result.plotUserId)
+      : actor
+    details.push(`**Collection complete!** ${result.eyesConverted} 🧿 Evil Eyes from ${collector} contributed **${result.plotPoints} 📖 Plot points** to the community.`)
+    if (result.unlockedLevels?.length)
+      details.push(`The community reached level ${result.communityLevel}!`)
+    if (result.unlockedLevels?.includes(2))
+      details.push('Everyone unlocked Chapter Two (placeholder)!')
+  }
   const text = require('./flavor').currencyWords(
     [flavor.description, ...details].join('\n'),
   )
@@ -435,7 +445,7 @@ function helpScreen() {
               : 'Bank first, then Fate'
           }**; no daily limit.`,
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
-      'Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. Once all seven characters are complete, you stop receiving pieces and paid draws close. Existing pieces, duplicates and unspent Eyes are kept.',
+      `Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. Once all seven characters are complete, you stop receiving pieces and paid draws close. Existing pieces and duplicates are kept. ${config.plotPointsEnabled ? 'Every five Eyes then automatically contribute five 📖 Plot points to the community; leftover Eyes count toward your next set.' : 'Unspent Eyes are kept.'}`,
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
       ...(config.plotPointsEnabled
         ? [
