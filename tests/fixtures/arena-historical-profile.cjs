@@ -13,6 +13,7 @@ module.exports = function historicalProfile() {
     delete balance.damageRules
     delete balance.damageRounding
     delete balance.ai.deferFearSpending
+    delete balance.passives['on-the-brink'].revivePercent
     return balance
   }
 }

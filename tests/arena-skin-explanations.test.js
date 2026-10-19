@@ -5,11 +5,16 @@ process.env.NODE_ENV = 'development'
 const { characters, isSelectable } = require('../services/arena/characters')
 const { screen } = require('../services/arena/interface')
 const fields = (c) =>
-  screen({ id: 'summary', revision: 0, character: c, level: 1, page: 'skins' })
-    .embeds[0].data.fields
+  screen({
+    id: 'summary',
+    revision: 0,
+    character: c,
+    level: 1,
+    page: 'skins',
+  }).embeds[0].data.fields
 test('every playable skin labels all three abilities, resource costs, explanations and passives', () => {
   const available = characters.filter(isSelectable)
-  assert.equal(available.length, 5)
+  assert.equal(available.length, 6)
   for (const c of available) {
     const all = fields(c)
     for (let n = 1; n <= 3; n++) {
@@ -32,7 +37,7 @@ test('summaries explain damage, trigger conditions, recharge, support and actual
     JSON.stringify(
       fields(require('../services/arena/characters').resolveCharacter(name))
     )
-  assert.match(get('Marq'), /4% Attack \(8 damage\)/)
+  assert.match(get('Marq'), /4% Attack \(7 damage\)/)
   assert.match(get('Marq'), /20% chance to remove 1 Stress/)
   assert.match(get('Marq'), /8% Attack \+ 1% per pip/)
   assert.match(get('Marq'), /lower than the previous/)

@@ -16,9 +16,13 @@ const xml = (value) =>
   String(value).replace(
     /[&<>"']/g,
     (char) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[
-        char
-      ])
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&apos;',
+      }[char])
   )
 const ratio = (value, max) =>
   max > 0 ? Math.max(0, Math.min(1, value / max)) : 0
@@ -48,7 +52,7 @@ function cardData(session) {
       type,
       label,
       ...(singleUse ? { singleUse } : {}),
-      ...(type === 'slayer' ? { value } : {}),
+      ...(['slayer', 'alignment', 'windWall'].includes(type) ? { value } : {}),
     })),
     brinkTriggered: actor.passive === 'on-the-brink' && actor.brinkUsed,
   })
@@ -89,7 +93,7 @@ function cardSvg(data) {
         .map(
           (icon, i) =>
             iconSvg(icon.type, 100 + i * 25, y + 98, 23) +
-            (icon.type === 'slayer'
+            (['slayer', 'alignment', 'windWall'].includes(icon.type)
               ? `<circle cx="${120 + i * 25}" cy="${
                   y + 99
                 }" r="7" fill="#15151e"/>${text(
@@ -181,7 +185,9 @@ async function renderHealthCard(session) {
   )
   return {
     name: cardName(session),
-    attachment: await sharp(Buffer.from(cardSvg(data)), { density: 72 * scale })
+    attachment: await sharp(Buffer.from(cardSvg(data)), {
+      density: 72 * scale,
+    })
       .composite([
         ...portraits,
         {

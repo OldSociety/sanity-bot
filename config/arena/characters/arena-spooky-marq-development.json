@@ -28,6 +28,7 @@
     }
   },
   "passive": {
-    "name": "On the Brink"
+    "name": "On the Brink",
+    "revivePercent": 25
   }
 }

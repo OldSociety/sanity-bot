@@ -21,6 +21,8 @@ const { survive } = require('./passives')
 const { defaultCharacter, resolveCharacter } = require('./characters')
 const outcomes = require('./outcomes')
 const hendrix = require('./hendrix')
+const Duality = require('./duality')
+const selene = require('./selene')
 const { basic_damage } = require('./damage-types')
 const {
   usesRage,
@@ -71,6 +73,14 @@ function newBattle(
     player: {
       ...statsForLevel(level, character.kit),
       kit: character.kit,
+      ...(selene.isSelene(character)
+        ? {
+            alignmentStacks: 0,
+            dualityEarned: 0,
+            lifeUses: 0,
+            combatRound: 1,
+          }
+        : {}),
       basicHits: 0,
       focusHits: kitFor(character).special1.requiredRecharge || 0,
       slayerCharges: 0,
@@ -92,6 +102,14 @@ function newBattle(
       isAI: true,
       ...enemyAttackStats,
       kit: opponentCharacter.kit,
+      ...(selene.isSelene(opponentCharacter)
+        ? {
+            alignmentStacks: 0,
+            dualityEarned: 0,
+            lifeUses: 0,
+            combatRound: 1,
+          }
+        : {}),
       basicHits: 0,
       focusHits:
         kitFor({ ...opponentCharacter, isAI: true }).special1
@@ -219,6 +237,7 @@ function advance(
     aiPolicy = 'tactical',
     actor = 'exchange',
     enemySpendableFear,
+    rollBlock = abilityPercentile,
     rollRecovery = abilityPercentile,
     rollFinisher = () =>
       randomInt(balance.ai.finisherRange[0], balance.ai.finisherRange[1] + 1),
@@ -268,7 +287,7 @@ function advance(
   const modern = outcomes.enabled() && battle.mode !== 'idle'
   const hpSpent = healthCost(battle.player, definition)
   const hopeSpent =
-    slot === 'special3' && battle.finisherPaid ? 0 : definition?.hopeCost || 0
+    slot === 'special3' && battle.finisherPaid ? 0 : Duality.cost(definition)
   const stressSpent = definition?.stressCost || 0
   const playerActs =
     actor === 'player' ||
@@ -290,6 +309,25 @@ function advance(
   // Matching dice still succeed and generate Hope for specials, but only an
   // accompanying basic can receive critical damage or critical resource effects.
   if (modern && !playerActs) duality.critical = false
+  const round = battle.tick + 1
+  // Wind Wall replaces ordinary Block chance, preserving native critical rolls
+  // only when the wall lets the attack through. Guaranteed Stoke stays guaranteed.
+  if (
+    modern &&
+    playerActs &&
+    !definition?.guaranteedBasic &&
+    selene.wallActive(battle.enemy, round, battle.player)
+  ) {
+    const result = selene.wallOutcome(
+      duality.critical ? 'critical' : duality.success ? 'hit' : 'block',
+      battle.enemy,
+      battle.player,
+      round,
+      rollBlock
+    )
+    duality.success = result !== 'block'
+    duality.critical = result === 'critical'
+  }
   const playerHit = Boolean(
     playerActs && (duality.success || definition?.guaranteedBasic)
   )
@@ -300,19 +338,36 @@ function advance(
         duality.success ||
         definition?.guaranteedHit)
   )
-  const hopeAfterSpend = battle.player.hope - hopeSpent
+  const hopeAfterSpend = Duality.value(Duality.spend(battle.player, hopeSpent))
   const hopeGained = duality.withHope
-    ? Math.min(1, battle.player.maxHope - hopeAfterSpend)
+    ? Math.min(1, Duality.capacity(battle.player) - hopeAfterSpend)
     : 0
-  const rollFearGained = Number(duality.withFear),
-    availableFear = battle.enemy.fear + rollFearGained
+  const rollAward = Duality.grant(battle.enemy, Number(duality.withFear))
+  const rollFearGained = rollAward.granted,
+    availableFear = Duality.value(rollAward.fighter)
+  // Award scaling before this action's damage, without changing the historical
+  // pre-action balances used by payment, logging and ledger calculations.
+  battle = {
+    ...battle,
+    player: Duality.withValue(
+      Duality.grant(
+        Duality.withValue(battle.player, hopeAfterSpend),
+        hopeGained
+      ).fighter,
+      Duality.value(battle.player)
+    ),
+    enemy: Duality.withValue(rollAward.fighter, Duality.value(battle.enemy)),
+  }
   // New Fear still enters the balance immediately, but the enemy may only
   // spend the balance visible before this player command and its response.
   const spendableFear =
     balance.ai.deferFearSpending && battle.mode !== 'idle'
       ? Math.max(
           0,
-          Math.min(battle.enemy.fear, enemySpendableFear ?? battle.enemy.fear)
+          Math.min(
+            Duality.value(battle.enemy),
+            enemySpendableFear ?? Duality.value(battle.enemy)
+          )
         )
       : availableFear
   // A recovery replaces the opponent's response and never consumes attack RNG.
@@ -360,7 +415,7 @@ function advance(
   const enemySpecial = enemyDecision?.slot || null
   const enemyDefinition = enemySpecial ? enemyKit[enemySpecial] : null
   const enemyHpSpent = healthCost(battle.enemy, enemyDefinition)
-  const fearSpent = enemyDefinition?.hopeCost || 0,
+  const fearSpent = Duality.cost(enemyDefinition),
     enemyStressSpent = enemyDefinition?.stressCost || 0
   // Development symmetric critical effects resolve before damage. Keep the
   // established production RNG order when the prototype switch is absent.
@@ -372,7 +427,16 @@ function advance(
       rollAccuracy,
       rollCritical
     )
-    return modern && outcome === 'miss' ? 'block' : outcome
+    const result = modern && outcome === 'miss' ? 'block' : outcome
+    return modern && !enemyDefinition?.guaranteedBasic
+      ? selene.wallOutcome(
+          result,
+          battle.player,
+          battle.enemy,
+          round,
+          rollBlock
+        )
+      : result
   }
   const earlyEnemyOutcome =
     (balance.criticalEffects || modern) && enemyAttacks
@@ -381,8 +445,20 @@ function advance(
   const enemyCriticalSuccess = earlyEnemyOutcome === 'critical'
   // The opponent's Hope-equivalent is Fear. Grant after selecting/paying for
   // this action, so its critical reward becomes available on the next action.
-  const enemyCriticalFearGained = Number(enemyCriticalSuccess)
+  const enemyCriticalAward = Duality.grant(
+    Duality.withValue(battle.enemy, availableFear - fearSpent),
+    Number(enemyCriticalSuccess)
+  )
+  const enemyCriticalFearGained = enemyCriticalAward.granted
   const fearGained = rollFearGained + enemyCriticalFearGained
+  if (enemyCriticalFearGained)
+    battle = {
+      ...battle,
+      enemy: Duality.withValue(
+        enemyCriticalAward.fighter,
+        Duality.value(battle.enemy)
+      ),
+    }
   const enemyCriticalStressRestored =
     enemyCriticalSuccess && hasStress(battle.enemy)
       ? Math.min(
@@ -500,6 +576,15 @@ function advance(
           duality: rollDuality || (() => randomInt(1, 13)),
           accuracy: rollAccuracy,
           critical: rollCritical,
+          block: rollBlock,
+          round,
+          mainOutcome: fighter.isAI
+            ? enemyOutcome
+            : playerCritical
+            ? 'critical'
+            : playerHit
+            ? 'hit'
+            : 'block',
         }
       ))
       const multiplier = exhausted(target, options.targetStress)
@@ -651,13 +736,7 @@ function advance(
     enemyResult.outcome =
       enemySpecial === 'special3' ? 'hit' : enemySpecialHit ? 'hit' : 'block'
   const enemyDamage = enemyBasicDamage + enemyResult.damage
-  const healing = (fighter, ability) =>
-    ability?.type === 'heal'
-      ? Math.min(
-          fighter.maxHp - fighter.hp,
-          Math.ceil((fighter.maxHp * ability.healPercent) / 100)
-        )
-      : 0
+  const healing = selene.healing
   const playerHealing = healing(battle.player, definition)
   const enemyHealing = healing(battle.enemy, enemyDefinition)
   if (definition?.type === 'heal') playerSpecial.healing = playerHealing
@@ -668,6 +747,13 @@ function advance(
   )
   const player = {
     ...battle.player,
+    ...(selene.isSelene(battle.player)
+      ? {
+          lifeUses:
+            (battle.player.lifeUses || 0) + Number(definition?.type === 'heal'),
+          combatRound: round,
+        }
+      : {}),
     hp: Math.max(0, battle.player.hp + playerHealing - hpSpent - enemyDamage),
     ...(usesRage(battle.player)
       ? {
@@ -678,7 +764,7 @@ function advance(
         }
       : {}),
     stress: playerStress,
-    hope: hopeAfterSpend + hopeGained,
+    ...Duality.fields(battle.player, hopeAfterSpend + hopeGained),
     focusHits: playerKit.special1.requiredRecharge
       ? Math.min(
           playerKit.special1.requiredRecharge,
@@ -713,6 +799,14 @@ function advance(
   }
   const enemy = {
     ...battle.enemy,
+    ...(selene.isSelene(battle.enemy)
+      ? {
+          lifeUses:
+            (battle.enemy.lifeUses || 0) +
+            Number(enemyDefinition?.type === 'heal'),
+          combatRound: round,
+        }
+      : {}),
     ...(usesRage(battle.enemy)
       ? {
           rage: Math.min(
@@ -747,7 +841,10 @@ function advance(
         playerSpecial.damage
     ),
     stress: enemyStress,
-    fear: availableFear - fearSpent + enemyCriticalFearGained,
+    ...Duality.fields(
+      battle.enemy,
+      availableFear - fearSpent + enemyCriticalFearGained
+    ),
     basicHits: enemyKit.special1.requiredHits
       ? Math.min(
           enemyKit.special1.requiredHits,
@@ -761,6 +858,15 @@ function advance(
         ? sequences.player.strikes.some((s) => s.outcome === 'block')
         : playerActs && !playerHit) ||
         (battle.enemy.opportunityReady && !enemyOpportunity)),
+  }
+  if (definition?.type === 'windWall') selene.activateWall(player, enemy, round)
+  if (enemyDefinition?.type === 'windWall')
+    selene.activateWall(enemy, player, round)
+  if (actor === 'enemy' || actor === 'exchange') {
+    for (const fighter of [player, enemy]) {
+      if (fighter.windWall?.endRound <= round) delete fighter.windWall
+      if (selene.isSelene(fighter)) fighter.combatRound = round + 1
+    }
   }
   const updateBleeding = (source, target, active, selectedSlot, side) => {
     if (!hendrix.isHendrix(source) || !active) return
@@ -898,7 +1004,7 @@ function advance(
         playerName,
         tick,
         hpSpent ? 'HP' : definition.stressCost ? 'Stress' : 'Hope',
-        hpSpent || definition.stressCost || definition.hopeCost
+        hpSpent || definition.stressCost || Duality.cost(definition)
       )
     )
   if (enemySpecial)
@@ -1049,7 +1155,10 @@ function advance(
       )
     : enemyDamage - enemyNoVulnerability
   const details = (basic, hit, result, extra) => ({
-    damage: { basic, ...(result.slot ? { [result.slot]: result.damage } : {}) },
+    damage: {
+      basic,
+      ...(result.slot ? { [result.slot]: result.damage } : {}),
+    },
     attempts: {
       basic: extra.basicAttempt,
       ...(result.slot ? { [result.slot]: 1 } : {}),
@@ -1088,8 +1197,8 @@ function advance(
     slayerActivation: Number(definition?.type === 'buff'),
     slayerConsumed: Number(playerHit && slayerActive),
     affordable:
-      battle.player.hope >= playerKit.special3.hopeCost ||
-      player.hope >= playerKit.special3.hopeCost ||
+      Duality.value(battle.player) >= Duality.cost(playerKit.special3) ||
+      Duality.value(player) >= Duality.cost(playerKit.special3) ||
       battle.finisherPaid,
     vulnerabilityExtra: playerVulnerabilityExtra,
   })
@@ -1119,8 +1228,8 @@ function advance(
     slayerActivation: Number(enemyDefinition?.type === 'buff'),
     slayerConsumed: Number(enemyHit && enemySlayerActive),
     affordable:
-      availableFear >= enemyKit.special3.hopeCost ||
-      enemy.fear >= enemyKit.special3.hopeCost,
+      availableFear >= Duality.cost(enemyKit.special3) ||
+      Duality.value(enemy) >= Duality.cost(enemyKit.special3),
     vulnerabilityExtra: enemyVulnerabilityExtra,
   })
   const strikeDetails = (data, value, ownSlot, side) => {
@@ -1172,6 +1281,63 @@ function advance(
   }
   strikeDetails(playerDetails, sequences.player, slot, 'player')
   strikeDetails(enemyDetails, sequences.enemy, enemySpecial, 'enemy')
+  const wallMetrics = (
+    data,
+    fighter,
+    target,
+    attempt,
+    hit,
+    result,
+    sequence
+  ) => {
+    if (
+      !attempt ||
+      !selene.wallActive(target, round, fighter) ||
+      kitFor(fighter)[result.slot]?.guaranteedBasic
+    )
+      return
+    const rawBasic = basicDamage(fighter, target, {
+      critical: false,
+      landed: false,
+      targetStress: target.stress,
+    })
+    const blockedBasic = outcomes.blockDamage(rawBasic, basic_damage)
+    const specialBlocked = result.outcome === 'block'
+    const rawSpecial = specialBlocked
+      ? specialDamage(fighter, result.slot, {
+          total: result.total,
+          choice: result.choice,
+          multiplier: exhausted(target) ? exhaustedStressMultiplier : 1,
+        }).damage
+      : 0
+    data.wallMetrics = {
+      checks: sequence?.strikes.length || 1,
+      blocks: sequence
+        ? sequence.strikes.filter((s) => s.outcome === 'block').length
+        : Number(!hit),
+      prevented:
+        (sequence?.prevented ?? (!hit ? rawBasic - blockedBasic : 0)) +
+        (specialBlocked ? rawSpecial - result.damage : 0),
+    }
+  }
+  wallMetrics(
+    playerDetails,
+    battle.player,
+    battle.enemy,
+    playerActs,
+    playerHit,
+    playerSpecial,
+    sequences.player
+  )
+  wallMetrics(
+    enemyDetails,
+    battle.enemy,
+    battle.player,
+    enemyAttacks,
+    enemyHit,
+    enemyResult,
+    sequences.enemy
+  )
   const addBuffDelivery = (data, actor, result, active, hit, bonus) => {
     // Activation is a use, not a direct attack. Count damage only as hits land.
     if (
@@ -1239,15 +1405,15 @@ function beginFinisher(battle) {
     !canUse(battle.player, 'special3')
   )
     return battle
-  const cost = kitFor(battle.player).special3.hopeCost,
+  const cost = Duality.cost(kitFor(battle.player).special3),
     statistics = structuredClone(battle.statistics)
   statistics.player.spent += cost
-  statistics.player.remaining = battle.player.hope - cost
+  statistics.player.remaining = Duality.value(battle.player) - cost
   return {
     ...battle,
     statistics,
     finisherPaid: true,
-    player: { ...battle.player, hope: battle.player.hope - cost },
+    player: Duality.spend(battle.player, cost),
   }
 }
 // A player command and its surviving opponent's response form one JRPG turn.
@@ -1297,7 +1463,11 @@ function takeTurn(
     rollAccuracy,
     rollCritical,
     rollEffect,
-    { ...options, actor: 'enemy', enemySpendableFear: battle.enemy.fear }
+    {
+      ...options,
+      actor: 'enemy',
+      enemySpendableFear: Duality.value(battle.enemy),
+    }
   )
   return {
     ...response,

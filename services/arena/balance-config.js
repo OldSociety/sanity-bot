@@ -49,6 +49,7 @@ function loadBalance(environment = process.env.NODE_ENV) {
     'spooky-marq',
     'maxim',
     'hendrix',
+    'selene',
   ]) {
     const sheet = sheets[name]
     if (!sheet.enabled) continue

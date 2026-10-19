@@ -1,4 +1,6 @@
 const colors = {
+  alignment: '#f7d26a',
+  windWall: '#67d6e7',
   stress: '#ad9cff',
   exposed: '#ffba58',
   rage: '#ed4747',
@@ -10,6 +12,9 @@ const colors = {
   bleeding: '#ed4747',
 }
 const paths = {
+  alignment: '<path d="m12 1 3 7 8 4-8 3-3 8-4-8-7-3 7-4z"/>',
+  windWall:
+    '<path d="M2 7h14c7 0 7-6 2-5M2 12h18c4 0 4 6 0 6M2 17h10c5 0 5 6 1 5"/>',
   bleeding: '<path d="M12 2C10 8 5 11 5 16a7 7 0 0 0 14 0c0-5-5-8-7-14z"/>',
   stress: '<path d="M14 2 5 14h7l-2 8 10-13h-7z"/>',
   exposed:
@@ -26,8 +31,32 @@ const paths = {
     '<path d="M12 1C10 8 3 10 4 16c1 9 16 9 16 0 0-5-5-9-8-15z"/><path d="M8 15c-1 3 1 5 3 5"/>',
 }
 const { exhausted, usesRage } = require('./resources')
+const seleneBuild = require('../../config/arena/characters/arena-spooky-selene-development.json')
 function statusIcons(fighter) {
   const icons = []
+  if (fighter.passive === 'celestial-alignment')
+    icons.push({
+      type: 'alignment',
+      label: 'Celestial Alignment',
+      value:
+        String(
+          Math.min(
+            seleneBuild.passive.maxStacks,
+            fighter.alignmentStacks || 0
+          ) * seleneBuild.passive.stackPercent
+        ) + '%',
+    })
+  if (fighter.windWall)
+    icons.push({
+      type: 'windWall',
+      label: 'Wind Wall · Slow',
+      value: String(
+        Math.min(
+          seleneBuild.abilities.special2.duration,
+          fighter.windWall.endRound - (fighter.combatRound || 1) + 1
+        )
+      ),
+    })
   if (fighter.bleeding) icons.push({ type: 'bleeding', label: 'Bleeding' })
   // Available single-use abilities always precede temporary status effects.
   if (fighter.passive === 'on-the-brink' && !fighter.brinkUsed)

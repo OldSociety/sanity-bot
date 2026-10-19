@@ -14,6 +14,13 @@ const roster = Object.freeze(
             variantIds: [entry.id],
           })),
           {
+            id: 'selene',
+            name: 'Selene',
+            role: 'Druid · Desert / Star',
+            lore: 'A desert Star Druid who grows stronger with Duality, restores life, and slows opponents with a wind barrier.',
+            variantIds: ['spooky-2026:sel'],
+          },
+          {
             id: 'azulis',
             name: 'Azulis',
             role: 'Druid · Sustain / Healer',

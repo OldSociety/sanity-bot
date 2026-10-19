@@ -7,6 +7,7 @@ const {
 } = require('./rules')
 const { exhausted } = require('./resources')
 const { blockedDamage, basic_damage } = require('./damage-types')
+const selene = require('./selene')
 const isHendrix = (fighter) => fighter.kit === config.identity.kit
 function duration(roll) {
   const p = roll()
@@ -73,7 +74,22 @@ function sequence(fighter, target, slot, mainCritical, targetStress, rolls) {
   const strikes = Array.from({ length: count }, (_, i) =>
     strike(
       fighter,
-      i === 0 && mainCritical
+      selene.wallActive(target, rolls.round, fighter)
+        ? i === 0
+          ? rolls.mainOutcome
+          : selene.wallOutcome(
+              nativeOutcome(
+                fighter,
+                rolls.duality,
+                rolls.accuracy,
+                rolls.critical
+              ),
+              target,
+              fighter,
+              rolls.round,
+              rolls.block
+            )
+        : i === 0 && mainCritical
         ? 'critical'
         : nativeOutcome(fighter, rolls.duality, rolls.accuracy, rolls.critical),
       bleeding,
@@ -131,6 +147,7 @@ function preview(fighter, target, slot, choice, mainBranches) {
     Boolean(target.bleeding),
     target.passive,
     target.brinkUsed,
+    selene.wallActive(target, undefined, fighter),
     slot,
     choice,
   ])
@@ -140,24 +157,47 @@ function preview(fighter, target, slot, choice, mainBranches) {
   let expected = 0,
     knockout = 0,
     minimum = Infinity
-  for (const [, mainCritical, mainChance] of mainBranches) {
+  const wall = selene.wallActive(target, undefined, fighter)
+  const resolvedBranches = selene.wallBranches(mainBranches, target, fighter)
+  for (const [mainHit, mainCritical, mainChance] of resolvedBranches) {
     const stress =
       mainCritical && target.maxStress > 0
         ? Math.max(0, target.stress - 1)
         : target.stress
     const multiplier = exhausted(target, stress) ? exhaustedStressMultiplier : 1
-    const strikeOutcomes = distribution(fighter).map(([outcome, chance]) => [
+    const distributionBranches = wall
+      ? selene
+          .wallBranches(mainBranches, target, fighter)
+          .map(([hit, critical, chance]) => [
+            critical ? 'critical' : hit ? 'hit' : 'block',
+            chance,
+          ])
+      : distribution(fighter)
+    const strikeOutcomes = distributionBranches.map(([outcome, chance]) => [
       strike(fighter, outcome, bleeding, multiplier).damage,
       chance,
     ])
     const guaranteedCritical = [
       [strike(fighter, 'critical', bleeding, multiplier).damage, 1],
     ]
+    const firstWall = [
+      [
+        strike(
+          fighter,
+          mainCritical ? 'critical' : mainHit ? 'hit' : 'block',
+          bleeding,
+          multiplier
+        ).damage,
+        1,
+      ],
+    ]
     let mass = new Map([[0, 1]])
     for (let i = 0; i < count; i++) {
       const next = new Map()
       for (const [total, p] of mass)
-        for (const [strikeDamage, chance] of i === 0 && mainCritical
+        for (const [strikeDamage, chance] of i === 0 && wall
+          ? firstWall
+          : i === 0 && mainCritical
           ? guaranteedCritical
           : strikeOutcomes) {
           if (!chance) continue

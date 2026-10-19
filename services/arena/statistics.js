@@ -1,5 +1,6 @@
 const { kitFor, balance } = require('./rules')
 const { exhausted } = require('./resources')
+const Duality = require('./duality')
 const categories = [
   'basic',
   'special1',
@@ -44,7 +45,7 @@ function fighterStats(fighter, resource, initial) {
     stressRemoved: 0,
     stressRemovedTaken: 0,
     firstFinisherAffordableRound:
-      initial >= kitFor(fighter).special3.hopeCost ? 0 : null,
+      initial >= Duality.cost(kitFor(fighter).special3) ? 0 : null,
     finisherRounds: [],
     zeroStressRounds: 0,
     vulnerabilityDamageTaken: 0,
@@ -52,8 +53,8 @@ function fighterStats(fighter, resource, initial) {
 }
 function createStatistics(player, enemy) {
   return {
-    player: fighterStats(player, 'Hope', player.hope),
-    enemy: fighterStats(enemy, 'Fear', enemy.fear),
+    player: fighterStats(player, Duality.label(player), Duality.value(player)),
+    enemy: fighterStats(enemy, Duality.label(enemy), Duality.value(enemy)),
   }
 }
 function recordRound(before, next, details) {
@@ -99,7 +100,28 @@ function recordRound(before, next, details) {
     }
     row.generated += data.generated
     row.spent += data.spent
-    row.remaining = side === 'player' ? actor.hope : actor.fear
+    row.remaining = Duality.value(actor)
+    if (actor.passive === 'celestial-alignment') {
+      row.selene ||= {
+        healingByUse: {},
+        wallChecks: 0,
+        wallBlocks: 0,
+        wallDamagePrevented: 0,
+        protectedRounds: 0,
+      }
+      row.selene.alignmentStacks = actor.alignmentStacks || 0
+      row.selene.dualityEarned = actor.dualityEarned || 0
+      if (data.uses.special1)
+        row.selene.healingByUse[actor.lifeUses] =
+          (row.selene.healingByUse[actor.lifeUses] || 0) + (data.healing || 0)
+      const wall = details[other].wallMetrics
+      if (wall) {
+        row.selene.wallChecks += wall.checks
+        row.selene.wallBlocks += wall.blocks
+        row.selene.wallDamagePrevented += wall.prevented
+        row.selene.protectedRounds++
+      }
+    }
     row.remainingHp = actor.hp
     row.hpRestored += data.healing || 0
     if (

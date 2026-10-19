@@ -105,6 +105,8 @@ function actionLines(actions = []) {
         const cost = `Spent ${event.cost} ${event.resource}.`
         if (event.type === 'heal') {
           text = `${event.actor} used ${event.name}: restored ${event.healing} HP. ${cost}`
+        } else if (event.type === 'windWall') {
+          text = `${event.actor} used Wind Wall: Slow gives 75% Block during the next two rounds. ${cost}`
         } else if (event.type === 'rage') {
           text = `${event.actor} · STOKE THE FLAMES · Gained 1 Rage · Rage ${event.rage}/3`
         } else if (event.type === 'combo') {
@@ -454,11 +456,11 @@ function screen(session) {
       .setDescription(
         session.expired
           ? 'Session expired. Use /arena to try again.'
-          : `**${character.label}** vs ${enemyName}\n${character.name}: ${stats.maxHp} HP · ${
-              stats.attack
-            } Damage\n${enemyName}: ${enemyStats.maxHp} HP · ${
-              enemyStats.attack
-            }\n\n${
+          : `**${character.label}** vs ${enemyName}\n${character.name}: ${
+              stats.maxHp
+            } HP · ${stats.attack} Damage\n${enemyName}: ${
+              enemyStats.maxHp
+            } HP · ${enemyStats.attack}\n\n${
               session.manualOpponentSelection
                 ? `${character.name}: ${
                     usesRage(character) ? 'Rage 0/3' : 'Stress 6/6'
@@ -468,7 +470,11 @@ function screen(session) {
                       : 'Stress 6/6'
                   }`
                 : character.kit === 'hellfed-marq'
-                ? `Rage 0/3 · Opponent Stress 6/6\nStoke: 1% / 2% / 3% max HP for the next Rage bar. Normal Duality roll, guaranteed basic hit, then +1 Rage. Ordinary basic ${
+                ? `Rage 0/3 · Opponent Stress 6/6\nStoke: ${kitFor({
+                    kit: character.kit,
+                  }).special1.hpCostPercentByRage.join(
+                    ' / '
+                  )}% max HP for the next Rage bar. Normal Duality roll, guaranteed basic hit, then +1 Rage. Ordinary basic ${
                     require('./outcomes').enabled() ? 'blocks' : 'misses'
                   } lose 1 Rage.`
                 : 'Stress 6/6 each'
@@ -581,6 +587,16 @@ function fallbackStatus(battle) {
         resourceMeter(fighter).value
       }/${resourceMeter(fighter).max}` +
       (fighter.bleeding ? '\nBleeding' : '') +
+      (fighter.passive === 'celestial-alignment'
+        ? `\nCelestial Alignment +${
+            (fighter.alignmentStacks || 0) *
+            require('../../config/arena/characters/arena-spooky-selene-development.json')
+              .passive.stackPercent
+          }%`
+        : '') +
+      (fighter.windWall
+        ? '\nWind Wall · 75% Block for the next protected rounds'
+        : '') +
       (exhausted(fighter)
         ? `\nTakes ×${exhaustedStressMultiplier} damage`
         : '') +

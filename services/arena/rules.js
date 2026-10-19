@@ -1,5 +1,6 @@
 // Arena-only test progression. Character rank has no mechanical effect yet.
 const { rageValue, healthCost } = require('./resources')
+const Duality = require('./duality')
 const balance = require('./balance-config').loadBalance()
 const specialMultipliers = Object.freeze([
   1, 1.1, 1.2, 1.3, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65,
@@ -30,7 +31,11 @@ const buildKits = (characters, costs) =>
             Object.freeze({
               ...entries[slot],
               stressCost: entries[slot].stressCost ?? costs[slot].stress,
-              hopeCost: entries[slot].hopeCost ?? costs[slot].hope,
+              hopeCost:
+                entries[slot].dualityCost ??
+                entries[slot].hopeCost ??
+                costs[slot].duality ??
+                costs[slot].hope,
             }),
           ])
         ),
@@ -88,13 +93,13 @@ function eligible(fighter, slot, resource) {
     (definition.type !== 'rage' || rageValue(fighter) < 3) &&
     (definition.type !== 'heal' || fighter.hp < fighter.maxHp) &&
     fighter.stress >= (definition.stressCost || 0) &&
-    resource >= (definition.hopeCost || 0) &&
+    resource >= Duality.cost(definition) &&
     (fighter.basicHits || 0) >= (definition.requiredHits || 0) &&
     (fighter.focusHits || 0) >= (definition.requiredRecharge || 0)
   )
 }
 function canUse(fighter, slot) {
-  return eligible(fighter, slot, fighter.hope)
+  return eligible(fighter, slot, Duality.value(fighter))
 }
 function selectEnemySpecial(
   fighter,
@@ -167,9 +172,12 @@ function abilityAvailable(fighter, ability) {
       (fighter.kit !== 'hellfed-marq' || Boolean(kits['hellfed-marq'])) &&
       definition.implemented !== false &&
       (ability !== 'passive' ||
-        ['not-good-enough', 'on-the-brink', 'hellfed'].includes(
-          fighter.passive
-        ))
+        [
+          'not-good-enough',
+          'on-the-brink',
+          'hellfed',
+          'celestial-alignment',
+        ].includes(fighter.passive))
   )
 }
 function roundDamage(value) {

@@ -9,6 +9,7 @@ const {
 } = require('./rules')
 
 const { exhausted, rageValue } = require('./resources')
+const { multiplier: alignmentMultiplier } = require('./selene')
 
 // Shared by exchange resolution and tactical previews. New Slayer charges never
 // affect the exchange that activates them.
@@ -31,6 +32,7 @@ function basicDamage(
       ? kitFor(fighter).special2.percent
       : 0)
   const multiplier =
+    alignmentMultiplier(fighter) *
     (exhausted(target, targetStress) ? exhaustedStressMultiplier : 1) *
     (critical
       ? fighter.isAI
@@ -69,9 +71,14 @@ function specialDamage(
       : criticalMultiplier
   return {
     percent,
-    damage: ['buff', 'heal', 'bleeding'].includes(definition.type)
+    damage: ['buff', 'heal', 'bleeding', 'windWall'].includes(definition.type)
       ? 0
-      : damageFor(fighter.attack, percent, rank, multiplier * appliedCritical),
+      : damageFor(
+          fighter.attack,
+          percent,
+          rank,
+          multiplier * appliedCritical * alignmentMultiplier(fighter)
+        ),
   }
 }
 

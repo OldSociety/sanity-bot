@@ -1,5 +1,6 @@
 // Explicit development builds: filenames include skin, character, and environment.
 const filenames = {
+  selene: 'arena-spooky-selene-development.json',
   'spooky-marq': 'arena-spooky-marq-development.json',
   'hellfed-marq': 'arena-hellfed-marq-development.json',
   maxim: 'arena-spooky-maxim-development.json',

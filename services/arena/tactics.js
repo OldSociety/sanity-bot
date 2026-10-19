@@ -10,9 +10,12 @@ const { exhausted, hasStress } = require('./resources')
 const { basicDamage, specialDamage, specialAlwaysHits } = require('./damage')
 const { brinkAvailable, brinkHealth } = require('./passives')
 const outcomes = require('./outcomes')
+const Duality = require('./duality')
+const selene = require('./selene')
 
 // Enumerate only public dice mechanics, never the upcoming random draws.
 const rates = { success: 0, opportunity: 0, fear: 0, hope: 0 }
+const playerIncomeBranches = new Map()
 for (let h = 1; h <= 12; h++)
   for (let f = 1; f <= 12; f++) {
     const success = h === f || h + f >= 12
@@ -20,6 +23,8 @@ for (let h = 1; h <= 12; h++)
     rates.opportunity += Number(!success || f > h) / 144
     rates.fear += Number(f > h) / 144
     rates.hope += Number(h >= f) / 144
+    const key = JSON.stringify([Number(success), h === f, Number(h >= f)])
+    playerIncomeBranches.set(key, (playerIncomeBranches.get(key) || 0) + 1)
   }
 
 // Finite-threshold exact tail probability for the unbounded continuing-d4 sum.
@@ -83,6 +88,10 @@ function preview(fighter, target, slot = null, choice = 3) {
     fighter.criticalChance,
     fighter.criticalMultiplier,
     fighter.rage,
+    fighter.alignmentStacks,
+    fighter.lifeUses,
+    selene.isSelene(fighter) ? Duality.value(fighter) : null,
+    selene.wallActive(target, undefined, fighter),
     target.kit,
     fighter.passive,
     fighter.opportunityReady,
@@ -221,17 +230,46 @@ function modernPreview(fighter, target, slot, choice, key) {
     !slot ||
     definition?.rollBasic ||
     (outcomes.isAttack(definition, slot) && slot !== 'special3')
-  const possibilities = rolls
+  const nativePossibilities = rolls
     ? branches(
         fighter.isAI && definition?.guaranteedBasic
           ? { ...fighter, accuracy: 100 }
           : fighter
       )
     : [[1, false, 1]]
+  let possibilities = selene.wallBranches(
+    nativePossibilities,
+    target,
+    fighter,
+    definition?.guaranteedBasic
+  )
+  if (selene.isSelene(fighter) && !fighter.isAI && rolls) {
+    possibilities = []
+    for (const [key, count] of playerIncomeBranches) {
+      const [nativeHit, nativeCritical, income] = JSON.parse(key)
+      const branch = [[nativeHit, nativeCritical, 1]]
+      for (const [hit, critical, chance] of selene.wallBranches(
+        branch,
+        target,
+        fighter,
+        definition?.guaranteedBasic
+      ))
+        possibilities.push([hit, critical, (chance * count) / 144, income])
+    }
+  }
   let knockout = 0,
     expected = 0,
     minimum = Infinity
-  for (const [hit, critical, chance] of possibilities) {
+  for (const [hit, critical, chance, ownGain] of possibilities) {
+    const attacker = selene.isSelene(fighter)
+      ? Duality.grant(
+          Duality.withValue(
+            fighter,
+            Math.max(0, Duality.value(fighter) - Duality.cost(definition))
+          ),
+          fighter.isAI ? Number(critical) : ownGain || 0
+        ).fighter
+      : fighter
     if (!chance) continue
     const basicCritical = Boolean(hasBasic && critical)
     const specialHit =
@@ -256,7 +294,7 @@ function modernPreview(fighter, target, slot, choice, key) {
         ? exhaustedStressMultiplier
         : 1
       const rawBasic = hasBasic
-        ? basicDamage(fighter, target, {
+        ? basicDamage(attacker, target, {
             critical: basicCritical,
             landed: basicHit,
             targetStress: resolvedStress,
@@ -267,7 +305,7 @@ function modernPreview(fighter, target, slot, choice, key) {
         : outcomes.blockDamage(rawBasic, 'basic_damage')
       const direct = (total = 0, percent) => {
         if (!slot) return 0
-        const raw = specialDamage(fighter, slot, {
+        const raw = specialDamage(attacker, slot, {
           total,
           choice,
           multiplier,
@@ -346,9 +384,9 @@ function survival(fighter, target, context = {}) {
         ) * frequency(actor)
   const estimate = (actor, defender, observed) => {
     const floor = basic(actor, defender)
-    const resource = actor.isAI ? actor.fear : actor.hope
+    const resource = Duality.value(actor)
     const ready = specialSlots.filter((slot) =>
-      canUse({ ...actor, hope: resource }, slot)
+      canUse(Duality.withValue(actor, resource), slot)
     )
     const burst = Math.max(
       0,
@@ -387,22 +425,19 @@ function decide(
   fighter,
   target,
   {
-    resource = fighter.isAI ? fighter.fear : fighter.hope,
+    resource = Duality.value(fighter),
     choice = 3,
     context = {},
     roll = () => 99.999,
   } = {}
 ) {
-  const actor = {
-    ...fighter,
-    hope: resource,
-    ...(fighter.isAI ? { fear: resource } : {}),
-  }
+  const actor = Duality.withValue(fighter, resource)
   const available = specialSlots.filter((slot) => canUse(actor, slot))
   const base = preview(actor, target, null, choice)
   const candidates = available.map((slot) => ({
     ...preview(actor, target, slot, choice),
-    cost: (kitFor(actor)[slot].stressCost || 0) + kitFor(actor)[slot].hopeCost,
+    cost:
+      (kitFor(actor)[slot].stressCost || 0) + Duality.cost(kitFor(actor)[slot]),
   }))
   const ordered = [...candidates].sort(
     (a, b) =>
@@ -468,7 +503,7 @@ function decide(
   // pressure to reserve the last Stress unless the heal buys survival time.
   if (kitFor(actor).special1.type === 'heal') {
     const heal = Math.ceil(
-      (actor.maxHp * kitFor(actor).special1.healPercent) / 100
+      (actor.maxHp * selene.healPercent(actor, kitFor(actor).special1)) / 100
     )
     const missing = actor.maxHp - actor.hp
     const after = survival(
@@ -489,7 +524,13 @@ function decide(
     )
       return result('special1', 'healing-survival')
     if (s3) return result('special3', 'spend-finisher')
-    if (s2) return result('special2', 'starlight-pressure')
+    if (s2 && (kitFor(actor).special2.type !== 'windWall' || !actor.windWall))
+      return result(
+        'special2',
+        kitFor(actor).special2.type === 'windWall'
+          ? 'wind-wall-defense'
+          : 'starlight-pressure'
+      )
     return result(null, 'preserve-healing-stress')
   }
   const meaningfulBuff = () => {
@@ -499,7 +540,7 @@ function decide(
     return fresh - existing >= 0.75
   }
   const canBuff = meaningfulBuff()
-  const finisherCost = kitFor(actor).special3.hopeCost
+  const finisherCost = Duality.cost(kitFor(actor).special3)
   const criticalResourceRate =
     balance.criticalEffects && actor.isAI
       ? (((actor.accuracy / 100) * actor.criticalChance) / 100) *
@@ -523,7 +564,7 @@ function decide(
   const s2Value = s2 ? s2.expected - base.expected + delayedValue : 0
   const saving =
     resource < finisherCost &&
-    resource >= kitFor(actor).special2.hopeCost &&
+    resource >= Duality.cost(kitFor(actor).special2) &&
     horizon.window > waitForFinisher + 2 &&
     specialDamage(actor, 'special3', { choice }).damage > s2Value * 1.25
   const exhaustedHorizon = exhausts

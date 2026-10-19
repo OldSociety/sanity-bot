@@ -1,0 +1,44 @@
+{
+  "enabled": true,
+  "identity": {
+    "name": "Selene",
+    "kit": "spooky-selene",
+    "passive": "celestial-alignment"
+  },
+  "baseStats": { "hp": 180, "attack": 240 },
+  "passive": {
+    "name": "Celestial Alignment",
+    "stackPercent": 2,
+    "maxStacks": 10
+  },
+  "abilities": {
+    "special1": {
+      "name": "Aura of Life",
+      "type": "heal",
+      "percent": 0,
+      "healPercent": 14,
+      "healDecay": 2,
+      "minimumHealPercent": 2,
+      "rollBasic": true,
+      "stressCost": 1,
+      "dualityCost": 0
+    },
+    "special2": {
+      "name": "Wind Wall",
+      "type": "windWall",
+      "percent": 0,
+      "blockChance": 75,
+      "duration": 2,
+      "rollBasic": true,
+      "stressCost": 0,
+      "dualityCost": 2
+    },
+    "special3": {
+      "name": "Storm's Eye",
+      "type": "playerFinisher",
+      "responseMs": 5000,
+      "stressCost": 0,
+      "dualityCost": 5
+    }
+  }
+}

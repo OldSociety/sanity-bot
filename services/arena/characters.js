@@ -47,11 +47,15 @@ const characters = Object.freeze([
           ? 'Marq [Hell-fed]'
           : `${badge.name} [Spooky]`,
       aliases:
-        badge.characterId === 'hfm'
+        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+          ? ['Spooky Selene', 'spooky-selene', 'Selene']
+          : badge.characterId === 'hfm'
           ? ['Hellfed Marq', 'Hellfed Marq [Spooky]', 'Hell-fed Marq']
           : [],
       passive:
-        badge.characterId === 'hfm'
+        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+          ? 'celestial-alignment'
+          : badge.characterId === 'hfm'
           ? 'hellfed'
           : badge.characterId === 'max'
           ? 'not-good-enough'
@@ -59,13 +63,16 @@ const characters = Object.freeze([
           ? 'on-the-brink'
           : null,
       kit:
-        badge.characterId === 'hfm'
+        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+          ? 'spooky-selene'
+          : badge.characterId === 'hfm'
           ? 'hellfed-marq'
           : badge.characterId === 'max'
           ? 'maxim'
           : badge.characterId === 'mrq'
           ? 'spooky-marq'
           : 'marq',
+      ...(badge.characterId === 'sel' ? { developmentOnly: true } : {}),
       image: path.join(
         __dirname,
         '../../assets/badges/Spooky',
@@ -99,6 +106,9 @@ const isSelectable = (character) =>
           ? [
               'spooky-2026:hfm',
               'classic:azu',
+              ...(require('./rules').balance.characters['spooky-selene']
+                ? ['spooky-2026:sel']
+                : []),
               ...prototypeEntries.map((entry) => entry.id),
             ]
           : []),

@@ -6,7 +6,8 @@ const {
   damageFor,
 } = require('./rules')
 const { healthCost } = require('./resources')
-const { brinkHealth } = require('./passives')
+const { brinkHealth, brinkPercent } = require('./passives')
+const Duality = require('./duality')
 
 function abilityCost(fighter, definition) {
   if (definition.hpCostPercentByRage)
@@ -15,12 +16,41 @@ function abilityCost(fighter, definition) {
   const costs = [
     hp && `${hp} HP`,
     definition.stressCost && `${definition.stressCost} Stress`,
-    definition.hopeCost && `${definition.hopeCost} Hope`,
+    Duality.cost(definition) &&
+      `${Duality.cost(definition)} ${Duality.label(fighter)}`,
   ].filter(Boolean)
   return costs.join(' + ') || 'Free'
 }
 
 function abilitySummary(fighter, slot) {
+  if (require('./selene').isSelene(fighter)) {
+    const ability = kitFor(fighter)[slot]
+    if (slot === 'special1') {
+      const uses =
+        Math.ceil(
+          (ability.healPercent - ability.minimumHealPercent) / ability.healDecay
+        ) + 1
+      const amounts = Array.from({ length: uses }, (_, lifeUses) =>
+        Math.ceil(
+          (fighter.maxHp *
+            require('./selene').healPercent(
+              { ...fighter, lifeUses },
+              ability
+            )) /
+            100
+        )
+      )
+      return `Restore ${ability.healPercent}% max HP, decreasing by ${
+        ability.healDecay
+      } percentage points each use to a ${
+        ability.minimumHealPercent
+      }% minimum (${amounts.join(
+        ' / '
+      )} HP at this level). Capped at missing HP; includes a basic.`
+    }
+    if (slot === 'special2')
+      return `Slow the opponent: ${ability.blockChance}% Block chance during the next ${ability.duration} rounds after activation. Refreshes without stacking. Includes a basic; Finishers and Bleeding bypass the wall.`
+  }
   if (require('./hendrix').isHendrix(fighter)) {
     if (slot === 'special1')
       return 'Apply or refresh Bleeding before three basic strikes. Bleeding lasts 2–4 rounds including this round; remaining duration is hidden. Each strike adds 1% Attack as Bleeding, ignoring Block and doubling on a critical.'
@@ -75,8 +105,19 @@ function abilitySummary(fighter, slot) {
 }
 
 function passiveSummary(character, fighter) {
+  if (character.passive === 'celestial-alignment') {
+    const { stackPercent, maxStacks } =
+      require('../../config/arena/characters/arena-spooky-selene-development.json').passive
+    return `Each ${Duality.label(
+      fighter
+    )} actually earned grants +${stackPercent}% Attack-based damage, up to +${
+      stackPercent * maxStacks
+    }%. Spending ${Duality.label(
+      fighter
+    )} preserves stacks; healing is unchanged.`
+  }
   if (character.passive === 'on-the-brink')
-    return `Once per fight, survive lethal damage with 25% max HP (${brinkHealth(
+    return `Once per fight, survive lethal damage with ${brinkPercent()}% max HP (${brinkHealth(
       fighter
     )} HP).`
   if (character.passive === 'not-good-enough')
