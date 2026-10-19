@@ -47,3 +47,14 @@ Template remains a separate hidden placeholder for unfinished characters, with f
 The old top-level Hendrix/Hellfed/Azulis/Template development files were moved into this folder. Historical reports and backups retain their original paths and data.
 
 New resource costs may use `dualityCost`: Hope for the player, Fear for the AI. Legacy `hopeCost` remains compatible. Backend combat uses `services/arena/duality.js` to read, grant and spend the same resource without role-specific field checks. Dice-face names, UI labels and existing state fields remain compatible. Selene’s `passive.stackPercent` and `maxStacks`, S1 `healDecay` / `minimumHealPercent`, and S2 `blockChance` / `duration` are editable in her sheet.
+
+## Ability Stress removal
+
+Any ability can specify `stressRemovalChance` (percent chance) and `stressRemovalAmount` (nonnegative whole number; defaults to 1). For example, Spooky Marq's `abilities.special1` can use:
+
+```json
+"stressRemovalChance": 20,
+"stressRemovalAmount": 2
+```
+
+This gives Overwhelm a 20% chance to remove up to 2 of the opponent's remaining Stress when it lands. Change `stressRemovalAmount` independently of chance; zero disables the amount. The current sheet remains at 1. Both roles, damage previews, exhaustion decisions, ability descriptions and detailed logs use the amount. Critical-basic Stress removal remains a separate 1-point effect. Reload development and start a new fight after changing a sheet.

@@ -33,7 +33,7 @@ const {
   abilitySummary,
   passiveSummary,
 } = require('./ability-summary')
-const { summaryFields, reportLines } = require('./battle-report')
+const { summaryFields, playerRecapFields, reportLines } = require('./battle-report')
 function actionLines(actions = []) {
   return actions
     .map((event) => {
@@ -151,20 +151,18 @@ function actionLines(actions = []) {
         } else
           text = `${event.actor} used ${name} for ${
             event.damage
-          }. ${cost}${
-            (
-              event.outcome === 'critical'
-                ? Math.max(0, (event.stressRemoved || 0) - 1)
-                : event.stressRemoved
-            )
-              ? ' Removed 1 enemy Stress.'
-              : ''
-          }`
+          }. ${cost}`
       } else if (event.kind === 'survival')
         text = `${event.actor}: ${(
           event.name || 'Survival'
         ).toUpperCase()} · survived with ${event.hp} HP.`
       else return ''
+      if (event.kind === 'special') {
+        const removed = event.outcome === 'critical'
+          ? Math.max(0, (event.stressRemoved || 0) - 1)
+          : event.stressRemoved || 0
+        if (removed) text += ` Removed ${removed} opponent Stress.`
+      }
       if (event.stressedTargetMultiplier)
         text += require('./stress-log').damageNote(event)
       if (event.kind === 'special' && event.outcome === 'block')
@@ -466,7 +464,10 @@ function screen(session) {
     return view
   }
   if (won || lost || quit) {
+    const playerRecap = session.presentationV2 && session.diagnostic === false
     const log = idle
+      ? { fields: [], omitted: 0 }
+      : playerRecap
       ? { fields: [], omitted: 0 }
       : historyFields(battle.history, logOptions)
     embed.setDescription(
@@ -481,9 +482,10 @@ function screen(session) {
       }`
     )
     if (!idle) {
-      if (session.presentationV2) embed.addFields(summaryFields(battle))
+      if (playerRecap) embed.addFields(playerRecapFields(battle))
+      else if (session.presentationV2) embed.addFields(summaryFields(battle))
       embed.addFields(log.fields)
-      if (session.presentationV2)
+      if (session.presentationV2 && !playerRecap)
         embed.setFooter({
           text: 'Damage includes overkill; HP removed is effective damage. Blocks count packets/strikes. Specials excludes Finals; healing includes revives.',
         })

@@ -24,6 +24,7 @@ const hendrix = require('./hendrix')
 const Duality = require('./duality')
 const selene = require('./selene')
 const resistance = require('./resistance')
+const { stressRemovalAmount } = require('./stress-effects')
 const { basic_damage } = require('./damage-types')
 const {
   usesRage,
@@ -503,7 +504,9 @@ function advance(
     const value = rollEffect()
     if (!Number.isFinite(value) || value < 0 || value >= 100)
       throw Error('Expected effect percentile from 0 to below 100')
-    return Number(value < ability.stressRemovalChance && available > 0)
+    return value < ability.stressRemovalChance
+      ? Math.min(available, stressRemovalAmount(ability))
+      : 0
   }
   const playerReserve = hasStress(battle.player)
     ? battle.player.stress - stressSpent + stressRestored

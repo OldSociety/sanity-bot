@@ -69,7 +69,10 @@ async function buildPresentation(
       framedArtFiles(state.character, state.opponent, state.page, logger)
     files = timing ? await timing.phase('renderMs', art) : await art()
   }
-  if (['victory', 'defeat', 'quit'].includes(state.battle?.status)) {
+  if (
+    ['victory', 'defeat', 'quit'].includes(state.battle?.status) &&
+    (!state.presentationV2 || state.diagnostic !== false)
+  ) {
     const text = state.presentationV2
       ? recapText(
           state.battle,

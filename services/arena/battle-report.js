@@ -86,6 +86,32 @@ function summaryFields(battle) {
     }
   })
 }
+function playerRecapFields(battle) {
+  const fields = ['player', 'enemy'].map((side) => {
+    const fighter = battle[side],
+      stats = battle.statistics?.[side] || {}
+    return {
+      name: `${fighter.name} · ${side === 'player' ? 'You' : 'Opponent'}`,
+      value: `HP **${amount(fighter.hp)} / ${amount(fighter.maxHp)}**\nDamage dealt **${amount(stats.hpDamage)}**${
+        stats.hpRestored ? ` · HP restored **${amount(stats.hpRestored)}**` : ''
+      }`,
+    }
+  })
+  const moments = flatEvents(battle.history)
+    .filter(
+      (event) => event.kind === 'survival' ||
+        (event.kind === 'special' && event.slot === 'special3')
+    )
+    .slice(-3)
+    .map((event) =>
+      event.kind === 'survival'
+        ? `Turn ${event.tick}: ${event.actor} survived with **${amount(event.hp)} HP**.`
+        : `Turn ${event.tick}: ${event.actor} used **${event.name.toUpperCase()}** for **${amount(event.damage)} damage**${event.resisted ? ' (resisted)' : ''}.`
+    )
+  if (moments.length)
+    fields.push({ name: 'Highlights', value: moments.join('\n').slice(0, 1024) })
+  return fields
+}
 function compactEvent(event) {
   if (['stressed', 'stressRelief'].includes(event.kind))
     return require('./stress-log').stressLine(event)
@@ -204,6 +230,7 @@ function timingFooter(view, current, previous) {
   })
 }
 module.exports = {
+  playerRecapFields,
   flatEvents,
   summaryFields,
   reportLines,

@@ -320,15 +320,32 @@ test('diagnostic log toggle preserves live dice, emojis, thumbnail, card and sta
   assert.equal(screen(full).embeds.length, 2)
 })
 
-test('compact logs hide timing records and recap diagnostics while preserving gameplay', async () => {
+test('player recap shows results without a diagnostic report or log attachment', async () => {
   const state = fixture('victory', false)
   state.interactionTimings = [{ action: 'basic', round: 10, totalMs: 2000, combatMs: 18 }]
   const result = await buildPresentation(state)
-  const text = result.files[0].attachment.toString()
-  assert.match(text, /BATTLE RECAP|ROUND LOG/)
-  assert.match(text, /\*\*\+14 HP\*\* healed/)
-  assert.doesNotMatch(text, /2000ms|INTERACTION TIMINGS|combatMs|Round timings|🟡10|Spent 1 Stress/)
-  assert.doesNotMatch(JSON.stringify(result.view.embeds), /2000ms|🟡10|Spent 1 Stress/)
+  assert.equal(result.files.length, 0)
+  const data = result.view.embeds[0].data
+  assert.equal(data.title, 'VICTORY')
+  assert.match(data.fields[0].value, /HP \*\*40 \/ 200\*\*/)
+  assert.match(data.fields[0].value, /Damage dealt \*\*80\*\*/)
+  assert.match(data.fields[0].value, /HP restored \*\*20\*\*/)
+  assert.ok(data.fields.length <= 3)
+  assert.doesNotMatch(JSON.stringify(data), /2000ms|🟡10|Spent|Combat log|Packets|Overkill|gained\/spent|S1\/S2|includes overkill/)
+})
+
+test('player recap highlights finishers and survival without replaying rounds', () => {
+  const state = fixture('defeat', false)
+  state.battle.history.push(
+    {kind: 'special', tick: 11, actor: 'Maxim', slot: 'special3', name: 'No Mercy', damage: 101},
+    {kind: 'survival', tick: 11, actor: 'Marq', hp: 58},
+  )
+  const data = screen(state).embeds[0].data
+  assert.equal(data.title, 'DEFEAT')
+  const highlights = data.fields.find(field => field.name === 'Highlights').value
+  assert.match(highlights, /\*\*NO MERCY\*\*.*101/)
+  assert.match(highlights, /survived with \*\*58 HP\*\*/)
+  assert.doesNotMatch(JSON.stringify(data), /Combat log|Stressed|25%|gained\/spent/)
 })
 
 test('visible processing timing and completed delivery timing remain distinct', async () => {

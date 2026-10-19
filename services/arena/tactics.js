@@ -13,6 +13,7 @@ const outcomes = require('./outcomes')
 const Duality = require('./duality')
 const selene = require('./selene')
 const resistance = require('./resistance')
+const { stressRemovalAmount } = require('./stress-effects')
 
 // Enumerate only public dice mechanics, never the upcoming random draws.
 const rates = { success: 0, opportunity: 0, fear: 0, hope: 0 }
@@ -120,10 +121,13 @@ function preview(fighter, target, slot = null, choice = 3) {
   if (previews.has(cacheKey)) return previews.get(cacheKey)
   const definition = slot ? kitFor(fighter)[slot] : null
   const effects =
-    definition?.stressRemovalChance && target.stress === 1
+    definition?.stressRemovalChance && hasStress(target) && target.stress > 0
       ? [
           [target.stress, 1 - definition.stressRemovalChance / 100],
-          [0, definition.stressRemovalChance / 100],
+          [
+            Math.max(0, target.stress - stressRemovalAmount(definition)),
+            definition.stressRemovalChance / 100,
+          ],
         ]
       : [[target.stress, 1]]
   let knockout = 0,
@@ -291,10 +295,16 @@ function modernPreview(fighter, target, slot, choice, key) {
         outcomes.isAttack(definition, slot)
     )
     const effects =
-      definition?.stressRemovalChance && target.stress === 1 && effectAllowed
+      definition?.stressRemovalChance &&
+      hasStress(target) &&
+      target.stress > 0 &&
+      effectAllowed
         ? [
             [target.stress, 1 - definition.stressRemovalChance / 100],
-            [0, definition.stressRemovalChance / 100],
+            [
+              Math.max(0, target.stress - stressRemovalAmount(definition)),
+              definition.stressRemovalChance / 100,
+            ],
           ]
         : [[target.stress, 1]]
     for (const [stress, effectChance] of effects) {
@@ -614,7 +624,9 @@ function decide(
   if (
     s1 &&
     kitFor(actor).special1.stressRemovalChance &&
-    target.stress === 1 &&
+    hasStress(target) &&
+    target.stress > 0 &&
+    target.stress <= stressRemovalAmount(kitFor(actor).special1) &&
     !avoidExhaustion
   )
     return result('special1', 'strip-final-stress')

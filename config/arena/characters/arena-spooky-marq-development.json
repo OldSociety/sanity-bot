@@ -14,7 +14,8 @@
       "name": "Overwhelm",
       "type": "direct",
       "percent": 4,
-      "stressRemovalChance": 20
+      "stressRemovalChance": 20,
+      "stressRemovalAmount": 2
     },
     "special2": {
       "name": "Combo Strike",

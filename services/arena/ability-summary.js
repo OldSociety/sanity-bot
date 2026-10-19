@@ -8,6 +8,7 @@ const {
 const { healthCost } = require('./resources')
 const { brinkHealth, brinkPercent } = require('./passives')
 const Duality = require('./duality')
+const { stressRemovalAmount } = require('./stress-effects')
 
 function abilityCost(fighter, definition) {
   if (definition.hpCostPercentByRage)
@@ -114,7 +115,7 @@ function abilitySummary(fighter, slot) {
   return (
     base +
     (definition.stressRemovalChance
-      ? ` On hit: ${definition.stressRemovalChance}% chance to remove 1 Stress.`
+      ? ` On hit: ${definition.stressRemovalChance}% chance to remove ${stressRemovalAmount(definition)} Stress, up to the opponent's remaining Stress.`
       : '') +
     (definition.requiredRecharge
       ? ` Recharge: ${definition.requiredRecharge} landed basics; starts ready.`

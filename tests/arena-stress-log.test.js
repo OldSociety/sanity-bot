@@ -49,3 +49,13 @@ test('cost and ability sources identify their owner and special; recovery ends t
   assert.match(text, /Maxim's \*\*STRESS STRIKE\*\* removed 1 Stress/)
   assert.match(text, /\*\*no longer Stressed\*\* \(1 Stress\)/)
 })
+
+test('special logs display the actual multi-point Stress removal amount', () => {
+  const line = actionLines([{
+    kind: 'special', tick: 1, actor: 'Marq', name: 'Overwhelm',
+    type: 'direct', slot: 'special1', damage: 7, stressRemoved: 2,
+    resource: 'Stress', cost: 1, outcome: 'hit',
+  }])[0]
+  assert.match(line, /\*\*OVERWHELM\*\*/)
+  assert.match(line, /Removed 2 opponent Stress/)
+})
