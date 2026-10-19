@@ -25,7 +25,7 @@ function abilitySummary(fighter, slot) {
     if (slot === 'special1')
       return 'Apply or refresh Bleeding before three basic strikes. Bleeding lasts 2–4 rounds including this round; remaining duration is hidden. Each strike adds 1% Attack as Bleeding, ignoring Block and doubling on a critical.'
     if (slot === 'special2')
-      return 'Six basic strikes total, each 1% Attack, plus a guaranteed noncritical 6% Attack bonus. Active Bleeding adds 1% per strike. A main critical guarantees only the first strike; other strikes resolve independently.'
+      return 'Six basic strikes total, each 1% Attack with a 2 HP direct-damage minimum after Block, plus a guaranteed noncritical 6% Attack bonus. Active Bleeding adds 1% per strike. A main critical guarantees only the first strike; other strikes resolve independently.'
   }
   const definition = kitFor(fighter)[slot]
   const percent = specialPercent(fighter, slot)

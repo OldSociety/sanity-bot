@@ -41,7 +41,10 @@ function strike(fighter, outcome, bleeding, multiplier = 1) {
     1,
     multiplier * critical
   )
-  const direct = outcome === 'block' ? blockedDamage(raw, basic_damage) : raw
+  const direct = Math.max(
+    config.basic.minimumDirectDamage,
+    outcome === 'block' ? blockedDamage(raw, basic_damage) : raw
+  )
   const bleed = bleeding
     ? damageFor(
         fighter.attack,
@@ -55,7 +58,7 @@ function strike(fighter, outcome, bleeding, multiplier = 1) {
     direct,
     bleed,
     damage: direct + bleed,
-    prevented: raw - direct,
+    prevented: Math.max(0, raw - direct),
   }
 }
 // One main roll controls resources. Independent draws return damage only.

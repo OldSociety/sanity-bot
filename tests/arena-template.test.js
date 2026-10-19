@@ -2,7 +2,7 @@ const test = require('node:test'),
   assert = require('node:assert/strict')
 process.env.NODE_ENV = 'development'
 // Exercise the retained unfinished-character template independently of Hendrix.
-require('../config/arena-hendrix-development.json').enabled = false
+require('./fixtures/arena-historical-profile.cjs')()
 const {
   resolveCharacter,
   isSelectable,

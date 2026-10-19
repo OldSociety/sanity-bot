@@ -43,8 +43,8 @@ test('Hendrix floors direct and Bleeding components independently before Block',
       return [s.direct, s.bleed]
     }),
     [
-      [1, 1],
-      [0, 1],
+      [2, 1],
+      [2, 1],
       [3, 3],
     ]
   )
@@ -52,7 +52,7 @@ test('Hendrix floors direct and Bleeding components independently before Block',
     ['hit', 'block', 'critical'].map(
       (o) => strike({ attack: 200 }, o, true).damage
     ),
-    [4, 3, 8]
+    [4, 4, 8]
   )
 })
 test('healing, health costs and survival restoration retain their existing rules', () => {
@@ -121,10 +121,6 @@ test('ability copy and exact previews use the same floor damage as combat', () =
     { ...h.enemy, bleeding: { remaining: 2 } },
     'special2'
   )
-  assert.equal(p.minimum, 30)
-  assert(
-    Math.abs(
-      p.expected - (36 + 28 / 12 - 4 / 144 - (50 / 144) * (6 - 1 / 12))
-    ) < 1e-10
-  )
+  assert.equal(p.minimum, 36)
+  assert(Math.abs(p.expected - (36 + 28 / 12 - 4 / 144)) < 1e-10)
 })

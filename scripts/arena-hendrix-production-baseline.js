@@ -27,14 +27,14 @@ const result = JSON.parse(
       'production',
       path.resolve(target),
     ],
-    { maxBuffer: 30 * 1024 * 1024, encoding: 'utf8' }
-  )
+    { maxBuffer: 30 * 1024 * 1024, encoding: 'utf8' },
+  ),
 )
 const hashes = Object.fromEntries(
   Object.entries(result).map(([key, value]) => [
     key,
     crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex'),
-  ])
+  ]),
 )
 fs.writeFileSync(
   'tests/fixtures/arena-production-before-hendrix.json',
@@ -47,13 +47,13 @@ fs.writeFileSync(
       hashes,
     },
     null,
-    2
-  ) + '\n'
+    2,
+  ) + '\n',
 )
 console.log(
   'Frozen production baseline saved:',
   result.states.length,
   'states,',
   result.views.length,
-  'views'
+  'views',
 )

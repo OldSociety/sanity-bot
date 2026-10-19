@@ -17,12 +17,6 @@ module.exports = {
           { name: 'Lock', value: 'lock' },
           { name: 'Status', value: 'status' }
         )
-    )
-    .addStringOption((option) =>
-      option
-        .setName('character')
-        .setDescription('Choose a fighter; select their skin inside Arena.')
-        .setAutocomplete(true)
     ),
   async autocomplete(interaction) {
     if (require('../../services/arena/access').access.restriction(interaction))

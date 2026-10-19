@@ -1,41 +1,28 @@
 const path = require('node:path')
 const badges = require('../../config/badges.json')
-const finishedHendrix =
-  process.env.NODE_ENV === 'development' &&
-  require('../../config/arena-hendrix-development.json').enabled
+const { prototypeEntries } = require('./prototype-catalog')
 const {
   variants: rarityByVariant,
 } = require('../../config/arena-rarities.json')
 
 // Prototype variants. No ownership, shop or XP imports.
 const characters = Object.freeze([
-  ...require('../../config/arena-templates-development.json').characters.map(
-    (entry) =>
-      Object.freeze({
-        id: entry.id,
-        rarity: rarityByVariant[entry.id],
-        name:
-          finishedHendrix && entry.id === 'classic:hen'
-            ? entry.name
-            : `${entry.name} [Template]`,
-        version: 'Classic',
-        label:
-          finishedHendrix && entry.id === 'classic:hen'
-            ? `${entry.name} [Classic]`
-            : `${entry.name} [Template] [Classic]`,
-        kit:
-          finishedHendrix && entry.id === 'classic:hen'
-            ? 'classic-hendrix'
-            : entry.kit,
-        aliases: [entry.name],
-        passive: null,
-        developmentOnly: true,
-        image: path.join(
-          __dirname,
-          '../../assets/badges/Classic',
-          entry.imageAsset
-        ),
-      })
+  ...prototypeEntries.map((entry) =>
+    Object.freeze({
+      id: entry.id,
+      rarity: rarityByVariant[entry.id],
+      name: entry.name,
+      version: 'Classic',
+      label: entry.label,
+      kit: entry.kit,
+      aliases: entry.aliases || [entry.name],
+      passive: null,
+      developmentOnly: true,
+      ...(entry.hidden ? { hidden: true } : {}),
+      image: entry.imageAsset
+        ? path.join(__dirname, '../../assets/badges/Classic', entry.imageAsset)
+        : null,
+    })
   ),
   Object.freeze({
     id: 'classic:azu',
@@ -102,6 +89,7 @@ const defaultCharacter = characters.find(
 const isSelectable = (character) =>
   Boolean(
     character &&
+      !character.hidden &&
       (!character.developmentOnly ||
         Boolean(require('./rules').balance.characters[character.kit])) &&
       [
@@ -111,9 +99,7 @@ const isSelectable = (character) =>
           ? [
               'spooky-2026:hfm',
               'classic:azu',
-              ...require('../../config/arena-templates-development.json').characters.map(
-                (entry) => entry.id
-              ),
+              ...prototypeEntries.map((entry) => entry.id),
             ]
           : []),
       ].includes(character.id)

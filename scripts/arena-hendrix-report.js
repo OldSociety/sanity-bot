@@ -181,8 +181,12 @@ if (process.argv[2] === 'cell') {
     const damageRounding =
       require('../services/arena/balance-config').loadBalance('development')
         .damageRounding || 'ceil'
+    const minimumDirectDamage =
+      require('../config/arena-hendrix-development.json').basic
+        .minimumDirectDamage || 0
     const summary = {
       damageRounding,
+      minimumDirectDamage,
       fights: results.reduce((n, r) => n + r.trials, 0),
       cohorts: results.length,
       trialsPerCohort: trials,
@@ -205,12 +209,16 @@ if (process.argv[2] === 'cell') {
               36 +
               28 * q -
               4 * q * q -
-              (damageRounding === 'floor' ? b * (6 - q) : 0),
+              (damageRounding === 'floor' && minimumDirectDamage < 2
+                ? b * (6 - q)
+                : 0),
             expectedFlurryHpWithoutBleeding:
               24 +
               14 * q -
               2 * q * q -
-              (damageRounding === 'floor' ? b * (6 - q) : 0),
+              (damageRounding === 'floor' && minimumDirectDamage < 2
+                ? b * (6 - q)
+                : 0),
           },
         ])
       ),

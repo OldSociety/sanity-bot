@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "baseStats": { "hp": 200, "attack": 200, "stress": 6 },
+  "baseStats": { "hp": 190, "attack": 220, "stress": 6 },
   "identity": {
     "id": "classic:hen",
     "family": "hendrix",
@@ -13,6 +13,7 @@
   "basic": {
     "strikes": 3,
     "percentPerStrike": 1,
+    "minimumDirectDamage": 2,
     "blockedDamageMultiplier": 0.75,
     "criticalMultiplier": 2,
     "dualityCriticalGuaranteedStrikes": 1,

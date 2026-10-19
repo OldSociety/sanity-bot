@@ -1,0 +1,15 @@
+{
+  "characters": [
+    {
+      "id": "classic:hen",
+      "family": "hendrix",
+      "name": "Hendrix [Template]",
+      "label": "Hendrix [Template] [Classic]",
+      "aliases": ["Hendrix"],
+      "role": "Martial Artist",
+      "kit": "template-hendrix",
+      "lore": "Unfinished character using the shared Arena template.",
+      "imageAsset": "HENDRIX_BADGE.png"
+    }
+  ]
+}

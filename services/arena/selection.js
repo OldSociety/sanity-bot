@@ -1,37 +1,18 @@
 const { characters, defaultCharacter, isSelectable } = require('./characters')
+const { prototypeEntries } = require('./prototype-catalog')
 // Families organize the selector. Variants retain independent IDs, kits,
 // stats and feature overrides; choosing a skin never copies another kit.
 const roster = Object.freeze(
   [
     ...(require('./balance-config').currentRulesEnabled()
       ? [
-          ...require('../../config/arena-templates-development.json').characters.map(
-            (entry) => ({
-              id: entry.family,
-              name:
-                process.env.NODE_ENV === 'development' &&
-                require('../../config/arena-hendrix-development.json')
-                  .enabled &&
-                entry.id === 'classic:hen'
-                  ? entry.name
-                  : `${entry.name} [Template]`,
-              role:
-                process.env.NODE_ENV === 'development' &&
-                require('../../config/arena-hendrix-development.json')
-                  .enabled &&
-                entry.id === 'classic:hen'
-                  ? 'Brawler · Martial Artist'
-                  : entry.role,
-              lore:
-                process.env.NODE_ENV === 'development' &&
-                require('../../config/arena-hendrix-development.json')
-                  .enabled &&
-                entry.id === 'classic:hen'
-                  ? 'A rapid-striking brawler who maintains Bleeding to amplify each blow.'
-                  : 'Unfinished character using the shared Arena template.',
-              variantIds: [entry.id],
-            })
-          ),
+          ...prototypeEntries.map((entry) => ({
+            id: entry.family,
+            name: entry.name,
+            role: entry.role,
+            lore: entry.lore,
+            variantIds: [entry.id],
+          })),
           {
             id: 'azulis',
             name: 'Azulis',

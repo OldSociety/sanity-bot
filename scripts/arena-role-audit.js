@@ -44,7 +44,7 @@ if (process.argv[2] === 'cell') {
     player,
     enemy,
     sourceTransform: require('./arena-role-transform').transformForRole(
-      scenario
+      scenario,
     ),
     onTurn(before, next) {
       const playerName =
@@ -62,7 +62,7 @@ if (process.argv[2] === 'cell') {
           continue
         assert.equal(
           event.actor,
-          side === 'player' ? playerName : before.enemy.name
+          side === 'player' ? playerName : before.enemy.name,
         )
         const basic = event.kind === 'hit'
         m[basic ? 'basicPackets' : 'directSpecialPackets']++
@@ -76,7 +76,7 @@ if (process.argv[2] === 'cell') {
             event.normalDamage - event.damage
           assert.equal(
             event.damage,
-            Math.ceil(event.normalDamage * (basic ? 0.75 : 0.5))
+            Math.ceil(event.normalDamage * (basic ? 0.75 : 0.5)),
           )
           if (basic) assert.equal(event.criticalExtra, 0)
           else assert.notEqual(event.slot, 'special3')
@@ -115,7 +115,7 @@ if (process.argv[2] === 'cell') {
             s.stressSpent +
             s.stressRecovered -
             s.stressRemovedTaken,
-          f.stress
+          f.stress,
         )
         const hp = s.hpDamageBySource
         m.hpBasic += hp.basic
@@ -124,7 +124,7 @@ if (process.argv[2] === 'cell') {
         m.hpS3 += hp.special3
         assert.equal(
           hp.basic + hp.special1 + hp.special2 + hp.special3,
-          s.hpDamage
+          s.hpDamage,
         )
         if (!f.hp) {
           m.losses++
@@ -138,7 +138,7 @@ if (process.argv[2] === 'cell') {
             (e) =>
               e.kind === 'special' &&
               e.outcome &&
-              e.actor === (side === 'player' ? playerName : b.enemy.name)
+              e.actor === (side === 'player' ? playerName : b.enemy.name),
           ).length
         }
         ledgerChecks++
@@ -152,7 +152,7 @@ if (process.argv[2] === 'cell') {
     const averages = Object.fromEntries(
       Object.entries(m)
         .filter(([k]) => !k.endsWith('Average'))
-        .map(([k, v]) => [k, v / trials])
+        .map(([k, v]) => [k, v / trials]),
     )
     row.perFight[side].audit = {
       ...averages,
@@ -163,12 +163,14 @@ if (process.argv[2] === 'cell') {
     assert.equal(m.criticals / trials, row.perFight[side].criticalsBasic)
   }
   process.stdout.write(
-    JSON.stringify({ ...row, scenario, roleLedgerChecks: ledgerChecks })
+    JSON.stringify({ ...row, scenario, roleLedgerChecks: ledgerChecks }),
   )
 } else {
   fs.mkdirSync(directory, { recursive: true })
   const live = JSON.parse(
-    fs.readFileSync('config/backups/arena-skin-explanations-live/manifest.json')
+    fs.readFileSync(
+      'config/backups/arena-skin-explanations-live/manifest.json',
+    ),
   ).sourceHashes
   const files = [
     ...Object.keys(live),
@@ -187,12 +189,12 @@ if (process.argv[2] === 'cell') {
     assert.deepEqual(
       JSON.parse(fs.readFileSync(modelFile)),
       hashes,
-      'Frozen model changed'
+      'Frozen model changed',
     )
   fs.writeFileSync(modelFile, JSON.stringify(hashes, null, 2))
   fs.writeFileSync(
     directory + '/live-source-before.json',
-    JSON.stringify(live, null, 2)
+    JSON.stringify(live, null, 2),
   )
   const results = fs.existsSync(resultFile)
       ? JSON.parse(fs.readFileSync(resultFile))
@@ -207,7 +209,7 @@ if (process.argv[2] === 'cell') {
             (r) =>
               r.scenario === scenario &&
               r.player === player &&
-              r.enemy === enemy
+              r.enemy === enemy,
           )
         )
           jobs.push({ scenario, player, enemy })
@@ -221,19 +223,19 @@ if (process.argv[2] === 'cell') {
             process.execPath,
             [__filename, 'cell', scenario, player, enemy, '10000'],
             { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 },
-            (e, out) => (e ? reject(e) : resolve(out))
-          )
-        )
+            (e, out) => (e ? reject(e) : resolve(out)),
+          ),
+        ),
       )
       for (const [f, h] of Object.entries(hashes)) assert.equal(sha(f), h, f)
       if (scenario === 'baseline') {
         const prior = JSON.parse(
-          fs.readFileSync('artifacts/arena-block-75-50/results.json')
+          fs.readFileSync('artifacts/arena-block-75-50/results.json'),
         ).find(
           (r) =>
             r.scenario === 'proposed' &&
             r.player === player &&
-            r.enemy === enemy
+            r.enemy === enemy,
         )
         for (const key of [
           'winPercent',
@@ -254,7 +256,7 @@ if (process.argv[2] === 'cell') {
             assert.equal(
               row.perFight[side][key],
               prior.perFight[side][key],
-              key
+              key,
             )
       }
       results.push(row)
@@ -267,7 +269,7 @@ if (process.argv[2] === 'cell') {
         row.winPercent.toFixed(2),
         row.averageRounds.toFixed(2),
         `${((Date.now() - started) / 1000).toFixed(1)}s`,
-        `${results.length}/40`
+        `${results.length}/40`,
       )
     }
   }
@@ -285,7 +287,7 @@ if (process.argv[2] === 'cell') {
             seed: 271828,
             roleLedgerChecks: results.reduce(
               (n, r) => n + r.roleLedgerChecks,
-              0
+              0,
             ),
             baseline25CohortsExactlyReproduced: true,
             allFrozenModelHashesMatch: true,
@@ -293,8 +295,8 @@ if (process.argv[2] === 'cell') {
             liveChanges: false,
           },
           null,
-          2
-        )
+          2,
+        ),
       )
       console.log('COMPLETE')
     })

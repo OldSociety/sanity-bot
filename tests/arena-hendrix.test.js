@@ -48,9 +48,7 @@ test('finished development identity and reusable template are separate', () => {
       .percent,
     8
   )
-  assert(
-    require('../services/arena/rules').balance.characters['template-hendrix']
-  )
+  assert(require('../services/arena/rules').balance.characters.template)
 })
 test('Duality critical guarantees exactly one strike; independent criticals grant no resources', () => {
   let b = make()
@@ -82,7 +80,7 @@ test('all six S2 outcomes are independent; fixed bonus remains noncritical and g
     event.strikes.map((s) => s.outcome),
     ['hit', 'block', 'block', 'hit', 'hit', 'critical']
   )
-  assert.equal(n.enemy.hp, 162) // Raw 39 becomes 38 with two per-strike floors.
+  assert.equal(n.enemy.hp, 160) // The Hendrix minimum applies after Block.
   assert.equal(n.player.hope, 4)
   assert.equal(n.special2Damage, 12)
   assert.equal(n.statistics.player.damage.special2, 20) // Three extra direct strikes + bonus.
@@ -92,12 +90,12 @@ test('Bleeding bypasses Block, doubles on associated critical, and exposes round
   const f = make().player
   assert.deepEqual(
     ['hit', 'block', 'critical'].map((o) => h.strike(f, o, true).damage),
-    [4, 3, 8]
+    [4, 4, 8]
   )
-  assert.equal(h.strike(f, 'block', true).prevented, 1)
+  assert.equal(h.strike(f, 'block', true).prevented, 0)
   assert.equal(h.strike({ ...f, attack: 400 }, 'block', true).damage, 7)
   const n = act(make(), 'special2', [1, 2])
-  assert.equal(n.enemy.hp, 182)
+  assert.equal(n.enemy.hp, 176)
   assert.equal(n.special2Damage, 12)
 })
 test('duration distribution exactly 40/40/20; activation, expiry and replacement refresh', () => {
@@ -162,8 +160,8 @@ test('public previews cannot read hidden duration and include independent critic
     p,
     preview(b.player, { ...b.enemy, bleeding: { remaining: 3 } }, 'special2')
   )
-  assert(p.expected > 30 && p.expected < 60)
-  assert.equal(p.minimum, 30)
+  assert(p.expected > 36 && p.expected < 60)
+  assert.equal(p.minimum, 36)
   assert.equal(
     preview(
       b.player,

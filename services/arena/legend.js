@@ -50,6 +50,7 @@ function legendData(battle = defaultBattle) {
     if (require('./rules').balance.damageRounding === 'floor')
       notes.push('All damage rounds down')
     if (hasHendrix) {
+      notes.push('Hendrix direct strikes: minimum 2 HP after Block')
       notes.push('Other strikes roll independently; rewards once')
       notes.push('Bleeding ignores Block; duration is hidden')
     }
