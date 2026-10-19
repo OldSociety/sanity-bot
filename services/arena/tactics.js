@@ -80,6 +80,14 @@ function branches(fighter) {
 
 const previews = new Map()
 function preview(fighter, target, slot = null, choice = 3) {
+  if (slot && outcomes.healingOnly(kitFor(fighter)[slot]))
+    return Object.freeze({
+      slot,
+      knockout: 0,
+      expected: 0,
+      guaranteed: false,
+      minimum: 0,
+    })
   const cacheKey = [
     fighter.kit,
     fighter.isAI,

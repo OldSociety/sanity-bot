@@ -19,7 +19,8 @@
       "healPercent": 14,
       "healDecay": 2,
       "minimumHealPercent": 2,
-      "rollBasic": true,
+      "rollBasic": false,
+      "rollDuality": true,
       "stressCost": 1,
       "dualityCost": 0
     },

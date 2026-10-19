@@ -33,6 +33,7 @@ const {
   abilitySummary,
   passiveSummary,
 } = require('./ability-summary')
+const { summaryFields, reportLines } = require('./battle-report')
 function actionLines(actions = []) {
   return actions
     .map((event) => {
@@ -44,7 +45,7 @@ function actionLines(actions = []) {
       } else if (event.kind === 'sacrifice') {
         text = `${
           event.actor ? event.actor + ' · ' : ''
-        }${event.name.toUpperCase()} · Sacrificed ${event.hp} HP.`
+        }**${event.name.toUpperCase()}** · Sacrificed ${event.hp} HP.`
       } else if (event.kind === 'rageMiss') {
         text = `${
           event.actor ? event.actor + ' · ' : ''
@@ -75,6 +76,10 @@ function actionLines(actions = []) {
         text = `🟡${event.hope} + 🟣${event.fear} = ${event.total}. ${result}.${effects}`
       } else if (event.kind === 'recovery') {
         text = `${event.actor} recovered ${event.stressRestored} Stress instead of attacking.`
+      } else if (event.kind === 'stressed') {
+        text = require('./stress-log').stressLine(event)
+      } else if (event.kind === 'stressRelief') {
+        text = require('./stress-log').stressLine(event)
       } else if (event.kind === 'hit') {
         text =
           event.outcome === 'critical'
@@ -91,7 +96,7 @@ function actionLines(actions = []) {
         if (event.stressRestored) text += ' Restored 1 Stress.'
         if (event.stressRemoved) text += ' Removed 1 opponent Stress.'
         if (event.fearGained) text += ` Gained ${event.fearGained} Fear.`
-        if (event.guaranteed) text += ' Stoke guaranteed hit.'
+        if (event.guaranteed) text += ' **STOKE** guaranteed hit.'
         if (event.strikes)
           text =
             `${event.actor}: ${event.strikes
@@ -103,12 +108,13 @@ function actionLines(actions = []) {
             (event.stressRemoved ? ' Removed 1 opponent Stress.' : '')
       } else if (event.kind === 'special') {
         const cost = `Spent ${event.cost} ${event.resource}.`
+        const name = `**${event.name.toUpperCase()}**`
         if (event.type === 'heal') {
-          text = `${event.actor} used ${event.name}: restored ${event.healing} HP. ${cost}`
+          text = `${event.actor} used ${name}: restored ${event.healing} HP. ${cost}${event.healingOnly ? ' Healing only; no attack.' : ''}`
         } else if (event.type === 'windWall') {
-          text = `${event.actor} used Wind Wall: Slow gives 75% Block this round and the next two rounds, plus 75% Super Move resistance. ${cost}`
+          text = `${event.actor} used ${name}: Slow gives 75% Block this round and the next two rounds, plus 75% Super Move resistance. ${cost}`
         } else if (event.type === 'rage') {
-          text = `${event.actor} · STOKE THE FLAMES · Gained 1 Rage · Rage ${event.rage}/3`
+          text = `${event.actor} · ${name} · Gained 1 Rage · Rage ${event.rage}/3`
         } else if (event.type === 'combo') {
           const chain = event.rolls
             .slice(0, 40)
@@ -118,20 +124,20 @@ function actionLines(actions = []) {
             event.rolls.length > 40
               ? ` + … (${event.rolls.length - 40} more)`
               : ''
-          text = `${event.actor}: ${event.name}: ${chain}${extra}${
+          text = `${event.actor}: ${name}: ${chain}${extra}${
             event.flatPercent ? ` + ${event.flatPercent}%` : ''
           } = **${Number(event.percent.toFixed(3))}%** · **${
             event.damage
           }** damage. ${cost}`
         } else if (event.type === 'buff') {
-          text = `${event.actor} used ${event.name}: next ${event.hits} landed basics +${event.percent}% Attack. ${cost}`
+          text = `${event.actor} used ${name}: next ${event.hits} landed basics +${event.percent}% Attack. ${cost}`
         } else if (event.slot === 'special3') {
           text =
             event.resource === 'Fear' &&
             event.damage === 0 &&
             !require('./resistance').enabled()
-              ? `${event.actor}: ${event.name} missed! ${cost}`
-              : `${event.actor}: ${event.name}: ${
+              ? `${event.actor}: ${name} missed! ${cost}`
+              : `${event.actor}: ${name}: ${
                   event.resource === 'Fear'
                     ? 'rolled'
                     : event.choice
@@ -143,7 +149,7 @@ function actionLines(actions = []) {
                     : ''
                 } ${cost}`
         } else
-          text = `${event.actor} used ${event.name} for ${
+          text = `${event.actor} used ${name} for ${
             event.damage
           }. ${cost}${
             (
@@ -159,6 +165,8 @@ function actionLines(actions = []) {
           event.name || 'Survival'
         ).toUpperCase()} · survived with ${event.hp} HP.`
       else return ''
+      if (event.stressedTargetMultiplier)
+        text += require('./stress-log').damageNote(event)
       if (event.kind === 'special' && event.outcome === 'block')
         text += ` BLOCKED · ${
           require('./rules').balance.damageRules ? '50' : '25'
@@ -177,19 +185,44 @@ function actionLines(actions = []) {
 }
 const actionLog = (actions = []) =>
   actionLines(actions.slice(-5)).join('\n') || 'The fight starts here.'
-function historyFields(history) {
-  const lines = actionLines(history)
+function historyFields(history, options = {}) {
+  const lines = options.clean
+    ? reportLines(history, actionLines, options)
+    : actionLines(history)
+  let units = lines
+  if (options.clean) {
+    units = []
+    for (const line of lines) {
+      if (/^\*\*\d+\.\*\*/.test(line) || !units.length) units.push(line)
+      else units[units.length - 1] += '\n' + line
+    }
+  }
   let chosen = [],
     used = 0
-  for (const line of lines.slice().reverse()) {
-    if (used + line.length + 1 > 4800) break
+  for (const line of units.slice().reverse()) {
+    if (used + line.length + 1 > (options.maxChars || 4800)) break
     chosen.unshift(line)
     used += line.length + 1
   }
   const fields = [],
-    omitted = lines.length - chosen.length
+    omitted = units.length - chosen.length
   let chunk = ''
   for (const line of chosen) {
+    if (line.length > 1000) {
+      // Only unusually long rounds need splitting; normal rounds stay whole.
+      const sub = line.split('\n')
+      for (const part of sub) {
+        if (chunk && chunk.length + part.length + 1 > 1000) {
+          fields.push({
+            name: fields.length ? 'Combat log · continued' : 'Combat log',
+            value: chunk,
+          })
+          chunk = ''
+        }
+        chunk += (chunk ? '\n' : '') + part.slice(0, 1000)
+      }
+      continue
+    }
     if (chunk && chunk.length + line.length + 1 > 1000) {
       fields.push({
         name: fields.length ? 'Combat log · continued' : 'Combat log',
@@ -206,9 +239,15 @@ function historyFields(history) {
     })
   if (!fields.length)
     fields.push({ name: 'Combat log', value: 'No actions recorded.' })
-  return { fields, omitted }
+  return { fields, omitted, unit: options.clean ? 'rounds' : 'actions' }
 }
 function screen(session) {
+  const logOptions = {
+    clean: Boolean(session.presentationV2),
+    diagnostic: session.diagnostic !== false,
+    timings: session.roundTimings,
+    maxChars: session.presentationV2 ? 2800 : 4800,
+  }
   const { id, revision, battle } = session,
     character = session.character || defaultCharacter
   const player = battle?.player,
@@ -429,19 +468,26 @@ function screen(session) {
   if (won || lost || quit) {
     const log = idle
       ? { fields: [], omitted: 0 }
-      : historyFields(battle.history)
+      : historyFields(battle.history, logOptions)
     embed.setDescription(
-      `${
-        quit ? 'Fight quit. Use /arena to choose another character.\n' : ''
-      }**Rewards:** None — prototype\n**Turns:** ${battle.tick} · ${
-        idle ? 'Idle' : 'Active'
-      }${
+      `${quit ? 'Fight quit. Use /arena to choose another character.\n' : ''}${
+        session.presentationV2 ? '' : '**Rewards:** None — prototype\n'
+      }**Turns:** ${battle.tick} · ${idle ? 'Idle' : 'Active'}${
         log.omitted
-          ? `\nShowing the most recent actions; ${log.omitted} earlier actions omitted.`
+          ? `\nShowing the most recent ${log.unit || 'actions'}; ${
+              log.omitted
+            } earlier ${log.unit || 'actions'} omitted.`
           : ''
       }`
     )
-    if (!idle) embed.addFields(log.fields)
+    if (!idle) {
+      if (session.presentationV2) embed.addFields(summaryFields(battle))
+      embed.addFields(log.fields)
+      if (session.presentationV2)
+        embed.setFooter({
+          text: 'Damage includes overkill; HP removed is effective damage. Blocks count packets/strikes. Specials excludes Finals; healing includes revives.',
+        })
+    }
     return withOpponentPicker(
       payload([
         ...startButtons(true),
@@ -527,12 +573,21 @@ function screen(session) {
   else if (session.stopped) summary += '\n⚠️ Paused · restart fight'
   if (session.busy) summary += '\nResolving…'
   embed.setDescription(summary)
-  const lines = actionLines(
-    battle.actions.filter((event) => event.kind !== 'roll').slice(-2)
-  )
+  const lines = session.presentationV2
+    ? reportLines(
+        battle.history.filter((event) => event.tick === battle.tick),
+        actionLines,
+        logOptions
+      )
+    : actionLines(
+        battle.actions.filter((event) => event.kind !== 'roll').slice(-2)
+      )
   embed.addFields({
     name: 'Latest moves',
-    value: lines.join('\n') || 'The fight starts here.',
+    value:
+      (session.presentationV2
+        ? lines.join('\n').slice(0, 1000)
+        : lines.join('\n')) || 'The fight starts here.',
   })
   const quitButton = () => button('quit', 'Quit', ButtonStyle.Secondary)
   if (session.minigame && !session.expired) {

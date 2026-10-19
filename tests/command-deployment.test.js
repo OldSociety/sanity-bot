@@ -3,6 +3,22 @@ const { runDeployment, offlineDefinitions } = require('../deploy-commands')
 const { commandEntry, inventory, validateDefinition, loadRegistry } = require('../services/command-registry')
 const root = require('node:path').resolve(__dirname, '..')
 
+test('offline deployment evaluates Arena options for the explicit target environment', () => {
+  const dev = offlineDefinitions(root, 'development').find(command => command.name === 'arena')
+  const prod = offlineDefinitions(root, 'production').find(command => command.name === 'arena')
+  assert.ok(dev.options.some(option => option.name === 'diagnostic' && option.type === 5))
+  assert.deepEqual(prod.options.map(option => option.name), ['access'])
+})
+
+test('real offline definitions complete a mocked deployment plan without registry writes', async () => {
+  const f = fixture()
+  f.dependencies.definitions = offlineDefinitions
+  const result = await runDeployment([], f.dependencies)
+  assert.equal(result.applied, false)
+  assert.ok(result.plan.desired.some(command => command.name === 'arena'))
+  assert.equal(f.calls.includes('put'), false)
+})
+
 test('Cocoa and Idle stay development-only while Arena permits its explicit locked production test', () => {
   const { commandEnabled } = require('../services/command-environment')
   assert.equal(require('../services/command-environment').commandEnabled({name:'arena'}, 'production'), true)

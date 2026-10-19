@@ -46,7 +46,11 @@ function abilitySummary(fighter, slot) {
         ability.minimumHealPercent
       }% minimum (${amounts.join(
         ' / '
-      )} HP at this level). Capped at missing HP; includes a basic.`
+      )} HP at this level). Capped at missing HP; ${
+        require('./outcomes').healingOnly(ability)
+          ? 'replaces the basic attack. Normal Duality resource roll; no basic critical effects.'
+          : 'includes a basic.'
+      }`
     }
     if (slot === 'special2')
       return `Slow the opponent: ${ability.blockChance}% Block chance ${
@@ -69,7 +73,11 @@ function abilitySummary(fighter, slot) {
   if (definition.type === 'heal')
     return `Restore ${definition.healPercent}% max HP (${Math.ceil(
       (fighter.maxHp * definition.healPercent) / 100
-    )}), capped at missing HP. Includes a basic; healing works even if it is blocked.`
+    )}), capped at missing HP. ${
+      require('./outcomes').healingOnly(definition)
+        ? 'Replaces the basic attack. Normal Duality resource roll; no basic critical effects.'
+        : 'Includes a basic; healing works even if it is blocked.'
+    }`
   if (definition.type === 'rage') {
     const costs = (definition.hpCostPercentByRage || []).map((p) =>
       Math.ceil((fighter.maxHp * p) / 100)

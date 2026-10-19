@@ -49,3 +49,6 @@ yarn-error.log**.sqlite
 /config/arena/state/arena-message-leases-production.json.tmp
 /config/arena/state/arena-selection-preferences-production.json
 /config/arena/state/arena-selection-preferences-production.json.tmp
+
+/config/arena/state/arena-diagnostics-development.json
+/config/arena/state/arena-diagnostics-development.json.*.tmp

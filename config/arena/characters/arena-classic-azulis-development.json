@@ -15,10 +15,11 @@
       "type": "heal",
       "percent": 0,
       "healPercent": 6,
-      "rollBasic": true,
+      "rollBasic": false,
+      "rollDuality": true,
       "stressCost": 1,
       "hopeCost": 0,
-      "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Includes the normal Duality roll and basic."
+      "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Replaces the basic attack; retains the normal Duality resource roll without basic critical effects."
     },
     "special2": {
       "name": "Starlight",

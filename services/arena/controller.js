@@ -23,6 +23,9 @@ const {
 } = require('./message-transport')
 const { snapshot, buildPresentation } = require('./presentation')
 const { createTiming } = require('./timing')
+const { timingFooter } = require('./battle-report')
+const { createClickResponse } = require('./click-response')
+const { measureRest } = require('./rest-timing')
 const shuffle = () => {
   const values = [1, 2, 3, 4, 5]
   for (let i = 4; i > 0; i--) {
@@ -62,9 +65,49 @@ function createArena({
   engine = { newBattle, takeTurn, beginFinisher },
   responsive = process.env.NODE_ENV !== 'production',
   retryDelay,
+  diagnostics = () => true,
+  onTiming = () => {},
+  quickResponses = responsive,
+  setResponseTimer = setTimeout,
+  clearResponseTimer = clearTimeout,
 } = {}) {
   const sessions = new Map()
   let disposed = false
+  async function diagnosticValue() {
+    try {
+      return Boolean(await diagnostics())
+    } catch {
+      logger.warn?.('Arena diagnostic setting unavailable; using compact logs')
+      return false
+    }
+  }
+  function trace(session) {
+    const initialRound = session.battle?.tick || 0
+    return createTiming({
+      logger,
+      sample: session.diagnostic === true,
+      onFinish(record) {
+        Object.assign(record, {
+          sessionId: session.id,
+          round: session.battle?.tick || 0,
+        })
+        if (!['duplicate', 'stale', 'expired'].includes(record.action)) {
+          session.interactionTimings.push({ ...record })
+          if (session.interactionTimings.length > 512)
+            session.interactionTimings.shift()
+          session.lastTiming = record
+          if (record.round > initialRound) {
+            session.roundTimings[record.round] = record
+            const keys = Object.keys(session.roundTimings)
+            if (keys.length > 512) delete session.roundTimings[keys[0]]
+          }
+        }
+        Promise.resolve()
+          .then(() => onTiming(record))
+          .catch(() => logger.warn?.('Arena timing record could not be saved'))
+      },
+    })
+  }
   const privateReply = (interaction, content) =>
     interaction
       .reply({ content, ephemeral: true, allowedMentions: { parse: [] } })
@@ -83,6 +126,7 @@ function createArena({
   }
   async function render(session, unlock = false) {
     if (responsive) {
+      session.diagnostic = await diagnosticValue()
       // Expiry may invalidate a snapshot while native rendering is in flight.
       // Discard it before publishing, then render the new terminal revision.
       for (;;) {
@@ -101,8 +145,28 @@ function createArena({
           legendRetryAt: presentation.legendRetryAt,
         })
         try {
+          if (session.timing && session.diagnostic !== false)
+            timingFooter(
+              presentation.view,
+              session.timing.snapshot(),
+              session.lastTiming
+            )
           const send = () =>
-            session.transport.send(presentation.view, presentation.files)
+            session.clickResponse
+              ? session.transport.send(
+                  presentation.view,
+                  presentation.files,
+                  session.clickResponse
+                )
+              : measureRest(
+                  session.rest,
+                  () =>
+                    session.transport.send(
+                      presentation.view,
+                      presentation.files
+                    ),
+                  session.timing
+                )
           if (session.timing) await session.timing.phase('deliveryMs', send)
           else await send()
           session.deliveredRevision = state.revision
@@ -173,15 +237,21 @@ function createArena({
     session.artKey = key
   }
   function enqueue(session, work) {
-    session.work = session.work.then(work).catch(async (error) => {
-      logger.error('Arena update failed:', error.message)
-      session.stopped = true
-      session.busy = false
-      cancel(session)
-      session.minigame = null
-      await render(session).catch(() => {})
-      if (!session.expired) armExpiry(session)
-    })
+    session.work = session.work
+      .then(work)
+      .catch(async (error) => {
+        logger.error('Arena update failed:', error.message)
+        session.stopped = true
+        session.busy = false
+        cancel(session)
+        session.minigame = null
+        await render(session).catch(() => {})
+        if (!session.expired) armExpiry(session)
+      })
+      .finally(() => {
+        session.clickResponse?.cancel()
+        session.clickResponse = null
+      })
     return session.work
   }
   function expire(session, notify = true) {
@@ -260,25 +330,42 @@ function createArena({
   }
   async function resolveGame(session, choice) {
     if (session.expired || !session.minigame) return
-    session.busy = true
-    cancel(session)
-    session.minigame = null
-    session.revision++
-    session.battle = engine.takeTurn(
-      session.battle,
-      { special3: true, choice },
-      roll,
-      rollDuality,
-      rollFearSpend,
-      rollAccuracy,
-      rollCritical,
-      rollEffect,
-      { aiPolicy, rollFinisher, rollRecovery }
-    )
-    complete(session)
-    await render(session, true)
-    session.busy = false
-    armExpiry(session)
+    const autonomous = responsive && !session.timing
+    if (autonomous) session.timing = trace(session)
+    try {
+      session.busy = true
+      cancel(session)
+      session.minigame = null
+      session.revision++
+      const advance = () =>
+        engine.takeTurn(
+          session.battle,
+          { special3: true, choice },
+          roll,
+          rollDuality,
+          rollFearSpend,
+          rollAccuracy,
+          rollCritical,
+          rollEffect,
+          { aiPolicy, rollFinisher, rollRecovery }
+        )
+      session.battle = session.timing
+        ? await session.timing.phase('combatMs', advance)
+        : advance()
+      complete(session)
+      await render(session, true)
+      session.busy = false
+      armExpiry(session)
+    } finally {
+      if (autonomous) {
+        session.timing.finish({
+          action: 'finisher-timeout',
+          revision: session.revision,
+          failed: session.deliveryPending,
+        })
+        session.timing = null
+      }
+    }
   }
   function armFinisher(session, game = session.minigame) {
     if (!game || session.expired || session.minigame !== game || game.claimed)
@@ -319,7 +406,39 @@ function createArena({
       throw Error('Expected an available Arena opponent')
     return chosen
   }
-  async function execute(interaction, character, { selection = false } = {}) {
+  async function execute(interaction, character, options = {}) {
+    const timing = responsive
+      ? createTiming({
+          logger,
+          onFinish: (record) => {
+            const session = sessions.get(interaction.id)
+            if (session) session.interactionTimings.push({ ...record })
+            Promise.resolve()
+              .then(() =>
+                onTiming({ ...record, sessionId: interaction.id, round: 0 })
+              )
+              .catch(() =>
+                logger.warn?.('Arena timing record could not be saved')
+              )
+          },
+        })
+      : null
+    let failed = false
+    try {
+      return await executeSession(interaction, character, options, timing)
+    } catch (error) {
+      failed = true
+      throw error
+    } finally {
+      timing?.finish({ action: 'open', failed })
+    }
+  }
+  async function executeSession(
+    interaction,
+    character,
+    { selection = false } = {},
+    timing
+  ) {
     if (disposed)
       return privateReply(
         interaction,
@@ -327,7 +446,10 @@ function createArena({
       )
     if (authorize && !(await authorize(interaction))) return
     const deferred = Boolean(interaction.deferReply)
-    if (deferred) await interaction.deferReply()
+    if (deferred) {
+      if (timing) await timing.phase('ackMs', () => interaction.deferReply())
+      else await interaction.deferReply()
+    }
     const level = 1
     let saved
     if (selection) {
@@ -386,6 +508,11 @@ function createArena({
       expiryTimer: null,
       expiryGeneration: 0,
       work: Promise.resolve(),
+      rest: interaction.client?.rest,
+      presentationV2: responsive,
+      diagnostic: responsive ? await diagnosticValue() : true,
+      roundTimings: {},
+      interactionTimings: [],
       deliveredRevision: 0,
       deliveryPending: false,
       edit: (payload) => interaction.editReply(payload),
@@ -396,17 +523,22 @@ function createArena({
     }
     sessions.set(session.id, session)
     try {
-      const files = await framedArtFiles(
-        character,
-        session.opponent,
-        session.page,
-        logger
-      )
+      const prepareArt = () =>
+        framedArtFiles(character, session.opponent, session.page, logger)
+      const files = timing
+        ? await timing.phase('renderMs', prepareArt)
+        : await prepareArt()
       session.artKey = files.map((file) => file.name).join('|')
       const initial = { ...screen(session), files, fetchReply: true }
-      const message = await (deferred
-        ? interaction.editReply(initial)
-        : interaction.reply(initial))
+      if (timing && session.diagnostic !== false)
+        timingFooter(initial, timing.snapshot())
+      const deliver = () =>
+        deferred ? interaction.editReply(initial) : interaction.reply(initial)
+      const message = timing
+        ? await timing.phase('deliveryMs', () =>
+            measureRest(interaction.client?.rest, deliver, timing)
+          )
+        : await deliver()
       session.messageId = message.id
       if (responsive)
         session.transport = createMessageTransport(message, {
@@ -485,7 +617,9 @@ function createArena({
       if (reservedPick.endTimer != null) clearTimer(reservedPick.endTimer)
       reservedPick.endTimer = null
     }
-    const timing = responsive ? createTiming({ logger }) : null
+    const timing = responsive ? trace(session) : null
+    if (responsive && !session.busy)
+      session.transport.observe(interaction.message)
     const visibleControl = interaction.message.components
       ?.flatMap((row) => row.components || row.toJSON?.().components || [])
       .map((component) =>
@@ -509,8 +643,31 @@ function createArena({
             lockedControls(interaction.message, session.id, session.revision)
           )
         : interaction.deferUpdate()
+    const clickResponse =
+      quickResponses && lock && typeof interaction.editReply === 'function'
+        ? createClickResponse(interaction, {
+            locked: lockedControls(
+              interaction.message,
+              session.id,
+              session.revision
+            ),
+            timing,
+            setTimer: setResponseTimer,
+            clearTimer: clearResponseTimer,
+            measure: (work) =>
+              measureRest(interaction.client?.rest, work, timing),
+          })
+        : null
     const acknowledgement = Promise.resolve()
-      .then(() => (timing ? timing.phase('ackMs', acknowledge) : acknowledge()))
+      .then(() =>
+        clickResponse
+          ? null
+          : timing
+          ? timing.phase('ackMs', () =>
+              measureRest(interaction.client?.rest, acknowledge, timing)
+            )
+          : acknowledge()
+      )
       .then(
         () => null,
         (error) => error
@@ -534,11 +691,14 @@ function createArena({
       return
     }
     if (session.expired) {
+      await clickResponse?.defer()
+      clickResponse?.cancel()
       session.busy = false
       timing?.finish({ action: 'expired' })
       return
     }
     session.timing = timing
+    session.clickResponse = clickResponse
     // A stale display can only refresh the committed state, never spend again.
     if (responsive && (match[3] === 'refresh' || session.deliveryPending)) {
       cancelExpiry(session)
@@ -726,6 +886,8 @@ function createArena({
         level: session.level,
         opponent: session.opponent,
       })
+      session.roundTimings = {}
+      session.lastTiming = null
       session.minigame = null
       session.stopped = false
       session.reported = false
@@ -760,6 +922,8 @@ function createArena({
       session.busy = false
       timing?.finish({ action: 'stale' })
       session.timing = null
+      clickResponse?.cancel()
+      session.clickResponse = null
       return
     }
     cancelExpiry(session)
@@ -836,5 +1000,20 @@ module.exports = {
         ? createPreferenceStore()
         : createMemoryPreferences(),
     onComplete: live ? saveCombatReport : () => {},
+    diagnostics: () => require('./diagnostics').diagnosticSettings.get(),
+    onTiming:
+      process.env.NODE_ENV === 'development'
+        ? (record) =>
+            require('./async-state').appendReport(
+              require('node:path').resolve(
+                __dirname,
+                '../../artifacts/arena-interactions-development.jsonl'
+              ),
+              JSON.stringify({
+                recordedAt: new Date().toISOString(),
+                ...record,
+              }) + '\n'
+            )
+        : () => {},
   }),
 }

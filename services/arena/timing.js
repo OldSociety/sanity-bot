@@ -5,10 +5,21 @@ let completed = 0,
 function createTiming({
   logger = console,
   sample = Math.random() < 0.05,
+  onFinish = () => {},
 } = {}) {
   const start = performance.now(),
     stages = {}
   return {
+    add: (name, value) => {
+      stages[name] = (stages[name] || 0) + value
+    },
+    detail: (name, value) => {
+      stages[name] = value
+    },
+    snapshot: () => ({
+      elapsedMs: Math.round(performance.now() - start),
+      ...stages,
+    }),
     async phase(name, work) {
       const began = performance.now()
       try {
@@ -19,15 +30,15 @@ function createTiming({
     },
     finish(details = {}) {
       const totalMs = Math.round(performance.now() - start)
+      const record = { totalMs, ...stages, ...details }
       completed++
       failed += Number(Boolean(details.failed))
       recent.push(totalMs)
       if (recent.length > 256) recent.shift()
       if (sample || totalMs >= 1000 || details.failed)
-        logger.info?.(
-          'Arena timing:',
-          JSON.stringify({ totalMs, ...stages, ...details })
-        )
+        logger.info?.('Arena timing:', JSON.stringify(record))
+      onFinish(record)
+      return record
     },
   }
 }
@@ -79,6 +90,7 @@ function startMetrics(client, logger = console) {
     clearInterval(timer)
     delay.disable()
     client.rest?.off('rateLimited', limited)
+    require('./rest-timing').stopRestTiming(client.rest)
     running.delete(client)
   }
   client.once('invalidated', stop)

@@ -22,7 +22,12 @@ function createMessageTransport(
   let attached = attachmentMap(message)
   let lastMessage = message
   let fileKey = null
-  async function send(view, files) {
+  function observe(current) {
+    if (current?.id !== message.id || !current.attachments?.values) return
+    attached = attachmentMap(current)
+    lastMessage = current
+  }
+  async function send(view, files, click) {
     const key = files.map((file) => file.name).join('|')
     const kept = files
       .filter((file) => attached.has(file.name))
@@ -36,7 +41,7 @@ function createMessageTransport(
     let response
     for (let attempt = 0; ; attempt++) {
       try {
-        response = await edit(payload)
+        response = await (click ? click.send(payload, edit) : edit(payload))
         break
       } catch (error) {
         const status = error.status || error.httpStatus
@@ -53,8 +58,14 @@ function createMessageTransport(
     }
     // Only publish attachment identities after a successful response. A retry
     // with the same manifest replaces ambiguous uploads rather than appending.
-    attached = attachmentMap(response)
-    if (response) lastMessage = response
+    if (response?.attachments?.values) {
+      attached = attachmentMap(response)
+      lastMessage = response
+    } else {
+      // Keep known retained IDs until a future component payload supplies new
+      // upload IDs. No extra GET is needed after a direct callback response.
+      attached = new Map(kept.map((file) => [file.filename, file]))
+    }
     fileKey = key
     return response
   }
@@ -62,7 +73,7 @@ function createMessageTransport(
   // or enters the normal click acknowledgement path.
   const recover = (sessionId, revision) =>
     edit(lockedControls(lastMessage, sessionId, revision, { recovery: true }))
-  return { send, recover }
+  return { send, recover, observe }
 }
 
 function lockedControls(

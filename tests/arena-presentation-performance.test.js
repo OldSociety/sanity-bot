@@ -141,6 +141,7 @@ function fixture(options = {}) {
   }
   const arena = createArena({
     responsive: true,
+    quickResponses: false,
     engine,
     chooseOpponent: () => 'maxim',
     renderCard: async (s) => ({
@@ -203,6 +204,7 @@ function fixture(options = {}) {
     })
   return {
     arena,
+    apply,
     interaction,
     message,
     edits,
@@ -691,4 +693,246 @@ test('development shutdown waits for sessions and pending writes before destroyi
     registered.map(([signal]) => signal),
     ['SIGINT', 'SIGTERM']
   )
+})
+
+test('compact/full diagnostic changes affect the next view without replaying a move or rerendering its card', async () => {
+  let diagnostic = false,
+    renders = 0
+  const records = []
+  const f = fixture({
+    diagnostics: () => diagnostic,
+    onTiming: (record) => records.push(record),
+    renderCard: async (state) => {
+      renders++
+      return { name: cardName(state), attachment: Buffer.from('card') }
+    },
+  })
+  try {
+    await f.open()
+    assert.equal(f.view().embeds.length, 1)
+    await f.click('basic')
+    const afterMove = renders
+    assert.match(
+      f.view().embeds[0].data.footer.text,
+      /Processing \(\d+ms\).*Previous update total/
+    )
+    diagnostic = true
+    await f.click('refresh')
+    assert.equal(f.view().embeds.length, 2)
+    assert.equal(renders, afterMove)
+    assert.equal(f.calls(), 1)
+    assert.equal(f.edits.at(-1).files[0].name, 'legend.png')
+    assert.ok(
+      records.some(
+        (record) =>
+          record.action === 'open' && Number.isFinite(record.deliveryMs)
+      )
+    )
+    assert.ok(
+      records.some(
+        (record) =>
+          record.action === 'basic' &&
+          record.round === 1 &&
+          Number.isFinite(record.combatMs) &&
+          Number.isFinite(record.deliveryMs)
+      )
+    )
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('autonomous Finisher timeout also records processing and delivery without player wait time', async () => {
+  const records = []
+  const f = fixture({ onTiming: (record) => records.push(record) })
+  try {
+    await f.open()
+    await f.click('special3')
+    const timer = [...f.timers.values()][0]
+    f.clock(5000)
+    await timer.work()
+    assert.equal(f.calls(), 1)
+    assert.ok(
+      records.some(
+        (record) =>
+          record.action === 'finisher-timeout' &&
+          record.round === 1 &&
+          Number.isFinite(record.combatMs) &&
+          Number.isFinite(record.deliveryMs)
+      )
+    )
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('fast delivery uses one full callback and no separate message edit or fetch', async () => {
+  const records = []
+  const f = fixture({
+    quickResponses: true,
+    onTiming: (record) => records.push(record),
+  })
+  try {
+    await f.open()
+    const before = f.acknowledgements.length
+    await f.click('basic')
+    assert.equal(f.calls(), 1)
+    assert.equal(f.acknowledgements.length, before + 1)
+    assert.equal(f.edits.length, 0)
+    const response = f.acknowledgements.at(-1)
+    assert.ok(response.embeds)
+    assert.equal(response.fetchReply, undefined)
+    assert.equal(response.files.length, 1)
+    assert.equal(response.attachments[0].filename, 'legend.png')
+    assert.ok(
+      records.some(
+        (record) =>
+          record.action === 'basic' && record.responseMode === 'direct-update'
+      )
+    )
+    await f.click('basic')
+    assert.equal(f.calls(), 2)
+    assert.equal(f.acknowledgements.at(-1).files.length, 1)
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('slow work locks before deadline and finishes through the current click webhook', async () => {
+  const guards = new Map(),
+    records = []
+  let id = 0,
+    stall = false,
+    signal,
+    release
+  const began = new Promise((resolve) => {
+    signal = resolve
+  })
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  const f = fixture({
+    quickResponses: true,
+    onTiming: (record) => records.push(record),
+    setResponseTimer: (work) => {
+      const key = ++id
+      guards.set(key, work)
+      return key
+    },
+    clearResponseTimer: (key) => guards.delete(key),
+    renderCard: async (state) => {
+      if (stall) {
+        signal()
+        await gate
+      }
+      return { name: cardName(state), attachment: Buffer.from('card') }
+    },
+  })
+  try {
+    await f.open()
+    stall = true
+    let webhooks = 0
+    const pending = f.click('basic', f.revision(), {
+      editReply: async (payload) => {
+        webhooks++
+        f.apply(payload)
+        return f.message
+      },
+    })
+    await began
+    await [...guards.values()][0]()
+    assert.equal(f.acknowledgements.at(-1).embeds, undefined)
+    assert.ok(
+      f.message.components
+        .flatMap((row) => row.components)
+        .every((component) => component.disabled)
+    )
+    release()
+    await pending
+    assert.equal(webhooks, 1)
+    assert.equal(f.edits.length, 0)
+    assert.equal(f.calls(), 1)
+    assert.equal(guards.size, 0)
+    assert.ok(
+      records.some(
+        (record) =>
+          record.action === 'basic' &&
+          record.responseMode === 'fresh-webhook' &&
+          Number.isFinite(record.ackMs)
+      )
+    )
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('ambiguous direct callback failure retries committed result through bot transport without another transition', async () => {
+  const f = fixture({ quickResponses: true })
+  try {
+    await f.open()
+    let callbacks = 0
+    await f.click('basic', f.revision(), {
+      update: async () => {
+        callbacks++
+        throw Object.assign(Error('lost response'), { status: 503 })
+      },
+    })
+    assert.equal(callbacks, 1)
+    assert.equal(f.calls(), 1)
+    assert.equal(f.edits.length, 1)
+    assert.match(f.view().embeds[0].data.title, /· 1/)
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('duplicate clicks during a fast response cannot repeat the transition', async () => {
+  const f = fixture({ quickResponses: true })
+  let signal, release
+  const began = new Promise((resolve) => {
+    signal = resolve
+  })
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  try {
+    await f.open()
+    const revision = f.revision()
+    const pending = f.click('basic', revision, {
+      update: async (payload) => {
+        signal()
+        await gate
+        f.apply(payload)
+      },
+    })
+    await began
+    await f.click('basic', revision)
+    assert.equal(f.calls(), 1)
+    release()
+    await pending
+    assert.equal(f.calls(), 1)
+  } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('fast Finisher display starts one deadline and a failed callback cannot lose or repay it', async () => {
+  const f = fixture({ quickResponses: true })
+  try {
+    await f.open()
+    await f.click('special3', f.revision(), {
+      update: async () => {
+        throw Object.assign(Error('unknown'), { code: 10062, status: 404 })
+      },
+    })
+    assert.equal(f.calls(), 0)
+    assert.equal(f.timers.size, 0)
+    await f.click('refresh')
+    assert.equal(f.timers.size, 1)
+    await f.click('pick:1')
+    assert.equal(f.calls(), 1)
+    assert.equal(f.timers.size, 0)
+  } finally {
+    await f.arena.dispose()
+  }
 })

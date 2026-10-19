@@ -4,6 +4,12 @@ const { createHash } = require('node:crypto')
 const sharp = require('sharp')
 const { frameVersion, frameFor, frameMarkup } = require('./portrait-frame')
 const { portraitVersion, framingFor, renderPortrait } = require('./portrait')
+const { imageVersion } = require('./portrait')
+const { createBufferCache } = require('./presentation-cache')
+const bannerCache = createBufferCache({
+  maxEntries: 8,
+  maxBytes: 12 * 1024 * 1024,
+})
 const thumbnailCache = new Map()
 const thumbnailKey = (character) =>
   createHash('sha256')
@@ -34,7 +40,10 @@ function artFiles(character, opponent = 'maxim', page = 'prefight') {
     return [
       {
         attachment: base.image,
-        name: `arena-character-${base.kit}-${thumbnailKey(base)}.png`,
+        name:
+          process.env.NODE_ENV === 'production'
+            ? `arena-character-${base.kit}-${thumbnailKey(base)}.png`
+            : `arena-portrait-${thumbnailKey(base)}.png`,
       },
     ]
   }
@@ -42,10 +51,13 @@ function artFiles(character, opponent = 'maxim', page = 'prefight') {
     return [
       {
         attachment: character.image,
-        name: `arena-skin-${character.id.replace(
-          /[^a-z0-9-]/gi,
-          '-'
-        )}-${thumbnailKey(character)}.png`,
+        name:
+          process.env.NODE_ENV === 'production'
+            ? `arena-skin-${character.id.replace(
+                /[^a-z0-9-]/gi,
+                '-'
+              )}-${thumbnailKey(character)}.png`
+            : `arena-portrait-${thumbnailKey(character)}.png`,
       },
     ]
   const file = bannerName(character, opponent)
@@ -63,7 +75,22 @@ async function framedArtFiles(
   logger = console
 ) {
   const files = artFiles(character, opponent, page)
-  if (!['characters', 'skins'].includes(page)) return files
+  if (!['characters', 'skins'].includes(page)) {
+    if (process.env.NODE_ENV === 'production') return files
+    try {
+      const key = await imageVersion([files[0].attachment])
+      const attachment = await bannerCache.get(key, () =>
+        sharp(files[0].attachment)
+          .resize({ width: 800, withoutEnlargement: true })
+          .png()
+          .toBuffer()
+      )
+      return [{ ...files[0], attachment }]
+    } catch (error) {
+      logger.warn?.(`Arena banner preparation unavailable: ${error.message}`)
+      return files
+    }
+  }
   const portrait =
     page === 'characters' ? basePortraitFor(character) : character
   const frame = frameFor(portrait)

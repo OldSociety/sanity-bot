@@ -20,7 +20,9 @@ const forbidden = () => {
     'Offline registry audit cannot execute commands or access models',
   )
 }
-function definition(source, filename) {
+function definition(source, filename, environment = process.env.NODE_ENV || 'development') {
+  if (!['development', 'production', 'test'].includes(environment))
+    throw new Error('Invalid command definition environment')
   const module = { exports: {} },
     substitutes = []
   function offlineRequire(name) {
@@ -59,7 +61,12 @@ function definition(source, filename) {
     throw new Error(`Unreviewed definition import: ${name} (${filename})`)
   }
   new vm.Script(source, { filename }).runInNewContext(
-    { module, exports: module.exports, require: offlineRequire },
+    {
+      module, exports: module.exports, require: offlineRequire,
+      // Builders may select environment-specific options. Supply only the
+      // explicit target, never real process methods, credentials or argv.
+      process: Object.freeze({ env: Object.freeze({ NODE_ENV: environment }) }),
+    },
     { timeout: 2000 },
   )
   const command = module.exports

@@ -292,15 +292,17 @@ function advance(
     slot === 'special3' && battle.finisherPaid ? 0 : Duality.cost(definition)
   const stressSpent = definition?.stressCost || 0
   const playerActs =
-    actor === 'player' ||
-    actor === 'exchange' ||
-    (actor === 'ability' && definition?.rollBasic === true) ||
-    (modern &&
-      balance.offensiveSpecialBasics &&
-      actor === 'ability' &&
-      outcomes.isAttack(definition, slot))
+    !outcomes.healingOnly(definition) &&
+    (actor === 'player' ||
+      actor === 'exchange' ||
+      (actor === 'ability' && definition?.rollBasic === true) ||
+      (modern &&
+        balance.offensiveSpecialBasics &&
+        actor === 'ability' &&
+        outcomes.isAttack(definition, slot)))
   const playerRolls =
     playerActs ||
+    (definition?.rollDuality === true && actor !== 'enemy') ||
     (modern &&
       actor === 'ability' &&
       outcomes.isAttack(definition, slot) &&
@@ -360,10 +362,11 @@ function advance(
       throw Error('Expected recovery percentile from 0 to below 100')
     enemyStressRestored = Number(recovery < balance.ai.stressRecoveryChance)
   }
-  const enemyAttacks =
+  // Select the response before deciding whether it includes an attack.
+  const enemyResponds =
     (actor === 'enemy' || actor === 'exchange') && !enemyStressRestored
   const enemyDecision =
-    battle.mode !== 'idle' && enemyAttacks
+    battle.mode !== 'idle' && enemyResponds
       ? aiPolicy === 'legacy'
         ? {
             slot: selectEnemySpecial(
@@ -392,6 +395,7 @@ function advance(
       : null
   const enemySpecial = enemyDecision?.slot || null
   const enemyDefinition = enemySpecial ? enemyKit[enemySpecial] : null
+  const enemyAttacks = enemyResponds && !outcomes.healingOnly(enemyDefinition)
   if (enemyDefinition?.type === 'windWall') {
     battle = { ...battle, enemy: { ...battle.enemy } }
     selene.activateWall(battle.enemy, battle.player, round)
@@ -765,8 +769,14 @@ function advance(
   const healing = selene.healing
   const playerHealing = healing(battle.player, definition)
   const enemyHealing = healing(battle.enemy, enemyDefinition)
-  if (definition?.type === 'heal') playerSpecial.healing = playerHealing
-  if (enemyDefinition?.type === 'heal') enemyResult.healing = enemyHealing
+  if (definition?.type === 'heal') {
+    playerSpecial.healing = playerHealing
+    playerSpecial.healingOnly = outcomes.healingOnly(definition)
+  }
+  if (enemyDefinition?.type === 'heal') {
+    enemyResult.healing = enemyHealing
+    enemyResult.healingOnly = outcomes.healingOnly(enemyDefinition)
+  }
   const rageAfterMiss = Math.max(
     0,
     rageValue(battle.player) - Number(playerActs && !playerHit)
@@ -921,6 +931,7 @@ function advance(
       ? `Your ${battle.player.name}`
       : battle.player.name
   playerSpecial.rage = usesRage(player) ? player.rage : undefined
+  enemyResult.rage = usesRage(enemy) ? enemy.rage : undefined
   const events = playerRolls
     ? [
         {
@@ -1056,6 +1067,77 @@ function advance(
       hp: enemyBrink,
       tick,
     })
+  // Log the same resolved reserves used for damage; never recalculate outcomes.
+  const stressNotice = (
+    fighter,
+    name,
+    remaining,
+    spent,
+    ability,
+    removed,
+    critical,
+    opponent,
+    opposingAbility
+  ) => {
+    if (!hasStress(fighter)) return
+    if (fighter.stress > 0 && remaining === 0) {
+      const sources = []
+      if (spent)
+        sources.push({
+          name: ability.name,
+          actor: name,
+          amount: spent,
+          type: 'cost',
+        })
+      const criticalRemoved = Math.min(removed, Number(critical))
+      if (criticalRemoved)
+        sources.push({ actor: opponent, amount: criticalRemoved, type: 'critical' })
+      if (removed > criticalRemoved)
+        sources.push({
+          name: opposingAbility.name,
+          actor: opponent,
+          amount: removed - criticalRemoved,
+          type: 'ability',
+        })
+      events.unshift({
+        kind: 'stressed',
+        actor: name,
+        tick,
+        sources,
+        multiplier: exhaustedStressMultiplier,
+      })
+    } else if (fighter.stress === 0 && remaining > 0) {
+      events.unshift({ kind: 'stressRelief', actor: name, tick, stress: remaining })
+    }
+  }
+  stressNotice(
+    battle.enemy,
+    battle.enemy.name,
+    enemyStress,
+    enemyStressSpent,
+    enemyDefinition,
+    stressRemoved,
+    duality.critical,
+    playerName,
+    definition
+  )
+  stressNotice(
+    battle.player,
+    playerName,
+    playerStress,
+    stressSpent,
+    definition,
+    enemyStressRemoved,
+    enemyCriticalSuccess,
+    battle.enemy.name,
+    enemyDefinition
+  )
+  for (const event of events) {
+    if (!['hit', 'special'].includes(event.kind) || !(event.damage > 0)) continue
+    const targetVulnerability =
+      event.actor === playerName ? enemyVulnerability : playerVulnerability
+    if (targetVulnerability > 1) event.stressedTargetMultiplier = targetVulnerability
+  }
   const latestCombo =
     playerSpecial.type === 'combo'
       ? events.find(
