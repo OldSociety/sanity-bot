@@ -15,9 +15,13 @@ function transformFor(experiment) {
   if (!['A', 'B', 'C'].includes(experiment))
     throw Error('Expected economy A/B/C')
   return (relative, source) => {
+    source = source.replace(
+      /\bbalance\.offensiveSpecialBasics\b/g,
+      experiment === 'B' ? 'true' : 'false'
+    )
     if (experiment === 'A') return source
     if (relative === 'services/arena/tactics.js') {
-      if (experiment === 'B')
+      if (experiment === 'B' && !/const rolls =\s*hasBasic/.test(source))
         source = replace(
           source,
           'const rolls = fighter.isAI ||',
@@ -82,8 +86,8 @@ function transformFor(experiment) {
     )
     source = replace(
       source,
-      'enemyBasicHit || specialAlwaysHits(battle.enemy, enemySpecial)',
-      'enemyHit || specialAlwaysHits(battle.enemy, enemySpecial)'
+      'enemyBasicHit || enemyDefinition?.guaranteedHit || specialAlwaysHits(battle.enemy, enemySpecial)',
+      'enemyHit || enemyDefinition?.guaranteedHit || specialAlwaysHits(battle.enemy, enemySpecial)'
     )
     return source
   }

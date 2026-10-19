@@ -29,14 +29,24 @@ const enemy = (b, accuracy = 0, critical = 99) =>
       rollFinisher: () => 40,
     }
   )
-test('development has four selectable enemies and matching ability damage; production config unchanged', () => {
+test('development has five selectable enemies and matching ability damage; production stays frozen', () => {
   assert.deepEqual(
     new Set(availableOpponents().map((c) => c.kit)),
-    new Set(['spooky-marq', 'maxim', 'hellfed-marq', 'classic-azulis'])
+    new Set([
+      'spooky-marq',
+      'maxim',
+      'hellfed-marq',
+      'classic-azulis',
+      'classic-hendrix',
+    ])
   )
   assert.deepEqual(
     loadBalance('production'),
-    require('../config/arena-balance.json')
+    require('../config/arena-balance-production.json')
+  )
+  assert.equal(
+    loadBalance('production').characters['classic-hendrix'],
+    undefined
   )
   for (const c of availableOpponents()) {
     const b = make(c.id),
@@ -101,7 +111,7 @@ test('Hellfed AI Rage damage, Block decay and Finisher percentages use the live 
   let n = enemy(b, 99)
   assert.equal(n.enemySpecial, 'special2')
   assert.equal(n.enemy.rage, 2)
-  assert.equal(n.enemyDamage, 2 + Math.ceil(68 / 4))
+  assert.equal(n.enemyDamage, Math.floor(6 * 0.75) + Math.floor(68 * 0.5))
   assert.equal(n.statistics.enemy.criticals.special2, 0)
   b = make()
   b.enemy.rage = 3
@@ -122,15 +132,15 @@ test('Azulis enemy healing survives Block and Starlight stays normal during a ba
   assert.equal(n.enemySpecial, 'special1')
   assert.equal(n.enemy.hp, 114)
   assert.equal(n.enemy.stress, 5)
-  assert.equal(n.enemyDamage, 2)
+  assert.equal(n.enemyDamage, Math.floor(Math.floor(190 * 0.03) * 0.75))
   b.enemy.hp = 230
   b.enemy.fear = 2
   const crit = enemy(b, 0, 0),
     event = crit.history.find((e) => e.kind === 'special')
   assert.equal(event.slot, 'special2')
-  assert.equal(event.damage, 42)
+  assert.equal(event.damage, 41)
   assert.equal(event.outcome, 'hit')
-  assert.equal(crit.enemyDamage, 12 + 42)
+  assert.equal(crit.enemyDamage, 11 + 41)
   assert.equal(crit.statistics.enemy.criticals.special2, 0)
 })
 function fixture() {
@@ -206,7 +216,7 @@ test('enemy picker validates values, persists rematches, supports Hellfed and bl
     .controls()
     .find((c) => c.data.type === 3)
     .options.map((o) => o.data.value)
-  assert.equal(options.length, 4)
+  assert.equal(options.length, 5)
   const stale = f.id('opponent')
   await f.click('opponent', 'classic:sel')
   assert.match(f.view.embeds[0].data.description, /Marq \[Spooky\]/)

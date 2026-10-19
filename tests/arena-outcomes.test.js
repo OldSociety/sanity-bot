@@ -1,6 +1,15 @@
 const test = require('node:test'),
   assert = require('node:assert/strict')
 process.env.NODE_ENV = 'development'
+require('./fixtures/arena-historical-profile.cjs')()
+// Historical A-profile fixtures; native B is covered separately.
+const loader = require('../services/arena/balance-config'),
+  originalLoad = loader.loadBalance
+loader.loadBalance = (...args) => {
+  const b = originalLoad(...args)
+  delete b.offensiveSpecialBasics
+  return b
+}
 const {
   newBattle,
   advance,

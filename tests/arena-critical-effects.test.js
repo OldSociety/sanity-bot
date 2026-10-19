@@ -12,9 +12,9 @@ test('development critical Stress effects are symmetric, capped and respect Rage
     }
   )
 })
-test('production critical behavior is isolated from the development revision', () => {
+test('ordinary test profile retains legacy critical behavior', () => {
   assert.equal(
-    require('../services/arena/balance-config').loadBalance('production')
+    require('../services/arena/balance-config').loadBalance('test')
       .criticalEffects,
     undefined
   )

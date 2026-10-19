@@ -172,13 +172,20 @@ function abilityAvailable(fighter, ability) {
         ))
   )
 }
+function roundDamage(value) {
+  return balance.damageRounding === 'floor'
+    ? Math.floor(value)
+    : Math.ceil(value)
+}
 function damageFor(attack, percent, upgradeRank = 1, vulnerability = 1) {
   if (!Number.isInteger(upgradeRank) || upgradeRank < 1 || upgradeRank > 10)
     throw new RangeError('Special upgrade rank must be from 1 to 10')
   // Integer coefficients avoid floating-point errors at exact integer boundaries.
   const rankPercent = Math.round(specialMultipliers[upgradeRank - 1] * 100)
   const modifierUnits = Math.round(vulnerability * 10000)
-  return Math.ceil((attack * percent * rankPercent * modifierUnits) / 100000000)
+  return roundDamage(
+    (attack * percent * rankPercent * modifierUnits) / 100000000
+  )
 }
 module.exports = {
   balance,
@@ -203,4 +210,5 @@ module.exports = {
   statsForLevel,
   abilityAvailable,
   damageFor,
+  roundDamage,
 }

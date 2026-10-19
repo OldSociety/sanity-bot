@@ -1,0 +1,38 @@
+{
+  "baseStats": { "hp": 200, "attack": 200 },
+  "abilities": {
+    "special1": {
+      "name": "[S1]",
+      "type": "direct",
+      "percent": 8,
+      "stressCost": 1,
+      "hopeCost": 0,
+      "description": "Deal 8% Attack as direct damage (16 at Level 1)."
+    },
+    "special2": {
+      "name": "[S2]",
+      "type": "direct",
+      "percent": 24,
+      "stressCost": 0,
+      "hopeCost": 2,
+      "description": "Deal 24% Attack as direct damage (48 at Level 1)."
+    },
+    "special3": {
+      "name": "[S3]",
+      "type": "playerFinisher",
+      "stressCost": 0,
+      "hopeCost": 5,
+      "description": "Standard guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within five seconds."
+    }
+  },
+  "characters": [
+    {
+      "id": "classic:hen",
+      "family": "hendrix",
+      "name": "Hendrix",
+      "role": "Martial Artist",
+      "kit": "template-hendrix",
+      "imageAsset": "HENDRIX_BADGE.png"
+    }
+  ]
+}

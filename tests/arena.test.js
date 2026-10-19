@@ -667,10 +667,10 @@ test('manual Basic Attack does not overlap network updates during a slow message
   await f.arena.dispose()
 })
 
-test('character catalog includes every Spooky badge plus Classic Selene and Azulis with verified files and unique stable IDs', () => {
+test('character catalog includes every Spooky badge plus Classic variants and templates with verified files and unique stable IDs', () => {
   const { characters, defaultCharacter, resolveCharacter, characterChoices } = require('../services/arena/characters')
   const badges = require('../config/badges.json').badges
-  assert.equal(characters.length, badges.length + 2); assert.equal(new Set(characters.map(item => item.id)).size, characters.length)
+  assert.equal(characters.length, badges.length + 2 + require('../config/arena-templates-development.json').characters.length); assert.equal(new Set(characters.map(item => item.id)).size, characters.length)
   assert.equal(defaultCharacter.name, 'Marq'); assert.equal(resolveCharacter().id, defaultCharacter.id)
   assert.equal(resolveCharacter('Maxim [Spooky]').id, 'spooky-2026:max')
   assert.equal(resolveCharacter('selene [classic]').id, 'classic:sel')
@@ -719,7 +719,7 @@ test('autocomplete uses the real dispatcher, rejects production/wrong guild, and
   assert.match(replies[0].content, /autocomplete/); assert.equal(replies[0].ephemeral, true)
   for(const hidden of ['Selene [Classic]', 'spooky-2026:had']) {
     await command.execute({ guildId: 'dev', options: { getString: name => name === 'character' ? hidden : null }, reply: async payload => replies.push(payload) })
-    assert.match(replies.at(-1).content, /Only Marq/); assert.equal(replies.at(-1).ephemeral, true)
+    assert.match(replies.at(-1).content, /Choose an available fighter/); assert.equal(replies.at(-1).ephemeral, true)
   }
   const option = command.data.toJSON().options.find(item => item.name === 'character')
   assert.equal(option.autocomplete, true); assert.ok(!option.required)

@@ -3,6 +3,7 @@ const { createHash } = require('node:crypto')
 const { iconSvg, statusIcons } = require('./status-icons')
 const { hasStress, usesRage } = require('./resources')
 const items = [
+  ['bleeding', 'Bleeding', 'Extra damage per Hendrix strike'],
   ['brink', 'Brink available', 'Survive one lethal hit'],
   ['exposed', 'Exposed', 'No Stress: +25% damage taken'],
   ['rage', 'Rage', 'No Stress exhaustion penalty'],
@@ -17,6 +18,9 @@ const defaultBattle = {
 }
 function legendData(battle = defaultBattle) {
   const fighters = [battle.player, battle.enemy]
+  const hasHendrix = fighters.some(
+    (fighter) => fighter.kit === 'classic-hendrix'
+  )
   const types = new Set(
     fighters.flatMap((fighter) => statusIcons(fighter).map((icon) => icon.type))
   )
@@ -36,16 +40,28 @@ function legendData(battle = defaultBattle) {
       : []),
   ]
   if (require('./outcomes').enabled()) {
-    notes.push('Block: 25% damage; no on-hit effects')
+    notes.push(
+      require('./rules').balance.damageRules
+        ? 'Block: 75% basic / 50% special damage'
+        : 'Block: 25% damage; no on-hit effects'
+    )
     notes.push('Basic critical: +1 Hope/Fear; recover 1 Stress')
     notes.push('Remove 1 opponent Stress; never stored')
+    if (require('./rules').balance.damageRounding === 'floor')
+      notes.push('All damage rounds down')
+    if (hasHendrix) {
+      notes.push('Other strikes roll independently; rewards once')
+      notes.push('Bleeding ignores Block; duration is hidden')
+    }
   }
   return {
     items: items
       .filter(([type]) => types.has(type))
       .map((item) =>
         item[0] === 'critical' && require('./outcomes').enabled()
-          ? ['critical', 'Basic critical', 'Current basic ×2; never stored']
+          ? hasHendrix
+            ? ['critical', 'Duality critical', 'Hendrix: first strike ×2 only']
+            : ['critical', 'Basic critical', 'Current basic ×2; never stored']
           : item
       ),
     notes,

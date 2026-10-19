@@ -120,7 +120,14 @@ function cardSvg(data) {
       ).join('')
       return `<rect x="6" y="${y}" width="388" height="132" rx="12" fill="#21212d" stroke="#3e3c50"/>
       <rect x="16" y="${y + 16}" width="72" height="100" rx="9" fill="#171822"/>
-      ${text(100, y + 30, fighter.name, 24, '#ffffff', 'font-weight="700"')}
+      ${text(
+        100,
+        y + 30,
+        fighter.name,
+        Math.min(24, Math.floor(210 / (fighter.name.length * 0.6))),
+        '#ffffff',
+        'font-weight="700"'
+      )}
       ${text(
         376,
         y + 26,

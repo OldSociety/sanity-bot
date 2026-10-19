@@ -1,0 +1,361 @@
+{
+  "playerBasicPercent": 3,
+  "aiBasicPercent": 3,
+  "costs": {
+    "special1": {
+      "stress": 1,
+      "hope": 0
+    },
+    "special2": {
+      "stress": 0,
+      "hope": 2
+    },
+    "special3": {
+      "stress": 0,
+      "hope": 5
+    }
+  },
+  "characters": {
+    "spooky-marq": {
+      "special1": {
+        "name": "Overwhelm",
+        "type": "direct",
+        "percent": 4,
+        "stressRemovalChance": 20
+      },
+      "special2": {
+        "name": "Combo Strike",
+        "type": "combo",
+        "percent": 1,
+        "flatPercent": 8
+      },
+      "special3": {
+        "name": "Not Done Yet",
+        "type": "playerFinisher"
+      }
+    },
+    "maxim": {
+      "special1": {
+        "name": "Deadly Focus",
+        "type": "direct",
+        "percent": 10,
+        "stressCost": 2,
+        "requiredRecharge": 3
+      },
+      "special2": {
+        "name": "Slayer",
+        "type": "buff",
+        "percent": 7,
+        "hits": 3
+      },
+      "special3": {
+        "name": "No Mercy",
+        "type": "playerFinisher"
+      }
+    },
+    "hellfed-marq": {
+      "special1": {
+        "name": "Stoke the Flames",
+        "type": "rage",
+        "percent": 0,
+        "hpCostPercentByRage": [1, 2, 3],
+        "rollBasic": true,
+        "guaranteedBasic": true,
+        "stressCost": 0,
+        "hopeCost": 0
+      },
+      "special2": {
+        "name": "Hellbreaker",
+        "type": "direct",
+        "percent": 16,
+        "ragePercent": 6,
+        "stressRemovalChance": 25,
+        "stressCost": 0,
+        "hopeCost": 2
+      },
+      "special3": {
+        "name": "Infernal Wrath",
+        "type": "playerFinisher",
+        "ragePercent": 8,
+        "stressCost": 0,
+        "hopeCost": 5
+      }
+    },
+    "classic-azulis": {
+      "special1": {
+        "name": "Regeneration",
+        "type": "heal",
+        "percent": 0,
+        "healPercent": 6,
+        "rollBasic": true,
+        "stressCost": 1,
+        "hopeCost": 0,
+        "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Includes the normal Duality roll and basic."
+      },
+      "special2": {
+        "name": "Starlight",
+        "type": "direct",
+        "percent": 22,
+        "stressCost": 0,
+        "hopeCost": 2,
+        "description": "Deal 22% Attack as direct damage (42 at Level 1)."
+      },
+      "special3": {
+        "name": "Falling Star",
+        "type": "playerFinisher",
+        "aiPercent": 45,
+        "responseMs": 4000,
+        "stressCost": 0,
+        "hopeCost": 5,
+        "description": "Guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within four seconds."
+      }
+    },
+    "template-hendrix": {
+      "special1": {
+        "name": "[S1]",
+        "type": "direct",
+        "percent": 8,
+        "stressCost": 1,
+        "hopeCost": 0,
+        "description": "Deal 8% Attack as direct damage (16 at Level 1)."
+      },
+      "special2": {
+        "name": "[S2]",
+        "type": "direct",
+        "percent": 24,
+        "stressCost": 0,
+        "hopeCost": 2,
+        "description": "Deal 24% Attack as direct damage (48 at Level 1)."
+      },
+      "special3": {
+        "name": "[S3]",
+        "type": "playerFinisher",
+        "stressCost": 0,
+        "hopeCost": 5,
+        "description": "Standard guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within five seconds."
+      }
+    }
+  },
+  "finisher": {
+    "rangeByLevel": [
+      [20, 30],
+      [20, 30],
+      [25, 35],
+      [25, 35],
+      [30, 45],
+      [30, 45],
+      [35, 50],
+      [35, 50],
+      [40, 60],
+      [40, 60]
+    ],
+    "timeoutMultiplier": 0.75
+  },
+  "ai": {
+    "stressRecoveryChance": 8,
+    "stressChanceByAvailable": [0, 5, 15, 25, 30, 35, 40],
+    "special2ChanceByFear": [0, 0, 40, 20, 10, 5, 5],
+    "special3Chance": 90,
+    "characters": {
+      "spooky-marq": {
+        "special1": {
+          "name": "Overwhelm",
+          "type": "direct",
+          "percent": 4,
+          "stressRemovalChance": 20
+        },
+        "special2": {
+          "name": "Combo Strike",
+          "type": "combo",
+          "percent": 1,
+          "flatPercent": 8
+        },
+        "special3": {
+          "name": "Not Done Yet",
+          "type": "aiFinisher"
+        }
+      },
+      "maxim": {
+        "special1": {
+          "name": "Deadly Focus",
+          "type": "direct",
+          "percent": 10,
+          "stressCost": 2,
+          "requiredRecharge": 3
+        },
+        "special2": {
+          "name": "Slayer",
+          "type": "buff",
+          "percent": 7,
+          "hits": 3
+        },
+        "special3": {
+          "name": "No Mercy",
+          "type": "aiFinisher"
+        }
+      },
+      "template-hendrix": {
+        "special1": {
+          "name": "[S1]",
+          "type": "direct",
+          "percent": 8,
+          "stressCost": 1,
+          "hopeCost": 0,
+          "description": "Deal 8% Attack as direct damage (16 at Level 1)."
+        },
+        "special2": {
+          "name": "[S2]",
+          "type": "direct",
+          "percent": 24,
+          "stressCost": 0,
+          "hopeCost": 2,
+          "description": "Deal 24% Attack as direct damage (48 at Level 1)."
+        },
+        "special3": {
+          "name": "[S3]",
+          "type": "aiFinisher",
+          "stressCost": 0,
+          "hopeCost": 5,
+          "description": "Standard guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within five seconds."
+        }
+      },
+      "classic-azulis": {
+        "special1": {
+          "name": "Regeneration",
+          "type": "heal",
+          "percent": 0,
+          "healPercent": 6,
+          "rollBasic": true,
+          "stressCost": 1,
+          "hopeCost": 0,
+          "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Includes the normal Duality roll and basic."
+        },
+        "special2": {
+          "name": "Starlight",
+          "type": "direct",
+          "percent": 22,
+          "stressCost": 0,
+          "hopeCost": 2,
+          "description": "Deal 22% Attack as direct damage (42 at Level 1)."
+        },
+        "special3": {
+          "name": "Falling Star",
+          "type": "playerFinisher",
+          "aiPercent": 45,
+          "responseMs": 4000,
+          "stressCost": 0,
+          "hopeCost": 5,
+          "description": "Guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within four seconds."
+        }
+      },
+      "hellfed-marq": {
+        "special1": {
+          "name": "Stoke the Flames",
+          "type": "rage",
+          "percent": 0,
+          "hpCostPercentByRage": [1, 2, 3],
+          "rollBasic": true,
+          "guaranteedBasic": true,
+          "stressCost": 0,
+          "hopeCost": 0
+        },
+        "special2": {
+          "name": "Hellbreaker",
+          "type": "direct",
+          "percent": 16,
+          "ragePercent": 6,
+          "stressRemovalChance": 25,
+          "stressCost": 0,
+          "hopeCost": 2
+        },
+        "special3": {
+          "name": "Infernal Wrath",
+          "type": "aiFinisher",
+          "ragePercent": 8,
+          "stressCost": 0,
+          "hopeCost": 5
+        }
+      }
+    },
+    "costs": {
+      "special1": {
+        "stress": 1,
+        "hope": 0
+      },
+      "special2": {
+        "stress": 0,
+        "hope": 2
+      },
+      "special3": {
+        "stress": 0,
+        "hope": 5
+      }
+    },
+    "finisherRange": [35, 45]
+  },
+  "playerFinisher": {
+    "basePercent": 30,
+    "choicePercent": 5
+  },
+  "baseStats": {
+    "spooky-marq": {
+      "attack": 200,
+      "hp": 260
+    },
+    "maxim": {
+      "attack": 220,
+      "hp": 220
+    },
+    "hellfed-marq": {
+      "attack": 200,
+      "hp": 260
+    },
+    "classic-azulis": {
+      "hp": 230,
+      "attack": 190
+    },
+    "template-hendrix": {
+      "hp": 200,
+      "attack": 200
+    }
+  },
+  "passives": {
+    "on-the-brink": {
+      "name": "On the Brink"
+    },
+    "not-good-enough": {
+      "name": "Not Good Enough"
+    },
+    "hellfed": {
+      "name": "Hellfed"
+    }
+  },
+  "fallbackAbilities": {
+    "special1": {
+      "name": "Combo Strike",
+      "type": "combo",
+      "percent": 1,
+      "stressCost": 1,
+      "hopeCost": 0
+    },
+    "special2": {
+      "name": "Hope Strike",
+      "type": "direct",
+      "percent": 20,
+      "stressCost": 0,
+      "hopeCost": 1
+    },
+    "special3": {
+      "name": "Finisher",
+      "type": "legacyFinisher",
+      "stressCost": 0,
+      "hopeCost": 6
+    },
+    "passive": {}
+  },
+  "profile": "production-current-2-5",
+  "criticalEffects": true,
+  "manualOpponentSelection": true,
+  "offensiveSpecialBasics": true,
+  "attackOutcomes": "block-immediate-critical"
+}

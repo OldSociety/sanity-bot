@@ -7,8 +7,10 @@ const colors = {
   critical: '#f595b0',
   opportunity: '#79b9ff',
   poison: '#54d08c',
+  bleeding: '#ed4747',
 }
 const paths = {
+  bleeding: '<path d="M12 2C10 8 5 11 5 16a7 7 0 0 0 14 0c0-5-5-8-7-14z"/>',
   stress: '<path d="M14 2 5 14h7l-2 8 10-13h-7z"/>',
   exposed:
     '<path d="m12 2 9 4v6c0 5-5 8-9 10-4-2-9-5-9-10V6z"/><path d="M12 7v6m0 3v1"/>',
@@ -26,6 +28,7 @@ const paths = {
 const { exhausted, usesRage } = require('./resources')
 function statusIcons(fighter) {
   const icons = []
+  if (fighter.bleeding) icons.push({ type: 'bleeding', label: 'Bleeding' })
   // Available single-use abilities always precede temporary status effects.
   if (fighter.passive === 'on-the-brink' && !fighter.brinkUsed)
     icons.push({

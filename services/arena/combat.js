@@ -20,6 +20,8 @@ const { decide } = require('./tactics')
 const { survive } = require('./passives')
 const { defaultCharacter, resolveCharacter } = require('./characters')
 const outcomes = require('./outcomes')
+const hendrix = require('./hendrix')
+const { basic_damage } = require('./damage-types')
 const {
   usesRage,
   hasStress,
@@ -270,7 +272,11 @@ function advance(
   const playerActs =
     actor === 'player' ||
     actor === 'exchange' ||
-    (actor === 'ability' && definition?.rollBasic === true)
+    (actor === 'ability' && definition?.rollBasic === true) ||
+    (modern &&
+      balance.offensiveSpecialBasics &&
+      actor === 'ability' &&
+      outcomes.isAttack(definition, slot))
   const playerRolls =
     playerActs ||
     (modern &&
@@ -456,10 +462,51 @@ function advance(
     enemyOutcome === 'critical' ? battle.enemy.criticalMultiplier : 1
   const slayerActive = battle.player.slayerCharges > 0
   const slayerPercent = slayerActive ? playerKit.special2.percent : 0
+  const sequences = {}
+  const bleedingDurations = {
+    player:
+      hendrix.isHendrix(battle.player) && playerActs && slot === 'special1'
+        ? hendrix.duration(rollEffect)
+        : null,
+    enemy:
+      hendrix.isHendrix(battle.enemy) &&
+      enemyAttacks &&
+      enemySpecial === 'special1'
+        ? hendrix.duration(rollEffect)
+        : null,
+  }
   const deliverBasic = (fighter, target, attempt, landed, options) => {
     if (!attempt || (!modern && !landed)) return 0
+    if (modern && hendrix.isHendrix(fighter)) {
+      const side = fighter.isAI ? 'enemy' : 'player'
+      const ownSlot = fighter.isAI ? enemySpecial : slot
+      const value = (sequences[side] ||= hendrix.sequence(
+        fighter,
+        target,
+        ownSlot,
+        fighter.isAI ? enemyCriticalSuccess : playerCritical,
+        options.targetStress,
+        {
+          duality: rollDuality || (() => randomInt(1, 13)),
+          accuracy: rollAccuracy,
+          critical: rollCritical,
+        }
+      ))
+      const multiplier = exhausted(target, options.targetStress)
+        ? exhaustedStressMultiplier
+        : 1
+      return value.strikes.reduce(
+        (sum, strike) =>
+          sum +
+          hendrix.strike(fighter, strike.outcome, value.bleeding, multiplier)
+            .damage,
+        0
+      )
+    }
     const damage = basicDamage(fighter, target, { ...options, landed })
-    return modern && !landed ? outcomes.blockDamage(damage) : damage
+    return modern && !landed
+      ? outcomes.blockDamage(damage, basic_damage)
+      : damage
   }
   const playerBase = deliverBasic(
     battle.player,
@@ -524,6 +571,17 @@ function advance(
     enemyVulnerability,
     modern && playerCritical ? playerCriticalMultiplier : 1
   )
+  if (balance.damageRules)
+    playerSpecial.damageType =
+      slot === 'special3'
+        ? 'final_special_damage'
+        : hendrix.isHendrix(battle.player)
+        ? slot === 'special1'
+          ? 'bleed_damage'
+          : 'basic_damage'
+        : 'special_damage'
+  if (hendrix.isHendrix(battle.player) && slot === 'special1')
+    playerSpecial.damage = 0
   if (modern && outcomes.isAttack(definition, slot)) {
     playerSpecial.outcome =
       slot === 'special3' ? 'hit' : playerSpecialHit ? 'hit' : 'block'
@@ -555,6 +613,17 @@ function advance(
     enemyCritical,
     enemyFinisherPercent
   )
+  if (balance.damageRules)
+    enemyResult.damageType =
+      enemySpecial === 'special3'
+        ? 'final_special_damage'
+        : hendrix.isHendrix(battle.enemy)
+        ? enemySpecial === 'special1'
+          ? 'bleed_damage'
+          : 'basic_damage'
+        : 'special_damage'
+  if (hendrix.isHendrix(battle.enemy) && enemySpecial === 'special1')
+    enemyResult.damage = 0
   enemyResult.stressRemoved = modern
     ? Math.max(
         0,
@@ -563,7 +632,9 @@ function advance(
     : enemyStressRemoved
   // Finishers always land; other AI direct specials share basic accuracy.
   const enemySpecialHit =
-    enemyHit || specialAlwaysHits(battle.enemy, enemySpecial)
+    enemyHit ||
+    enemyDefinition?.guaranteedHit ||
+    specialAlwaysHits(battle.enemy, enemySpecial)
   if (!enemySpecialHit)
     enemyResult.damage = modern ? outcomes.blockDamage(enemyResult.damage) : 0
   if (modern && outcomes.isAttack(enemyDefinition, enemySpecial))
@@ -625,7 +696,9 @@ function advance(
         Boolean(battle.player.criticalReady && !playerCritical)),
     opportunityReady:
       battle.player.passive === 'not-good-enough' &&
-      (['miss', 'block'].includes(enemyOutcome) ||
+      ((sequences.enemy
+        ? sequences.enemy.strikes.some((s) => s.outcome === 'block')
+        : ['miss', 'block'].includes(enemyOutcome)) ||
         (battle.player.opportunityReady && !playerOpportunity)),
   }
   const enemy = {
@@ -674,9 +747,28 @@ function advance(
       : 0,
     opportunityReady:
       battle.enemy.passive === 'not-good-enough' &&
-      ((playerActs && !playerHit) ||
+      ((sequences.player
+        ? sequences.player.strikes.some((s) => s.outcome === 'block')
+        : playerActs && !playerHit) ||
         (battle.enemy.opportunityReady && !enemyOpportunity)),
   }
+  const updateBleeding = (source, target, active, selectedSlot, side) => {
+    if (!hendrix.isHendrix(source) || !active) return
+    const remaining =
+      (selectedSlot === 'special1'
+        ? bleedingDurations[side]
+        : target.bleeding?.remaining || 0) - 1
+    if (remaining > 0) target.bleeding = { remaining }
+    else delete target.bleeding
+  }
+  updateBleeding(battle.player, enemy, playerActs, slot, 'player')
+  updateBleeding(
+    battle.enemy,
+    player,
+    enemyAttacks || enemyStressRestored > 0,
+    enemySpecial,
+    'enemy'
+  )
   // Both exchanges finish before evaluating defeat. Each Marq can prevent
   // one lethal exchange, independently, including simultaneous knockouts.
   const playerBrink = survive(player),
@@ -709,6 +801,12 @@ function advance(
                 actor: playerName,
                 target: battle.enemy.name,
                 damage: playerBasicDamage,
+                ...(sequences.player
+                  ? {
+                      strikes: sequences.player.strikes,
+                      bleeding: sequences.player.bleeding,
+                    }
+                  : {}),
                 guaranteed: Boolean(
                   definition?.guaranteedBasic && !duality.success
                 ),
@@ -772,6 +870,12 @@ function advance(
       actor: battle.enemy.name,
       target: playerName,
       damage: enemyBasicDamage,
+      ...(sequences.enemy
+        ? {
+            strikes: sequences.enemy.strikes,
+            bleeding: sequences.enemy.bleeding,
+          }
+        : {}),
       outcome: enemyOutcome,
       fearGained: enemyCriticalFearGained,
       stressRestored: enemyCriticalStressRestored,
@@ -1009,6 +1113,55 @@ function advance(
       enemy.fear >= enemyKit.special3.hopeCost,
     vulnerabilityExtra: enemyVulnerabilityExtra,
   })
+  const strikeDetails = (data, value, ownSlot, side) => {
+    if (!value) return
+    const bonusDamage = data.damage[ownSlot] || 0
+    const basicStrikes = value.strikes.slice(0, 3),
+      extra = value.strikes.slice(3)
+    data.damage.basic = basicStrikes.reduce((n, s) => n + s.direct, 0)
+    if (extra.length)
+      data.damage.special2 =
+        (data.damage.special2 || 0) + extra.reduce((n, s) => n + s.direct, 0)
+    data.damage.bleeding = value.bleed
+    data.damagePackets = value.strikes.flatMap((strike, i) => [
+      { source: i < 3 ? 'basic' : 'special2', damage: strike.direct },
+      { source: 'bleeding', damage: strike.bleed },
+    ])
+    if (bonusDamage)
+      data.damagePackets.push({ source: ownSlot, damage: bonusDamage })
+    data.attempts.basic = value.strikes.length
+    data.hits.basic = value.strikes.filter((s) => s.outcome !== 'block').length
+    data.blocks.basic = value.strikes.filter(
+      (s) => s.outcome === 'block'
+    ).length
+    data.criticals.basic = value.strikes.filter(
+      (s) => s.outcome === 'critical'
+    ).length
+    data.strikeMetrics = {
+      sequences: 1,
+      bleedingSequences: Number(value.bleeding),
+      strikes: value.strikes.length,
+      criticals: data.criticals.basic,
+      blocks: data.blocks.basic,
+      prevented: value.prevented,
+      bleedingDamage: value.bleed,
+      bleedingApplications: Number(bleedingDurations[side] !== null),
+      duration2: Number(bleedingDurations[side] === 2),
+      duration3: Number(bleedingDurations[side] === 3),
+      duration4: Number(bleedingDurations[side] === 4),
+      maximumFlurries: Number(
+        ownSlot === 'special2' &&
+          value.strikes.every((s) => s.outcome === 'critical')
+      ),
+      bleedingMaximumFlurries: Number(
+        ownSlot === 'special2' &&
+          value.bleeding &&
+          value.strikes.every((s) => s.outcome === 'critical')
+      ),
+    }
+  }
+  strikeDetails(playerDetails, sequences.player, slot, 'player')
+  strikeDetails(enemyDetails, sequences.enemy, enemySpecial, 'enemy')
   const addBuffDelivery = (data, actor, result, active, hit, bonus) => {
     // Activation is a use, not a direct attack. Count damage only as hits land.
     if (
@@ -1033,6 +1186,7 @@ function advance(
     data.damageOrder = [
       ...new Set([
         'basic',
+        ...(data.damage.bleeding ? ['bleeding'] : []),
         ...(active ? ['special2'] : []),
         ...(result.slot ? [result.slot] : []),
       ]),

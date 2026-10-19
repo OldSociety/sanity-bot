@@ -15,6 +15,7 @@ const { arenaEmojis } = require('./emojis')
 const { defaultCharacter, resolveCharacter } = require('./characters')
 const {
   specialSlots,
+  balance,
   statsForLevel,
   abilityAvailable,
   canUse,
@@ -27,6 +28,11 @@ const { artFiles, bannerName } = require('./art')
 const { cardName } = require('./health-card')
 const { legendNameFor } = require('./legend')
 const { familyFor, variantsFor, groupsFor } = require('./selection')
+const {
+  abilityCost,
+  abilitySummary,
+  passiveSummary,
+} = require('./ability-summary')
 function actionLines(actions = []) {
   return actions
     .map((event) => {
@@ -72,9 +78,13 @@ function actionLines(actions = []) {
       } else if (event.kind === 'hit') {
         text =
           event.outcome === 'critical'
-            ? `${event.actor} scored a critical ${require('./outcomes').enabled() ? 'basic ' : ''}hit! ${event.damage} damage.`
+            ? `${event.actor} scored a critical ${
+                require('./outcomes').enabled() ? 'basic ' : ''
+              }hit! ${event.damage} damage.`
             : event.outcome === 'block'
-            ? `${event.actor}'s attack was blocked: ${event.damage} damage (25%).`
+            ? `${event.actor}'s attack was blocked: ${event.damage} damage (${
+                require('./rules').balance.damageRules ? '75' : '25'
+              }%).`
             : event.damage
             ? `${event.actor} hit ${event.target} for ${event.damage}.`
             : `${event.actor} missed.`
@@ -82,6 +92,15 @@ function actionLines(actions = []) {
         if (event.stressRemoved) text += ' Removed 1 opponent Stress.'
         if (event.fearGained) text += ` Gained ${event.fearGained} Fear.`
         if (event.guaranteed) text += ' Stoke guaranteed hit.'
+        if (event.strikes)
+          text =
+            `${event.actor}: ${event.strikes
+              .map((s) => s.outcome)
+              .join(' / ')} · ${event.damage} damage${
+              event.bleeding ? ' including Bleeding' : ''
+            }.` +
+            (event.stressRestored ? ' Restored 1 Stress.' : '') +
+            (event.stressRemoved ? ' Removed 1 opponent Stress.' : '')
       } else if (event.kind === 'special') {
         const cost = `Spent ${event.cost} ${event.resource}.`
         if (event.type === 'heal') {
@@ -133,7 +152,9 @@ function actionLines(actions = []) {
         ).toUpperCase()} · survived with ${event.hp} HP.`
       else return ''
       if (event.kind === 'special' && event.outcome === 'block')
-        text += ' BLOCKED · 25% damage; no on-hit effects.'
+        text += ` BLOCKED · ${
+          require('./rules').balance.damageRules ? '50' : '25'
+        }% damage; no on-hit effects.`
       if (event.kind === 'special' && event.outcome === 'critical')
         text += ' CRITICAL · current attack ×2.'
       if (
@@ -187,7 +208,9 @@ function screen(session) {
   const playerName = player?.name || character.name
   const enemyName =
     battle?.enemy.name ||
-    resolveCharacter(session.opponent || 'maxim')?.[session.manualOpponentSelection ? 'label' : 'name'] ||
+    resolveCharacter(session.opponent || 'maxim')?.[
+      session.manualOpponentSelection ? 'label' : 'name'
+    ] ||
     'Opponent'
   const idle = battle?.mode === 'idle',
     icons = arenaEmojis(session.guildId)
@@ -307,26 +330,36 @@ function screen(session) {
             }`
           : `**${family.name}** · ${family.role}\n${family.lore}`
       )
-    if (skinPage)
-      embed.addFields({
-        name: character.passive ? 'Passive' : 'Abilities',
-        value:
-          (character.passive
-            ? `${passives[character.passive]?.name ?? 'None'}\n`
-            : '') +
-          specialSlots
-            .map(
-              (slot, i) =>
-                `**S${i + 1}**: ${kit[slot].name}${
-                  kit[slot].description
-                    ? ` · ${kit[slot].stressCost || kit[slot].hopeCost} ${
-                        kit[slot].stressCost ? 'Stress' : 'Hope'
-                      } — ${kit[slot].description}`
-                    : ''
-                }`
-            )
-            .join('\n'),
-      })
+    if (skinPage) {
+      const fighter = { ...stats, kit: character.kit }
+      if (character.passive)
+        embed.addFields({
+          name: 'Passive',
+          value: `**${
+            passives[character.passive]?.name ?? 'None'
+          }** — ${passiveSummary(character, fighter)}`,
+        })
+      embed.addFields(
+        specialSlots.map((slot, i) => ({
+          name: `S${i + 1} · ${kit[slot].name} — ${abilityCost(
+            fighter,
+            kit[slot]
+          )}`,
+          value: abilitySummary(fighter, slot),
+        }))
+      )
+      if (balance.offensiveSpecialBasics)
+        embed.addFields({
+          name: 'Attack rules',
+          value:
+            (require('./rules').balance.damageRules
+              ? 'Offensive specials include a basic. Only basics can crit. Block: 75% basic / 50% special damage. Bleeding ignores Block; Finishers are guaranteed.'
+              : 'Offensive specials include a basic. Only basics can crit. Block: 25% damage; no on-hit effects.') +
+            (balance.damageRounding === 'floor'
+              ? ' All damage rounds down.'
+              : ''),
+        })
+    }
     const select = (action, placeholder, options) =>
       new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
@@ -427,7 +460,11 @@ function screen(session) {
               stats.attack
             } Attack\n${enemyName}: ${enemyStats.maxHp} HP · ${
               enemyStats.attack
-            } Attack\nChoose Basic Attack or an ability. You act first; a surviving opponent responds.\nNo automatic attacks.\n${
+            } Attack\nChoose Basic Attack or an ability. You act first; a surviving opponent responds.\n${
+              balance.offensiveSpecialBasics
+                ? 'Offensive specials include a basic attack.'
+                : 'No automatic attacks.'
+            }\n${
               session.manualOpponentSelection
                 ? `${character.name}: ${
                     usesRage(character) ? 'Rage 0/3' : 'Stress 6/6'
@@ -549,6 +586,7 @@ function fallbackStatus(battle) {
       `HP ${fighter.hp}/${fighter.maxHp} · ${resourceMeter(fighter).label} ${
         resourceMeter(fighter).value
       }/${resourceMeter(fighter).max}` +
+      (fighter.bleeding ? '\nBleeding' : '') +
       (exhausted(fighter)
         ? `\nTakes ×${exhaustedStressMultiplier} damage`
         : '') +

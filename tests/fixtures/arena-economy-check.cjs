@@ -2,6 +2,7 @@ const assert = require('node:assert/strict')
 const { transformFor } = require('../../scripts/arena-economy-transform')
 const experiment = process.argv[2]
 process.env.NODE_ENV = 'development'
+require('./arena-historical-profile.cjs')()
 const { combat, tactics, balance } =
   require('../../scripts/arena-parity-engine').setup({
     sourceTransform: transformFor(experiment),

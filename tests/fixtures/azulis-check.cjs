@@ -1,6 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+require('./arena-historical-profile.cjs')()
 const {
   resolveCharacter,
   isSelectable,
@@ -224,10 +225,12 @@ test('real selector -> Classic -> confirmation -> fight and four-second Finisher
     await click('chooseskin')
     const e = view.embeds[0].data
     assert.match(e.description, /230 HP · 190 Attack/)
-    assert.equal(e.fields[0].name, 'Abilities')
-    assert.match(e.fields[0].value, /Regeneration.*1 Stress/)
-    assert.match(e.fields[0].value, /Starlight.*2 Hope/)
-    assert.match(e.fields[0].value, /Falling Star.*5 Hope/)
+    assert.equal(e.fields[0].name, 'S1 · Regeneration — 1 Stress')
+    assert.match(e.fields[0].value, /Restore 6% max HP/)
+    assert.equal(e.fields[1].name, 'S2 · Starlight — 2 Hope')
+    assert.match(e.fields[1].value, /22% Attack/)
+    assert.equal(e.fields[2].name, 'S3 · Falling Star — 5 Hope')
+    assert.match(e.fields[2].value, /Guaranteed Finisher/)
     await click('confirmfighter')
     assert.equal(preferences.get('g', 'u').variantId, 'classic:azu')
     await click('start')

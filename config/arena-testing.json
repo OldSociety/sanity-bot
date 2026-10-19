@@ -1,5 +1,6 @@
 {
   "productionEnabled": true,
+  "productionCurrentRules": true,
   "productionGuildId": "1259991510410334219",
   "productionChannelId": "1262485722275905596"
 }

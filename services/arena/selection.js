@@ -3,8 +3,35 @@ const { characters, defaultCharacter, isSelectable } = require('./characters')
 // stats and feature overrides; choosing a skin never copies another kit.
 const roster = Object.freeze(
   [
-    ...(process.env.NODE_ENV === 'development'
+    ...(require('./balance-config').currentRulesEnabled()
       ? [
+          ...require('../../config/arena-templates-development.json').characters.map(
+            (entry) => ({
+              id: entry.family,
+              name:
+                process.env.NODE_ENV === 'development' &&
+                require('../../config/arena-hendrix-development.json')
+                  .enabled &&
+                entry.id === 'classic:hen'
+                  ? entry.name
+                  : `${entry.name} [Template]`,
+              role:
+                process.env.NODE_ENV === 'development' &&
+                require('../../config/arena-hendrix-development.json')
+                  .enabled &&
+                entry.id === 'classic:hen'
+                  ? 'Brawler · Martial Artist'
+                  : entry.role,
+              lore:
+                process.env.NODE_ENV === 'development' &&
+                require('../../config/arena-hendrix-development.json')
+                  .enabled &&
+                entry.id === 'classic:hen'
+                  ? 'A rapid-striking brawler who maintains Bleeding to amplify each blow.'
+                  : 'Unfinished character using the shared Arena template.',
+              variantIds: [entry.id],
+            })
+          ),
           {
             id: 'azulis',
             name: 'Azulis',
@@ -28,7 +55,13 @@ const roster = Object.freeze(
       lore: 'Driven to prove himself, Maxim meets every challenge with fierce determination and a warrior’s resolve.',
       variantIds: ['spooky-2026:max'],
     },
-  ].map((entry) => Object.freeze(entry))
+  ]
+    .filter((entry) =>
+      entry.variantIds.some((id) =>
+        characters.some((variant) => variant.id === id && isSelectable(variant))
+      )
+    )
+    .map((entry) => Object.freeze(entry))
 )
 const familyFor = (variant) =>
   roster.find((entry) => entry.variantIds.includes(variant?.id)) || roster[0]

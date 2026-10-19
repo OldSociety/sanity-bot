@@ -6,6 +6,7 @@ const isAttack = (definition, slot) =>
     definition &&
       (['direct', 'combo'].includes(definition.type) || slot === 'special3')
   )
-const blockDamage = (normalDamage) => Math.ceil(normalDamage / 4)
+const blockDamage = (normalDamage, type) =>
+  require('./damage-types').blockedDamage(normalDamage, type)
 const onHitAllowed = (landed, requiresHit = true) => !requiresHit || landed
 module.exports = { ruleset, enabled, isAttack, blockDamage, onHitAllowed }

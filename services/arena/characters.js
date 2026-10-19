@@ -1,11 +1,42 @@
 const path = require('node:path')
 const badges = require('../../config/badges.json')
+const finishedHendrix =
+  process.env.NODE_ENV === 'development' &&
+  require('../../config/arena-hendrix-development.json').enabled
 const {
   variants: rarityByVariant,
 } = require('../../config/arena-rarities.json')
 
 // Prototype variants. No ownership, shop or XP imports.
 const characters = Object.freeze([
+  ...require('../../config/arena-templates-development.json').characters.map(
+    (entry) =>
+      Object.freeze({
+        id: entry.id,
+        rarity: rarityByVariant[entry.id],
+        name:
+          finishedHendrix && entry.id === 'classic:hen'
+            ? entry.name
+            : `${entry.name} [Template]`,
+        version: 'Classic',
+        label:
+          finishedHendrix && entry.id === 'classic:hen'
+            ? `${entry.name} [Classic]`
+            : `${entry.name} [Template] [Classic]`,
+        kit:
+          finishedHendrix && entry.id === 'classic:hen'
+            ? 'classic-hendrix'
+            : entry.kit,
+        aliases: [entry.name],
+        passive: null,
+        developmentOnly: true,
+        image: path.join(
+          __dirname,
+          '../../assets/badges/Classic',
+          entry.imageAsset
+        ),
+      })
+  ),
   Object.freeze({
     id: 'classic:azu',
     rarity: rarityByVariant['classic:azu'],
@@ -76,8 +107,14 @@ const isSelectable = (character) =>
       [
         'spooky-2026:mrq',
         'spooky-2026:max',
-        ...(process.env.NODE_ENV === 'development'
-          ? ['spooky-2026:hfm', 'classic:azu']
+        ...(require('./balance-config').currentRulesEnabled()
+          ? [
+              'spooky-2026:hfm',
+              'classic:azu',
+              ...require('../../config/arena-templates-development.json').characters.map(
+                (entry) => entry.id
+              ),
+            ]
           : []),
       ].includes(character.id)
   )

@@ -3,14 +3,33 @@ const test = require('node:test'),
   { execFileSync } = require('node:child_process')
 const base = require('../config/arena-balance.json'),
   { loadBalance } = require('../services/arena/balance-config')
-test('2/5 candidate is development-only and preserves every unspecified coefficient', () => {
-  for (const env of ['production', 'test', undefined])
+test('2/5 development profile preserves every unspecified coefficient', () => {
+  for (const env of ['test', undefined])
     assert.deepEqual(loadBalance(env === 'development' ? 'test' : env), base)
   const candidate = loadBalance('development'),
     expected = structuredClone(base)
   expected.profile = 'development-2-5'
   expected.attackOutcomes = 'block-immediate-critical'
   expected.manualOpponentSelection = true
+  expected.offensiveSpecialBasics = true
+  expected.damageRounding = 'floor'
+  expected.damageRules = structuredClone(
+    require('../services/arena/damage-types').proposedRules
+  )
+  const hendrix = require('../config/arena-hendrix-development.json')
+  expected.baseStats[hendrix.identity.kit] = { hp: 200, attack: 200 }
+  expected.characters[hendrix.identity.kit] = structuredClone(hendrix.abilities)
+  expected.ai.characters[hendrix.identity.kit] = structuredClone(
+    hendrix.abilities
+  )
+  expected.ai.characters[hendrix.identity.kit].special3.type = 'aiFinisher'
+  const templates = require('../config/arena-templates-development.json')
+  for (const { kit } of templates.characters) {
+    expected.baseStats[kit] = structuredClone(templates.baseStats)
+    expected.characters[kit] = structuredClone(templates.abilities)
+    expected.ai.characters[kit] = structuredClone(templates.abilities)
+    expected.ai.characters[kit].special3.type = 'aiFinisher'
+  }
   for (const costs of [expected.costs, expected.ai.costs]) {
     costs.special2.hope = 2
     costs.special3.hope = 5

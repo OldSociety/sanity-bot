@@ -1,6 +1,12 @@
 const { kitFor, balance } = require('./rules')
 const { exhausted } = require('./resources')
-const categories = ['basic', 'special1', 'special2', 'special3']
+const categories = [
+  'basic',
+  'special1',
+  'special2',
+  'special3',
+  ...(balance.characters['classic-hendrix'] ? ['bleeding'] : []),
+]
 const buckets = () => Object.fromEntries(categories.map((key) => [key, 0]))
 function fighterStats(fighter, resource, initial) {
   return {
@@ -58,6 +64,11 @@ function recordRound(before, next, details) {
   ]) {
     const data = details[side],
       row = stats[side]
+    if (data.strikeMetrics) {
+      row.strikeMetrics ||= {}
+      for (const [key, value] of Object.entries(data.strikeMetrics))
+        row.strikeMetrics[key] = (row.strikeMetrics[key] || 0) + value
+    }
     for (const key of categories) {
       row.damage[key] += data.damage[key] || 0
       row.attempts[key] += data.attempts[key] || 0
@@ -77,9 +88,13 @@ function recordRound(before, next, details) {
     row.hpDamage += effective
     row.overkill += raw - effective
     let availableHp = previousTarget.hp + targetHealing
-    for (const key of data.damageOrder || categories) {
-      const applied = Math.min(availableHp, data.damage[key] || 0)
-      row.hpDamageBySource[key] += applied
+    for (const packet of data.damagePackets ||
+      (data.damageOrder || categories).map((source) => ({
+        source,
+        damage: data.damage[source] || 0,
+      }))) {
+      const applied = Math.min(availableHp, packet.damage)
+      row.hpDamageBySource[packet.source] += applied
       availableHp -= applied
     }
     row.generated += data.generated
@@ -117,7 +132,7 @@ function recordRound(before, next, details) {
 function combatReport(battle) {
   return {
     ruleset: require('./outcomes').enabled()
-      ? `player-first-turns-v11-block-basic-critical-${balance.profile}`
+      ? `player-first-turns-v12-basic-special-equalized-${balance.profile}`
       : balance.profile
       ? `player-first-turns-v9-${balance.profile}`
       : 'player-first-turns-v9',

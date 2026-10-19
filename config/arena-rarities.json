@@ -20,6 +20,7 @@
     }
   },
   "variants": {
+    "classic:hen": "bronze",
     "classic:azu": "bronze",
     "classic:sel": "bronze",
     "spooky-2026:had": "gold",

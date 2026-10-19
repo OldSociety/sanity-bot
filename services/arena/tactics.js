@@ -200,10 +200,23 @@ function preview(fighter, target, slot = null, choice = 3) {
 
 const modernPreviews = new Map()
 function modernPreview(fighter, target, slot, choice, key) {
+  if (require('./hendrix').isHendrix(fighter))
+    return require('./hendrix').preview(
+      fighter,
+      target,
+      slot,
+      choice,
+      branches(fighter)
+    )
   if (modernPreviews.has(key)) return modernPreviews.get(key)
   const definition = slot ? kitFor(fighter)[slot] : null
-  const hasBasic = fighter.isAI || !slot || definition?.rollBasic
+  const hasBasic =
+    fighter.isAI ||
+    !slot ||
+    definition?.rollBasic ||
+    (balance.offensiveSpecialBasics && outcomes.isAttack(definition, slot))
   const rolls =
+    hasBasic ||
     fighter.isAI ||
     !slot ||
     definition?.rollBasic ||
@@ -249,7 +262,9 @@ function modernPreview(fighter, target, slot, choice, key) {
             targetStress: resolvedStress,
           })
         : 0
-      const basic = basicHit ? rawBasic : outcomes.blockDamage(rawBasic)
+      const basic = basicHit
+        ? rawBasic
+        : outcomes.blockDamage(rawBasic, 'basic_damage')
       const direct = (total = 0, percent) => {
         if (!slot) return 0
         const raw = specialDamage(fighter, slot, {
@@ -434,6 +449,16 @@ function decide(
   // Never spend solely to match the basic's existing knockout probability.
   if (base.guaranteed) return result(null, 'basic-lethal')
   if (lethal) return result(lethal.slot, 'knockout')
+  if (require('./hendrix').isHendrix(actor)) {
+    if (s3) return result('special3', 'spend-finisher')
+    // Presence is public; never inspect hidden remaining duration.
+    if (s1 && !target.bleeding && actor.stress > 1)
+      return result('special1', 'apply-bleeding')
+    if (s2) return result('special2', 'flurry-pressure')
+    if (s1 && !target.bleeding && horizon.own <= 2.5)
+      return result('special1', 'bleeding-last-stand')
+    return result(null, 'maintain-bleeding')
+  }
   if (
     base.knockout >=
     (actor.isAI ? actor.accuracy / 100 : rates.success) - 1e-9

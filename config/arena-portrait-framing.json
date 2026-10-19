@@ -1,4 +1,9 @@
 {
+  "classic:hen": {
+    "centerX": 0.59,
+    "centerY": 0.57,
+    "subjectHeight": 0.8533333333333334
+  },
   "classic:azu": { "centerX": 0.5, "centerY": 0.5, "subjectHeight": 0.99 },
   "classic:sel": { "centerX": 0.54, "centerY": 0.5, "subjectHeight": 0.98 },
   "spooky-2026:had": { "centerX": 0.47, "centerY": 0.5, "subjectHeight": 0.98 },

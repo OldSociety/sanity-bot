@@ -4,6 +4,7 @@ const legacyLoad = loader.loadBalance
 loader.loadBalance = (...args) => {
   const value = legacyLoad(...args)
   delete value.attackOutcomes
+  delete value.damageRounding
   return value
 }
 const assert = require('node:assert/strict')

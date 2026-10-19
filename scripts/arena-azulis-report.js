@@ -9,9 +9,10 @@ function run(
   trials = 10000,
   options = {}
 ) {
+  const allowedNames = options.fighters || names
   if (
     !['A', 'B', 'C'].includes(policyName) ||
-    !names.includes(opponent) ||
+    !allowedNames.includes(opponent) ||
     !Number.isInteger(trials) ||
     trials < 1
   )
@@ -58,7 +59,7 @@ function run(
   const { kitFor } = require('../services/arena/rules')
   const player = options.player || (reversed ? opponent : 'Azulis'),
     enemy = options.enemy || (reversed ? 'Azulis' : opponent)
-  if (!names.includes(player) || !names.includes(enemy))
+  if (!allowedNames.includes(player) || !allowedNames.includes(enemy))
     throw Error('Unknown simulation fighter')
   const totals = { wins: 0, rounds: 0, pacing: 0, ledgerChecks: 0 }
   const empty = () => ({
@@ -191,8 +192,10 @@ function run(
             Math.max(0, b.enemy.stress - next.stressRemoved) === 0
         )
       }
+      options.onTurn?.(b, next)
       b = next
     }
+    options.onFight?.(b)
     totals.wins += Number(b.status === 'victory')
     totals.rounds += b.tick
     totals.pacing += Number(b.tick >= 10 && b.tick <= 20)

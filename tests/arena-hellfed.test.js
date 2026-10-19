@@ -12,7 +12,7 @@ test('Hellfed Rage rules, UI, and real turn integration in development', () => {
     }
   )
 })
-test('Hellfed is unavailable outside development including direct battle creation', () => {
+test('Hellfed is unavailable in ordinary tests including direct battle creation', () => {
   const { newBattle } = require('../services/arena/combat')
   const {
     resolveCharacter,
@@ -23,5 +23,5 @@ test('Hellfed is unavailable outside development including direct battle creatio
   assert.equal(isSelectable(hellfed), false)
   assert.throws(() => newBattle(0, { character: hellfed }), /development/)
   assert.throws(() => newBattle(0, { opponent: hellfed.id }), /AI/)
-  assert.equal(loadBalance('production').characters['hellfed-marq'], undefined)
+  assert.equal(loadBalance('test').characters['hellfed-marq'], undefined)
 })

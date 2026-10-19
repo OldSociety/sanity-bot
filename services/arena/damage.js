@@ -69,7 +69,7 @@ function specialDamage(
       : criticalMultiplier
   return {
     percent,
-    damage: ['buff', 'heal'].includes(definition.type)
+    damage: ['buff', 'heal', 'bleeding'].includes(definition.type)
       ? 0
       : damageFor(fighter.attack, percent, rank, multiplier * appliedCritical),
   }
