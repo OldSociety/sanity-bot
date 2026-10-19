@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict')
 const { newBattle: rawNewBattle, advance: engineAdvance, beginFinisher, comboDice } = require('../services/arena/combat')
-const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => args[i]), { aiPolicy: 'legacy' })
+const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => args[i]), { rollRecovery: () => 99.999, aiPolicy: 'legacy', rollFinisher: () => 45 })
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
@@ -17,8 +17,8 @@ const step = (battle, action = 'continue', { dice = [7, 5], combo = [2, 1], abil
 
 test('playable names, costs and flat percentages supersede prior level tables', () => {
   for (const level of [1]) for (const character of [undefined, maxim]) {
-    const fighter = newBattle(5, { level, character }).marq, kit = kitFor(fighter)
-    assert.deepEqual(specialSlots.map(slot => kit[slot].hopeCost), [0, 3, 5])
+    const fighter = newBattle(6, { level, character }).player, kit = kitFor(fighter)
+    assert.deepEqual(specialSlots.map(slot => kit[slot].hopeCost), [0, 3, 6])
     assert.ok(specialSlots.every(slot => !('unlockLevel' in kit[slot])))
     assert.equal(kit.special1.stressCost, character ? 2 : 1)
     assert.equal(specialPercent(fighter, 'special1'), character ? 10 : 4)
@@ -32,28 +32,28 @@ test('Overwhelm can repeat, independently removes one Stress on exactly 20% of e
   let count = 0
   for (let effect = 0; effect < 100; effect++) {
     const result = step(newBattle(), 'special1', { dice: [2, 1], effect })
-    assert.equal(result.special1Damage, 12); assert.equal(result.marqDamage, 0)
-    assert.equal(result.marq.stress, 5); count += result.stressRemoved
+    assert.equal(result.special1Damage, 12); assert.equal(result.playerBasicDamage, 0)
+    assert.equal(result.player.stress, 5); count += result.stressRemoved
   }
   assert.equal(count, 20)
   let battle = newBattle()
   for (let i = 0; i < 6; i++) battle = step(battle, 'special1')
   assert.equal(battle.player.stress, 0); assert.equal(canUse(battle.player, 'special1'), false)
-  const seed = newBattle(); seed.warrior.stress = 0
-  const empty = step(seed, 'special1', { effect: 0 }); assert.equal(empty.stressRemoved, 0); assert.equal(empty.warrior.stress, 0)
+  const seed = newBattle(); seed.enemy.stress = 0
+  const empty = step(seed, 'special1', { effect: 0 }); assert.equal(empty.stressRemoved, 0); assert.equal(empty.enemy.stress, 0)
   for (const effect of [-1, 100, NaN]) assert.throws(() => step(newBattle(), 'special1', { effect }), /effect percentile/)
 })
 
 test('removal follows AI spending and applies zero-Stress vulnerability to this exchange with separate telemetry', () => {
-  const seed = newBattle(); seed.warrior.stress = 1
+  const seed = newBattle(); seed.enemy.stress = 1
   const removed = step(seed, 'special1', { effect: 0 })
-  assert.equal(removed.stressRemoved, 1); assert.equal(removed.warrior.stress, 0)
-  assert.equal(removed.marqDamage, 8); assert.equal(removed.special1Damage, 15)
+  assert.equal(removed.stressRemoved, 1); assert.equal(removed.enemy.stress, 0)
+  assert.equal(removed.playerBasicDamage, 12); assert.equal(removed.special1Damage, 15)
   assert.equal(removed.statistics.player.stressRemoved, 1); assert.equal(removed.statistics.enemy.stressRemovedTaken, 1)
-  assert.equal(removed.statistics.enemy.vulnerabilityDamageTaken, 5)
-  const two = newBattle(); two.warrior.stress = 2
+  assert.equal(removed.statistics.enemy.vulnerabilityDamageTaken, 6)
+  const two = newBattle(); two.enemy.stress = 2
   const spent = step(two, 'special1', { dice: [2, 1], ability: 0, effect: 0 })
-  assert.equal(spent.warrior.stress, 0); assert.equal(spent.stressRemoved, 0)
+  assert.equal(spent.enemy.stress, 0); assert.equal(spent.stressRemoved, 0)
   assert.equal(spent.statistics.enemy.stressSpent, 2)
 })
 
@@ -65,7 +65,7 @@ test('Deadly Focus begins ready, recharges on three landed basics and can be cha
   assert.equal(step(battle, 'special1'), battle)
   for (const dice of [[6, 7], [2, 1], [1, 1], [7, 5]]) battle = step(battle, 'continue', { dice })
   assert.equal(battle.player.focusHits, 3); assert.equal(canUse(battle.player, 'special1'), true)
-  const next = step(battle, 'special1'); assert.equal(next.marq.focusHits, 1)
+  const next = step(battle, 'special1'); assert.equal(next.player.focusHits, 1)
   battle.player.stress = 1; assert.equal(battle.player.focusHits, 3); assert.equal(canUse(battle.player, 'special1'), false)
 })
 
@@ -73,7 +73,7 @@ test('Combo Strike sums every d4, includes a flat ten percentage points, costs t
   const dice = [1, 1, 3, 1]
   assert.deepEqual(comboDice(seq(dice)), { rolls: dice, total: 6 })
   const hit = step(newBattle(3), 'special2', { combo: dice, dice: [2, 1] })
-  assert.equal(hit.special2Damage, 48); assert.equal(hit.latestCombo.percent, 16); assert.equal(hit.hopeSpent, 3); assert.equal(hit.marq.stress, 6)
+  assert.equal(hit.special2Damage, 48); assert.equal(hit.latestCombo.percent, 16); assert.equal(hit.hopeSpent, 3); assert.equal(hit.player.stress, 6)
   assert.equal(step(newBattle(3), 'special2').special2Damage, 39)
   assert.equal(step(newBattle(3), 'special2', { combo: [...Array(1000).fill(4), 1] }).special2Damage, 12033)
   const low = newBattle(2); assert.equal(step(low, 'special2'), low)
@@ -81,22 +81,22 @@ test('Combo Strike sums every d4, includes a flat ten percentage points, costs t
 
 test('Slayer grants three future empowered basics and each landed charge contributes only incremental Special 2 damage', () => {
   let battle = step(newBattle(3, { character: maxim }), 'special2')
-  assert.equal(battle.player.slayerCharges, 3); assert.equal(battle.playerDamage, 6); assert.equal(battle.special2Damage, 0)
+  assert.equal(battle.player.slayerCharges, 3); assert.equal(battle.playerBasicDamage, 9); assert.equal(battle.special2Damage, 0)
   assert.equal(battle.statistics.player.attempts.special2, 0); assert.equal(battle.statistics.player.uses.special2, 1)
   for (let i = 0; i < 3; i++) {
-    battle = step(battle); assert.equal(battle.playerDamage, 30); assert.equal(battle.special2Damage, 24)
+    battle = step(battle); assert.equal(battle.playerBasicDamage, 33); assert.equal(battle.special2Damage, 24)
     assert.equal(battle.player.slayerCharges, 2 - i)
   }
-  assert.equal(battle.statistics.player.damage.basic, 24); assert.equal(battle.statistics.player.damage.special2, 72)
-  assert.equal(battle.statistics.player.slayerChargesConsumed, 3); assert.equal(step(battle).marqDamage, 6)
+  assert.equal(battle.statistics.player.damage.basic, 36); assert.equal(battle.statistics.player.damage.special2, 72)
+  assert.equal(battle.statistics.player.slayerChargesConsumed, 3); assert.equal(step(battle).playerBasicDamage, 9)
 })
 
 test('a Slayer-powered hit recharges Focus once and Focus cannot consume or duplicate Slayer charges', () => {
-  const seed = newBattle(3, { character: maxim }); seed.marq.focusHits = 2
-  const buff = step(seed, 'special2'); assert.equal(buff.marq.focusHits, 3); assert.equal(buff.marq.slayerCharges, 3)
+  const seed = newBattle(3, { character: maxim }); seed.player.focusHits = 2
+  const buff = step(seed, 'special2'); assert.equal(buff.player.focusHits, 3); assert.equal(buff.player.slayerCharges, 3)
   const focus = step(buff, 'special1')
-  assert.equal(focus.marqDamage, 30); assert.equal(focus.special1Damage, 30); assert.equal(focus.special2Damage, 24)
-  assert.equal(focus.marq.focusHits, 1); assert.equal(focus.marq.slayerCharges, 2)
+  assert.equal(focus.playerBasicDamage, 33); assert.equal(focus.special1Damage, 30); assert.equal(focus.special2Damage, 24)
+  assert.equal(focus.player.focusHits, 1); assert.equal(focus.player.slayerCharges, 2)
 })
 
 test('Focus controls show independent recharge and affordability, and Slayer shows its remaining charges', () => {
@@ -107,41 +107,41 @@ test('Focus controls show independent recharge and affordability, and Slayer sho
   assert.equal(button(seed).label, 'Deadly Focus [2 Stress]'); assert.equal(button(seed).disabled, false)
   const used = step(seed, 'special1', { dice: [2, 1] })
   assert.match(button(used).label, /0\/3 hits/); assert.equal(button(used).disabled, true)
-  seed.marq.stress = 1; assert.equal(button(seed).disabled, true)
-  seed.marq.slayerCharges = 2
-  assert.match(JSON.stringify(view(seed).embeds[0].data), /Slayer \+8% · 2 hits/)
+  seed.player.stress = 1; assert.equal(button(seed).disabled, true)
+  seed.player.slayerCharges = 2
+  assert.equal(require('../services/arena/health-card').cardData({ battle: seed }).fighters[0].icons.some(icon => icon.type === 'slayer'), true)
 })
 
 test('player Finishers are 30–55% at every level; prepayment, timeout and saved-critical rules are preserved', () => {
   for (const character of [undefined, maxim]) for (const level of [1, 5, 10, 60]) for (let choice = 0; choice <= 5; choice++) {
-    const seed = newBattle(5, { character, level }); seed.marq.attack = 300
-    assert.equal(finisherPercent(seed.marq, choice), 30 + 5 * choice)
+    const seed = newBattle(6, { character, level }); seed.player.attack = 300
+    assert.equal(finisherPercent(seed.player, choice), 30 + 5 * choice)
     const result = step(beginFinisher(seed), { special3: true, choice }, { dice: [1, 1] })
     assert.equal(result.special3Damage, 90 + 15 * choice); assert.equal(result.hopeSpent, 0)
-    assert.equal(result.statistics.player.spent, 5); assert.equal(result.marqDamage, 6)
+    assert.equal(result.statistics.player.spent, 6); assert.equal(result.playerBasicDamage, 9)
   }
 })
 
 test('AI uses the requested flat coefficients and player coefficients remain independent',()=>{
  for(const level of [1,5,10])for(const opponent of ['marq','maxim']){
- const fighter=newBattle(0,{opponent,level}).warrior,kit=kitFor(fighter)
+ const fighter=newBattle(0,{opponent,level}).enemy,kit=kitFor(fighter)
  assert.equal(specialPercent(fighter,'special1'),opponent==='marq'?4:12)
  assert.equal(kit.special1.stressCost,opponent==='marq'?1:2)
  assert.equal(specialPercent(fighter,'special2'),opponent==='marq'?1:11)
  assert.equal(kit.special2.flatPercent||0,opponent==='marq'?15:0)
  assert.equal(kit.special2.hits||0,opponent==='maxim'?3:0)
- assert.equal(specialPercent(fighter,'special3',3),45)
+ assert.equal(specialPercent(fighter,'special3',3),40)
  }
- assert.equal(kitFor(newBattle().marq).special2.flatPercent,10)
- assert.equal(kitFor(newBattle(0,{character:maxim}).marq).special1.percent,10)
+ assert.equal(kitFor(newBattle().player).special2.flatPercent,10)
+ assert.equal(kitFor(newBattle(0,{character:maxim}).player).special1.percent,10)
 })
 
 test('completed reports capture unused Slayer charges before clearing effects and new fights reset all temporary state', () => {
-  const seed = newBattle(3, { character: maxim }); seed.warrior.hp = 1
+  const seed = newBattle(3, { character: maxim }); seed.enemy.hp = 1
   const ended = step(seed, 'special2'), report = combatReport(ended)
-  assert.equal(ended.marq.slayerCharges, 0); assert.equal(report.player.slayerChargesRemaining, 3)
+  assert.equal(ended.player.slayerCharges, 0); assert.equal(report.player.slayerChargesRemaining, 3)
   assert.equal(report.player.slayerActivations, 1); assert.equal(report.winner, 'player')
-  const fresh = newBattle(0, { character: maxim }); assert.equal(fresh.marq.focusHits, 3); assert.equal(fresh.marq.slayerCharges, 0)
+  const fresh = newBattle(0, { character: maxim }); assert.equal(fresh.player.focusHits, 3); assert.equal(fresh.player.slayerCharges, 0)
 })
 
 test('seeded matchups reproduce and conserve raw damage, resources and Stress including removals', () => {

@@ -1,11 +1,13 @@
 const { SlashCommandBuilder } = require('discord.js')
 
 module.exports = {
-  environments: ['development'],
+  environments: ['development', 'production'],
   data: new SlashCommandBuilder()
     .setName('arena')
-    .setDescription('Choose a character and test active or idle combat.')
+    .setDescription('Choose a character and test turn-based combat.')
     .setDMPermission(false)
+    .addStringOption(option => option.setName('access').setDescription('Server owner: unlock or lock production Arena testing.').addChoices(
+      { name: 'Unlock', value: 'unlock' }, { name: 'Lock', value: 'lock' }, { name: 'Status', value: 'status' }))
     .addStringOption((option) =>
       option
         .setName('character')
@@ -15,29 +17,17 @@ module.exports = {
         .setAutocomplete(true),
     ),
   async autocomplete(interaction) {
-    if (
-      process.env.NODE_ENV !== 'development' ||
-      !process.env.GUILDID ||
-      interaction.guildId !== process.env.GUILDID
-    )
-      return interaction.respond([])
+    if (require('../../services/arena/access').access.restriction(interaction)) return interaction.respond([])
     const { fighterChoices } = require('../../services/arena/selection')
     return interaction.respond(
       fighterChoices(interaction.options.getFocused()),
     )
   },
   async execute(interaction) {
-    if (
-      process.env.NODE_ENV !== 'development' ||
-      !process.env.GUILDID ||
-      interaction.guildId !== process.env.GUILDID
-    ) {
-      return interaction.reply({
-        content: 'Arena is available in the development server only.',
-        ephemeral: true,
-        allowedMentions: { parse: [] },
-      })
-    }
+    const { access } = require('../../services/arena/access')
+    const action = interaction.options?.getString?.('access')
+    if (action) return access.manage(interaction, action)
+    if (!(await access.authorize(interaction))) return
     const { resolveCharacter, isSelectable } = require('../../services/arena/characters')
     const value = interaction.options?.getString?.('character')
     const { findFamily, variantsFor } = require('../../services/arena/selection')

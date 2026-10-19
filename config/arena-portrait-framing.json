@@ -1,0 +1,15 @@
+{
+  "classic:azu": { "centerX": 0.5, "centerY": 0.5, "subjectHeight": 0.99 },
+  "classic:sel": { "centerX": 0.54, "centerY": 0.5, "subjectHeight": 0.98 },
+  "spooky-2026:had": { "centerX": 0.47, "centerY": 0.5, "subjectHeight": 0.98 },
+  "spooky-2026:hfm": { "centerX": 0.54, "centerY": 0.5, "subjectHeight": 0.99 },
+  "spooky-2026:mrq": {
+    "centerX": 0.43,
+    "centerY": 0.54,
+    "subjectHeight": 0.92
+  },
+  "spooky-2026:max": { "centerX": 0.52, "centerY": 0.5, "subjectHeight": 0.98 },
+  "spooky-2026:nik": { "centerX": 0.51, "centerY": 0.5, "subjectHeight": 0.99 },
+  "spooky-2026:qam": { "centerX": 0.47, "centerY": 0.5, "subjectHeight": 0.98 },
+  "spooky-2026:sel": { "centerX": 0.53, "centerY": 0.53, "subjectHeight": 0.92 }
+}

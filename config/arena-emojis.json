@@ -1,5 +1,26 @@
 {
   "guildId": "684459745167671453",
-  "hope": { "id": "1560258360136441967", "name": "HOPE", "animated": true },
-  "fear": { "id": "1560258383792046173", "name": "FEAR", "animated": true }
+  "hope": {
+    "id": "1560258360136441967",
+    "name": "HOPE",
+    "animated": true
+  },
+  "fear": {
+    "id": "1560258383792046173",
+    "name": "FEAR",
+    "animated": true
+  },
+  "production": {
+    "guildId": "1259991510410334219",
+    "hope": {
+      "id": "1560256341686358216",
+      "name": "HOPE",
+      "animated": true
+    },
+    "fear": {
+      "id": "1560257698455490642",
+      "name": "FEAR",
+      "animated": true
+    }
+  }
 }

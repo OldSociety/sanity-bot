@@ -1,0 +1,33 @@
+{
+  "frames": {
+    "bronze": {
+      "name": "Bronze",
+      "dark": "#74452d",
+      "color": "#bc8250",
+      "light": "#efbc8d"
+    },
+    "silver": {
+      "name": "Silver",
+      "dark": "#606d80",
+      "color": "#b9c6d8",
+      "light": "#f1f5fc"
+    },
+    "gold": {
+      "name": "Gold",
+      "dark": "#88621b",
+      "color": "#e5b83f",
+      "light": "#fff0a5"
+    }
+  },
+  "variants": {
+    "classic:azu": "bronze",
+    "classic:sel": "bronze",
+    "spooky-2026:had": "gold",
+    "spooky-2026:hfm": "silver",
+    "spooky-2026:mrq": "gold",
+    "spooky-2026:max": "gold",
+    "spooky-2026:nik": "gold",
+    "spooky-2026:qam": "gold",
+    "spooky-2026:sel": "gold"
+  }
+}

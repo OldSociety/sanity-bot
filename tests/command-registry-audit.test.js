@@ -4,8 +4,9 @@ const { audit, definition, inventory } = require('../scripts/command-registry-au
 test('full offline registry keeps active HEAD commands and includes new badge and Spooky definitions', () => {
   const report = audit()
   assert.equal(report.activeCount, report.commands.length)
-  assert.equal(report.commands.filter(item => !['arena', 'cocoa'].includes(item.name)).length, 14)
+  assert.equal(report.commands.filter(item => !['arena', 'cocoa', 'idle'].includes(item.name)).length, 14)
   assert.ok(report.commands.some(item => item.name === 'arena'))
+  assert.ok(report.commands.some(item => item.name === 'idle'))
   assert.deepEqual(report.removed, [])
   // HEAD advances when implementation is committed; presence and preserved
   // active definitions are the invariant, not whether a command is still new.

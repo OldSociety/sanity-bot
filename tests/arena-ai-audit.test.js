@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict')
 const { newBattle: rawNewBattle, advance: engineAdvance } = require('../services/arena/combat')
-const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => args[i]), { aiPolicy: 'legacy' })
+const advance = (...args) => engineAdvance(...Array.from({length: 8}, (_, i) => args[i]), { rollRecovery: () => 99.999, aiPolicy: 'legacy', rollFinisher: () => 45 })
 // Formula fixtures use a controlled, equal-stat baseline; character defaults have dedicated regression coverage.
 function newBattle(hope = 0, options = {}) {
   const battle = rawNewBattle(hope, options), stat = 300 + 30 * ((options.level || 1) - 1)
@@ -20,19 +20,19 @@ test('AI Focus starts ready, spends two Stress on a miss and only AI landed basi
   assert.equal(battle.enemy.stress, 4); assert.equal(battle.enemy.focusHits, 0)
   assert.equal(battle.statistics.enemy.focusActivations, 1); assert.equal(battle.statistics.enemy.damage.special1, 0)
   battle = step(battle, 'continue', { dice: [7, 5] })
-  assert.equal(battle.enemyOutcome, null); assert.equal(battle.enemy.focusHits, 0)
-  for (let i = 1; i <= 3; i++) { battle = step(battle); assert.equal(battle.enemy.focusHits, i) }
-  battle = step(battle, 'continue', { dice: [2, 1], ability: 40 })
+  assert.equal(battle.enemyOutcome, 'hit'); assert.equal(battle.enemy.focusHits, 1)
+  for (let i = 2; i <= 3; i++) { battle = step(battle); assert.equal(battle.enemy.focusHits, i) }
+  battle = step(battle, 'continue', { dice: [2, 1], ability: 0 })
   assert.equal(battle.enemySpecial, 'special1'); assert.equal(battle.enemy.focusHits, 1)
   assert.equal(battle.statistics.enemy.damage.special1, 36); assert.equal(battle.enemy.stress, 2)
 })
 
 test('AI Slayer activates on a miss, waits through unavailable opportunities and delivers exactly three +11% hits', () => {
-  const seed = newBattle(); seed.warrior.fear = 2
+  const seed = newBattle(); seed.enemy.fear = 2
   let battle = step(seed, 'continue', { ability: 0, accuracy: 85 })
   assert.equal(battle.enemy.slayerCharges, 3); assert.equal(battle.statistics.enemy.uses.special2, 1)
-  battle = step(battle, 'continue', { dice: [7, 5] })
-  assert.equal(battle.enemy.slayerCharges, 3); assert.equal(battle.statistics.enemy.attempts.special2, 0)
+  battle = step(battle, 'continue', { dice: [7, 5], accuracy: 85 })
+  assert.equal(battle.enemy.slayerCharges, 3); assert.equal(battle.statistics.enemy.attempts.special2, 1)
   for (let i = 0; i < 3; i++) {
     battle = step(battle); assert.equal(battle.enemy.slayerCharges, 2 - i)
     assert.equal(battle.statistics.enemy.damage.special2, 33 * (i + 1))
@@ -42,46 +42,46 @@ test('AI Slayer activates on a miss, waits through unavailable opportunities and
 })
 
 test('AI Slayer refresh consumes any old landed charge, discards remaining charges and never stacks', () => {
-  const seed = newBattle(); seed.warrior.slayerCharges = 3; seed.warrior.fear = 2
+  const seed = newBattle(); seed.enemy.slayerCharges = 3; seed.enemy.fear = 2
   const refreshed = step(seed, 'continue', { ability: 0 })
-  assert.equal(refreshed.warrior.slayerCharges, 3)
-  assert.equal(refreshed.maximDamage, 42); assert.equal(refreshed.statistics.enemy.damage.special2, 33)
+  assert.equal(refreshed.enemy.slayerCharges, 3)
+  assert.equal(refreshed.enemyDamage, 42); assert.equal(refreshed.statistics.enemy.damage.special2, 33)
   assert.equal(refreshed.statistics.enemy.slayerChargesConsumed, 1)
   assert.equal(refreshed.statistics.enemy.slayerChargesDiscardedOnRefresh, 2)
   const miss = step(seed, 'continue', { ability: 0, accuracy: 85 })
-  assert.equal(miss.warrior.slayerCharges, 3); assert.equal(miss.statistics.enemy.slayerChargesDiscardedOnRefresh, 3)
+  assert.equal(miss.enemy.slayerCharges, 3); assert.equal(miss.statistics.enemy.slayerChargesDiscardedOnRefresh, 3)
 })
 
 test('AI Focus and an existing Slayer charge are attributed separately in the same exchange', () => {
-  const seed = newBattle(); seed.warrior.slayerCharges = 2
+  const seed = newBattle(); seed.enemy.slayerCharges = 2
   const result = step(seed, 'continue', { dice: [2, 1], ability: 0 })
-  assert.equal(result.maximDamage, 78)
+  assert.equal(result.enemyDamage, 78)
   assert.deepEqual(result.statistics.enemy.damage, { basic: 9, special1: 36, special2: 33, special3: 0 })
   assert.equal(result.statistics.enemy.uses.special1, 1); assert.equal(result.statistics.enemy.uses.special2, 0)
-  assert.equal(result.warrior.focusHits, 1); assert.equal(result.warrior.slayerCharges, 1)
+  assert.equal(result.enemy.focusHits, 1); assert.equal(result.enemy.slayerCharges, 1)
 })
 
 test('both Overwhelm effects apply independently after costs, clamp Stress and preserve per-source HP attribution', () => {
-  const seed = newBattle(0, { opponent: 'marq' }); seed.marq.stress = 2; seed.warrior.stress = 2
+  const seed = newBattle(0, { opponent: 'marq' }); seed.player.stress = 2; seed.enemy.stress = 2
   const both = step(seed, 'special1', { ability: 0, effect: 0 })
-  assert.equal(both.marq.stress, 0); assert.equal(both.warrior.stress, 0)
+  assert.equal(both.player.stress, 0); assert.equal(both.enemy.stress, 0)
   assert.equal(both.stressRemoved, 1); assert.equal(both.enemyStressRemoved, 1)
-  assert.equal(both.special1Damage, 15); assert.equal(both.maximDamage, 26)
-  assert.deepEqual(both.statistics.player.hpDamageBySource, { basic: 8, special1: 15, special2: 0, special3: 0 })
+  assert.equal(both.special1Damage, 15); assert.equal(both.enemyDamage, 27)
+  assert.deepEqual(both.statistics.player.hpDamageBySource, { basic: 12, special1: 15, special2: 0, special3: 0 })
   assert.equal(both.statistics.player.stressRemovedTaken, 1); assert.equal(both.statistics.enemy.stressRemovedTaken, 1)
   const missed = step(newBattle(0, { opponent: 'marq' }), 'continue', { ability: 0, accuracy: 85, effect: 0 })
-  assert.equal(missed.maximDamage, 0); assert.equal(missed.enemyStressRemoved, 1)
+  assert.equal(missed.enemyDamage, 0); assert.equal(missed.enemyStressRemoved, 1)
 })
 
 test('actual HP damage caps overkill in basic/buff/direct order without inflating delivered Slayer damage', () => {
   const seed = newBattle(0, { character: resolveCharacter('Maxim [Spooky]') })
-  seed.marq.slayerCharges = 2; seed.warrior.hp = 1
+  seed.player.slayerCharges = 2; seed.enemy.hp = 1
   const ended = step(seed, 'special1', { dice: [7, 5] })
   assert.equal(ended.status, 'victory'); assert.equal(ended.statistics.player.hpDamage, 1)
   assert.equal(ended.statistics.player.damage.special2, 24)
   assert.deepEqual(ended.statistics.player.hpDamageBySource, { basic: 1, special1: 0, special2: 0, special3: 0 })
-  assert.equal(ended.statistics.player.overkill, 59)
-  assert.equal(ended.statistics.player.slayerChargesRemaining, 1); assert.equal(ended.marq.slayerCharges, 0)
+  assert.equal(ended.statistics.player.overkill, 62)
+  assert.equal(ended.statistics.player.slayerChargesRemaining, 1); assert.equal(ended.player.slayerCharges, 0)
 })
 
 test('role comparisons transpose the matchup matrix correctly and missing historical metrics remain unavailable', () => {

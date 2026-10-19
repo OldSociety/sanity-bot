@@ -3,32 +3,47 @@ const { characters, defaultCharacter, isSelectable } = require('./characters')
 // stats and feature overrides; choosing a skin never copies another kit.
 const roster = Object.freeze(
   [
+    ...(process.env.NODE_ENV === 'development'
+      ? [
+          {
+            id: 'azulis',
+            name: 'Azulis',
+            role: 'Druid · Sustain / Healer',
+            lore: 'A sea-themed Star Druid, Azulis spends Stress to restore Health.',
+            variantIds: ['classic:azu'],
+          },
+        ]
+      : []),
     {
       id: 'marq',
       name: 'Marq',
       role: 'Juggernaut',
+      lore: 'A steadfast juggernaut, Marq faces danger head-on and refuses to yield when the odds turn against him.',
       variantIds: ['spooky-2026:mrq', 'spooky-2026:hfm'],
     },
     {
       id: 'maxim',
       name: 'Maxim',
       role: 'Warrior',
+      lore: 'Driven to prove himself, Maxim meets every challenge with fierce determination and a warrior’s resolve.',
       variantIds: ['spooky-2026:max'],
     },
-  ].map((entry) => Object.freeze(entry)),
+  ].map((entry) => Object.freeze(entry))
 )
 const familyFor = (variant) =>
   roster.find((entry) => entry.variantIds.includes(variant?.id)) || roster[0]
 const variantsFor = (family) =>
-  characters.filter(
-    (variant) =>
-      family.variantIds.includes(variant.id) && isSelectable(variant),
-  )
+  family.variantIds
+    .map((id) => characters.find((variant) => variant.id === id))
+    .filter((variant) => variant && isSelectable(variant))
+// Presentation fallback only: this does not add a playable Classic variant.
+const basePortraitFor = (variant) =>
+  characters.find((entry) => entry.id === familyFor(variant).variantIds[0])
 const findFamily = (id) => roster.find((entry) => entry.id === id)
 const fighterChoices = (value) =>
   roster
     .filter((entry) =>
-      entry.name.toLowerCase().includes(String(value || '').toLowerCase()),
+      entry.name.toLowerCase().includes(String(value || '').toLowerCase())
     )
     .map((entry) => ({ name: entry.name, value: entry.id }))
 function groupsFor(entries = roster) {
@@ -71,8 +86,10 @@ function createMemoryPreferences() {
 function createPreferenceStore(
   file = require('node:path').resolve(
     __dirname,
-    '../../config/arena-selection-preferences.json',
-  ),
+    process.env.NODE_ENV === 'production'
+      ? '../../config/arena-selection-preferences-production.json'
+      : '../../config/arena-selection-preferences.json'
+  )
 ) {
   const fs = require('node:fs'),
     path = require('node:path')
@@ -97,13 +114,14 @@ function createPreferenceStore(
 const preferredVariant = (saved, explicit) =>
   explicit ||
   characters.find(
-    (entry) => entry.id === saved?.variantId && isSelectable(entry),
+    (entry) => entry.id === saved?.variantId && isSelectable(entry)
   ) ||
   defaultCharacter
 module.exports = {
   roster,
   familyFor,
   variantsFor,
+  basePortraitFor,
   findFamily,
   fighterChoices,
   groupsFor,

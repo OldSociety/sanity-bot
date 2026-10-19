@@ -1,0 +1,12 @@
+{
+  "enemyStats": [34, 33, 33],
+  "stressPolicy": {
+    "base": 0.10,
+    "stressWeight": 0.45,
+    "missingHealthWeight": 0.25,
+    "exhaustionPenalty": 0.30,
+    "minimum": 0.05,
+    "maximum": 0.85
+  },
+  "maxEvents": 10000
+}

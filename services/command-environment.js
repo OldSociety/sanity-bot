@@ -9,9 +9,9 @@ function eventWindow(key, environment) {
   return window
 }
 function commandEnabled(command, environment, now = Date.now()) {
-  // These games are permanently scoped to the development server, including
-  // deployment planning if a command's optional metadata is later changed.
-  if (['arena', 'cocoa'].includes(command.name || command.data?.name) && environment !== 'development') return false
+  // Cocoa/Idle remain development-only; Arena has a channel-scoped locked production test.
+  if (['cocoa', 'idle'].includes(command.name || command.data?.name) && environment !== 'development') return false
+  if ((command.name || command.data?.name) === 'arena' && environment !== 'development' && !(environment === 'production' && require('../config/arena-testing.json').productionEnabled)) return false
   if (require('./disabled-commands').disabledMessage(command.name || command.data?.name)) return false
   if (command.environments && !command.environments.includes(environment)) return false
   if (!command.eventKey) return true

@@ -3,9 +3,10 @@ const { runDeployment, offlineDefinitions } = require('../deploy-commands')
 const { commandEntry, inventory, validateDefinition, loadRegistry } = require('../services/command-registry')
 const root = require('node:path').resolve(__dirname, '..')
 
-test('Arena and Cocoa stay development-only even without optional environment metadata', () => {
+test('Cocoa and Idle stay development-only while Arena permits its explicit locked production test', () => {
   const { commandEnabled } = require('../services/command-environment')
-  for (const name of ['arena', 'cocoa']) {
+  assert.equal(require('../services/command-environment').commandEnabled({name:'arena'}, 'production'), true)
+  for (const name of ['cocoa', 'idle']) {
     assert.equal(commandEnabled({ name }, 'production'), false)
     assert.equal(commandEnabled({ data: { name } }, 'test'), false)
     assert.equal(commandEnabled({ name }, 'development'), true)
@@ -52,8 +53,9 @@ test('actual registry builders fail closed for incomplete exports, duplicate nam
     return entry.inactive ? {} : { data: { toJSON: () => entry.definition }, execute() {} }
   })
   assert.deepEqual(runtime.active.map(item => item.definition), defs)
-  assert.equal(defs.filter(item => !['arena', 'cocoa'].includes(item.name)).length, 14)
+  assert.equal(defs.filter(item => !['arena', 'cocoa', 'idle'].includes(item.name)).length, 14)
   assert.ok(defs.some(item => item.name === 'arena'))
+  assert.ok(defs.some(item => item.name === 'idle'))
 })
 test('default deployment plans and snapshots live-only removals; apply binds definitions and live versions', async () => {
   const live = [{ id: 'old', version: '1', name: 'server_only', type: 1, description: 'Existing command' }]

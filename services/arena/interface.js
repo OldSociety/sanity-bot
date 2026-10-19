@@ -5,68 +5,90 @@ const {
   EmbedBuilder,
   StringSelectMenuBuilder,
 } = require('discord.js')
+const {
+  exhausted,
+  resourceMeter,
+  healthCost,
+  usesRage,
+} = require('./resources')
 const { arenaEmojis } = require('./emojis')
-const { defaultCharacter } = require('./characters')
+const { defaultCharacter, resolveCharacter } = require('./characters')
 const {
   specialSlots,
   statsForLevel,
   abilityAvailable,
   canUse,
   kitFor,
+  passives,
   finisherPercent,
-  finisherWindowMs,
   exhaustedStressMultiplier,
-  activeTickMs,
-  idleTickMs,
 } = require('./rules')
 const { artFiles, bannerName } = require('./art')
+const { cardName } = require('./health-card')
+const { legendNameFor } = require('./legend')
 const { familyFor, variantsFor, groupsFor } = require('./selection')
-function healthDisplay(character) {
-  const ratio = Math.max(0, Math.min(1, character.hp / character.maxHp))
-  const filled = ratio > 0 ? Math.max(1, Math.round(ratio * 8)) : 0
-  return {
-    percent: Math.round(ratio * 100),
-    bar: '``' + '🟥'.repeat(filled) + '⬛'.repeat(8 - filled) + '``',
-  }
-}
-const stressBar = (fighter) =>
-  '``' +
-  '🟦'.repeat(fighter.stress) +
-  '⬛'.repeat(fighter.maxStress - fighter.stress) +
-  '``'
-// Keep resources in the final field: Discord footer text cannot render custom emojis.
-const currencyLine = (battle, reservedHope = 0, icons = {}) =>
-  `${icons.hope || '🟡'} Hope ${
-    (battle?.marq.hope || 0) - Number(reservedHope)
-  }/6${reservedHope ? ` · ${Number(reservedHope)} queued` : ''} | ${
-    battle?.warrior.name || 'Opponent'
-  }: ${icons.fear || '🟣'} Fear ${battle?.warrior.fear || 0}/6`
 function actionLines(actions = []) {
   return actions
     .map((event) => {
       let text
-      if (event.kind === 'roll') {
+      if (event.kind === 'move') {
+        text = actionLines(event.events)
+          .map((line) => line.replace(/^\*\*\d+\.\*\* /, ''))
+          .join(' ')
+      } else if (event.kind === 'sacrifice') {
+        text = `${
+          event.actor ? event.actor + ' · ' : ''
+        }${event.name.toUpperCase()} · Sacrificed ${event.hp} HP.`
+      } else if (event.kind === 'rageMiss') {
+        text = `${
+          event.actor ? event.actor + ' · ' : ''
+        }BASIC MISSED · Rage decreased to ${event.rage}/3`
+      } else if (event.kind === 'rageBlock') {
+        text = `${
+          event.actor ? event.actor + ' · ' : ''
+        }BASIC BLOCKED · Rage decreased to ${event.rage}/3`
+      } else if (event.kind === 'roll') {
         const result = event.critical
           ? 'Critical success'
-          : `${event.success ? 'Success' : 'Failure'} with ${
-              event.withHope ? 'Hope' : 'Fear'
-            }`
+          : `${
+              event.success
+                ? 'Success'
+                : event.immediateCritical
+                ? 'Failure (Block)'
+                : 'Failure'
+            } with ${event.withHope ? 'Hope' : 'Fear'}`
         const effects = event.critical
           ? `${event.hopeGained ? ' Gained 1 Hope.' : ''}${
               event.stressRestored ? ' Restored 1 Stress.' : ''
-            } Next basic hit ×2.`
+            }${event.stressRemoved ? ' Removed 1 opponent Stress.' : ''} ${
+              event.immediateCritical
+                ? 'Current basic ×2.'
+                : 'Next basic hit ×2.'
+            }`
           : ''
         text = `🟡${event.hope} + 🟣${event.fear} = ${event.total}. ${result}.${effects}`
+      } else if (event.kind === 'recovery') {
+        text = `${event.actor} recovered ${event.stressRestored} Stress instead of attacking.`
       } else if (event.kind === 'hit') {
         text =
           event.outcome === 'critical'
-            ? `${event.actor} scored a critical hit! ${event.damage} damage.`
+            ? `${event.actor} scored a critical ${require('./outcomes').enabled() ? 'basic ' : ''}hit! ${event.damage} damage.`
+            : event.outcome === 'block'
+            ? `${event.actor}'s attack was blocked: ${event.damage} damage (25%).`
             : event.damage
             ? `${event.actor} hit ${event.target} for ${event.damage}.`
             : `${event.actor} missed.`
+        if (event.stressRestored) text += ' Restored 1 Stress.'
+        if (event.stressRemoved) text += ' Removed 1 opponent Stress.'
+        if (event.fearGained) text += ` Gained ${event.fearGained} Fear.`
+        if (event.guaranteed) text += ' Stoke guaranteed hit.'
       } else if (event.kind === 'special') {
         const cost = `Spent ${event.cost} ${event.resource}.`
-        if (event.type === 'combo') {
+        if (event.type === 'heal') {
+          text = `${event.actor} used ${event.name}: restored ${event.healing} HP. ${cost}`
+        } else if (event.type === 'rage') {
+          text = `${event.actor} · STOKE THE FLAMES · Gained 1 Rage · Rage ${event.rage}/3`
+        } else if (event.type === 'combo') {
           const chain = event.rolls
             .slice(0, 40)
             .map((value) => `🔺${value}`)
@@ -88,7 +110,7 @@ function actionLines(actions = []) {
               ? `${event.actor}: ${event.name} missed! ${cost}`
               : `${event.actor}: ${event.name}: ${
                   event.resource === 'Fear'
-                    ? 'midpoint'
+                    ? 'rolled'
                     : event.choice
                     ? `picked ${event.choice}`
                     : 'no choice'
@@ -96,10 +118,30 @@ function actionLines(actions = []) {
         } else
           text = `${event.actor} used ${event.name} for ${
             event.damage
-          }. ${cost}${event.stressRemoved ? ' Removed 1 enemy Stress.' : ''}`
+          }. ${cost}${
+            (
+              event.outcome === 'critical'
+                ? Math.max(0, (event.stressRemoved || 0) - 1)
+                : event.stressRemoved
+            )
+              ? ' Removed 1 enemy Stress.'
+              : ''
+          }`
       } else if (event.kind === 'survival')
-        text = `${event.actor}: ON THE BRINK · survived with ${event.hp} HP.`
+        text = `${event.actor}: ${(
+          event.name || 'Survival'
+        ).toUpperCase()} · survived with ${event.hp} HP.`
       else return ''
+      if (event.kind === 'special' && event.outcome === 'block')
+        text += ' BLOCKED · 25% damage; no on-hit effects.'
+      if (event.kind === 'special' && event.outcome === 'critical')
+        text += ' CRITICAL · current attack ×2.'
+      if (
+        event.kind === 'special' &&
+        event.rage !== undefined &&
+        event.type !== 'rage'
+      )
+        text += ` · ${event.percent}% Attack · Rage ${event.rage}/3`
       return `**${event.tick}.** ${text}`
     })
     .filter(Boolean)
@@ -140,14 +182,13 @@ function historyFields(history) {
 function screen(session) {
   const { id, revision, battle } = session,
     character = session.character || defaultCharacter
-  const player = battle?.marq,
+  const player = battle?.player,
     kit = kitFor(player || { kit: character.kit })
-  const reservedHope = session.pendingSpecial
-    ? kit[session.pendingSpecial].hopeCost
-    : 0
   const playerName = player?.name || character.name
   const enemyName =
-    battle?.warrior.name || (session.opponent === 'marq' ? 'Marq' : 'Maxim')
+    battle?.enemy.name ||
+    resolveCharacter(session.opponent || 'maxim')?.[session.manualOpponentSelection ? 'label' : 'name'] ||
+    'Opponent'
   const idle = battle?.mode === 'idle',
     icons = arenaEmojis(session.guildId)
   const won = battle?.status === 'victory',
@@ -165,32 +206,40 @@ function screen(session) {
         ? 'FIGHT ENDED'
         : battle
         ? `${idle ? '⏩' : '⚔️'} ${playerName} vs ${enemyName} · ${battle.tick}`
-        : '⚔️ Arena',
+        : '⚔️ Arena'
     )
   const button = (
     action,
     label,
     style,
     disabled = false,
-    controlRevision = revision,
+    controlRevision = revision
   ) =>
     new ButtonBuilder()
       .setCustomId(`arena:${id}:${controlRevision}:${action}`)
       .setLabel(label)
       .setStyle(style)
-      .setDisabled(disabled)
+      .setDisabled(Boolean(disabled || session.busy))
+  if (battle)
+    embed.setFooter({
+      text: `Hope ${battle.player.hope}/6 | ${battle.enemy.name}: Fear ${battle.enemy.fear}/6`,
+    })
   const payload = (buttons) => ({
     content: '',
-    embeds: [
-      embed.addFields({
-        name: 'Available',
-        value: currencyLine(battle, reservedHope, icons),
-      }),
-    ],
+    embeds:
+      battle?.status === 'playing'
+        ? [
+            embed,
+            new EmbedBuilder()
+              .setColor(embed.data.color)
+              .setTitle('Status key')
+              .setImage(`attachment://${legendNameFor(battle)}`),
+          ]
+        : [embed],
     allowedMentions: { parse: [] },
     components: !session.expired
       ? Array.from({ length: Math.ceil(buttons.length / 5) }, (_, i) =>
-          new ActionRowBuilder().addComponents(buttons.slice(i * 5, i * 5 + 5)),
+          new ActionRowBuilder().addComponents(buttons.slice(i * 5, i * 5 + 5))
         )
       : [],
   })
@@ -198,10 +247,35 @@ function screen(session) {
     button(
       'start',
       again ? 'Fight Again' : 'Start Fight',
-      ButtonStyle.Primary,
+      ButtonStyle.Primary
     ).setEmoji('⚔️'),
-    button('idle', 'Idle', ButtonStyle.Success).setEmoji('⏩'),
   ]
+  const withOpponentPicker = (view) => {
+    if (!session.manualOpponentSelection || session.expired) return view
+    view.components.unshift(
+      new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`arena:${id}:${revision}:opponent`)
+          .setPlaceholder('Choose enemy')
+          .setDisabled(Boolean(session.busy))
+          .addOptions(
+            require('./opponents')
+              .availableOpponents()
+              .map((opponent) => {
+                const stats = statsForLevel(session.level, opponent.kit)
+                return {
+                  label: opponent.label,
+                  value: opponent.id,
+                  description: `Level ${stats.level} · ${stats.maxHp} HP · ${stats.attack} Attack`,
+                  default:
+                    opponent.id === resolveCharacter(session.opponent)?.id,
+                }
+              })
+          )
+      )
+    )
+    return view
+  }
   if (!battle && ['characters', 'skins'].includes(session.page)) {
     const family = familyFor(character),
       stats = statsForLevel(1, character.kit),
@@ -210,42 +284,46 @@ function screen(session) {
       group =
         groups.find((entry) => entry.id === session.groupId) ||
         groups.find((entry) =>
-          entry.entries.some((item) => item.id === family.id),
+          entry.entries.some((item) => item.id === family.id)
         ) ||
         groups[0]
     embed
       .setTitle(
-        skinPage ? `${family.name} — Choose Skin` : 'Choose Your Fighter',
+        skinPage ? `${family.name} — Choose Skin` : 'Choose Your Fighter'
       )
-      .setImage(
+      .setThumbnail(
         `attachment://${
           artFiles(character, session.opponent, session.page)[0].name
-        }`,
+        }`
       )
       .setDescription(
         session.expired
           ? 'Session expired. Use /arena to try again.'
-          : `**${skinPage ? character.version : family.name}**\n${
-              family.role ? family.role + ' · ' : ''
-            }Level 1\n${stats.maxHp} HP · ${stats.attack} Attack`,
+          : skinPage
+          ? `**${character.version} ${family.name}**\n${
+              family.role
+            } · Level 1\n${stats.maxHp} HP · ${stats.attack} Attack\n${
+              character.kit === 'hellfed-marq' ? 'Rage 0/3' : 'Stress 6/6'
+            }`
+          : `**${family.name}** · ${family.role}\n${family.lore}`
       )
-    if (!skinPage)
+    if (skinPage)
       embed.addFields({
-        name: 'Abilities',
+        name: character.passive ? 'Passive' : 'Abilities',
         value:
-          `Passive: ${
-            character.passive === 'on-the-brink'
-              ? 'On the Brink'
-              : 'Not Good Enough'
-          }\n` +
+          (character.passive
+            ? `${passives[character.passive]?.name ?? 'None'}\n`
+            : '') +
           specialSlots
             .map(
               (slot, i) =>
-                `S${i + 1}: ${kit[slot].name} · ${
-                  kit[slot].stressCost
-                    ? kit[slot].stressCost + ' Stress'
-                    : kit[slot].hopeCost + ' Hope'
-                }`,
+                `**S${i + 1}**: ${kit[slot].name}${
+                  kit[slot].description
+                    ? ` · ${kit[slot].stressCost || kit[slot].hopeCost} ${
+                        kit[slot].stressCost ? 'Stress' : 'Hope'
+                      } — ${kit[slot].description}`
+                    : ''
+                }`
             )
             .join('\n'),
       })
@@ -254,7 +332,8 @@ function screen(session) {
         new StringSelectMenuBuilder()
           .setCustomId(`arena:${id}:${revision}:${action}`)
           .setPlaceholder(placeholder)
-          .addOptions(options),
+          .setDisabled(Boolean(session.busy))
+          .addOptions(options)
       )
     const view = payload(
       skinPage
@@ -262,7 +341,7 @@ function screen(session) {
             button('backcharacters', 'Back', ButtonStyle.Secondary),
             button('confirmfighter', 'Confirm Fighter', ButtonStyle.Primary),
           ]
-        : [button('chooseskin', 'Choose Skin →', ButtonStyle.Primary)],
+        : [button('chooseskin', 'Choose Skin →', ButtonStyle.Primary)]
     )
     if (session.expired) return view
     if (!skinPage && groups.length > 1)
@@ -274,8 +353,8 @@ function screen(session) {
             label: entry.label.slice(0, 100),
             value: entry.id,
             default: entry.id === group.id,
-          })),
-        ),
+          }))
+        )
       )
     view.components.splice(
       view.components.length - 1,
@@ -288,7 +367,7 @@ function screen(session) {
               label: `${variant.version} ${family.name}`,
               value: variant.id,
               default: variant.id === character.id,
-            })),
+            }))
           )
         : select(
             'selectcharacter',
@@ -297,8 +376,8 @@ function screen(session) {
               label: entry.name,
               value: entry.id,
               default: entry.id === family.id,
-            })),
-          ),
+            }))
+          )
     )
     return view
   }
@@ -315,22 +394,28 @@ function screen(session) {
         log.omitted
           ? `\nShowing the most recent actions; ${log.omitted} earlier actions omitted.`
           : ''
-      }`,
+      }`
     )
     if (!idle) embed.addFields(log.fields)
-    return payload([
-      ...startButtons(true),
-      ...(session.selectionFlow
-        ? [button('changefighter', 'Change Fighter', ButtonStyle.Secondary)]
-        : []),
-    ])
+    return withOpponentPicker(
+      payload([
+        ...startButtons(true),
+        ...(session.selectionFlow
+          ? [button('changefighter', 'Change Fighter', ButtonStyle.Secondary)]
+          : []),
+      ])
+    )
   }
-  embed.setImage(`attachment://${bannerName(character, session.opponent)}`)
+  embed.setImage(
+    `attachment://${
+      battle ? cardName(session) : bannerName(character, session.opponent)
+    }`
+  )
   if (!battle) {
     const stats = statsForLevel(session.level, character.kit)
     const enemyStats = statsForLevel(
       session.level,
-      session.opponent === 'marq' ? 'spooky-marq' : 'maxim',
+      resolveCharacter(session.opponent || 'maxim')?.kit
     )
     embed
       .setDescription(
@@ -342,68 +427,64 @@ function screen(session) {
               stats.attack
             } Attack\n${enemyName}: ${enemyStats.maxHp} HP · ${
               enemyStats.attack
-            } Attack\n⚔️ Active · ${
-              activeTickMs / 1000
-            }-second turns · one special per turn\n⏩ Idle · ${
-              idleTickMs / 1000
-            }-second turns · dice + basic attacks\nStress 6/6 each`,
+            } Attack\nChoose Basic Attack or an ability. You act first; a surviving opponent responds.\nNo automatic attacks.\n${
+              session.manualOpponentSelection
+                ? `${character.name}: ${
+                    usesRage(character) ? 'Rage 0/3' : 'Stress 6/6'
+                  } · ${enemyName}: ${
+                    usesRage(resolveCharacter(session.opponent))
+                      ? 'Rage 0/3'
+                      : 'Stress 6/6'
+                  }`
+                : character.kit === 'hellfed-marq'
+                ? `Rage 0/3 · Opponent Stress 6/6\nStoke: 1% / 2% / 3% max HP for the next Rage bar. Normal Duality roll, guaranteed basic hit, then +1 Rage. Ordinary basic ${
+                    require('./outcomes').enabled() ? 'blocks' : 'misses'
+                  } lose 1 Rage.`
+                : 'Stress 6/6 each'
+            }`
       )
       .addFields({ name: 'Combat log', value: actionLog() })
-    return payload([
-      ...startButtons(),
-      button('opponent', `Opponent: ${enemyName}`, ButtonStyle.Secondary),
-      ...(session.selectionFlow
-        ? [button('backskins', 'Back', ButtonStyle.Secondary)]
-        : []),
-    ])
+    return withOpponentPicker(
+      payload([
+        ...startButtons(),
+        ...(session.selectionFlow
+          ? [button('backskins', 'Back', ButtonStyle.Secondary)]
+          : []),
+      ])
+    )
   }
-  const dice = battle.duality,
-    seconds = (idle ? idleTickMs : activeTickMs) / 1000
+  const dice =
+    require('./outcomes').enabled() &&
+    battle.recentRolls.at(-1)?.tick !== battle.tick
+      ? null
+      : battle.duality
+  if (dice) {
+    const icon = dice.withHope ? icons.hopeIcon : icons.fearIcon
+    if (icon) embed.setThumbnail(icon)
+  }
   const outcome = dice
     ? dice.critical
       ? '⭐ Critical success'
-      : `${dice.success ? '✅ Success' : '❌ Failure'} with ${
-          dice.withHope ? 'Hope' : 'Fear'
-        }`
-    : `Next roll in ${seconds} seconds`
+      : `${
+          dice.success
+            ? '✅ Success'
+            : require('./outcomes').enabled()
+            ? '🛡️ Failure (Block)'
+            : '❌ Failure'
+        } with ${dice.withHope ? 'Hope' : 'Fear'}`
+    : 'Your turn · choose a move'
   let summary = dice
     ? `${icons.hope} **${dice.hope}** + ${icons.fear} **${dice.fear}** = **${dice.total}** · ${outcome}`
     : outcome
-  if (idle) summary += '\n⏩ Idle · basic attacks only'
   if (session.expired) summary += '\nSession expired. Use /arena to try again.'
   else if (session.stopped) summary += '\n⚠️ Paused · restart fight'
-  if (session.pendingSpecial)
-    summary += `\n⏳ ${kit[session.pendingSpecial].name} queued`
+  if (session.busy) summary += '\nResolving…'
   embed.setDescription(summary)
-  const status = (fighter, includeName = true) => {
-    const health = healthDisplay(fighter)
-    return `${
-      includeName
-        ? `**${fighter.name}** · Lv ${fighter.level} · Rank ${fighter.rank}\n`
-        : ''
-    }❤️${fighter.hp}/${fighter.maxHp} (${health.percent}%)\n${
-      health.bar
-    }\n${stressBar(fighter)} Stress ${fighter.stress}/${fighter.maxStress}${
-      fighter.stress === 0
-        ? `\n⚠️ Takes ×${exhaustedStressMultiplier} damage`
-        : ''
-    }${
-      fighter.slayerCharges
-        ? `\nSlayer +${kitFor(fighter).special2.percent}% · ${
-            fighter.slayerCharges
-          } hits`
-        : ''
-    }`
-  }
+  const lines = actionLines(
+    battle.actions.filter((event) => event.kind !== 'roll').slice(-2)
+  )
   embed.addFields({
-    name: `${player.name} · Lv ${player.level} · Rank ${player.rank}`,
-    value: status(player, false) + '\n' + status(battle.enemy),
-  })
-  const lines = actionLines(battle.actions)
-  if (battle.latestCombo && !battle.actions.includes(battle.latestCombo))
-    lines.unshift(...actionLines([battle.latestCombo]))
-  embed.addFields({
-    name: 'Combat log',
+    name: 'Latest moves',
     value: lines.join('\n') || 'The fight starts here.',
   })
   const quitButton = () => button('quit', 'Quit', ButtonStyle.Secondary)
@@ -411,11 +492,10 @@ function screen(session) {
     embed.setDescription(
       `💥 ${kit.special3.name} · pick a number!\n${finisherPercent(
         player,
-        1,
-      )}–${finisherPercent(player, 5)}% Attack · no choice: ${finisherPercent(
-        player,
-        0,
-      )}%\n${finisherWindowMs / 1000} seconds to choose · combat paused`,
+        1
+      )}–${finisherPercent(player, 5)}% Attack\nChoose within ${
+        (kit.special3.responseMs || 5000) / 1000
+      } seconds · combat paused`
     )
     return payload([
       ...session.minigame.order.map((value) =>
@@ -424,20 +504,20 @@ function screen(session) {
           String(value),
           ButtonStyle.Primary,
           session.minigame.claimed,
-          session.minigame.revision ?? revision,
-        ),
+          session.minigame.revision ?? revision
+        )
       ),
       quitButton(),
     ])
   }
-  if (idle) return payload(ended ? startButtons(true) : [quitButton()])
   const styles = [ButtonStyle.Primary, ButtonStyle.Success, ButtonStyle.Danger],
     emojis = ['⚔️', icons.hopeButton, '💥']
   const buttons = specialSlots.map((slot, i) => {
     const definition = kit[slot],
-      ready = abilityAvailable(player, slot),
-      queued = session.pendingSpecial === slot
-    const cost = definition.stressCost
+      ready = abilityAvailable(player, slot)
+    const cost = healthCost(player, definition)
+      ? `${healthCost(player, definition)} HP`
+      : definition.stressCost
       ? `${definition.stressCost} Stress`
       : `${definition.hopeCost} Hope`
     const recharge =
@@ -445,16 +525,43 @@ function screen(session) {
       player.focusHits < definition.requiredRecharge
         ? `${player.focusHits}/${definition.requiredRecharge} hits · `
         : ''
-    const state = !ready ? 'Unavailable' : queued ? 'queued' : recharge + cost
+    const state = !ready ? 'Unavailable' : recharge + cost
     return button(
       slot,
       `${definition.name} [${state}]`,
       styles[i],
-      ended || queued || !canUse(player, slot),
+      ended || !canUse(player, slot)
     ).setEmoji(emojis[i])
   })
   if (ended) buttons.push(...startButtons(true))
-  else buttons.push(quitButton())
+  else {
+    buttons.unshift(
+      button('basic', 'Basic Attack', ButtonStyle.Secondary).setEmoji('⚔️')
+    )
+    buttons.push(quitButton())
+  }
   return payload(buttons)
 }
-module.exports = { screen, artFiles, currencyLine, actionLog, historyFields }
+function fallbackStatus(battle) {
+  return [battle.player, battle.enemy].map((fighter) => ({
+    name: fighter.name,
+    value:
+      `HP ${fighter.hp}/${fighter.maxHp} · ${resourceMeter(fighter).label} ${
+        resourceMeter(fighter).value
+      }/${resourceMeter(fighter).max}` +
+      (exhausted(fighter)
+        ? `\nTakes ×${exhaustedStressMultiplier} damage`
+        : '') +
+      (fighter.slayerCharges
+        ? `\n${kitFor(fighter).special2.name} · ${fighter.slayerCharges} hits`
+        : ''),
+  }))
+}
+module.exports = {
+  screen,
+  artFiles,
+  actionLog,
+  actionLines,
+  historyFields,
+  fallbackStatus,
+}

@@ -26,7 +26,7 @@ function record(row, actor, target, resource, decision, choice = 3) {
 }
 
 function knockout(row, before, after, side) {
-  const target = side === 'player' ? 'warrior' : 'marq'
+  const target = side === 'player' ? 'enemy' : 'player'
   if (before[target].hp <= 0 || after[target].hp > 0) return
   // Exactly one source removes the final HP. Stats allocate basic, then its
   // existing buff, then any selected direct special; overkill is excluded.

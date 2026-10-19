@@ -1,6 +1,6 @@
 {
-  "aiBasicPercent": 2.75,
-  "finisherWindowMs": 1500,
+  "playerBasicPercent": 3,
+  "aiBasicPercent": 3,
   "costs": {
     "special1": {
       "stress": 1,
@@ -12,7 +12,7 @@
     },
     "special3": {
       "stress": 0,
-      "hope": 5
+      "hope": 6
     }
   },
   "characters": {
@@ -100,6 +100,7 @@
     "timeoutMultiplier": 0.75
   },
   "ai": {
+    "stressRecoveryChance": 8,
     "stressChanceByAvailable": [
       0,
       5,
@@ -115,7 +116,8 @@
       0,
       40,
       20,
-      10
+      10,
+      5
     ],
     "special3Chance": 90,
     "characters": {
@@ -168,10 +170,10 @@
       },
       "special3": {
         "stress": 0,
-        "hope": 5
+        "hope": 6
       }
     },
-    "finisherPercent": 45
+    "finisherRange": [35, 45]
   },
   "playerFinisher": {
     "basePercent": 30,
@@ -186,5 +188,36 @@
       "attack": 220,
       "hp": 220
     }
+  },
+  "passives": {
+    "on-the-brink": {
+      "name": "On the Brink"
+    },
+    "not-good-enough": {
+      "name": "Not Good Enough"
+    }
+  },
+  "fallbackAbilities": {
+    "special1": {
+      "name": "Combo Strike",
+      "type": "combo",
+      "percent": 1,
+      "stressCost": 1,
+      "hopeCost": 0
+    },
+    "special2": {
+      "name": "Hope Strike",
+      "type": "direct",
+      "percent": 20,
+      "stressCost": 0,
+      "hopeCost": 1
+    },
+    "special3": {
+      "name": "Finisher",
+      "type": "legacyFinisher",
+      "stressCost": 0,
+      "hopeCost": 6
+    },
+    "passive": {}
   }
 }

@@ -1,6 +1,6 @@
 // Only message references persist, so controls can be removed after a restart.
 const fs = require('node:fs'), path = require('node:path')
-const defaultFile = path.resolve(__dirname, '../../config/arena-message-leases.json')
+const defaultFile = path.resolve(__dirname, process.env.NODE_ENV === 'production' ? '../../config/arena-message-leases-production.json' : '../../config/arena-message-leases.json')
 function createLeaseStore(file = defaultFile) {
   function read() {
     if (!fs.existsSync(file)) return []
@@ -23,8 +23,11 @@ function createLeaseStore(file = defaultFile) {
   }
 }
 async function recoverArenaMessages(client, { store = createLeaseStore(), logger = console } = {}) {
-  if (process.env.NODE_ENV !== 'development' || !process.env.GUILDID) return
+  if (!['development', 'production'].includes(process.env.NODE_ENV) || !process.env.GUILDID) return
+  const testing = require('../../config/arena-testing.json')
+  if (process.env.NODE_ENV === 'production' && (!testing.productionEnabled || process.env.GUILDID !== testing.productionGuildId)) return
   for (const row of store.list()) {
+    if (process.env.NODE_ENV === 'production' && row.channelId !== testing.productionChannelId) continue
     if (row.guildId !== process.env.GUILDID) continue
     try {
       const channel = await client.channels.fetch(row.channelId)

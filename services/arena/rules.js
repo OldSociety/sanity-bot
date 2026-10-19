@@ -1,5 +1,6 @@
 // Arena-only test progression. Character rank has no mechanical effect yet.
-const balance = require('../../config/arena-balance.json')
+const { rageValue, healthCost } = require('./resources')
+const balance = require('./balance-config').loadBalance()
 const specialMultipliers = Object.freeze([
   1, 1.1, 1.2, 1.3, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65,
 ])
@@ -7,8 +8,6 @@ const exhaustedStressMultiplier = 1.25
 const activeTickMs = 3500
 const idleTickMs = 1000
 const sessionTimeoutMs = 15000
-const finisherStepMs = 1000
-const finisherWindowMs = balance.finisherWindowMs
 const opportunityBonusPercent = 2
 const playerCriticalMultiplier = 2
 const enemyAttackStats = Object.freeze({
@@ -18,29 +17,8 @@ const enemyAttackStats = Object.freeze({
 })
 const specialSlots = Object.freeze(['special1', 'special2', 'special3'])
 // Other prototype characters retain their previous fallback kit.
-const abilities = Object.freeze({
-  special1: {
-    name: 'Combo Strike',
-    type: 'combo',
-    percent: 1,
-    stressCost: 1,
-    hopeCost: 0,
-  },
-  special2: {
-    name: 'Hope Strike',
-    type: 'direct',
-    percent: 20,
-    stressCost: 0,
-    hopeCost: 1,
-  },
-  special3: {
-    name: 'Finisher',
-    type: 'legacyFinisher',
-    stressCost: 0,
-    hopeCost: 6,
-  },
-  passive: {},
-})
+const abilities = Object.freeze(balance.fallbackAbilities)
+const passives = Object.freeze(balance.passives)
 const buildKits = (characters, costs) =>
   Object.fromEntries(
     Object.entries(characters).map(([key, entries]) => [
@@ -52,13 +30,13 @@ const buildKits = (characters, costs) =>
             Object.freeze({
               ...entries[slot],
               stressCost: entries[slot].stressCost ?? costs[slot].stress,
-              hopeCost: costs[slot].hope,
+              hopeCost: entries[slot].hopeCost ?? costs[slot].hope,
             }),
-          ]),
+          ])
         ),
         passive: abilities.passive,
       }),
-    ]),
+    ])
   )
 const kits = buildKits(balance.characters, balance.costs)
 const aiKits = buildKits(balance.ai.characters, balance.ai.costs)
@@ -76,17 +54,26 @@ function levelFinisherPercent(level, choice) {
 }
 function specialPercent(fighter, slot, choice = 0) {
   const definition = kitFor(fighter)[slot]
+  if (fighter.isAI && definition.aiPercent !== undefined)
+    return definition.aiPercent
   if (definition.type === 'playerFinisher')
     return (
+      rageValue(fighter) * (definition.ragePercent || 0) +
       balance.playerFinisher.basePercent +
       choice * balance.playerFinisher.choicePercent
     )
-  if (definition.type === 'aiFinisher') return balance.ai.finisherPercent
+  if (definition.type === 'aiFinisher')
+    return (
+      (balance.ai.finisherRange[0] + balance.ai.finisherRange[1]) / 2 +
+      rageValue(fighter) * (definition.ragePercent || 0)
+    )
   if (definition.type === 'finisher')
     return levelFinisherPercent(fighter.level, choice)
   if (definition.type === 'legacyFinisher') return 50 + choice * 10
   return (
-    definition.percentByLevel?.[levelIndex(fighter.level)] ?? definition.percent
+    (definition.percentByLevel?.[levelIndex(fighter.level)] ??
+      definition.percent) +
+    rageValue(fighter) * (definition.ragePercent || 0)
   )
 }
 function finisherPercent(fighter, choice) {
@@ -96,6 +83,10 @@ function eligible(fighter, slot, resource) {
   const definition = kitFor(fighter)[slot]
   return (
     abilityAvailable(fighter, slot) &&
+    (!healthCost(fighter, definition) ||
+      fighter.hp > healthCost(fighter, definition)) &&
+    (definition.type !== 'rage' || rageValue(fighter) < 3) &&
+    (definition.type !== 'heal' || fighter.hp < fighter.maxHp) &&
     fighter.stress >= (definition.stressCost || 0) &&
     resource >= (definition.hopeCost || 0) &&
     (fighter.basicHits || 0) >= (definition.requiredHits || 0) &&
@@ -109,7 +100,7 @@ function selectEnemySpecial(
   fighter,
   fear,
   roll,
-  allowed = new Set(specialSlots),
+  allowed = new Set(specialSlots)
 ) {
   const chances = [
     [
@@ -121,13 +112,19 @@ function selectEnemySpecial(
     [
       'special2',
       allowed.has('special2') && eligible(fighter, 'special2', fear)
-        ? balance.ai.special2ChanceByFear[Math.min(5, fear)]
+        ? balance.ai.special2ChanceByFear[
+            Math.min(balance.ai.special2ChanceByFear.length - 1, fear)
+          ]
         : 0,
     ],
     [
       'special1',
       allowed.has('special1') && eligible(fighter, 'special1', fear)
-        ? balance.ai.stressChanceByAvailable[fighter.stress]
+        ? balance.ai.stressChanceByAvailable[
+            kitFor(fighter).special1.type === 'rage'
+              ? balance.ai.stressChanceByAvailable.length - 1
+              : fighter.stress
+          ]
         : 0,
     ],
   ]
@@ -157,16 +154,22 @@ function enemyAttackOutcome(fighter, rollAccuracy, rollCritical) {
       throw new Error('Expected enemy attack percentile from 0 to 99')
     return value
   }
-  if (percentile(rollAccuracy) >= fighter.accuracy) return 'miss'
+  if (percentile(rollAccuracy) >= fighter.accuracy)
+    return balance.attackOutcomes === 'block-immediate-critical'
+      ? 'block'
+      : 'miss'
   return percentile(rollCritical) < fighter.criticalChance ? 'critical' : 'hit'
 }
 function abilityAvailable(fighter, ability) {
   const definition = kitFor(fighter)[ability]
   return Boolean(
     definition &&
+      (fighter.kit !== 'hellfed-marq' || Boolean(kits['hellfed-marq'])) &&
       definition.implemented !== false &&
       (ability !== 'passive' ||
-        ['not-good-enough', 'on-the-brink'].includes(fighter.passive)),
+        ['not-good-enough', 'on-the-brink', 'hellfed'].includes(
+          fighter.passive
+        ))
   )
 }
 function damageFor(attack, percent, upgradeRank = 1, vulnerability = 1) {
@@ -180,6 +183,7 @@ function damageFor(attack, percent, upgradeRank = 1, vulnerability = 1) {
 module.exports = {
   balance,
   abilities,
+  passives,
   specialSlots,
   kitFor,
   specialPercent,
@@ -191,8 +195,6 @@ module.exports = {
   activeTickMs,
   idleTickMs,
   sessionTimeoutMs,
-  finisherStepMs,
-  finisherWindowMs,
   exhaustedStressMultiplier,
   opportunityBonusPercent,
   playerCriticalMultiplier,
