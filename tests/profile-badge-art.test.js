@@ -8,16 +8,16 @@ test('skin captions distinguish earned Spooky and Classic characters without lab
   assert.equal(badgeSkin(marq), 'Spooky')
   assert.equal(badgeSkin({ id: 'classic:azulis', name: 'Azulis', imageAsset: 'AZULIS_BADGE.png' }), 'Classic')
   assert.equal(badgeSkin({ name: 'Azulis', imageAsset: 'AZULIS_BADGE.png' }), 'Classic')
-  assert.equal(badgeSkin(require('../config/plot-points.json').levelTwoBadge), null)
+  assert.equal(badgeSkin(require('../config/leveling/plot-points.json').levelTwoBadge), null)
   assert.equal(badgeAssetPath({ imageCollection: 'Classic', imageAsset: '../config.json' }), null)
-  assert.equal(badgeAssetPath({ imageCollection: '../config', imageAsset: 'config.json' }), null)
+  assert.equal(badgeAssetPath({ imageCollection: '../config', imageAsset: 'database/config.json' }), null)
 })
 
 test('local Marq and Classic assets resolve to current files, including the moved Selene fallback', async () => {
   assert.deepEqual(await readBadgeImage(marq), await fs.readFile(path.resolve(__dirname, '../assets/badges/Spooky/SPOOKY_MARQ_BADGE.png')))
   const azulis = { id: 'classic:azulis', imageAsset: 'AZULIS_BADGE.png' }
   assert.deepEqual(await readBadgeImage(azulis), await fs.readFile(path.resolve(__dirname, '../assets/badges/Classic/AZULIS_BADGE.png')))
-  const fallback = require('../config/plot-points.json').fallback
+  const fallback = require('../config/leveling/plot-points.json').fallback
   assert.equal(badgeSkin(fallback), 'Classic')
   assert.ok((await readBadgeImage(fallback))?.length > 0)
 })

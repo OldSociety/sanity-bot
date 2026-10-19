@@ -1,0 +1,28 @@
+{
+  "profile": "development-2-5",
+  "costs": {
+    "special2": {
+      "stress": 0,
+      "hope": 2
+    },
+    "special3": {
+      "stress": 0,
+      "hope": 5
+    }
+  },
+  "ai": {
+    "deferFearSpending": true,
+    "costs": {
+      "special2": {
+        "stress": 0,
+        "hope": 2
+      },
+      "special3": {
+        "stress": 0,
+        "hope": 5
+      }
+    },
+    "special2ChanceByFear": [0, 0, 40, 20, 10, 5, 5]
+  },
+  "criticalEffects": true
+}

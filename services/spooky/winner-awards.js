@@ -2,7 +2,7 @@ const { createHash } = require('node:crypto')
 const { escapeMarkdown } = require('discord.js')
 const { config: defaultEvent, getEventState } = require('./config')
 const { createWinnerSnapshot, snapshotOperationId } = require('./winner-snapshot')
-const defaults = require('../../config/spooky-winners.json')
+const defaults = require('../../config/spooky/spooky-winners.json')
 
 const titleKinds = ['final_treat_role', 'final_trick_role', 'final_overall_role']
 const awardTracks = settings => settings.mode === 'overall' ? ['overall'] : ['treat', 'trick']

@@ -40,7 +40,7 @@ function createPermissionSnapshot(client, { maxAgeMs = 60000, clock = Date.now }
 }
 function permissionSnapshot(guild) {
   if (!caches.has(guild.client)) caches.set(guild.client, createPermissionSnapshot(guild.client,
-    { maxAgeMs: require('../../config/spooky-performance.json').permissionMaxAgeMs }))
+    { maxAgeMs: require('../../config/spooky/spooky-performance.json').permissionMaxAgeMs }))
   return caches.get(guild.client)
 }
 async function hydratePermissions(guild, snapshot, roleIds, interaction) {

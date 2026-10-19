@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize')
-const sequelize = require('../config/sequelize')
+const sequelize = require('../config/database/sequelize')
 
 // Import models
 const User = require('./User/User')(sequelize, DataTypes)

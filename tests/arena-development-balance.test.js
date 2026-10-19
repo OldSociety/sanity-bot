@@ -1,7 +1,7 @@
 const test = require('node:test'),
   assert = require('node:assert/strict'),
   { execFileSync } = require('node:child_process')
-const base = require('../config/arena-balance.json'),
+const base = require('../config/arena/arena-balance.json'),
   { loadBalance } = require('../services/arena/balance-config')
 test('2/5 development profile preserves every unspecified coefficient', () => {
   for (const env of ['test', undefined])
@@ -16,45 +16,26 @@ test('2/5 development profile preserves every unspecified coefficient', () => {
   expected.damageRules = structuredClone(
     require('../services/arena/damage-types').proposedRules
   )
-  const hendrix = require('../config/arena-hendrix-development.json')
-  expected.baseStats[hendrix.identity.kit] = { hp: 200, attack: 200 }
-  expected.characters[hendrix.identity.kit] = structuredClone(hendrix.abilities)
-  expected.ai.characters[hendrix.identity.kit] = structuredClone(
-    hendrix.abilities
-  )
-  expected.ai.characters[hendrix.identity.kit].special3.type = 'aiFinisher'
-  const templates = require('../config/arena-templates-development.json')
-  for (const { kit } of templates.characters) {
-    expected.baseStats[kit] = structuredClone(templates.baseStats)
-    expected.characters[kit] = structuredClone(templates.abilities)
-    expected.ai.characters[kit] = structuredClone(templates.abilities)
-    expected.ai.characters[kit].special3.type = 'aiFinisher'
+  const { sheets } = require('../services/arena/character-config')
+  for (const sheet of Object.values(sheets)) {
+    const { kit, passive } = sheet.identity
+    const stats = structuredClone(sheet.baseStats)
+    delete stats.stress
+    expected.baseStats[kit] = stats
+    expected.characters[kit] = structuredClone(sheet.abilities)
+    expected.ai.characters[kit] = structuredClone(sheet.abilities)
+    expected.ai.characters[kit].special3.type =
+      sheet.aiOverrides?.special3?.type || 'aiFinisher'
+    if (passive && sheet.passive)
+      expected.passives[passive] = structuredClone(sheet.passive)
   }
   for (const costs of [expected.costs, expected.ai.costs]) {
     costs.special2.hope = 2
     costs.special3.hope = 5
   }
-  expected.characters['spooky-marq'].special2.flatPercent = 8
-  expected.characters.maxim.special2.percent = 7
-  expected.ai.characters['spooky-marq'].special2.flatPercent = 8
-  expected.ai.characters.maxim.special1.percent = 10
-  expected.ai.characters.maxim.special2.percent = 7
   expected.ai.special2ChanceByFear = [0, 0, 40, 20, 10, 5, 5]
-  const hellfed = require('../config/arena-hellfed-development.json')
-  expected.criticalEffects = hellfed.criticalEffects
-  Object.assign(expected.baseStats, hellfed.baseStats)
-  Object.assign(expected.passives, hellfed.passives)
-  Object.assign(expected.characters, hellfed.characters)
-  const azulis = require('../config/arena-azulis-development.json')
-  Object.assign(expected.baseStats, azulis.baseStats)
-  Object.assign(expected.characters, azulis.characters)
-  expected.ai.characters['classic-azulis'] = structuredClone(
-    azulis.characters['classic-azulis']
-  )
-  expected.ai.characters['hellfed-marq'] = structuredClone(
-    expected.characters['hellfed-marq']
-  )
-  expected.ai.characters['hellfed-marq'].special3.type = 'aiFinisher'
+  expected.ai.deferFearSpending = true
+  expected.criticalEffects = true
   assert.deepEqual(candidate, expected)
   candidate.costs.special2.hope = 99
   assert.equal(loadBalance('development').costs.special2.hope, 2)

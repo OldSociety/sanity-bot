@@ -454,17 +454,11 @@ function screen(session) {
       .setDescription(
         session.expired
           ? 'Session expired. Use /arena to try again.'
-          : `**${character.label}** vs ${enemyName} · Difficulty 12\nLv ${
-              stats.level
-            } · Rank ${stats.rank}\n${character.name}: ${stats.maxHp} HP · ${
+          : `**${character.label}** vs ${enemyName}\n${character.name}: ${stats.maxHp} HP · ${
               stats.attack
-            } Attack\n${enemyName}: ${enemyStats.maxHp} HP · ${
+            } Damage\n${enemyName}: ${enemyStats.maxHp} HP · ${
               enemyStats.attack
-            } Attack\nChoose Basic Attack or an ability. You act first; a surviving opponent responds.\n${
-              balance.offensiveSpecialBasics
-                ? 'Offensive specials include a basic attack.'
-                : 'No automatic attacks.'
-            }\n${
+            }\n\n${
               session.manualOpponentSelection
                 ? `${character.name}: ${
                     usesRage(character) ? 'Rage 0/3' : 'Stress 6/6'

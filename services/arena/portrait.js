@@ -1,5 +1,5 @@
 const sharp = require('sharp')
-const assignments = require('../../config/arena-portrait-framing.json')
+const assignments = require('../../config/arena/arena-portrait-framing.json')
 const portraitVersion = 1
 const defaultFraming = Object.freeze({
   centerX: 0.5,

@@ -1,9 +1,9 @@
 const path = require('node:path')
-const badges = require('../../config/badges.json')
+const badges = require('../../config/badges/badges.json')
 const { prototypeEntries } = require('./prototype-catalog')
 const {
   variants: rarityByVariant,
-} = require('../../config/arena-rarities.json')
+} = require('../../config/arena/arena-rarities.json')
 
 // Prototype variants. No ownership, shop or XP imports.
 const characters = Object.freeze([

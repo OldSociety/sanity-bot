@@ -1,6 +1,6 @@
 const fs = require('node:fs'), path = require('node:path')
-const settings = require('../../config/arena-testing.json')
-const stateFile = path.resolve(__dirname, '../../config/arena-production-access.json')
+const settings = require('../../config/arena/arena-testing.json')
+const stateFile = path.resolve(__dirname, '../../config/arena/state/arena-production-access.json')
 function createAccess({ config = settings, file = stateFile, environment = () => process.env.NODE_ENV, guildId = () => process.env.GUILDID } = {}) {
   function read() {
     if (!fs.existsSync(file)) return { unlocked: false }

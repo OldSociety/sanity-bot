@@ -3,7 +3,7 @@ const path = require('node:path')
 const { createHash } = require('node:crypto')
 const Sequelize = require('sequelize')
 const sqlite3 = require('sqlite3')
-const { loadDiscordEnvironment } = require('../../config/runtime')
+const { loadDiscordEnvironment } = require('../../config/runtime/runtime')
 
 const migrationGroups = Object.freeze([
   { name: '20261001000000-create-spooky-core.js', tables: ['SpookyEventStates', 'SpookyParticipants', 'SpookyInventory', 'SpookyEffects', 'SpookyOperations', 'SpookyLedger'] },

@@ -5,7 +5,7 @@ const { createArena } = require('../services/arena/controller')
 const { screen } = require('../services/arena/interface')
 const { canUse } = require('../services/arena/rules')
 const { resolveCharacter } = require('../services/arena/characters')
-const emojis = require('../config/arena-emojis.json')
+const emojis = require('../config/arena/arena-emojis.json')
 const forbidden = () => { throw Error('Unexpected roll') }
 function step(battle, actor, action = {}, dice = [7, 5], accuracy = 0) {
   let i = 0

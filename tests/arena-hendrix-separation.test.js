@@ -16,9 +16,8 @@ test('Hendrix has one finished identity, preserving his saved variant ID', () =>
   assert.equal(resolveCharacter('Hendrix [Template]'), null)
   assert.equal(resolveCharacter('classic:hen'), c)
   assert(
-    !require('../config/arena-templates-development.json').characters.some(
-      (c) => c.family === 'hendrix'
-    )
+    require('../config/arena/characters/arena-template-development.json').identity.family !==
+      'hendrix'
   )
 })
 test('Template is an independent placeholder hidden from every development picker', () => {

@@ -18,7 +18,7 @@ test('launch configuration is explicit, disabled in unselected environments and 
   assert.equal(selectConfig('production').enabled, false)
   assert.equal(selectConfig(undefined).enabled, false)
   assert.equal(selectConfig('test').enabled, false)
-  const source = structuredClone(require('../config/community-leveling.json')); source.environments.development.enabled = true
+  const source = structuredClone(require('../config/leveling/community-leveling.json')); source.environments.development.enabled = true
   source.environments.development.campaignRoleIds = []
   assert.throws(() => selectConfig('development', source), /configured/)
 })
@@ -113,8 +113,8 @@ test('actual disk reopen preserves daily counts, saved rewards and replay withou
 })
 
 test('new launch purchase policy is selected only for the explicitly activated environment', () => {
-  const data = require('../config/community-leveling.json'), saved = structuredClone(data.environments.development)
-  const event = require('../config/spooky-2026.json'), { selectEvent } = require('../services/spooky/config')
+  const data = require('../config/leveling/community-leveling.json'), saved = structuredClone(data.environments.development)
+  const event = require('../config/spooky/spooky-2026.json'), { selectEvent } = require('../services/spooky/config')
   try {
     Object.assign(data.environments.development, { enabled: true, guildId: 'guild', campaignRoleIds: ['campaign'], channelIds: ['shared'] })
     assert.equal(selectEvent(event, 'development').fate.paymentResource, 'sanity')

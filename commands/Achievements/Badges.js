@@ -12,7 +12,7 @@ module.exports = {
     return interaction.reply({ content: 'Use /profile to view your owned badges.', ephemeral: true, allowedMentions: { parse: [] } })
     await interaction.deferReply({ ephemeral: true })
     if (!interaction.guild || interaction.guildId !== process.env.GUILDID) return interaction.editReply('Use the configured server.')
-    const sequelize = require('../../config/sequelize')
+    const sequelize = require('../../config/database/sequelize')
     try {
       if (interaction.options.getSubcommand() === 'view') {
         const player = interaction.options.getUser('player') || interaction.user

@@ -50,7 +50,7 @@ function matches(actual, desired) {
 async function runDeployment(args, dependencies = {}) {
   const input = parseArgs(args) // Reject unknown arguments before env/registry/REST.
   const log = dependencies.log || console.log
-  const runtime = (dependencies.loadEnvironment || require('./config/runtime').loadDiscordEnvironment)()
+  const runtime = (dependencies.loadEnvironment || require('./config/runtime/runtime').loadDiscordEnvironment)()
   log(`Environment: ${runtime.env}; guild: ${runtime.guildId}; application: ${runtime.clientId}`)
   if (input.mode === 'check') {
     log(`Database path: ${runtime.database.storage}`); log(`Environment file: ${runtime.envFile}`)

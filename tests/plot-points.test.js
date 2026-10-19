@@ -93,9 +93,9 @@ test('popular badges count distinct current human owners, deterministic ties and
   const rows=[{userId:'alice',badgeId:'spooky-2026:had'},{userId:'alice',badgeId:'spooky-2026:had'},
     {userId:'138131238803210240',badgeId:'spooky-2026:had'},
     ...['alice','bob','bot'].flatMap(userId=>['sel','mrq'].map(id=>({userId,badgeId:`spooky-2026:${id}`})))]
-  const badges=popularBadges(rows,humans,require('../config/plot-points.json').levelTwoBadge)
+  const badges=popularBadges(rows,humans,require('../config/leveling/plot-points.json').levelTwoBadge)
   assert.deepEqual(badges.map(b=>[b.id,b.ownerCount]),[['community:chapter-two',2],['spooky-2026:mrq',2],['spooky-2026:sel',2]])
-  assert.deepEqual(popularBadges(rows,new Set(['alice','138131238803210240']),require('../config/plot-points.json').levelTwoBadge),[])
+  assert.deepEqual(popularBadges(rows,new Set(['alice','138131238803210240']),require('../config/leveling/plot-points.json').levelTwoBadge),[])
   assert.equal(humans.size,3)
 })
 test('community profile read has no account creation, no Sanity or personal balances', async t => {
@@ -124,7 +124,7 @@ test('community profile read has no account creation, no Sanity or personal bala
 })
 
 test('level-two community reward is delivered with its spotlight profile banner attachment', async () => {
-  const badge = require('../config/badges.json').badges.find(item => item.characterId === 'had')
+  const badge = require('../config/badges/badges.json').badges.find(item => item.characterId === 'had')
   const payload = require('../services/spooky/presentation').actionMessages({ outcome: 'plot_point', result: {
     plotPoints: 1, communityLevel: 2, communityProgress: plots.progression(10000), unlockedLevels: [2],
     plotSpotlight: { ...badge, eventId: 'spooky-2026', imageCollection: 'Spooky', emojiName: 'spooky_hadley_badge' },

@@ -18,7 +18,7 @@ test('off-channel runtime commands reject privately before accessing global stor
   t.after(() => { for (const key of keys) if (saved[key] === undefined) delete process.env[key]; else process.env[key] = saved[key] })
   const Module = require('node:module'), load = Module._load
   Module._load = function (request, ...args) {
-    if (request === '../../config/sequelize' || request === '../../Models/model') throw new Error('Unexpected global storage import')
+    if (request === '../../config/database/sequelize' || request === '../../Models/model') throw new Error('Unexpected global storage import')
     return load.call(this, request, ...args)
   }
   t.after(() => { Module._load = load })

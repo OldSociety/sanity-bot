@@ -227,11 +227,11 @@ function actionMessages(
                     spotlight: result.plotSpotlight,
                     displayName: guildName || 'Our Server',
                     currentEvent:
-                      require('../../config/plot-points.json').events[
+                      require('../../config/leveling/plot-points.json').events[
                         result.plotSpotlight.eventId
                       ]?.name || null,
                     currentEventEmoji:
-                      require('../../config/plot-points.json').events[
+                      require('../../config/leveling/plot-points.json').events[
                         result.plotSpotlight.eventId
                       ]?.emoji || null,
                   },

@@ -1,7 +1,7 @@
 const { createHash } = require('node:crypto')
 const path = require('node:path')
 const { Op } = require('sequelize')
-const { resolveRuntime } = require('../../config/runtime')
+const { resolveRuntime } = require('../../config/runtime/runtime')
 const { createEffects } = require('./effects')
 const { originalCurseRole } = require('./curse-role')
 

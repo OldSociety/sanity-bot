@@ -4,8 +4,8 @@ const {
   validateReminders,
   createReminders,
 } = require('./reminders')
-const defaults = require('../../config/spooky-spotlight.json')
-const catalog = require('../../config/badges.json').badges
+const defaults = require('../../config/spooky/spooky-spotlight.json')
+const catalog = require('../../config/badges/badges.json').badges
 
 function validateSpotlight(settings) {
   validateReminders({

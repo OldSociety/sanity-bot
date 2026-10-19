@@ -1,0 +1,4 @@
+const path = require('node:path')
+module.exports = {
+  config: path.resolve(__dirname, 'config/database/config.json'),
+}

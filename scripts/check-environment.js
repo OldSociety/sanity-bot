@@ -1,4 +1,4 @@
-const { loadDiscordEnvironment } = require('../config/runtime')
+const { loadDiscordEnvironment } = require('../config/runtime/runtime')
 
 try {
   const runtime = loadDiscordEnvironment()

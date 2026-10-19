@@ -1,6 +1,6 @@
 const { config } = require('./config')
 const { privateScreen } = require('./presentation')
-const { resolveRuntime } = require('../../config/runtime')
+const { resolveRuntime } = require('../../config/runtime/runtime')
 const instances = new WeakMap()
 
 async function authorize(client, guildId, actorId, configuredGuildId, botAdminId) {
@@ -11,7 +11,7 @@ async function authorize(client, guildId, actorId, configuredGuildId, botAdminId
 }
 function runtime(client) {
   if (instances.has(client)) return instances.get(client)
-  const sequelize = require('../../config/sequelize')
+  const sequelize = require('../../config/database/sequelize')
   const { User } = require('../../Models/model')
   const models = require('./models').defineSpookyModels(sequelize)
   const economy = require('./economy').createEconomy({ sequelize, models, configVersion: config.version })

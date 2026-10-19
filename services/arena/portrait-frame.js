@@ -1,4 +1,4 @@
-const { frames } = require('../../config/arena-rarities.json')
+const { frames } = require('../../config/arena/arena-rarities.json')
 const frameVersion = 2
 const frameFor = (character) => frames[character?.rarity] || null
 function frameMarkup(frame, x, y, width, height, id) {

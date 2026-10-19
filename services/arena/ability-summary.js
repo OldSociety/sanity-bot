@@ -76,7 +76,7 @@ function abilitySummary(fighter, slot) {
 
 function passiveSummary(character, fighter) {
   if (character.passive === 'on-the-brink')
-    return `Once per fight, survive lethal damage with 10% max HP (${brinkHealth(
+    return `Once per fight, survive lethal damage with 25% max HP (${brinkHealth(
       fighter
     )} HP).`
   if (character.passive === 'not-good-enough')

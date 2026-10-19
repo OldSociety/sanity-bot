@@ -1,4 +1,4 @@
-const settings = require('../../config/arena-emojis.json')
+const settings = require('../../config/arena/arena-emojis.json')
 const fallback = Object.freeze({ hope: '🟡', fear: '🟣', hopeButton: { name: '🟡' } })
 function arenaEmojis(guildId) {
   const config = guildId === settings.production?.guildId ? settings.production : settings

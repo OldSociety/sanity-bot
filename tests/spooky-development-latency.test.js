@@ -57,7 +57,7 @@ test('effect snapshots reuse reads and invalidate on direct model changes within
 })
 test('performance rollout respects separate production and development flags', () => {
   const before = process.env.NODE_ENV
-  const config = require('../config/spooky-performance.json'), saved = config.productionEnabled
+  const config = require('../config/spooky/spooky-performance.json'), saved = config.productionEnabled
   try {
     process.env.NODE_ENV = 'production'
     assert.equal(require('../services/spooky/development-performance').enabled(), true)

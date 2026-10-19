@@ -18,7 +18,7 @@ test('full offline registry keeps active HEAD commands and includes new badge an
   assert.throws(() => audit(['--target']), /no arguments/)
 })
 test('offline loader rejects unexpected imports and attempts to execute model helpers', () => {
-  assert.throws(() => definition("require('../../config/sequelize')", 'fixture.js'), /Unreviewed/)
+  assert.throws(() => definition("require('../../config/database/sequelize')", 'fixture.js'), /Unreviewed/)
   assert.throws(() => definition("require('../../Models/model').User()", 'fixture.js'), /cannot execute/)
   assert.throws(() => definition("module.exports = { data: {} }", 'fixture.js'), /Incomplete/)
   assert.equal(definition('// disabled command', 'fixture.js').inactive, true)

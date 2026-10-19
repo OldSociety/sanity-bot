@@ -218,6 +218,7 @@ function advance(
   {
     aiPolicy = 'tactical',
     actor = 'exchange',
+    enemySpendableFear,
     rollRecovery = abilityPercentile,
     rollFinisher = () =>
       randomInt(balance.ai.finisherRange[0], balance.ai.finisherRange[1] + 1),
@@ -305,6 +306,15 @@ function advance(
     : 0
   const rollFearGained = Number(duality.withFear),
     availableFear = battle.enemy.fear + rollFearGained
+  // New Fear still enters the balance immediately, but the enemy may only
+  // spend the balance visible before this player command and its response.
+  const spendableFear =
+    balance.ai.deferFearSpending && battle.mode !== 'idle'
+      ? Math.max(
+          0,
+          Math.min(battle.enemy.fear, enemySpendableFear ?? battle.enemy.fear)
+        )
+      : availableFear
   // A recovery replaces the opponent's response and never consumes attack RNG.
   let enemyStressRestored = 0
   if (
@@ -325,13 +335,13 @@ function advance(
         ? {
             slot: selectEnemySpecial(
               battle.enemy,
-              availableFear,
+              spendableFear,
               rollFearSpend
             ),
             reason: 'legacy',
           }
         : decide(battle.enemy, battle.player, {
-            resource: availableFear,
+            resource: spendableFear,
             roll: rollFearSpend,
             context: {
               rounds: battle.tick,
@@ -1287,7 +1297,7 @@ function takeTurn(
     rollAccuracy,
     rollCritical,
     rollEffect,
-    { ...options, actor: 'enemy' }
+    { ...options, actor: 'enemy', enemySpendableFear: battle.enemy.fear }
   )
   return {
     ...response,

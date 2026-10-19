@@ -2,7 +2,7 @@ const test = require('node:test'), assert = require('node:assert/strict')
 const { commandEnabled } = require('../services/command-environment')
 const { offlineDefinitions } = require('../deploy-commands')
 const { reconcile } = require('../services/event-command-lifecycle')
-const event = require('../config/spooky-2026.json'), root = require('node:path').resolve(__dirname, '..')
+const event = require('../config/spooky/spooky-2026.json'), root = require('node:path').resolve(__dirname, '..')
 test('event registration is absent outside its exact window and inactive Winter adds no commands', () => {
   for (const environment of ['development', 'production']) {
     const inside = offlineDefinitions(root, environment, Date.parse(event.startsAt)).map(row => row.name)

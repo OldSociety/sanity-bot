@@ -101,8 +101,8 @@ function createPreferenceStore(
   file = require('node:path').resolve(
     __dirname,
     process.env.NODE_ENV === 'production'
-      ? '../../config/arena-selection-preferences-production.json'
-      : '../../config/arena-selection-preferences.json'
+      ? '../../config/arena/state/arena-selection-preferences-production.json'
+      : '../../config/arena/state/arena-selection-preferences.json'
   )
 ) {
   const fs = require('node:fs'),

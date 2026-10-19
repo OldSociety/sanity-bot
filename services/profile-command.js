@@ -50,7 +50,7 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
         if (preview) {
           // Preview reads never initialize accounts, settle decay or award funds.
           const account = await sanityService.models.Account.findOne({ where: { guildId: interaction.guild.id, userId: player.id } })
-          const config = require('../config/sanity.json')
+          const config = require('../config/sanity/sanity.json')
           sanity = { balance: account?.balance ?? config.starting, maximum: config.capacity }
         } else sanity = await sanityService.view(interaction.guild.id, player.id)
       }

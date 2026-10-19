@@ -1,4 +1,4 @@
-const data = require('../../config/community-leveling.json')
+const data = require('../../config/leveling/community-leveling.json')
 const rules = Object.freeze({ fateCap: 100, rerollCost: 10, levelReward: 5, levelRequirement: 300,
   userDailyCap: 4, guildDailyCap: 24, intervalMs: 30 * 60 * 1000 })
 function selectConfig(environment = process.env.NODE_ENV, source = data) {

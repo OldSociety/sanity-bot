@@ -1,4 +1,4 @@
-const defaults = require('../config/badge-access.json')
+const defaults = require('../config/badges/badge-access.json')
 const { badges, createBadges } = require('./badges')
 const { PermissionFlagsBits } = require('discord.js')
 function validateSettings(settings) {
@@ -15,7 +15,7 @@ function accessRole(role, guild, bot, channels) {
     role.permissions.bitfield === 0n && bot.roles.highest.comparePositionTo(role) > 0 &&
     ![...channels.values()].some(channel => channel?.permissionOverwrites?.cache.has(role.id)))
 }
-function settingsForGuild(guildId, { environment = require('../config/runtime').resolveRuntime(process.env.NODE_ENV).env,
+function settingsForGuild(guildId, { environment = require('../config/runtime/runtime').resolveRuntime(process.env.NODE_ENV).env,
   configuredGuildId = process.env.GUILDID } = {}) {
   const selected = defaults[environment]
   if (['development', 'production'].includes(environment) && guildId === configuredGuildId && guildId === selected?.guildId) return selected

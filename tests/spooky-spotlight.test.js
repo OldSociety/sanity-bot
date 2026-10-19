@@ -7,7 +7,7 @@ const { defineSpookyModels } = require('../services/spooky/models')
 const { createEconomy } = require('../services/spooky/economy')
 const { createNotifications } = require('../services/spooky/notifications')
 const { config, pieces } = require('../services/spooky/config')
-const settings = require('../config/spooky-spotlight.json')
+const settings = require('../config/spooky/spooky-spotlight.json')
 const { latestReminderSlot } = require('../services/spooky/reminders')
 const {
   ensureSpotlight,

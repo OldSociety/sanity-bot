@@ -1,5 +1,5 @@
 const { createHash } = require('node:crypto')
-const pools = require('../../config/spooky-gifs.json')
+const pools = require('../../config/spooky/spooky-gifs.json')
 // Reuse the reviewed media library for new outcomes while preserving the
 // channel's shared animation budget and recent-asset rotation.
 const aliases = { candy_raid: 'great_heist', bag_swap: 'reverse_nickname', bag_explosion: 'curse_distribute_three',

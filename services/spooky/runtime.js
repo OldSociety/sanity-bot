@@ -31,7 +31,7 @@ async function snapshotMembers(guild, roleIds, { actorId, actorOnly = false, act
 
 function runtime(client) {
   if (instances.has(client)) return instances.get(client)
-  const sequelize = require('../../config/sequelize')
+  const sequelize = require('../../config/database/sequelize')
   const { User } = require('../../Models/model')
   const { defineSpookyModels } = require('./models')
   const models = defineSpookyModels(sequelize)

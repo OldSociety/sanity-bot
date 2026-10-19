@@ -6,7 +6,7 @@ const { excludedMember } = require('./member-policy')
 const { renderProfileCard, discordImage } = require('./profile-card')
 const { readBadgeImage } = require('./profile-badge-art')
 function popularBadges(rows, eligibleIds, unlockedBadge = null) {
-  const settings = require('../config/plot-points.json').popularBadges
+  const settings = require('../config/leveling/plot-points.json').popularBadges
   const excluded = new Set(settings.excludedUserIds)
   const eligibleOwners = new Set([...eligibleIds].filter(id => !excluded.has(id)))
   const owners = new Map()
@@ -35,9 +35,9 @@ async function showCommunity(interaction, { sequelize, render = renderProfileCar
       const spotlight = await plots.resolveSpotlight({ ctx: { scope: { eventId: event.eventId, guildId: interaction.guild.id }, now, transaction }, models, event, readOnly: true })
       const rows = await Ownership.findAll({ where: { guildId: interaction.guild.id }, transaction })
       const active = event.enabled && require('./spooky/config').getEventState(now, event) === 'ACTIVE'
-      const currentEvent = active ? require('../config/plot-points.json').events[event.eventId]?.name || null : null
-      const currentEventEmoji = active ? require('../config/plot-points.json').events[event.eventId]?.emoji || null : null
-      return { progress, spotlight, currentEvent, currentEventEmoji, badges: popularBadges(rows, eligibleIds, progress.level >= 2 ? require('../config/plot-points.json').levelTwoBadge : null) }
+      const currentEvent = active ? require('../config/leveling/plot-points.json').events[event.eventId]?.name || null : null
+      const currentEventEmoji = active ? require('../config/leveling/plot-points.json').events[event.eventId]?.emoji || null : null
+      return { progress, spotlight, currentEvent, currentEventEmoji, badges: popularBadges(rows, eligibleIds, progress.level >= 2 ? require('../config/leveling/plot-points.json').levelTwoBadge : null) }
     }))
     const emojis = [...(await interaction.guild.emojis.fetch().catch(() => new Map())).values()]
     const imageFor = async name => {

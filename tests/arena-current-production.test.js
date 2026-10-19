@@ -27,7 +27,7 @@ test('production matches the verified activation snapshot: 300 exchanges, 25 vie
   assert.deepEqual(hashes, frozen.hashes)
 })
 test('production rollout fails closed when disabled; test profile and Cocoa/Idle remain isolated', () => {
-  const settings = require('../config/arena-testing.json'),
+  const settings = require('../config/arena/arena-testing.json'),
     {
       loadBalance,
       currentRulesEnabled,
@@ -37,7 +37,7 @@ test('production rollout fails closed when disabled; test profile and Cocoa/Idle
     settings.productionCurrentRules = false
     assert.deepEqual(
       loadBalance('production'),
-      require('../config/arena-balance.json')
+      require('../config/arena/arena-balance.json')
     )
     assert(!currentRulesEnabled('production'))
     assert(currentRulesEnabled('development'))
@@ -46,19 +46,19 @@ test('production rollout fails closed when disabled; test profile and Cocoa/Idle
   }
   assert(!currentRulesEnabled('test'))
   assert(!currentRulesEnabled('unknown'))
-  assert.deepEqual(loadBalance('test'), require('../config/arena-balance.json'))
+  assert.deepEqual(loadBalance('test'), require('../config/arena/arena-balance.json'))
   const { commandEnabled } = require('../services/command-environment')
   for (const name of ['cocoa', 'idle'])
     assert(!commandEnabled({ name }, 'production'))
 })
 
 test('later development coefficient changes cannot alter the frozen production kit', () => {
-  const patch = require('../config/arena-balance-development.json')
+  const patch = require('../config/arena/characters/arena-spooky-maxim-development.json')
   const { loadBalance } = require('../services/arena/balance-config')
   const before = loadBalance('production'),
-    old = patch.characters.maxim.special2.percent
+    old = patch.abilities.special2.percent
   try {
-    patch.characters.maxim.special2.percent = 99
+    patch.abilities.special2.percent = 99
     assert.equal(
       loadBalance('development').characters.maxim.special2.percent,
       99
@@ -68,6 +68,6 @@ test('later development coefficient changes cannot alter the frozen production k
     copy.characters.maxim.special2.percent = 123
     assert.deepEqual(loadBalance('production'), before)
   } finally {
-    patch.characters.maxim.special2.percent = old
+    patch.abilities.special2.percent = old
   }
 })

@@ -56,7 +56,7 @@ Final launch verification: **308/308 tests pass**, 25/25 production-storage/acce
 Production launch authorized and completed from feature/S-1-spooky (unmerged). Read [production launch evidence and continuation](docs/spooky-production-launch.md) first; it supersedes all historical production-disabled/no-live-operations statements below. Human development acceptance and five badge placeholders accepted. Production uses a verified preserved legacy-data copy at config/prod.sqlite, four backed-up atomic migrations and thirteen reviewed commands. Selene/Marq native emoji access is configured in both servers. Explicit productionEnabled=true; test/global default stays disabled, version 8/economy unchanged. Winner announcement: November 1 noon Pacific to SERVERANNOUNCEMENTSID with SCREAMSUPREMEID. Do not migrate/replace storage with online writers, reset production, merge or switch branches. Exact next is human live observation and scoped fixes; no automatic monitoring or merge was scheduled.
 
 
-Marq badge update (October 2): supplied assets/badges/SPOOKY_MARQ_BADGE.png copied unchanged and mapped in config/badges.json (spooky_marq_badge). Completion renders it as the main image with full token thumbnail. 23/23 affected badge/access/art/launch-fix tests and offline preflight pass; prior full suite remains 304/304. Five other badge artworks use accepted placeholders. Native Marq emoji upload/collector-role configuration is not performed by this artwork integration; collection falls back to medal unless that emoji exists, and earned ownership remains durable. Production remains stopped/disabled; human acceptance, production permission/storage/registry checks and finale time/channel are outstanding.
+Marq badge update (October 2): supplied assets/badges/SPOOKY_MARQ_BADGE.png copied unchanged and mapped in config/badges/badges.json (spooky_marq_badge). Completion renders it as the main image with full token thumbnail. 23/23 affected badge/access/art/launch-fix tests and offline preflight pass; prior full suite remains 304/304. Five other badge artworks use accepted placeholders. Native Marq emoji upload/collector-role configuration is not performed by this artwork integration; collection falls back to medal unless that emoji exists, and earned ownership remains durable. Production remains stopped/disabled; human acceptance, production permission/storage/registry checks and finale time/channel are outstanding.
 
 
 Verification: 304/304 full tests pass; subsequent effective-winner admin inspection correction passes 42/42 affected tests. Offline preflight/full registry/positive probes and scoped syntax/whitespace pass. Development is online after two reloads (restarts 12); production stopped/restarts 0. No new error log entries (35,694 bytes, last changed September 8). No command registration or player reset.
@@ -251,15 +251,15 @@ Administrator source definitions: /spooky-admin player, /spooky-admin transactio
 
 | Files | Responsibility |
 | --- | --- |
-| `config/spooky-2026.json`, `config/spooky-pieces.json`, `services/spooky/config.js` | Versioned rules, lifecycle/approval validation, 28 stable piece IDs; no artwork imports |
+| `config/spooky/spooky-2026.json`, `config/spooky/spooky-pieces.json`, `services/spooky/config.js` | Versioned rules, lifecycle/approval validation, 28 stable piece IDs; no artwork imports |
 | `services/spooky/models.js`, `economy.js`, `participants.js` | Injected seasonal models, atomic root operations/ledger/replay and lazy candy accrual |
 | `services/spooky/collection.js`, `fate-purchases.js`, `progression.js` | Automatic draws/exchanges, bank-only purchases, Sweet Tooth bonus and separate prestige tracks |
 | `services/spooky/actions.js`, `theft.js`, `effects.js`, `playful.js` | Outcome/cost selection, random scoped theft, protection, gifts, curses, nicknames and legacy Sweet Tooth |
 | `services/spooky/controller.js`, `presentation.js`, `command-definition.js`, `runtime.js` | Private/public screens, persisted render/mention plans, complete member/permission snapshots, configured guild/channel gates |
 | `services/spooky/delivery.js`, `notifications.js`, `cursed-messages.js` | Durable role/nickname intent, persistent public send tracking, safe grapheme-aware message replacement |
 | `services/spooky/lifecycle.js`, maintenance in `runtime.js`/`app.js` | Injected minute/startup scheduler, atomic effect restoration and once-only closure marker; inventories retained |
-| `config/spooky-winners.json`, `services/spooky/winner-snapshot.js`, `winner-awards.js` | Frozen once-only results and audited title intents/outbox from proof; disabled configuration, drift guards, role hierarchy and admin recovery |
-| `config/spooky-reminders.json`, `services/spooky/reminders.js` | Optional three-Pacific-day recruitment reminders, latest-only downtime handling, role mention allowlist and durable guarded outbox |
+| `config/spooky/spooky-winners.json`, `services/spooky/winner-snapshot.js`, `winner-awards.js` | Frozen once-only results and audited title intents/outbox from proof; disabled configuration, drift guards, role hierarchy and admin recovery |
+| `config/spooky/spooky-reminders.json`, `services/spooky/reminders.js` | Optional three-Pacific-day recruitment reminders, latest-only downtime handling, role mention allowlist and durable guarded outbox |
 | `services/spooky/admin.js`, `admin-repairs.js`, `admin-controls.js`, `admin-resolution.js`, `admin-command.js`, `admin-runtime.js`, `commands/Holiday/SpookyAdmin.js` | Private authorized inspection and audited balance/inventory corrections, replay binding and public award outbox; safe effect restoration, durable pause and guarded development reset; evidence-backed queue resolution and explicit resend copies |
 | `services/fate-wallet.js` | Stale `/fate` update rejection and atomic level-up/booster/birthday credits |
 | `services/guild-members.js`, `spooky/post-commit.js`, `spooky/pending-notifications.js`, `spooky/discord-adapter.js` | Shared complete roster/allowance, saved reply/public isolation, bounded pending recovery and fresh intent/hierarchy guards |
@@ -287,7 +287,7 @@ Required additive migrations, in order: `20261001000000-create-spooky-core.js`, 
 - **Production**: explicitly select `NODE_ENV=production` and use `.env.production`.
 - **Test**: `NODE_ENV=test` selects in-memory SQLite and rejects Discord startup/deployment.
 
-Startup and deployment use the same loader in `config/runtime.js`. `TOKEN`, `CLIENTID`, and `GUILDID` must be present in the selected environment file; inherited shell credentials cannot substitute for missing values. Unknown environments and conflicting file environments are rejected. When both guild IDs are configured, development and production must target different guilds. Paths are resolved relative to this repository, independent of the terminal working directory.
+Startup and deployment use the same loader in `config/runtime/runtime.js`. `TOKEN`, `CLIENTID`, and `GUILDID` must be present in the selected environment file; inherited shell credentials cannot substitute for missing values. Unknown environments and conflicting file environments are rejected. When both guild IDs are configured, development and production must target different guilds. Paths are resolved relative to this repository, independent of the terminal working directory.
 
 You can switch between development and production environments using the commands:
 
@@ -318,7 +318,7 @@ The runtime uses SQLite in each environment:
 | Production | `<repository>/config/prod.sqlite` |
 | Test | `:memory:` |
 
-`config/sequelize.js` uses the environment selected by `config/runtime.js`; it no longer always opens the development database. Test storage is forced to memory. `DATABASE_URL` is not used by this runtime. The existing `config/config.json` remains for historical/tooling configuration, but runtime selection is controlled by `config/runtime.js`. No real database schema or data was modified during Task 2.
+`config/database/sequelize.js` uses the environment selected by `config/runtime/runtime.js`; it no longer always opens the development database. Test storage is forced to memory. `DATABASE_URL` is not used by this runtime. The existing `config/database/config.json` remains for historical/tooling configuration, but runtime selection is controlled by `config/runtime/runtime.js`. No real database schema or data was modified during Task 2.
 
 Winner delivery uses one scoped final-awards operation after CLOSED/archive, retaining proof and targets across restart. Titles retry from fresh Discord state; ambiguous announcements wait for inspection. Changing settings blocks old pending titles/announcements without minting another award. Invalid settings cannot block cleanup/archive. Sweet Tooth remains separate. Token artwork/permanent badges are implemented independently; read the [winner guide](docs/spooky-winners.md) before configuring delivery.
 

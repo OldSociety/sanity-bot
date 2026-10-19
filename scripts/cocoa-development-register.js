@@ -8,7 +8,7 @@ async function main() {
   const args = process.argv.slice(2)
   if (args.length !== 1 || !['--plan', '--apply'].includes(args[0])) throw new Error('Use --plan or --apply.')
   if (process.env.NODE_ENV !== 'development') throw new Error('Cocoa registration requires NODE_ENV=development.')
-  const runtime = require('../config/runtime').loadDiscordEnvironment('development')
+  const runtime = require('../config/runtime/runtime').loadDiscordEnvironment('development')
   const desired = require('../commands/Holiday/Cocoa').data.toJSON()
   const rest = new REST().setToken(process.env.TOKEN)
   const route = Routes.applicationGuildCommands(runtime.clientId, runtime.guildId)

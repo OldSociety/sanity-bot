@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { resolveRuntime, loadDiscordEnvironment } = require('../config/runtime')
+const { resolveRuntime, loadDiscordEnvironment } = require('../config/runtime/runtime')
 
 function fixture(t, dev = '', prod = '') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'spooky-env-test-'))
@@ -90,7 +90,7 @@ test('missing files and conflicting file environments fail before mutation', t =
 })
 test('actual Sequelize adapter uses disposable memory databases with isolated state', async () => {
   assert.equal(process.env.NODE_ENV, 'test')
-  const sequelize = require('../config/sequelize')
+  const sequelize = require('../config/database/sequelize')
   const Sequelize = require('sequelize')
   const second = new Sequelize(resolveRuntime('test').database)
   try {

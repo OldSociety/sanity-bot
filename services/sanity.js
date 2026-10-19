@@ -2,7 +2,7 @@ const { DataTypes: D, Transaction, Op } = require('sequelize')
 const { defineDailyModels, dayIndex, dayAt } = require('./sanity-daily-models')
 const { serialize } = require('./spooky/economy')
 const { dayKey } = require('./community-leveling/config')
-const data = require('../config/sanity.json')
+const data = require('../config/sanity/sanity.json')
 function selected(environment = process.env.NODE_ENV) {
   const enabled = (environment === 'development' && data.developmentEnabled === true) ||
     (environment === 'production' && data.productionEnabled === true)

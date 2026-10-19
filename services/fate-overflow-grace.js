@@ -1,4 +1,4 @@
-const defaults = require('../config/fate-overflow-grace.json')
+const defaults = require('../config/leveling/fate-overflow-grace.json')
 function validateGrace(policy) {
   if (!policy || typeof policy.enabled !== 'boolean') throw new Error('Invalid Fate overflow grace policy')
   if (!policy.enabled) return { ...policy }

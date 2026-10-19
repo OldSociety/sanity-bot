@@ -1,4 +1,4 @@
-const config = require('../../config/idle-balance.json')
+const config = require('../../config/idle/idle-balance.json')
 const { statsForLevel, kitFor, exhaustedStressMultiplier } = require('../arena/rules')
 const { basicDamage, specialDamage } = require('../arena/damage')
 const { dualityDice, comboDice } = require('../arena/combat')

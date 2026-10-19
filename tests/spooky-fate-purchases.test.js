@@ -53,7 +53,7 @@ test('development Sanity purchases debit only Sanity once, preserve Fate/Bank, a
   const f = await fixture(t)
   await require('../migrations/sanity').up(f.sequelize.getQueryInterface())
   await require('../migrations/sanity-daily').up(f.sequelize.getQueryInterface())
-  const sanity = require('../services/sanity').createSanity({ sequelize: f.sequelize, config: { ...require('../config/sanity.json'), enabled: true } })
+  const sanity = require('../services/sanity').createSanity({ sequelize: f.sequelize, config: { ...require('../config/sanity/sanity.json'), enabled: true } })
   const service = createFatePurchases({ ...f, event: { ...f.event, fate: { ...f.event.fate, paymentResource: 'sanity' } }, sanity })
   const result = await service.purchase(f.input('sanity'))
   assert.equal(result.receipt.sanityBefore, 100); assert.equal(result.receipt.sanity, 90)

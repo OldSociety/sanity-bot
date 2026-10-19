@@ -1,7 +1,7 @@
 const { createHash } = require('node:crypto')
 const { Op } = require('sequelize')
 const { config: defaultEvent, getEventState } = require('./config')
-const defaults = require('../../config/spooky-reminders.json')
+const defaults = require('../../config/spooky/spooky-reminders.json')
 
 function validateReminders(settings) {
   const snowflake = value => typeof value === 'string' && /^\d{17,20}$/.test(value)

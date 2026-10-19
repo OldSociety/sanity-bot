@@ -157,7 +157,7 @@ test('finishing Selene emits one completion with main badge, token thumbnail and
 })
 
 test('development badge settings never enable production or another guild and reset stays under the admin event group', () => {
-  const settings = require('../config/badge-access.json'), { settingsForGuild } = require('../services/badge-access')
+  const settings = require('../config/badges/badge-access.json'), { settingsForGuild } = require('../services/badge-access')
   const guildId = settings.development.guildId || '123456789012345678'
   assert.equal(settingsForGuild(guildId, { environment: 'production', configuredGuildId: guildId }).enabled, false)
   assert.equal(settingsForGuild('foreign', { environment: 'development', configuredGuildId: guildId }).enabled, false)

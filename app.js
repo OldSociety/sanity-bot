@@ -1,12 +1,12 @@
 // app.js
 
-const { loadDiscordEnvironment } = require('./config/runtime')
+const { loadDiscordEnvironment } = require('./config/runtime/runtime')
 const runtime = loadDiscordEnvironment()
 console.log(`Environment: ${runtime.env}`)
 
 const fs = require('node:fs')
 const path = require('node:path')
-const sequelize = require('./config/sequelize')
+const sequelize = require('./config/database/sequelize')
 const awardSnowballs = require('./handlers/awardSnowballs')
 const cron = require('node-cron') // Import cron
 

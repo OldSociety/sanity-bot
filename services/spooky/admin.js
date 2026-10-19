@@ -34,11 +34,11 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
         const frozen = await models.Operation.findByPk(snapshotOperationId(scope.eventId, scope.guildId), { transaction })
         if (frozen && (frozen.eventId !== scope.eventId || frozen.guildId !== scope.guildId || frozen.operationType !== 'winner_snapshot')) throw new Error('Winner snapshot scope mismatch')
         return { environment, lifecycle: getEventState(clock(), event),
-          configuration: event, pieceRarities: pieces.map(({ id, rarity, color }) => ({ id, rarity, color })), reminders: require('../../config/spooky-reminders.json'),
+          configuration: event, pieceRarities: pieces.map(({ id, rarity, color }) => ({ id, rarity, color })), reminders: require('../../config/spooky/spooky-reminders.json'),
           fateReminders: { ...(fateReminderSettings || require('./reminder-settings').fateReminderSettings({})), eventEnabled: event.enabled },
           winners: require('./winner-awards').winnerConfig,
           winnerSnapshot: frozen?.receipt ?? null, persistedState: plain(state), badgeService: badges ? 'permanent ownership enabled' : 'not configured',
-          badgeCatalog: require('../../config/badges.json'), badgeAccess: require('../../config/badge-access.json') }
+          badgeCatalog: require('../../config/badges/badges.json'), badgeAccess: require('../../config/badges/badge-access.json') }
       }
       if (input.view === 'player') {
         const participant = await models.Participant.findOne({ where: { ...scope, userId: input.userId }, transaction })

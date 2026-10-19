@@ -27,5 +27,5 @@ test('Azulis is unavailable in ordinary tests', () => {
   assert.equal(isSelectable(azulis), false)
   assert.throws(() => newBattle(0, { character: azulis }), /development/)
   assert.throws(() => newBattle(0, { opponent: 'Azulis' }), /development/)
-  assert.deepEqual(loadBalance('test'), require('../config/arena-balance.json'))
+  assert.deepEqual(loadBalance('test'), require('../config/arena/arena-balance.json'))
 })

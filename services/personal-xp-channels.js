@@ -1,4 +1,4 @@
-const defaults = require('../config/personal-leveling.json')
+const defaults = require('../config/leveling/personal-leveling.json')
 
 function qualifiesPersonalXp(message, { environment = process.env.NODE_ENV, source = defaults } = {}) {
   const config = source.environments?.[environment]

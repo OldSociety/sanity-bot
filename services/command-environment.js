@@ -1,17 +1,17 @@
 function eventWindow(key, environment) {
   if (key === 'spooky') {
-    const event = require('../config/spooky-2026.json')
+    const event = require('../config/spooky/spooky-2026.json')
     return { enabled: event.enabled || (environment === 'development' && event.developmentEnabled) ||
       (environment === 'production' && event.productionEnabled), startsAt: event.startsAt, endsAt: event.endsAt }
   }
-  const window = require('../config/event-commands.json')[key]
+  const window = require('../config/commands/event-commands.json')[key]
   if (!window) throw new Error(`No command schedule for event ${key}`)
   return window
 }
 function commandEnabled(command, environment, now = Date.now()) {
   // Cocoa/Idle remain development-only; Arena has a channel-scoped locked production test.
   if (['cocoa', 'idle'].includes(command.name || command.data?.name) && environment !== 'development') return false
-  if ((command.name || command.data?.name) === 'arena' && environment !== 'development' && !(environment === 'production' && require('../config/arena-testing.json').productionEnabled)) return false
+  if ((command.name || command.data?.name) === 'arena' && environment !== 'development' && !(environment === 'production' && require('../config/arena/arena-testing.json').productionEnabled)) return false
   if (require('./disabled-commands').disabledMessage(command.name || command.data?.name)) return false
   if (command.environments && !command.environments.includes(environment)) return false
   if (!command.eventKey) return true

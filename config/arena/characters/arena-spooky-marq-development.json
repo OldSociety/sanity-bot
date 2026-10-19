@@ -1,0 +1,33 @@
+{
+  "enabled": true,
+  "identity": {
+    "name": "Spooky Marq",
+    "kit": "spooky-marq",
+    "passive": "on-the-brink"
+  },
+  "baseStats": {
+    "attack": 190,
+    "hp": 230
+  },
+  "abilities": {
+    "special1": {
+      "name": "Overwhelm",
+      "type": "direct",
+      "percent": 4,
+      "stressRemovalChance": 20
+    },
+    "special2": {
+      "name": "Combo Strike",
+      "type": "combo",
+      "percent": 1,
+      "flatPercent": 8
+    },
+    "special3": {
+      "name": "Not Done Yet",
+      "type": "playerFinisher"
+    }
+  },
+  "passive": {
+    "name": "On the Brink"
+  }
+}

@@ -5,7 +5,7 @@ async function fixture(t, origin = '2026-10-04T16:00:00Z') {
   await require('../migrations/sanity').up(db.getQueryInterface())
   await require('../migrations/sanity-daily').up(db.getQueryInterface())
   // Most behavior checks use 50 to leave room for daily credits.
-  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity.json'), starting: 50, enabled: true } })
+  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity/sanity.json'), starting: 50, enabled: true } })
   const now = hours => new Date(Date.parse(origin) + hours * 3600000)
   return { db, service, now, gain: (id, hours, channelId = 'chat') => service.gain({ guildId: 'guild', userId: 'alice', messageId: id, channelId, now: now(hours) }) }
 }
@@ -16,7 +16,7 @@ test('Sanity is enabled in both bot environments but not tests', () => {
 
 test('new accounts start at full Sanity and the first reminder cannot occur above69', async t => {
   const f = await fixture(t)
-  const service = createSanity({ sequelize: f.db, config: { ...require('../config/sanity.json'), enabled: true } })
+  const service = createSanity({ sequelize: f.db, config: { ...require('../config/sanity/sanity.json'), enabled: true } })
   assert.equal((await service.view('guild', 'alice', f.now(0))).balance, 100)
   assert.equal(await service.claimReminder('guild', 'alice', f.now(0)), null)
   assert.equal((await service.view('guild', 'alice', f.now(30 * 24))).balance, 70)
@@ -98,7 +98,7 @@ test('daily migration preserves an old-policy balance, prevents duplicate credit
   const now = new Date('2026-10-04T16:00:00Z')
   await model.create({ guildId: 'guild', userId: 'alice', balance: 58, earned: 8, day: '2026-10-04', lastEarnedAt: now, lastActiveAt: now })
   await require('../migrations/sanity-daily').up(db.getQueryInterface(), { now })
-  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity.json'), enabled: true } })
+  const service = createSanity({ sequelize: db, config: { ...require('../config/sanity/sanity.json'), enabled: true } })
   assert.equal((await service.view('guild', 'alice', now)).balance, 58)
   assert.equal((await service.gain({ guildId: 'guild', userId: 'alice', messageId: 'after', now: new Date(+now + 3600000) })).credited, 0)
   assert.equal((await model.findOne()).balance, 58)

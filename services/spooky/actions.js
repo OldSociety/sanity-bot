@@ -11,7 +11,7 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
   if (!['trick', 'treat'].includes(action)) throw new Error('Unknown spooky action')
   if (typeof cursed !== 'boolean') throw new Error('Curse state must be boolean')
   let plotRoll = null
-  const plotChance = event.plotPointsEnabled ? require('../../config/plot-points.json').spookyChancePercent / 100 : 0
+  const plotChance = event.plotPointsEnabled ? require('../../config/leveling/plot-points.json').spookyChancePercent / 100 : 0
   if (plotChance) {
     plotRoll = roll(random)
     if (plotRoll < plotChance) return { action, overridden: false, outcome: 'plot_point' }

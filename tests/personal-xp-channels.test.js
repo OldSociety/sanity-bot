@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict')
 const { qualifiesPersonalXp } = require('../services/personal-xp-channels')
-const config = require('../config/personal-leveling.json')
+const config = require('../config/leveling/personal-leveling.json')
 const production = { environment: 'production' }
 const message = (id, type = 0, parentId = null, guildId = config.environments.production.guildId) => ({ guild: { id: guildId }, channelId: id, channel: { type, parentId } })
 test('production personal XP is limited to the three verified channels and their public threads', () => {

@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path'), os = require('node:os')
 const { createAccess } = require('../services/arena/access')
-const config = require('../config/arena-testing.json')
+const config = require('../config/arena/arena-testing.json')
 function fixture() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'arena-access-')), file = path.join(directory, 'access.json')
   const replies = [], edits = []

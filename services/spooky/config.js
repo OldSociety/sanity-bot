@@ -1,5 +1,5 @@
-const eventData = require('../../config/spooky-2026.json')
-const manifestData = require('../../config/spooky-pieces.json')
+const eventData = require('../../config/spooky/spooky-2026.json')
+const manifestData = require('../../config/spooky/spooky-pieces.json')
 
 function requirePositiveInteger(value, label) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} must be a positive integer`)

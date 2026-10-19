@@ -2,7 +2,7 @@ const { AsyncLocalStorage } = require('node:async_hooks')
 const { performance } = require('node:perf_hooks')
 const context = new AsyncLocalStorage()
 function enabled() {
-  const config = require('../../config/spooky-performance.json')
+  const config = require('../../config/spooky/spooky-performance.json')
   return process.env.NODE_ENV === 'development' ? config.developmentEnabled === true
     : process.env.NODE_ENV === 'production' && config.productionEnabled === true
 }

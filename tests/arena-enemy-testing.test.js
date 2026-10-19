@@ -42,7 +42,7 @@ test('development has five selectable enemies and matching ability damage; produ
   )
   assert.deepEqual(
     loadBalance('production'),
-    require('../config/arena-balance-production.json')
+    require('../config/arena/arena-balance-production.json')
   )
   assert.equal(
     loadBalance('production').characters['classic-hendrix'],

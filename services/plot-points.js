@@ -1,6 +1,6 @@
 const { DataTypes: D } = require('sequelize')
 const { serialize } = require('./spooky/economy')
-const defaults = require('../config/plot-points.json')
+const defaults = require('../config/leveling/plot-points.json')
 function enabled(environment = process.env.NODE_ENV, settings = defaults) {
   return settings[`${environment}Enabled`] === true
 }
@@ -41,18 +41,18 @@ async function resolveSpotlight({ ctx, models, event, settings = defaults, readO
   let current
   if (readOnly) {
     const rows = await models.Operation.findAll({ where: { ...ctx.scope, operationType: 'spotlight_plan' }, transaction: ctx.transaction })
-    const slot = require('./spooky/reminders').latestReminderSlot(ctx.now, require('../config/spooky-spotlight.json'), event)
+    const slot = require('./spooky/reminders').latestReminderSlot(ctx.now, require('../config/spooky/spooky-spotlight.json'), event)
     current = rows.find(row => row.completedAt && row.receipt?.slot === slot)?.receipt
     // A profile read never writes a spotlight plan. Follow the same calendar
     // rotation when the worker has not committed the current slot yet.
     if (!current && slot) {
-      const rotation = require('../config/spooky-spotlight.json')
+      const rotation = require('../config/spooky/spooky-spotlight.json')
       const previous = rows.filter(row => row.completedAt && row.receipt?.slot < slot)
         .sort((a,b) => b.receipt.slot.localeCompare(a.receipt.slot))[0]?.receipt
       const days = (Date.parse(slot) - Date.parse(previous?.slot || rotation.anchorDate)) / 86400000
       const index = (previous ? rotation.characters.indexOf(previous.characterId) : 0) + days / rotation.everyDays
       const characterId = rotation.characters[index % rotation.characters.length]
-      current = require('../config/badges.json').badges.find(badge => badge.characterId === characterId)
+      current = require('../config/badges/badges.json').badges.find(badge => badge.characterId === characterId)
     }
   } else current = await require('./spooky/spotlight').ensureSpotlight(ctx, models, event)
   return current ? { ...current, emojiName: rule.emojiNames[current.characterId] || settings.fallback.emojiName } : settings.fallback

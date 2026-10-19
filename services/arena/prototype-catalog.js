@@ -1,10 +1,10 @@
 // Production metadata stays pinned alongside its frozen combat configuration.
-const templates = require('../../config/arena-templates-development.json')
-const hendrix = require('../../config/arena-hendrix-development.json')
+const templates = require('../../config/arena/characters/arena-template-development.json')
+const hendrix = require('../../config/arena/characters/arena-classic-hendrix-development.json')
 const prototypeEntries =
   process.env.NODE_ENV === 'development'
     ? [
-        ...templates.characters,
+        ...(templates.enabled ? [templates.identity] : []),
         ...(hendrix.enabled
           ? [
               {
@@ -18,5 +18,5 @@ const prototypeEntries =
             ]
           : []),
       ]
-    : require('../../config/arena-templates-production.json').characters
+    : require('../../config/arena/arena-templates-production.json').characters
 module.exports = { prototypeEntries }

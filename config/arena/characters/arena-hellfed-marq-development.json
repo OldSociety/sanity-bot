@@ -1,0 +1,43 @@
+{
+  "enabled": true,
+  "identity": {
+    "name": "Hell-fed Marq",
+    "kit": "hellfed-marq",
+    "passive": "hellfed"
+  },
+  "baseStats": {
+    "attack": 200,
+    "hp": 260
+  },
+  "abilities": {
+    "special1": {
+      "name": "Stoke the Flames",
+      "type": "rage",
+      "percent": 0,
+      "hpCostPercentByRage": [1, 2, 3],
+      "rollBasic": true,
+      "guaranteedBasic": true,
+      "stressCost": 0,
+      "hopeCost": 0
+    },
+    "special2": {
+      "name": "Hellbreaker",
+      "type": "direct",
+      "percent": 16,
+      "ragePercent": 6,
+      "stressRemovalChance": 25,
+      "stressCost": 0,
+      "hopeCost": 2
+    },
+    "special3": {
+      "name": "Infernal Wrath",
+      "type": "playerFinisher",
+      "ragePercent": 8,
+      "stressCost": 0,
+      "hopeCost": 5
+    }
+  },
+  "passive": {
+    "name": "Hellfed"
+  }
+}

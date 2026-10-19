@@ -36,7 +36,7 @@ test('template is blocked when production rollout is disabled, and in Idle', () 
     process.execPath,
     [
       '-e',
-      `require('./config/arena-testing.json').productionCurrentRules=false;const a=require('node:assert/strict'),{resolveCharacter,isSelectable}=require('./services/arena/characters'),{newBattle}=require('./services/arena/combat');const c=resolveCharacter('Hendrix');a(!isSelectable(c));a.throws(()=>newBattle(0,{character:c}),/development/);a.throws(()=>newBattle(0,{opponent:c.id}),/development/)`,
+      `require('./config/arena/arena-testing.json').productionCurrentRules=false;const a=require('node:assert/strict'),{resolveCharacter,isSelectable}=require('./services/arena/characters'),{newBattle}=require('./services/arena/combat');const c=resolveCharacter('Hendrix');a(!isSelectable(c));a.throws(()=>newBattle(0,{character:c}),/development/);a.throws(()=>newBattle(0,{opponent:c.id}),/development/)`,
     ],
     { env: { ...process.env, NODE_ENV: 'production' } }
   )
@@ -62,7 +62,7 @@ test('Hendrix uses the reusable template, Classic artwork, Martial Artist select
   )
   assert.equal(family.role, 'Martial Artist')
   assert.deepEqual(variantsFor(family), [c])
-  const template = require('../config/arena-templates-development.json')
+  const template = require('../config/arena/characters/arena-template-development.json')
   assert.deepEqual(balance.characters[c.kit], template.abilities)
   const session = {
     id: 'template',

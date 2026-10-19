@@ -36,16 +36,16 @@ yarn-error.log**.sqlite
 /docs/
 /artifacts/
 /AGENTS.md
-/config/arena-message-leases.json
-/config/arena-message-leases.json.tmp
+/config/arena/state/arena-message-leases.json
+/config/arena/state/arena-message-leases.json.tmp
 
-/config/arena-selection-preferences.json
-/config/arena-selection-preferences.json.tmp
+/config/arena/state/arena-selection-preferences.json
+/config/arena/state/arena-selection-preferences.json.tmp
 
 # Arena production test runtime state
-/config/arena-production-access.json
-/config/arena-production-access.json.tmp
-/config/arena-message-leases-production.json
-/config/arena-message-leases-production.json.tmp
-/config/arena-selection-preferences-production.json
-/config/arena-selection-preferences-production.json.tmp
+/config/arena/state/arena-production-access.json
+/config/arena/state/arena-production-access.json.tmp
+/config/arena/state/arena-message-leases-production.json
+/config/arena/state/arena-message-leases-production.json.tmp
+/config/arena/state/arena-selection-preferences-production.json
+/config/arena/state/arena-selection-preferences-production.json.tmp

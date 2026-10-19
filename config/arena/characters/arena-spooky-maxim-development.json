@@ -1,0 +1,34 @@
+{
+  "enabled": true,
+  "identity": {
+    "name": "Spooky Maxim",
+    "kit": "maxim",
+    "passive": "not-good-enough"
+  },
+  "baseStats": {
+    "attack": 220,
+    "hp": 220
+  },
+  "abilities": {
+    "special1": {
+      "name": "Deadly Focus",
+      "type": "direct",
+      "percent": 10,
+      "stressCost": 2,
+      "requiredRecharge": 3
+    },
+    "special2": {
+      "name": "Slayer",
+      "type": "buff",
+      "percent": 7,
+      "hits": 3
+    },
+    "special3": {
+      "name": "No Mercy",
+      "type": "playerFinisher"
+    }
+  },
+  "passive": {
+    "name": "Not Good Enough"
+  }
+}

@@ -1,4 +1,4 @@
-// Channel IDs come only from the environment selected by config/runtime.
+// Channel IDs come only from the environment selected by config/runtime/runtime.
 // Names/categories and channels in another server never confer permission.
 function allowedChannels(settings = process.env) {
   return [...new Set([settings.SPOOKYCHANNELID, settings.BOTTESTCHANNELID].filter(Boolean))]

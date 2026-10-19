@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize')
 const { serialize } = require('./spooky/economy')
-const catalog = require('../config/badges.json')
+const catalog = require('../config/badges/badges.json')
 const badges = Object.freeze(catalog.badges.map(item => Object.freeze({ ...item, id: `${catalog.collectionId}:${item.characterId}` })))
 function defineBadgeModel(sequelize) {
   return sequelize.models.BadgeOwnership || sequelize.define('BadgeOwnership', {

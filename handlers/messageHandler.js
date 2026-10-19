@@ -124,7 +124,7 @@ module.exports = (client, User, dependencies = {}) => {
         }
         let card = null
         try { card = await profileNotification({ message, user: user.get({ plain: true }), before: result.before, occasion: 'level-up',
-          ...(sanityActivity ? { sanity: { balance: sanityActivity.after, beforeBalance: sanityActivity.before, maximum: require('../config/sanity.json').capacity } } : {}) }) }
+          ...(sanityActivity ? { sanity: { balance: sanityActivity.after, beforeBalance: sanityActivity.before, maximum: require('../config/sanity/sanity.json').capacity } } : {}) }) }
         catch (error) { console.error('Level-up card unavailable:', error.message) }
         await message.channel.send(card ? { ...card, ...(launchNote ? { content: launchNote } : {}) } : { embeds: [embed] })
       }

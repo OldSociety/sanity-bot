@@ -1,4 +1,4 @@
-const config = require('../../config/arena-hendrix-development.json')
+const config = require('../../config/arena/characters/arena-classic-hendrix-development.json')
 const {
   damageFor,
   exhaustedStressMultiplier,

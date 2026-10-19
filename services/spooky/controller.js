@@ -578,7 +578,7 @@ function createController({
                       balances,
                       event,
                       ...(require('./development-performance').enabled() ? {
-                        promptProbability: require('../../config/spooky-performance.json').targetChoiceProbability,
+                        promptProbability: require('../../config/spooky/spooky-performance.json').targetChoiceProbability,
                       } : {}),
                     },
                   ),

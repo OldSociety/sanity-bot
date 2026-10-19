@@ -1,7 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 // Configure another kit before loading the engine. No UI code knows these names.
-const balance = require('../config/arena-balance.json')
+const balance = require('../config/arena/arena-balance.json')
 balance.characters['roster-fixture'] = structuredClone(balance.characters.maxim)
 balance.ai.characters['roster-fixture'] = structuredClone(balance.ai.characters.maxim)
 balance.baseStats['roster-fixture'] = { ...balance.baseStats.maxim }
