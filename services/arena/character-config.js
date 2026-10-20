@@ -1,12 +1,13 @@
-// Explicit development builds: filenames include skin, character, and environment.
+// Editable sheets identify the skin and character. Production uses a frozen snapshot.
 const filenames = {
-  selene: 'arena-spooky-selene-development.json',
-  'spooky-marq': 'arena-spooky-marq-development.json',
-  'hellfed-marq': 'arena-hellfed-marq-development.json',
-  maxim: 'arena-spooky-maxim-development.json',
-  azulis: 'arena-classic-azulis-development.json',
-  hendrix: 'arena-classic-hendrix-development.json',
-  template: 'arena-template-development.json',
+  kylax: 'arena-classic-kylax.json',
+  selene: 'arena-spooky-selene.json',
+  'spooky-marq': 'arena-spooky-marq.json',
+  'hellfed-marq': 'arena-hellfed-marq.json',
+  maxim: 'arena-spooky-maxim.json',
+  azulis: 'arena-classic-azulis.json',
+  hendrix: 'arena-classic-hendrix.json',
+  template: 'arena-template.json',
 }
 const characterConfigFiles = Object.values(filenames).map(
   (name) => 'config/arena/characters/' + name

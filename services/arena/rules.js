@@ -177,6 +177,7 @@ function abilityAvailable(fighter, ability) {
           'on-the-brink',
           'hellfed',
           'celestial-alignment',
+          'graves-protection',
         ].includes(fighter.passive))
   )
 }

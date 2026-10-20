@@ -63,16 +63,36 @@ function createArena({
   renderCard = renderHealthCard,
   renderLegend = legendFile,
   engine = { newBattle, takeTurn, beginFinisher },
-  responsive = process.env.NODE_ENV !== 'production',
+  responsive = process.env.NODE_ENV !== 'production' || require('./build-profile').productionPlaytest,
   retryDelay,
   diagnostics = () => true,
   onTiming = () => {},
+  onDiagnosticReport = null,
   quickResponses = responsive,
   setResponseTimer = setTimeout,
   clearResponseTimer = clearTimeout,
 } = {}) {
   const sessions = new Map()
+  const pendingDiagnostics = new Set()
   let disposed = false
+  function queueDiagnostic(session, status = session.battle?.status) {
+    if (!onDiagnosticReport || !session.battle || session.diagnosticQueued ||
+        !['victory', 'defeat', 'quit', 'expired'].includes(status)) return
+    session.diagnosticQueued = true
+    const report = structuredClone({
+      sessionId: session.id, fightNumber: session.fightNumber,
+      ownerId: session.ownerId, guildId: session.guildId,
+      channelId: session.channelId, messageId: session.messageId,
+      battle: { ...session.battle, status },
+      roundTimings: session.roundTimings,
+      interactionTimings: session.interactionTimings.filter(r => r.fightNumber === session.fightNumber),
+    })
+    const work = Promise.resolve()
+      .then(() => onDiagnosticReport(report, session.diagnosticClient))
+      .catch(error => logger.error('Arena private diagnostic failed:', error.code || error.name))
+      .finally(() => pendingDiagnostics.delete(work))
+    pendingDiagnostics.add(work)
+  }
   async function diagnosticValue() {
     try {
       return Boolean(await diagnostics())
@@ -90,6 +110,7 @@ function createArena({
         Object.assign(record, {
           sessionId: session.id,
           round: session.battle?.tick || 0,
+          fightNumber: session.fightNumber || 0,
         })
         if (!['duplicate', 'stale', 'expired'].includes(record.action)) {
           session.interactionTimings.push({ ...record })
@@ -105,6 +126,9 @@ function createArena({
         Promise.resolve()
           .then(() => onTiming(record))
           .catch(() => logger.warn?.('Arena timing record could not be saved'))
+        // Wait for the player's completed delivery timing, but never make the
+        // player wait for the separate private-channel send.
+        queueDiagnostic(session)
       },
     })
   }
@@ -270,6 +294,7 @@ function createArena({
       } catch (error) {
         logger.warn?.(`Arena button cleanup failed: ${error.message}`)
       }
+      queueDiagnostic(session, session.battle?.status === 'playing' ? 'expired' : session.battle?.status)
       if (notify && !responsive)
         await session
           .notify({
@@ -485,6 +510,9 @@ function createArena({
     const session = {
       id: interaction.id,
       ownerId: interaction.user.id,
+      diagnosticClient: interaction.client,
+      diagnosticQueued: false,
+      fightNumber: 0,
       guildId: interaction.guildId,
       channelId: interaction.channelId,
       revision: 0,
@@ -887,6 +915,8 @@ function createArena({
         opponent: session.opponent,
       })
       session.roundTimings = {}
+      session.fightNumber++
+      session.diagnosticQueued = false
       session.lastTiming = null
       session.minigame = null
       session.stopped = false
@@ -980,6 +1010,7 @@ function createArena({
     )
     sessions.clear()
     return Promise.allSettled(pending).then(async (results) => {
+      await Promise.allSettled([...pendingDiagnostics])
       if (responsive) await require('./async-state').flushState()
       return results
     })
@@ -994,20 +1025,27 @@ module.exports = {
     authorize: require('./access').access.authorize,
     leases,
     preferences:
-      process.env.NODE_ENV === 'development'
+      process.env.NODE_ENV === 'development' || require('./build-profile').productionPlaytest
         ? createAsyncPreferenceStore()
         : live
         ? createPreferenceStore()
         : createMemoryPreferences(),
     onComplete: live ? saveCombatReport : () => {},
-    diagnostics: () => require('./diagnostics').diagnosticSettings.get(),
+    onDiagnosticReport: process.env.NODE_ENV === 'production'
+      ? require('./private-diagnostics').createPrivateDiagnosticReporter()
+      : null,
+    diagnostics: () => process.env.NODE_ENV === 'production'
+      ? false
+      : require('./diagnostics').diagnosticSettings.get(),
     onTiming:
-      process.env.NODE_ENV === 'development'
+      process.env.NODE_ENV === 'development' || require('./build-profile').productionPlaytest
         ? (record) =>
             require('./async-state').appendReport(
               require('node:path').resolve(
                 __dirname,
-                '../../artifacts/arena-interactions-development.jsonl'
+                process.env.NODE_ENV === 'production'
+                  ? '../../artifacts/arena-interactions-production.jsonl'
+                  : '../../artifacts/arena-interactions-development.jsonl'
               ),
               JSON.stringify({
                 recordedAt: new Date().toISOString(),

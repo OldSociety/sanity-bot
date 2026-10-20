@@ -31,7 +31,7 @@ const paths = {
     '<path d="M12 1C10 8 3 10 4 16c1 9 16 9 16 0 0-5-5-9-8-15z"/><path d="M8 15c-1 3 1 5 3 5"/>',
 }
 const { exhausted, usesRage } = require('./resources')
-const seleneBuild = require('../../config/arena/characters/arena-spooky-selene-development.json')
+const seleneBuild = require('./build-profile').buildFor('selene')
 function statusIcons(fighter) {
   const icons = []
   if (fighter.passive === 'celestial-alignment')

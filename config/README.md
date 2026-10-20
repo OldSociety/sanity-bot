@@ -14,7 +14,7 @@
 
 SQLite databases remain at `config/dev.sqlite` and `config/prod.sqlite`; historical backups remain in `config/backups/`. Credentials remain in the existing project-root environment files.
 
-For Arena fighter HP, Attack, and abilities, start with [the character build guide](arena/characters/README.md). Character filenames follow `arena-<skin>-<character>-development.json`, for example `arena-hellfed-marq-development.json`. Template has its own file for unfinished builds.
+For Arena fighter HP, Attack, and abilities, start with [the character build guide](arena/characters/README.md). Character filenames follow `arena-<skin>-<character>.json`, for example `arena-hellfed-marq.json`. Template has its own file for unfinished builds.
 
 Arena's mutable preferences, message leases, and production-access state live under `arena/state/` and are managed by the bot. The move preserves their contents and existing Git ignore rules.
 

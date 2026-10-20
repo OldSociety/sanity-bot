@@ -1,4 +1,4 @@
-const config = require('../../config/arena/characters/arena-classic-hendrix-development.json')
+const config = require('./build-profile').buildFor('hendrix')
 const {
   damageFor,
   exhaustedStressMultiplier,
@@ -33,7 +33,7 @@ function nativeOutcome(fighter, rollDuality, rollAccuracy, rollCritical) {
     throw Error('Expected strike d12')
   return h === f ? 'critical' : h + f >= 12 ? 'hit' : 'block'
 }
-function strike(fighter, outcome, bleeding, multiplier = 1) {
+function strike(fighter, outcome, bleeding, multiplier = 1, target, round) {
   if (!['hit', 'block', 'critical'].includes(outcome))
     throw Error('Unknown strike outcome')
   const critical = outcome === 'critical' ? 2 : 1
@@ -43,10 +43,12 @@ function strike(fighter, outcome, bleeding, multiplier = 1) {
     1,
     multiplier * critical
   )
-  const direct = Math.max(
+  const beforeDefense = Math.max(
     config.basic.minimumDirectDamage,
     outcome === 'block' ? blockedDamage(raw, basic_damage) : raw
   )
+  const defense = require('./kylax').packet(beforeDefense, target || {}, { critical: outcome === 'critical', round })
+  const direct = defense.damage
   const bleed = bleeding
     ? damageFor(
         fighter.attack,
@@ -57,6 +59,7 @@ function strike(fighter, outcome, bleeding, multiplier = 1) {
     : 0
   return {
     outcome,
+    ...(require('./kylax').isKylax(target) ? { defense } : {}),
     direct,
     bleed,
     damage: direct + bleed,
@@ -94,7 +97,9 @@ function sequence(fighter, target, slot, mainCritical, targetStress, rolls) {
         ? 'critical'
         : nativeOutcome(fighter, rolls.duality, rolls.accuracy, rolls.critical),
       bleeding,
-      multiplier
+      multiplier,
+      target,
+      rolls.round
     )
   )
   return {
@@ -143,6 +148,9 @@ function preview(fighter, target, slot, choice, mainBranches) {
     fighter.level,
     fighter.abilityRanks?.[slot],
     target.hp,
+    target.kit,
+    target.gravewardRound,
+    target.combatRound,
     target.stress,
     target.maxStress,
     Boolean(target.bleeding),
@@ -176,11 +184,11 @@ function preview(fighter, target, slot, choice, mainBranches) {
           ])
       : distribution(fighter)
     const strikeOutcomes = distributionBranches.map(([outcome, chance]) => [
-      strike(fighter, outcome, bleeding, multiplier).damage,
+      strike(fighter, outcome, bleeding, multiplier, target).damage,
       chance,
     ])
     const guaranteedCritical = [
-      [strike(fighter, 'critical', bleeding, multiplier).damage, 1],
+      [strike(fighter, 'critical', bleeding, multiplier, target).damage, 1],
     ]
     const firstWall = [
       [
@@ -188,7 +196,8 @@ function preview(fighter, target, slot, choice, mainBranches) {
           fighter,
           mainCritical ? 'critical' : mainHit ? 'hit' : 'block',
           bleeding,
-          multiplier
+          multiplier,
+          target
         ).damage,
         1,
       ],
@@ -226,7 +235,7 @@ function preview(fighter, target, slot, choice, mainBranches) {
           : [[false, 1]]) {
           const damage =
             total +
-            resistance.damage(
+            require('./kylax').mitigate(resistance.damage(
               damageFor(
                 fighter.attack,
                 percent,
@@ -234,7 +243,7 @@ function preview(fighter, target, slot, choice, mainBranches) {
                 multiplier
               ),
               resisted
-            )
+            ), target)
           minimum = Math.min(minimum, damage)
           expected +=
             (damage * p * mainChance * resistanceChance) / percents.length

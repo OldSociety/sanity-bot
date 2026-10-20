@@ -110,6 +110,9 @@ function preview(fighter, target, slot = null, choice = 3) {
     fighter.slayerCharges > 0,
     fighter.abilityRanks?.[slot],
     target.hp,
+    target.maxHp,
+    target.gravewardRound,
+    target.combatRound,
     target.stress,
     target.passive,
     target.brinkUsed,
@@ -320,9 +323,10 @@ function modernPreview(fighter, target, slot, choice, key) {
             targetStress: resolvedStress,
           })
         : 0
-      const basic = basicHit
+      const basicBeforeDefense = basicHit
         ? rawBasic
         : outcomes.blockDamage(rawBasic, 'basic_damage')
+      const basic = require('./kylax').mitigate(basicBeforeDefense, target, { critical: basicCritical })
       const direct = (total = 0, percent, resisted = false) => {
         if (!slot) return 0
         const raw = specialDamage(attacker, slot, {
@@ -330,11 +334,12 @@ function modernPreview(fighter, target, slot, choice, key) {
           choice,
           multiplier,
           percent,
+          target: { ...target, hp: Math.max(0, target.hp - basic) },
         }).damage
-        return resistance.damage(
+        return require('./kylax').mitigate(resistance.damage(
           specialHit ? raw : outcomes.blockDamage(raw),
           resisted
-        )
+        ), target)
       }
       const weight = chance * effectChance
       minimum = Math.min(
@@ -519,6 +524,15 @@ function decide(
   // Never spend solely to match the basic's existing knockout probability.
   if (base.guaranteed) return result(null, 'basic-lethal')
   if (lethal) return result(lethal.slot, 'knockout')
+  if (require('./kylax').isKylax(actor)) {
+    // Public state only. Save the last Stress unless survival is immediate.
+    if (s1 && (actor.bleeding || horizon.own <= 2) && (!exhausts || horizon.own <= 1.5))
+      return result('special1', 'graveward-survival')
+    if (s3) return result('special3', 'spend-finisher')
+    if (s2 && (target.hp <= target.maxHp / 2 || horizon.own <= 3))
+      return result('special2', 'execution-pressure')
+    return result(null, 'preserve-execution-resources')
+  }
   if (require('./hendrix').isHendrix(actor)) {
     if (s3) return result('special3', 'spend-finisher')
     // Presence is public; never inspect hidden remaining duration.

@@ -18,8 +18,8 @@ const { newBattle, advance } = require('../services/arena/combat'),
   { screen } = require('../services/arena/interface'),
   { cardData } = require('../services/arena/health-card'),
   { survival } = require('../services/arena/tactics')
-const spooky = require('../config/arena/characters/arena-spooky-marq-development.json'),
-  hellfed = require('../config/arena/characters/arena-hellfed-marq-development.json')
+const spooky = require('../config/arena/characters/arena-spooky-marq.json'),
+  hellfed = require('../config/arena/characters/arena-hellfed-marq.json')
 for (const [name, sheet] of [
   ['Marq', spooky],
   ['Hellfed Marq', hellfed],

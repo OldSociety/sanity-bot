@@ -1,9 +1,15 @@
 // Production metadata stays pinned alongside its frozen combat configuration.
-const templates = require('../../config/arena/characters/arena-template-development.json')
-const hendrix = require('../../config/arena/characters/arena-classic-hendrix-development.json')
+const { productionPlaytest, buildFor } = require('./build-profile')
+const templates = buildFor('template')
+const hendrix = buildFor('hendrix')
 const prototypeEntries =
-  process.env.NODE_ENV === 'development'
+  process.env.NODE_ENV === 'development' || productionPlaytest
     ? [
+        ...(process.env.NODE_ENV === 'development' && buildFor('kylax').enabled
+          ? [{ ...buildFor('kylax').identity, label: 'Kylax [Classic]',
+              aliases: ['Kylax', 'classic-kylax'], role: 'Seraph · Grave Cleric',
+              lore: 'A defensive grave cleric who resists critical attacks and executes weakened opponents.',
+              imageAsset: 'KYLAX_BADGE.png' }] : []),
         ...(templates.enabled ? [templates.identity] : []),
         ...(hendrix.enabled
           ? [

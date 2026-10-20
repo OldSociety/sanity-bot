@@ -2,23 +2,23 @@ const test = require('node:test'),
   assert = require('node:assert/strict'),
   fs = require('node:fs'),
   path = require('node:path')
-test('Arena build filenames identify their skin, character, and environment', () => {
+test('Arena build filenames identify their skin and character without an environment suffix', () => {
   const { characterConfigFiles } = require('../services/arena/character-config')
   for (const file of characterConfigFiles) {
     assert(fs.existsSync(path.resolve(__dirname, '..', file)))
     assert.match(
       path.basename(file),
-      /^arena-(?:(?:spooky|hellfed|classic)-[a-z]+|template)-development\.json$/
+      /^arena-(?:(?:spooky|hellfed|classic)-[a-z]+|template)\.json$/
     )
   }
   assert(
     characterConfigFiles.some((file) =>
-      file.endsWith('arena-hellfed-marq-development.json')
+      file.endsWith('arena-hellfed-marq.json')
     )
   )
   assert(
     characterConfigFiles.some((file) =>
-      file.endsWith('arena-spooky-maxim-development.json')
+      file.endsWith('arena-spooky-maxim.json')
     )
   )
 })

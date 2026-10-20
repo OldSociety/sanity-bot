@@ -31,6 +31,10 @@ module.exports.run = async (client, message, args) => {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    // Chat and bot activity share the same daily Sanity markers and cap.
+    // Start independently so Discord acknowledgement is never delayed by SQLite.
+    const sanityActivity = require('../services/sanity').handleInteraction(interaction)
+      .catch(error => console.error('Sanity interaction credit unavailable:', error.message))
     if (interaction.isAutocomplete?.() && interaction.commandName === 'idle') {
       try {
         await require('../commands/Idle/Idle').autocomplete(interaction)
@@ -213,7 +217,10 @@ module.exports = {
             interaction,
             () => command.execute(interaction),
           )
-        } else await command.execute(interaction)
+        } else {
+          await sanityActivity
+          await command.execute(interaction)
+        }
         if (
           interaction.commandName === 'spooky' &&
           require('../services/spooky/development-performance').enabled()

@@ -57,7 +57,7 @@ function selectAction({ action, cursed = false, previousOutcome = null, crownHol
   throw new Error('Invalid spooky outcome table')
 }
 
-function createActions({ models, economy, participants, handlers, getCurseState, event = defaultConfig,
+function createActions({ User, models, economy, participants, handlers, getCurseState, event = defaultConfig,
   random = Math.random, prepareChoice = null, prepareOutcome = null, getCrownHolder = async () => null, clock = () => new Date(), finalizeReceipt = async (_ctx, receipt) => receipt }) {
   if (typeof getCurseState !== 'function') throw new Error('Trusted curse state resolver is required')
   async function previousAction(ctx, actorId, registeredAt) {
@@ -123,6 +123,7 @@ function createActions({ models, economy, participants, handlers, getCurseState,
         availableCandy: participant.candy - baseCost, distributionLimit })
       if (!rawResult || typeof rawResult !== 'object' || Array.isArray(rawResult)) throw new Error('Outcome handler must return a receipt')
       const result = require('./combat').combatReceipt(ctx, rawResult)
+      if (User) Object.assign(result, await require('./fate-drop').awardActionDrop({ User, ctx, userId: input.actorId, event, random }))
       const delivered = result.deliveredCandy ?? 0
       if (!Number.isSafeInteger(delivered) || delivered < 0 || (distributionLimit && delivered > distributionLimit)) throw new Error('Invalid delivered candy count')
       // Fetch fresh state: handlers may have credited the actor (e.g. theft).

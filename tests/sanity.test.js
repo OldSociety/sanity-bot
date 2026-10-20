@@ -1,5 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict'), Sequelize = require('sequelize')
 const { createSanity, selected } = require('../services/sanity')
+const { handleInteraction } = require('../services/sanity')
 async function fixture(t, origin = '2026-10-04T16:00:00Z') {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
   await require('../migrations/sanity').up(db.getQueryInterface())
@@ -12,6 +13,25 @@ async function fixture(t, origin = '2026-10-04T16:00:00Z') {
 test('Sanity is enabled in both bot environments but not tests', () => {
   assert.equal(selected('development').starting, 100)
   assert.equal(selected('development').enabled, true); assert.equal(selected('production').enabled, true); assert.equal(selected('test').enabled, false)
+})
+
+test('bot commands and buttons share chat presence, spaced activity, replay protection and the daily cap', async t => {
+  const f = await fixture(t)
+  const interaction = (id, hours, extra = {}) => ({ id, guild: { id: 'guild' }, user: { id: 'alice' }, member: {},
+    channelId: 'games', createdTimestamp: +f.now(hours), isChatInputCommand: () => true, ...extra })
+  const credit = i => handleInteraction(i, null, { config: { enabled: true }, guildId: 'guild', service: f.service })
+  assert.equal((await credit(interaction('one', 0))).after, 52)
+  assert.equal((await credit(interaction('one', 0))).replayed, true)
+  assert.equal((await f.gain('chat', .25)).credited, 0)
+  assert.equal((await credit(interaction('button', .5, { isChatInputCommand: () => false, isButton: () => true }))).after, 53)
+  assert.equal((await f.gain('later-chat', 1)).credited, 0)
+  assert.equal((await credit(interaction('two', 2))).credited, 0)
+  assert.equal((await f.service.view('guild', 'alice', f.now(24))).balance, 53)
+  assert.equal(await credit(interaction('bot', 24, { user: { id: 'alice', bot: true } })), null)
+  assert.equal(await credit(interaction('other', 24, { guild: { id: 'other' } })), null)
+  assert.equal(await credit(interaction('dm', 24, { guild: null })), null)
+  assert.equal(await credit(interaction('autocomplete', 24, { isChatInputCommand: () => false })), null)
+  assert.equal((await f.service.view('guild', 'alice', f.now(48))).balance, 52)
 })
 
 test('new accounts start at full Sanity and the first reminder cannot occur above69', async t => {

@@ -50,6 +50,7 @@ function validateEvent(config) {
   if (!config.eyes.automaticConversion || !config.duplicates.automaticConversion || config.duplicates.selection !== 'uniform-missing-piece') throw new Error('Invalid automatic conversion policy')
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
   if (!['bank-then-fate', 'normal-fate-only', 'sanity'].includes(config.fate.paymentResource)) throw new Error('Invalid Fate purchase policy')
+  if (!Number.isFinite(config.fate.actionDropPercent) || config.fate.actionDropPercent < 0 || config.fate.actionDropPercent > 100) throw new Error('Invalid Fate action drop chance')
   validateOutcomes(Object.entries(config.fate.rarityPercent || {}).map(([id, percent]) => ({ id, percent })), 'Fate rarity')
   if (Object.keys(config.fate.rarityPercent).sort().join(',') !== 'common,legendary,rare') throw new Error('Invalid Fate rarity categories')
   for (const [key, value] of Object.entries(config.crown || {})) requirePositiveInteger(value, `crown.${key}`)

@@ -135,7 +135,9 @@ function createPreferenceStore(
 function createAsyncPreferenceStore(
   file = require('node:path').resolve(
     __dirname,
-    '../../config/arena/state/arena-selection-preferences.json'
+    process.env.NODE_ENV === 'production'
+      ? '../../config/arena/state/arena-selection-preferences-production.json'
+      : '../../config/arena/state/arena-selection-preferences.json'
   )
 ) {
   const store = require('./async-state').createJsonStore(file, {

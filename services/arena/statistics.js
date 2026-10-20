@@ -198,7 +198,7 @@ function saveCombatReport(report) {
       ? '../../artifacts/arena-combat-production.jsonl'
       : '../../artifacts/arena-combat.jsonl'
   )
-  if (process.env.NODE_ENV === 'development')
+  if (process.env.NODE_ENV === 'development' || require('./build-profile').productionPlaytest)
     return require('./async-state').appendReport(
       file,
       JSON.stringify({ recordedAt: new Date().toISOString(), ...report }) + '\n'

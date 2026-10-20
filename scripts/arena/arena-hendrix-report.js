@@ -183,7 +183,7 @@ if (process.argv[2] === 'cell') {
       require('../../services/arena/balance-config').loadBalance('development')
         .damageRounding || 'ceil'
     const minimumDirectDamage =
-      require('../../config/arena/characters/arena-classic-hendrix-development.json')
+      require('../../config/arena/characters/arena-classic-hendrix.json')
         .basic.minimumDirectDamage || 0
     const summary = {
       damageRounding,

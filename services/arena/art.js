@@ -76,7 +76,8 @@ async function framedArtFiles(
 ) {
   const files = artFiles(character, opponent, page)
   if (!['characters', 'skins'].includes(page)) {
-    if (process.env.NODE_ENV === 'production') return files
+    if (process.env.NODE_ENV === 'production' && !require('./build-profile').productionPlaytest)
+      return files
     try {
       const key = await imageVersion([files[0].attachment])
       const attachment = await bannerCache.get(key, () =>

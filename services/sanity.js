@@ -116,4 +116,13 @@ async function handleMessage(message, User) {
   catch (error) { console.error('Sanity private chat nudge failed:', error.code || error.name) }
   return runtime(User).gain({ guildId: message.guild.id, userId: message.author.id, messageId: message.id, channelId: message.channelId, now: new Date(message.createdTimestamp) })
 }
-module.exports = { selected, defineModels, createSanity, runtime, handleMessage }
+async function handleInteraction(interaction, User, { config = selected(), service, guildId = process.env.GUILDID } = {}) {
+  if (!config.enabled || !interaction.guild?.id || interaction.guild.id !== guildId ||
+    !interaction.user?.id || interaction.user.bot || !interaction.member ||
+    require('./member-policy').excludedMember(interaction.member)) return null
+  if (!(interaction.isChatInputCommand?.() || interaction.isButton?.() || interaction.isStringSelectMenu?.())) return null
+  return (service || runtime(User || require('../Models/model').User)).gain({ guildId: interaction.guild.id, userId: interaction.user.id,
+    messageId: `interaction:${interaction.id}`, channelId: interaction.channelId,
+    now: new Date(interaction.createdTimestamp) })
+}
+module.exports = { selected, defineModels, createSanity, runtime, handleMessage, handleInteraction }

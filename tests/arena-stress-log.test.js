@@ -32,7 +32,7 @@ test('both log modes retain zero-Stress cause and extra-damage reminders', () =>
     assert.match(text, /Maxim became \*\*Stressed\*\* \(0 Stress\)/)
     assert.match(text, /Selene's critical basic removed 1 Stress/)
     assert.match(text, /\+25% damage taken/)
-    assert.equal((text.match(/Includes \*\*\+25% damage\*\*/g) || []).length, 2)
+    assert.equal((text.match(/\(exposed\)/g) || []).length, 2)
   }
 })
 

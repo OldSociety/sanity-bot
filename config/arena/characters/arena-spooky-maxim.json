@@ -14,8 +14,8 @@
       "name": "Deadly Focus",
       "type": "direct",
       "percent": 10,
-      "stressCost": 2,
-      "requiredRecharge": 3
+      "stressCost": 1,
+      "requiredRecharge": 0
     },
     "special2": {
       "name": "Slayer",

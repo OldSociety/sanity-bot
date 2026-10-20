@@ -7,8 +7,9 @@ const { createHash } = require('node:crypto')
 
 // Only presentation data crosses asynchronous boundaries; never a live session.
 function snapshot(session, unlock) {
+  const { diagnosticClient, ...presentation } = session
   return {
-    ...session,
+    ...presentation,
     busy: unlock ? false : session.busy,
     battle: session.battle ? structuredClone(session.battle) : null,
     minigame: session.minigame

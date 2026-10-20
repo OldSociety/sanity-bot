@@ -1,8 +1,8 @@
 // Preserve the explicit October 18 profile for historical experiment regressions.
 // New Hendrix/global Block tests exercise the current development profile.
 module.exports = function historicalProfile() {
-  require('../../config/arena/characters/arena-classic-hendrix-development.json').enabled = false
-  require('../../config/arena/characters/arena-template-development.json').identity =
+  require('../../config/arena/characters/arena-classic-hendrix.json').enabled = false
+  require('../../config/arena/characters/arena-template.json').identity =
     structuredClone(
       require('../../config/arena/arena-templates-production.json').characters
     )[0]

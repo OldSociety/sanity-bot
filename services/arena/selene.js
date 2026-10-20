@@ -1,4 +1,4 @@
-const config = require('../../config/arena/characters/arena-spooky-selene-development.json')
+const config = require('./build-profile').buildFor('selene')
 const isSelene = (fighter) => fighter.kit === config.identity.kit
 const multiplier = (fighter) =>
   isSelene(fighter)

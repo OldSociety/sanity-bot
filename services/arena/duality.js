@@ -26,7 +26,7 @@ function grant(fighter, amount) {
   let next = withValue(fighter, value(fighter) + granted)
   if (fighter.passive === 'celestial-alignment') {
     const { maxStacks } =
-      require('../../config/arena/characters/arena-spooky-selene-development.json').passive
+      require('./build-profile').buildFor('selene').passive
     next.alignmentStacks = Math.min(
       maxStacks,
       (fighter.alignmentStacks || 0) + granted

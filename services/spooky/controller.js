@@ -546,6 +546,7 @@ function createController({
     } else
       result = await require('./actions')
         .createActions({
+          User,
           models,
           economy,
           participants,

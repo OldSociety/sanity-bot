@@ -50,6 +50,7 @@ function loadBalance(environment = process.env.NODE_ENV) {
     'maxim',
     'hendrix',
     'selene',
+    'kylax',
   ]) {
     const sheet = sheets[name]
     if (!sheet.enabled) continue

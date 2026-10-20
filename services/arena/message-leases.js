@@ -8,7 +8,8 @@ const defaultFile = path.resolve(
     : '../../config/arena/state/arena-message-leases.json'
 )
 function createLeaseStore(file = defaultFile) {
-  if (process.env.NODE_ENV === 'development') return createAsyncLeaseStore(file)
+  if (process.env.NODE_ENV === 'development' || require('./build-profile').productionPlaytest)
+    return createAsyncLeaseStore(file)
   function read() {
     if (!fs.existsSync(file)) return []
     const rows = JSON.parse(fs.readFileSync(file, 'utf8'))

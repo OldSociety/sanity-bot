@@ -24,6 +24,11 @@ function abilityCost(fighter, definition) {
 }
 
 function abilitySummary(fighter, slot) {
+  if (require('./kylax').isKylax(fighter)) {
+    const d = kitFor(fighter)[slot]
+    if (slot === 'special1') return `Remove Bleeding immediately; reduce incoming direct damage by ${d.reductionPercent}% this round, including Finishers. Includes a basic; Block odds and critical resource effects are unchanged.`
+    if (slot === 'special2') return `Deal ${d.percent}% Attack; +${d.bonusPercent}% Attack at or below ${d.thresholdPercent}% target HP when the special resolves. Ordinary special Block; never critical. Includes an independent basic.`
+  }
   if (require('./selene').isSelene(fighter)) {
     const ability = kitFor(fighter)[slot]
     if (slot === 'special1') {
@@ -124,9 +129,11 @@ function abilitySummary(fighter, slot) {
 }
 
 function passiveSummary(character, fighter) {
+  if (character.passive === 'graves-protection')
+    return `Reduce each incoming critical direct-damage packet by ${require('./character-config').sheets.kylax.passive.reductionPercent}%. Bleeding is unchanged; damage uses the current Arena rounding rule.`
   if (character.passive === 'celestial-alignment') {
     const { stackPercent, maxStacks } =
-      require('../../config/arena/characters/arena-spooky-selene-development.json').passive
+      require('./build-profile').buildFor('selene').passive
     return `Each ${Duality.label(
       fighter
     )} actually earned grants +${stackPercent}% Attack-based damage, up to +${

@@ -2,7 +2,7 @@ const sharp = require('sharp')
 const { createHash } = require('node:crypto')
 const { iconSvg, statusIcons } = require('./status-icons')
 const { hasStress, usesRage } = require('./resources')
-const seleneBuild = require('../../config/arena/characters/arena-spooky-selene-development.json')
+const seleneBuild = require('./build-profile').buildFor('selene')
 const items = [
   [
     'alignment',

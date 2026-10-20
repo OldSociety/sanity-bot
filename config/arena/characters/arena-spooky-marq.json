@@ -13,7 +13,7 @@
     "special1": {
       "name": "Overwhelm",
       "type": "direct",
-      "percent": 4,
+      "percent": 8,
       "stressRemovalChance": 20,
       "stressRemovalAmount": 2
     },

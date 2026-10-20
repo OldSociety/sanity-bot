@@ -34,6 +34,7 @@ const {
   passiveSummary,
 } = require('./ability-summary')
 const { summaryFields, playerRecapFields, reportLines } = require('./battle-report')
+const { damageLabels, comboRolls } = require('./damage-labels')
 function actionLines(actions = []) {
   return actions
     .map((event) => {
@@ -85,13 +86,13 @@ function actionLines(actions = []) {
           event.outcome === 'critical'
             ? `${event.actor} scored a critical ${
                 require('./outcomes').enabled() ? 'basic ' : ''
-              }hit! ${event.damage} damage.`
+              }hit! ${event.damage} damage${damageLabels(event)}.`
             : event.outcome === 'block'
             ? `${event.actor}'s attack was blocked: ${event.damage} damage (${
-                require('./rules').balance.damageRules ? '75' : '25'
-              }%).`
+              require('./rules').balance.damageRules ? '75' : '25'
+            }%)${damageLabels(event)}.`
             : event.damage
-            ? `${event.actor} hit ${event.target} for ${event.damage}.`
+            ? `${event.actor} hit ${event.target} for ${event.damage}${damageLabels(event)}.`
             : `${event.actor} missed.`
         if (event.stressRestored) text += ' Restored 1 Stress.'
         if (event.stressRemoved) text += ' Removed 1 opponent Stress.'
@@ -99,11 +100,7 @@ function actionLines(actions = []) {
         if (event.guaranteed) text += ' **STOKE** guaranteed hit.'
         if (event.strikes)
           text =
-            `${event.actor}: ${event.strikes
-              .map((s) => s.outcome)
-              .join(' / ')} · ${event.damage} damage${
-              event.bleeding ? ' including Bleeding' : ''
-            }.` +
+            `${event.actor}: ${event.damage} damage${damageLabels(event)}.` +
             (event.stressRestored ? ' Restored 1 Stress.' : '') +
             (event.stressRemoved ? ' Removed 1 opponent Stress.' : '')
       } else if (event.kind === 'special') {
@@ -111,24 +108,18 @@ function actionLines(actions = []) {
         const name = `**${event.name.toUpperCase()}**`
         if (event.type === 'heal') {
           text = `${event.actor} used ${name}: restored ${event.healing} HP. ${cost}${event.healingOnly ? ' Healing only; no attack.' : ''}`
+        } else if (event.type === 'graveward') {
+          text = `${event.actor} used ${name}: ${event.reductionPercent}% less direct damage this round.${event.bleedingRemoved ? ' Bleeding removed.' : ''} ${cost}`
         } else if (event.type === 'windWall') {
           text = `${event.actor} used ${name}: Slow gives 75% Block this round and the next two rounds, plus 75% Super Move resistance. ${cost}`
         } else if (event.type === 'rage') {
           text = `${event.actor} · ${name} · Gained 1 Rage · Rage ${event.rage}/3`
         } else if (event.type === 'combo') {
-          const chain = event.rolls
-            .slice(0, 40)
-            .map((value) => `🔺${value}`)
-            .join(' + ')
-          const extra =
-            event.rolls.length > 40
-              ? ` + … (${event.rolls.length - 40} more)`
-              : ''
-          text = `${event.actor}: ${name}: ${chain}${extra}${
+          text = `${event.actor}: ${name}:${comboRolls(event)}${
             event.flatPercent ? ` + ${event.flatPercent}%` : ''
           } = **${Number(event.percent.toFixed(3))}%** · **${
             event.damage
-          }** damage. ${cost}`
+          }** damage${damageLabels(event)}. ${cost}`
         } else if (event.type === 'buff') {
           text = `${event.actor} used ${name}: next ${event.hits} landed basics +${event.percent}% Attack. ${cost}`
         } else if (event.slot === 'special3') {
@@ -143,7 +134,7 @@ function actionLines(actions = []) {
                     : event.choice
                     ? `picked ${event.choice}`
                     : 'no choice'
-                } · ${event.percent}% · ${event.damage} damage.${
+                } · ${event.percent}% · ${event.damage} damage${damageLabels(event)}.${
                   event.resisted
                     ? ` Resisted: 50% damage (${event.resistancePrevented} prevented).`
                     : ''
@@ -151,7 +142,7 @@ function actionLines(actions = []) {
         } else
           text = `${event.actor} used ${name} for ${
             event.damage
-          }. ${cost}`
+          }${event.type === 'flurry' ? ' guaranteed bonus damage' : ''}${damageLabels(event)}. ${cost}`
       } else if (event.kind === 'survival')
         text = `${event.actor}: ${(
           event.name || 'Survival'
@@ -163,8 +154,6 @@ function actionLines(actions = []) {
           : event.stressRemoved || 0
         if (removed) text += ` Removed ${removed} opponent Stress.`
       }
-      if (event.stressedTargetMultiplier)
-        text += require('./stress-log').damageNote(event)
       if (event.kind === 'special' && event.outcome === 'block')
         text += ` BLOCKED · ${
           require('./rules').balance.damageRules ? '50' : '25'
@@ -657,7 +646,7 @@ function fallbackStatus(battle) {
       (fighter.passive === 'celestial-alignment'
         ? `\nCelestial Alignment +${
             (fighter.alignmentStacks || 0) *
-            require('../../config/arena/characters/arena-spooky-selene-development.json')
+            require('./build-profile').buildFor('selene')
               .passive.stackPercent
           }%`
         : '') +

@@ -184,7 +184,7 @@ function cardSvg(data) {
 }
 async function renderHealthCard(
   session,
-  { optimized = process.env.NODE_ENV !== 'production' } = {}
+  { optimized = process.env.NODE_ENV !== 'production' || require('./build-profile').productionPlaytest } = {}
 ) {
   const data = cardData(session)
   if (optimized)

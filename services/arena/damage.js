@@ -52,10 +52,12 @@ function specialDamage(
     criticalMultiplier = 1,
     rank = fighter.abilityRanks?.[slot] || 1,
     percent: rolledPercent,
+    target,
   } = {}
 ) {
   const definition = kitFor(fighter)[slot]
   const percent =
+    require('./kylax').executionPercent(fighter, target, slot) ??
     (rolledPercent === undefined
       ? undefined
       : rolledPercent +
@@ -71,7 +73,7 @@ function specialDamage(
       : criticalMultiplier
   return {
     percent,
-    damage: ['buff', 'heal', 'bleeding', 'windWall'].includes(definition.type)
+    damage: ['buff', 'heal', 'bleeding', 'windWall', 'graveward'].includes(definition.type)
       ? 0
       : damageFor(
           fighter.attack,

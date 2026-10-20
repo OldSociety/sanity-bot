@@ -62,7 +62,7 @@ test('Hendrix uses the reusable template, Classic artwork, Martial Artist select
   )
   assert.equal(family.role, 'Martial Artist')
   assert.deepEqual(variantsFor(family), [c])
-  const template = require('../config/arena/characters/arena-template-development.json')
+  const template = require('../config/arena/characters/arena-template.json')
   assert.deepEqual(balance.characters[c.kit], template.abilities)
   const session = {
     id: 'template',

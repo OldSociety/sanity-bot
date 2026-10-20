@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "identity": {
+    "id": "classic:kyl", "family": "kylax", "name": "Kylax",
+    "class": "Seraph", "subclass": "Grave Cleric",
+    "kit": "classic-kylax", "passive": "graves-protection"
+  },
+  "baseStats": { "hp": 220, "attack": 200, "stress": 6 },
+  "passive": { "name": "Grave’s Protection", "reductionPercent": 10 },
+  "abilities": {
+    "special1": {
+      "name": "Graveward", "type": "graveward", "percent": 0,
+      "reductionPercent": 25, "rollBasic": true, "stressCost": 1, "dualityCost": 0
+    },
+    "special2": {
+      "name": "Toll the Dead", "type": "direct", "percent": 18,
+      "bonusPercent": 8, "thresholdPercent": 50,
+      "rollBasic": true, "stressCost": 0, "dualityCost": 2
+    },
+    "special3": {
+      "name": "Final Passage", "type": "playerFinisher", "responseMs": 5000,
+      "stressCost": 0, "dualityCost": 5
+    }
+  }
+}

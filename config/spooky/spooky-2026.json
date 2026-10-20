@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "competition": {
     "nonCompetitiveUserIds": ["138131238803210240"]
   },
@@ -38,6 +38,7 @@
     "dailyDrawLimit": null
   },
   "fate": {
+    "actionDropPercent": 3,
     "quarterCost": 10,
     "paymentResource": "bank-then-fate",
     "dailyDrawLimit": null,

@@ -21,7 +21,8 @@
         "name": "Overwhelm",
         "type": "direct",
         "percent": 4,
-        "stressRemovalChance": 20
+        "stressRemovalChance": 20,
+        "stressRemovalAmount": 2
       },
       "special2": {
         "name": "Combo Strike",
@@ -53,12 +54,48 @@
         "type": "playerFinisher"
       }
     },
+    "spooky-selene": {
+      "special1": {
+        "name": "Aura of Life",
+        "type": "heal",
+        "percent": 0,
+        "healPercent": 14,
+        "healDecay": 2,
+        "minimumHealPercent": 2,
+        "rollBasic": false,
+        "rollDuality": true,
+        "stressCost": 1,
+        "dualityCost": 0
+      },
+      "special2": {
+        "name": "Wind Wall",
+        "type": "windWall",
+        "percent": 0,
+        "blockChance": 75,
+        "duration": 2,
+        "protectActivationRound": true,
+        "rollBasic": true,
+        "stressCost": 0,
+        "dualityCost": 2
+      },
+      "special3": {
+        "name": "Storm's Eye",
+        "type": "playerFinisher",
+        "responseMs": 5000,
+        "stressCost": 0,
+        "dualityCost": 5
+      }
+    },
     "hellfed-marq": {
       "special1": {
         "name": "Stoke the Flames",
         "type": "rage",
         "percent": 0,
-        "hpCostPercentByRage": [1, 2, 3],
+        "hpCostPercentByRage": [
+          1,
+          2,
+          3
+        ],
         "rollBasic": true,
         "guaranteedBasic": true,
         "stressCost": 0,
@@ -87,10 +124,11 @@
         "type": "heal",
         "percent": 0,
         "healPercent": 6,
-        "rollBasic": true,
+        "rollBasic": false,
+        "rollDuality": true,
         "stressCost": 1,
         "hopeCost": 0,
-        "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Includes the normal Duality roll and basic."
+        "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Replaces the basic attack; retains the normal Duality resource roll without basic critical effects."
       },
       "special2": {
         "name": "Starlight",
@@ -110,7 +148,35 @@
         "description": "Guaranteed Finisher: 30% Attack on timeout; picks 1–5 deal 35–55%. Choose within four seconds."
       }
     },
-    "template-hendrix": {
+    "classic-hendrix": {
+      "special1": {
+        "name": "Dawn's Blade",
+        "type": "bleeding",
+        "percent": 0,
+        "stressCost": 1,
+        "hopeCost": 0,
+        "rollBasic": true
+      },
+      "special2": {
+        "name": "Flurry of Blows",
+        "type": "flurry",
+        "additionalStrikes": 3,
+        "percent": 6,
+        "guaranteedHit": true,
+        "canCritical": false,
+        "stressCost": 0,
+        "hopeCost": 2,
+        "rollBasic": true
+      },
+      "special3": {
+        "name": "Fatal Blow",
+        "type": "playerFinisher",
+        "stressCost": 0,
+        "hopeCost": 5,
+        "responseMs": 5000
+      }
+    },
+    "template": {
       "special1": {
         "name": "[S1]",
         "type": "direct",
@@ -138,23 +204,69 @@
   },
   "finisher": {
     "rangeByLevel": [
-      [20, 30],
-      [20, 30],
-      [25, 35],
-      [25, 35],
-      [30, 45],
-      [30, 45],
-      [35, 50],
-      [35, 50],
-      [40, 60],
-      [40, 60]
+      [
+        20,
+        30
+      ],
+      [
+        20,
+        30
+      ],
+      [
+        25,
+        35
+      ],
+      [
+        25,
+        35
+      ],
+      [
+        30,
+        45
+      ],
+      [
+        30,
+        45
+      ],
+      [
+        35,
+        50
+      ],
+      [
+        35,
+        50
+      ],
+      [
+        40,
+        60
+      ],
+      [
+        40,
+        60
+      ]
     ],
     "timeoutMultiplier": 0.75
   },
   "ai": {
     "stressRecoveryChance": 8,
-    "stressChanceByAvailable": [0, 5, 15, 25, 30, 35, 40],
-    "special2ChanceByFear": [0, 0, 40, 20, 10, 5, 5],
+    "stressChanceByAvailable": [
+      0,
+      5,
+      15,
+      25,
+      30,
+      35,
+      40
+    ],
+    "special2ChanceByFear": [
+      0,
+      0,
+      40,
+      20,
+      10,
+      5,
+      5
+    ],
     "special3Chance": 90,
     "characters": {
       "spooky-marq": {
@@ -162,7 +274,8 @@
           "name": "Overwhelm",
           "type": "direct",
           "percent": 4,
-          "stressRemovalChance": 20
+          "stressRemovalChance": 20,
+          "stressRemovalAmount": 2
         },
         "special2": {
           "name": "Combo Strike",
@@ -194,7 +307,7 @@
           "type": "aiFinisher"
         }
       },
-      "template-hendrix": {
+      "template": {
         "special1": {
           "name": "[S1]",
           "type": "direct",
@@ -225,10 +338,11 @@
           "type": "heal",
           "percent": 0,
           "healPercent": 6,
-          "rollBasic": true,
+          "rollBasic": false,
+          "rollDuality": true,
           "stressCost": 1,
           "hopeCost": 0,
-          "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Includes the normal Duality roll and basic."
+          "description": "Restore 6% maximum HP (14 at Level 1), capped at missing HP. Replaces the basic attack; retains the normal Duality resource roll without basic critical effects."
         },
         "special2": {
           "name": "Starlight",
@@ -253,7 +367,11 @@
           "name": "Stoke the Flames",
           "type": "rage",
           "percent": 0,
-          "hpCostPercentByRage": [1, 2, 3],
+          "hpCostPercentByRage": [
+            1,
+            2,
+            3
+          ],
           "rollBasic": true,
           "guaranteedBasic": true,
           "stressCost": 0,
@@ -275,6 +393,66 @@
           "stressCost": 0,
           "hopeCost": 5
         }
+      },
+      "classic-hendrix": {
+        "special1": {
+          "name": "Dawn's Blade",
+          "type": "bleeding",
+          "percent": 0,
+          "stressCost": 1,
+          "hopeCost": 0,
+          "rollBasic": true
+        },
+        "special2": {
+          "name": "Flurry of Blows",
+          "type": "flurry",
+          "additionalStrikes": 3,
+          "percent": 6,
+          "guaranteedHit": true,
+          "canCritical": false,
+          "stressCost": 0,
+          "hopeCost": 2,
+          "rollBasic": true
+        },
+        "special3": {
+          "name": "Fatal Blow",
+          "type": "aiFinisher",
+          "stressCost": 0,
+          "hopeCost": 5,
+          "responseMs": 5000
+        }
+      },
+      "spooky-selene": {
+        "special1": {
+          "name": "Aura of Life",
+          "type": "heal",
+          "percent": 0,
+          "healPercent": 14,
+          "healDecay": 2,
+          "minimumHealPercent": 2,
+          "rollBasic": false,
+          "rollDuality": true,
+          "stressCost": 1,
+          "dualityCost": 0
+        },
+        "special2": {
+          "name": "Wind Wall",
+          "type": "windWall",
+          "percent": 0,
+          "blockChance": 75,
+          "duration": 2,
+          "protectActivationRound": true,
+          "rollBasic": true,
+          "stressCost": 0,
+          "dualityCost": 2
+        },
+        "special3": {
+          "name": "Storm's Eye",
+          "type": "aiFinisher",
+          "responseMs": 5000,
+          "stressCost": 0,
+          "dualityCost": 5
+        }
       }
     },
     "costs": {
@@ -291,7 +469,11 @@
         "hope": 5
       }
     },
-    "finisherRange": [35, 45]
+    "finisherRange": [
+      35,
+      45
+    ],
+    "deferFearSpending": true
   },
   "playerFinisher": {
     "basePercent": 30,
@@ -299,12 +481,16 @@
   },
   "baseStats": {
     "spooky-marq": {
-      "attack": 200,
-      "hp": 260
+      "attack": 190,
+      "hp": 230
     },
     "maxim": {
       "attack": 220,
       "hp": 220
+    },
+    "spooky-selene": {
+      "hp": 180,
+      "attack": 240
     },
     "hellfed-marq": {
       "attack": 200,
@@ -314,17 +500,27 @@
       "hp": 230,
       "attack": 190
     },
-    "template-hendrix": {
+    "classic-hendrix": {
+      "hp": 190,
+      "attack": 220
+    },
+    "template": {
       "hp": 200,
       "attack": 200
     }
   },
   "passives": {
     "on-the-brink": {
-      "name": "On the Brink"
+      "name": "On the Brink",
+      "revivePercent": 25
     },
     "not-good-enough": {
       "name": "Not Good Enough"
+    },
+    "celestial-alignment": {
+      "name": "Celestial Alignment",
+      "stackPercent": 1,
+      "maxStacks": 10
     },
     "hellfed": {
       "name": "Hellfed"
@@ -353,9 +549,33 @@
     },
     "passive": {}
   },
-  "profile": "production-current-2-5",
+  "profile": "production-playtest-2026-10-19",
   "criticalEffects": true,
+  "superMoveResistance": {
+    "enabled": true,
+    "damageMultiplier": 0.5
+  },
+  "damageRules": {
+    "basic_damage": {
+      "blockedMultiplier": 0.75,
+      "canCritical": true
+    },
+    "special_damage": {
+      "blockedMultiplier": 0.5,
+      "canCritical": false
+    },
+    "final_special_damage": {
+      "blockedMultiplier": 0.5,
+      "canCritical": false
+    },
+    "bleed_damage": {
+      "blockedMultiplier": 1,
+      "canCritical": true
+    }
+  },
+  "damageRounding": "floor",
   "manualOpponentSelection": true,
   "offensiveSpecialBasics": true,
-  "attackOutcomes": "block-immediate-critical"
+  "attackOutcomes": "block-immediate-critical",
+  "developmentSnapshot": true
 }

@@ -1,6 +1,8 @@
 const path = require('node:path')
 const badges = require('../../config/badges/badges.json')
 const { prototypeEntries } = require('./prototype-catalog')
+const currentBuilds = process.env.NODE_ENV === 'development' ||
+  require('./build-profile').productionPlaytest
 const {
   variants: rarityByVariant,
 } = require('../../config/arena/arena-rarities.json')
@@ -10,16 +12,19 @@ const characters = Object.freeze([
   ...prototypeEntries.map((entry) =>
     Object.freeze({
       id: entry.id,
-      rarity: rarityByVariant[entry.id],
+      rarity: rarityByVariant[entry.id] || (entry.kit === 'classic-kylax' ? 'bronze' : undefined),
       name: entry.name,
       version: 'Classic',
       label: entry.label,
       kit: entry.kit,
       aliases: entry.aliases || [entry.name],
-      passive: null,
+      passive: entry.passive || null,
       developmentOnly: true,
       ...(entry.hidden ? { hidden: true } : {}),
-      image: entry.imageAsset
+      image: entry.kit === 'classic-kylax' && !require('node:fs').existsSync(
+        path.join(__dirname, '../../assets/badges/Classic', entry.imageAsset))
+        ? Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="216" height="300"><rect width="216" height="300" fill="#24212b"/><text x="108" y="150" text-anchor="middle" fill="#efbc8d" font-size="26">KYLAX</text><text x="108" y="180" text-anchor="middle" fill="#cccccc" font-size="13">Badge pending</text></svg>')
+        : entry.imageAsset
         ? path.join(__dirname, '../../assets/badges/Classic', entry.imageAsset)
         : null,
     })
@@ -47,13 +52,13 @@ const characters = Object.freeze([
           ? 'Marq [Hell-fed]'
           : `${badge.name} [Spooky]`,
       aliases:
-        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+        badge.characterId === 'sel' && currentBuilds
           ? ['Spooky Selene', 'spooky-selene', 'Selene']
           : badge.characterId === 'hfm'
           ? ['Hellfed Marq', 'Hellfed Marq [Spooky]', 'Hell-fed Marq']
           : [],
       passive:
-        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+        badge.characterId === 'sel' && currentBuilds
           ? 'celestial-alignment'
           : badge.characterId === 'hfm'
           ? 'hellfed'
@@ -63,7 +68,7 @@ const characters = Object.freeze([
           ? 'on-the-brink'
           : null,
       kit:
-        badge.characterId === 'sel' && process.env.NODE_ENV === 'development'
+        badge.characterId === 'sel' && currentBuilds
           ? 'spooky-selene'
           : badge.characterId === 'hfm'
           ? 'hellfed-marq'

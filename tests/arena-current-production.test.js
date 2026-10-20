@@ -53,7 +53,7 @@ test('production rollout fails closed when disabled; test profile and Cocoa/Idle
 })
 
 test('later development coefficient changes cannot alter the frozen production kit', () => {
-  const patch = require('../config/arena/characters/arena-spooky-maxim-development.json')
+  const patch = require('../config/arena/characters/arena-spooky-maxim.json')
   const { loadBalance } = require('../services/arena/balance-config')
   const before = loadBalance('production'),
     old = patch.abilities.special2.percent

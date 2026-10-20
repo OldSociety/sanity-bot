@@ -10,7 +10,7 @@ function probability(attacker, defender, round) {
   if (!enabled()) return 0
   if (selene.wallActive(defender, round, attacker))
     return (
-      require('../../config/arena/characters/arena-spooky-selene-development.json')
+      require('./build-profile').buildFor('selene')
         .abilities.special2.blockChance / 100
     )
   if (attacker.isAI) return 1 - attacker.accuracy / 100

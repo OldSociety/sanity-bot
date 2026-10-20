@@ -709,10 +709,10 @@ test('compact/full diagnostic changes affect the next view without replaying a m
   })
   try {
     await f.open()
-    assert.equal(f.view().embeds.length, 1)
+    assert.equal(f.view().embeds.length, 2)
     await f.click('basic')
     const afterMove = renders
-    assert.match(
+    assert.doesNotMatch(
       f.view().embeds[0].data.footer.text,
       /Processing \(\d+ms\).*Previous update total/
     )
@@ -721,7 +721,7 @@ test('compact/full diagnostic changes affect the next view without replaying a m
     assert.equal(f.view().embeds.length, 2)
     assert.equal(renders, afterMove)
     assert.equal(f.calls(), 1)
-    assert.equal(f.edits.at(-1).files[0].name, 'legend.png')
+    assert.equal(f.edits.at(-1).files, undefined)
     assert.ok(
       records.some(
         (record) =>
@@ -738,6 +738,50 @@ test('compact/full diagnostic changes affect the next view without replaying a m
       )
     )
   } finally {
+    await f.arena.dispose()
+  }
+})
+
+test('private diagnostic waits for final timing, stays off the player path and deduplicates refreshes', async () => {
+  const reports = []
+  let release
+  const pending = new Promise(resolve => { release = resolve })
+  const f = fixture({
+    diagnostics: () => false,
+    engine: {
+      newBattle: () => fixedBattle(),
+      takeTurn: battle => ({
+        ...battle, tick: battle.tick + 1, status: 'victory',
+        enemy: { ...battle.enemy, hp: 0 },
+        history: [{kind:'hit',tick:1,actor:'Marq',target:'Maxim',outcome:'hit',damage:7}],
+      }),
+      beginFinisher: () => { throw Error('must not execute') },
+    },
+    onDiagnosticReport: report => {
+      reports.push(report)
+      return reports.length === 1 ? pending : undefined
+    },
+  })
+  try {
+    await f.open()
+    await f.click('basic')
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(reports.length, 1)
+    assert.equal(reports[0].battle.status, 'victory')
+    assert.ok(Number.isFinite(reports[0].roundTimings[1].deliveryMs))
+    assert.ok(reports[0].interactionTimings.some(r => r.action === 'basic' && Number.isFinite(r.deliveryMs)))
+    assert.doesNotMatch(JSON.stringify(f.view()), /PRIVATE ARENA|INTERACTION TIMINGS|Processing/)
+    await f.click('refresh')
+    assert.equal(reports.length, 1)
+    await f.click('start')
+    await f.click('basic')
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(reports.length, 2)
+    assert.equal(reports[1].fightNumber, 2)
+    assert.equal(reports[0].fightNumber, 1)
+    assert.equal(reports[0].battle.tick, 1)
+  } finally {
+    release()
     await f.arena.dispose()
   }
 })

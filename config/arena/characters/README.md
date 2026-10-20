@@ -1,22 +1,22 @@
 # Arena character builds
 
-Development uses one combat build per file. Start here when editing a fighter:
+Start here when editing a fighter. Development reads these sheets directly. Production reads the approved copies in [arena-builds-production.json](../arena-builds-production.json), with resolved combat settings in [arena-balance-production.json](../arena-balance-production.json). Character edits reach production through an explicit promotion.
 
-| Fighter           | Build file                                                                       |
-| ----------------- | -------------------------------------------------------------------------------- |
-| Spooky Marq       | [arena-spooky-marq-development.json](arena-spooky-marq-development.json)         |
-| Hell-fed Marq     | [arena-hellfed-marq-development.json](arena-hellfed-marq-development.json)       |
-| Spooky Maxim      | [arena-spooky-maxim-development.json](arena-spooky-maxim-development.json)       |
-| Classic Azulis    | [arena-classic-azulis-development.json](arena-classic-azulis-development.json)   |
-| Classic Hendrix   | [arena-classic-hendrix-development.json](arena-classic-hendrix-development.json) |
-| Spooky Selene     | [arena-spooky-selene-development.json](arena-spooky-selene-development.json)     |
-| Template (hidden) | [arena-template-development.json](arena-template-development.json)               |
+| Fighter           | Editable build file                                  |
+| ----------------- | ---------------------------------------------------- |
+| Spooky Marq       | [arena-spooky-marq.json](arena-spooky-marq.json)        |
+| Hell-fed Marq     | [arena-hellfed-marq.json](arena-hellfed-marq.json)      |
+| Spooky Maxim      | [arena-spooky-maxim.json](arena-spooky-maxim.json)      |
+| Classic Azulis    | [arena-classic-azulis.json](arena-classic-azulis.json)  |
+| Classic Hendrix   | [arena-classic-hendrix.json](arena-classic-hendrix.json) |
+| Spooky Selene     | [arena-spooky-selene.json](arena-spooky-selene.json)    |
+| Template (hidden) | [arena-template.json](arena-template.json)             |
 
 Open the JSON build for current values; this guide does not duplicate character stats.
 
 ## Change HP or Attack
 
-Edit `baseStats` in the character's file. For example, in `arena-spooky-marq-development.json`:
+Edit `baseStats` in the character's file. For example, in `arena-spooky-marq.json`:
 
 Change `baseStats.hp` and `baseStats.attack`.
 
@@ -58,3 +58,5 @@ Any ability can specify `stressRemovalChance` (percent chance) and `stressRemova
 ```
 
 This gives Overwhelm a 20% chance to remove up to 2 of the opponent's remaining Stress when it lands. Change `stressRemovalAmount` independently of chance; zero disables the amount. The current sheet remains at 1. Both roles, damage previews, exhaustion decisions, ability descriptions and detailed logs use the amount. Critical-basic Stress removal remains a separate 1-point effect. Reload development and start a new fight after changing a sheet.
+
+Classic Kylax development baseline: `arena-classic-kylax.json` (220 HP / 200 Attack / 6 Stress). See [mechanics and seeded results](../../../docs/arena-kylax-2026-10-20.md). Badge pending at `assets/badges/Classic/KYLAX_BADGE.png`; production remains frozen.

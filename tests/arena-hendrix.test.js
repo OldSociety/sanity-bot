@@ -44,7 +44,7 @@ test('finished development identity and reusable template are separate', () => {
     [200, 200, 6]
   )
   assert.equal(
-    require('../config/arena/characters/arena-template-development.json').abilities.special1
+    require('../config/arena/characters/arena-template.json').abilities.special1
       .percent,
     8
   )

@@ -1,6 +1,7 @@
 const sum = (value) =>
   Object.values(value || {}).reduce((total, n) => total + (Number(n) || 0), 0)
 const amount = (value) => Math.max(0, Number(value) || 0)
+const { damageLabels, comboRolls } = require('./damage-labels')
 function flatEvents(events = []) {
   return events.flatMap((event) =>
     event.kind === 'move' ? flatEvents(event.events) : [event]
@@ -106,7 +107,7 @@ function playerRecapFields(battle) {
     .map((event) =>
       event.kind === 'survival'
         ? `Turn ${event.tick}: ${event.actor} survived with **${amount(event.hp)} HP**.`
-        : `Turn ${event.tick}: ${event.actor} used **${event.name.toUpperCase()}** for **${amount(event.damage)} damage**${event.resisted ? ' (resisted)' : ''}.`
+        : `Turn ${event.tick}: ${event.actor} used **${event.name.toUpperCase()}** for **${amount(event.damage)} damage**${damageLabels(event)}.`
     )
   if (moments.length)
     fields.push({ name: 'Highlights', value: moments.join('\n').slice(0, 1024) })
@@ -118,7 +119,7 @@ function compactEvent(event) {
   if (event.kind === 'hit')
     return `${event.actor} → ${event.target}: **${amount(
       event.damage
-    )}** damage.${event.stressedTargetMultiplier ? require('./stress-log').damageNote(event) : ''}`
+    )}** damage${damageLabels(event)}.`
   if (event.kind === 'sacrifice')
     return `${event.actor}: **−${amount(event.hp)} HP** self-damage.`
   if (event.kind === 'survival')
@@ -126,12 +127,14 @@ function compactEvent(event) {
   if (event.kind === 'special') {
     if (event.type === 'heal')
       return `${event.actor} · **${event.name.toUpperCase()}**: **+${amount(event.healing)} HP** healed.${event.healingOnly ? ' Healing only; no attack.' : ''}`
+    if (event.type === 'graveward')
+      return `${event.actor} used **${event.name.toUpperCase()}**: ${event.reductionPercent}% less direct damage this round.${event.bleedingRemoved ? ' Bleeding removed.' : ''}`
     if (['rage', 'buff', 'windWall', 'bleeding'].includes(event.type))
       return `${event.actor} used **${event.name.toUpperCase()}**.`
     if (typeof event.damage === 'number')
       return `${event.actor} · **${event.name.toUpperCase()}**: **${amount(
         event.damage
-      )}** damage.${event.stressedTargetMultiplier ? require('./stress-log').damageNote(event) : ''}`
+      )}** ${event.type === 'flurry' ? 'guaranteed bonus damage' : 'damage'}${comboRolls(event)}${damageLabels(event)}.`
   }
   return ''
 }
@@ -171,7 +174,7 @@ function reportLines(
   }
   return lines
 }
-function recapText(battle, lines, { diagnostic = true, interactions = [] } = {}) {
+function recapText(battle, lines, { diagnostic = true, interactions = [], completedDelivery = false } = {}) {
   const labels = {
     open: 'Character select',
     chooseskin: 'Choose skin',
@@ -185,7 +188,9 @@ function recapText(battle, lines, { diagnostic = true, interactions = [] } = {})
     ...summaryFields(battle).flatMap((field) => [field.name, field.value]),
     'Damage totals include overkill; HP removed is effective opponent HP damage. Blocks count packets, including independent strikes; self-damage is separate. Specials excludes Finals. HP restored includes revives.',
     ...(diagnostic
-      ? ['Round timings measure bot processing and Discord delivery, not client image paint. The update carrying this file is still being sent; its completed total is recorded server-side after delivery.']
+      ? [completedDelivery
+          ? 'Round timings measure bot processing and Discord delivery, not client image paint. The final player-update timing is included; private report delivery is separate.'
+          : 'Round timings measure bot processing and Discord delivery, not client image paint. The update carrying this file is still being sent; its completed total is recorded server-side after delivery.']
       : []),
     ...(diagnostic && interactions.length
       ? [

@@ -24,6 +24,7 @@ const hendrix = require('./hendrix')
 const Duality = require('./duality')
 const selene = require('./selene')
 const resistance = require('./resistance')
+const kylax = require('./kylax')
 const { stressRemovalAmount } = require('./stress-effects')
 const { basic_damage } = require('./damage-types')
 const {
@@ -197,7 +198,8 @@ function specialResult(
   rank = 1,
   multiplier = 1,
   criticalMultiplier = 1,
-  percent
+  percent,
+  target
 ) {
   if (!slot) return { slot: null, rolls: [], total: 0, percent: 0, damage: 0 }
   const definition = kitFor(fighter)[slot]
@@ -218,6 +220,7 @@ function specialResult(
       criticalMultiplier,
       rank,
       percent,
+      target,
     }),
   }
 }
@@ -237,6 +240,8 @@ function advance(
   rollEffect = abilityPercentile,
   {
     aiPolicy = 'tactical',
+    enemyBasicOnly = false,
+    preparedEnemyRecovery,
     actor = 'exchange',
     enemySpendableFear,
     rollBlock = abilityPercentile,
@@ -315,6 +320,18 @@ function advance(
   // accompanying basic can receive critical damage or critical resource effects.
   if (modern && !playerActs) duality.critical = false
   const round = battle.tick + 1
+  const kylaxMetrics = { player: [], enemy: [] }
+  const mitigated = (damage, target, critical, record = true) => {
+    const packet = kylax.packet(damage, target, { critical, round })
+    if (record && kylax.isKylax(target) && damage > 0)
+      kylaxMetrics[target.isAI ? 'enemy' : 'player'].push({ ...packet, critical })
+    return packet.damage
+  }
+  let playerBleedingRemoved = 0, enemyBleedingRemoved = 0
+  if (definition?.type === 'graveward') {
+    battle = { ...battle, player: { ...battle.player } }
+    playerBleedingRemoved = kylax.activate(battle.player, round)
+  }
   if (definition?.type === 'windWall') {
     battle = { ...battle, player: { ...battle.player } }
     selene.activateWall(battle.player, battle.enemy, round)
@@ -355,10 +372,11 @@ function advance(
   let enemyStressRestored = 0
   if (
     actor === 'enemy' &&
+    !enemyBasicOnly &&
     battle.mode !== 'idle' &&
     battle.enemy.stress < battle.enemy.maxStress
   ) {
-    const recovery = rollRecovery()
+    const recovery = preparedEnemyRecovery === undefined ? rollRecovery() : preparedEnemyRecovery ? 0 : 99
     if (!Number.isFinite(recovery) || recovery < 0 || recovery >= 100)
       throw Error('Expected recovery percentile from 0 to below 100')
     enemyStressRestored = Number(recovery < balance.ai.stressRecoveryChance)
@@ -368,7 +386,7 @@ function advance(
     (actor === 'enemy' || actor === 'exchange') && !enemyStressRestored
   const enemyDecision =
     battle.mode !== 'idle' && enemyResponds
-      ? aiPolicy === 'legacy'
+      ? enemyBasicOnly ? { slot: null, reason: 'graveward-committed' } : aiPolicy === 'legacy'
         ? {
             slot: selectEnemySpecial(
               battle.enemy,
@@ -400,6 +418,10 @@ function advance(
   if (enemyDefinition?.type === 'windWall') {
     battle = { ...battle, enemy: { ...battle.enemy } }
     selene.activateWall(battle.enemy, battle.player, round)
+  }
+  if (enemyDefinition?.type === 'graveward') {
+    battle = { ...battle, enemy: { ...battle.enemy } }
+    enemyBleedingRemoved = kylax.activate(battle.enemy, round)
   }
   // Resolve activation-round defense before either incoming attack. This also
   // covers the primitive simultaneous exchange used by the diagnostic engine.
@@ -610,15 +632,15 @@ function advance(
       return value.strikes.reduce(
         (sum, strike) =>
           sum +
-          hendrix.strike(fighter, strike.outcome, value.bleeding, multiplier)
+          hendrix.strike(fighter, strike.outcome, value.bleeding, multiplier, target, round)
             .damage,
         0
       )
     }
     const damage = basicDamage(fighter, target, { ...options, landed })
-    return modern && !landed
+    return mitigated(modern && !landed
       ? outcomes.blockDamage(damage, basic_damage)
-      : damage
+      : damage, target, options.critical, options.buff !== false)
   }
   const playerBase = deliverBasic(
     battle.player,
@@ -681,7 +703,9 @@ function advance(
     roll,
     slot ? battle.player.abilityRanks[slot] : 1,
     enemyVulnerability,
-    modern && playerCritical ? playerCriticalMultiplier : 1
+    modern && playerCritical ? playerCriticalMultiplier : 1,
+    undefined,
+    { ...battle.enemy, hp: Math.max(0, battle.enemy.hp - playerBasicDamage) }
   )
   if (balance.damageRules)
     playerSpecial.damageType =
@@ -731,7 +755,8 @@ function advance(
     1,
     playerVulnerability,
     enemyCritical,
-    enemyFinisherPercent
+    enemyFinisherPercent,
+    { ...battle.player, hp: Math.max(0, battle.player.hp - enemyBasicDamage) }
   )
   if (balance.damageRules)
     enemyResult.damageType =
@@ -768,6 +793,11 @@ function advance(
       round,
       rollResistance
     )
+  if (definition?.type === 'graveward') Object.assign(playerSpecial, { reductionPercent: definition.reductionPercent, bleedingRemoved: playerBleedingRemoved })
+  if (enemyDefinition?.type === 'graveward') Object.assign(enemyResult, { reductionPercent: enemyDefinition.reductionPercent, bleedingRemoved: enemyBleedingRemoved })
+  // Block and native Finisher resistance precede Kylax's packet defenses.
+  playerSpecial.damage = mitigated(playerSpecial.damage, battle.enemy, false)
+  enemyResult.damage = mitigated(enemyResult.damage, battle.player, false)
   const enemyDamage = enemyBasicDamage + enemyResult.damage
   const healing = selene.healing
   const playerHealing = healing(battle.player, definition)
@@ -898,9 +928,36 @@ function advance(
         : playerActs && !playerHit) ||
         (battle.enemy.opportunityReady && !enemyOpportunity)),
   }
+  for (const [side, fighter, ability, removed] of [
+    ['player', player, definition, playerBleedingRemoved],
+    ['enemy', enemy, enemyDefinition, enemyBleedingRemoved],
+  ]) {
+    if (!kylax.isKylax(fighter)) continue
+    const incoming = sequences[side === 'player' ? 'enemy' : 'player']
+    if (incoming) kylaxMetrics[side].unshift(...incoming.strikes.map(strike => ({ ...strike.defense, bleed: strike.bleed, critical: strike.outcome === 'critical' })))
+    const old = battle[side].kylaxMetrics || { wards: 0, bleedingRemoved: 0, criticalPrevented: 0, wardPrevented: 0, packets: [] }
+    const packets = kylaxMetrics[side]
+    let remainingHp = battle[side].hp + (side === 'player' ? playerHealing - hpSpent : enemyHealing - enemyHpSpent)
+    for (const packet of packets) {
+      packet.hpLoss = Math.min(Math.max(0, remainingHp), packet.damage)
+      remainingHp = Math.max(0, remainingHp - packet.damage - (packet.bleed || 0))
+    }
+    fighter.kylaxMetrics = {
+      wards: old.wards + Number(ability?.type === 'graveward'),
+      bleedingRemoved: old.bleedingRemoved + removed,
+      criticalPrevented: old.criticalPrevented + packets.reduce((n,p) => n + p.criticalPrevented, 0),
+      wardPrevented: old.wardPrevented + packets.reduce((n,p) => n + p.wardPrevented, 0),
+      packets: [...old.packets, ...packets.map(p => ({ ...p, round }))],
+    }
+    fighter.combatRound = round
+  }
   if (actor === 'enemy' || actor === 'exchange') {
     for (const fighter of [player, enemy]) {
       if (fighter.windWall?.endRound <= round) delete fighter.windWall
+      if (kylax.isKylax(fighter)) {
+        delete fighter.gravewardRound
+        fighter.combatRound = round + 1
+      }
       if (selene.isSelene(fighter)) fighter.combatRound = round + 1
     }
   }
@@ -1230,10 +1287,12 @@ function advance(
       total: result.total,
       choice: result.choice,
       criticalMultiplier,
-      percent,
+      percent: kylax.isKylax(fighter) ? result.percent : percent,
     }).damage
     const delivered = landed ? damage : outcomes.blockDamage(damage)
-    return resistance.damage(delivered, result.resisted)
+    const target = fighter.isAI ? battle.player : battle.enemy
+    const value = resistance.damage(delivered, result.resisted)
+    return kylax.isKylax(target) ? kylax.mitigate(value, target, { round }) : value
   }
   const playerVulnerabilityExtra = modern
     ? playerBasicDamage +
@@ -1576,6 +1635,39 @@ function takeTurn(
   rollEffect,
   options = {}
 ) {
+  const originalBattle = battle
+  let enemyBasicOnly = false, preparedEnemyRecovery
+  // A one-round enemy defense must be committed before the player's attack.
+  // Only this Kylax action moves earlier; payment, cleanse and exhaustion are
+  // visible to the incoming attack. The response still supplies its basic.
+  if (battle.status === 'playing' && battle.mode !== 'idle' && kylax.isKylax(battle.enemy) && canUse(battle.enemy, 'special1')) {
+    const decision = options.aiPolicy === 'legacy'
+      ? selectEnemySpecial(battle.enemy, Duality.value(battle.enemy), rollFearSpend || abilityPercentile)
+      : decide(battle.enemy, battle.player, { resource: Duality.value(battle.enemy), context: { rounds: battle.tick } }).slot
+    if (decision === 'special1') {
+      const recovery = battle.enemy.stress < battle.enemy.maxStress
+        ? (options.rollRecovery || abilityPercentile)() : 99
+      if (!Number.isFinite(recovery) || recovery < 0 || recovery >= 100) throw Error('Expected recovery percentile from 0 to below 100')
+      preparedEnemyRecovery = Number(recovery < balance.ai.stressRecoveryChance)
+      if (!preparedEnemyRecovery) {
+        const enemy = { ...battle.enemy, stress: battle.enemy.stress - kitFor(battle.enemy).special1.stressCost }
+        const removed = kylax.activate(enemy, battle.tick + 1)
+        const metrics = enemy.kylaxMetrics || { wards: 0, bleedingRemoved: 0, criticalPrevented: 0, wardPrevented: 0, packets: [] }
+        enemy.kylaxMetrics = { ...metrics, wards: metrics.wards + 1, bleedingRemoved: metrics.bleedingRemoved + removed }
+        const statistics = structuredClone(battle.statistics)
+        statistics.enemy.stressSpent += kitFor(enemy).special1.stressCost
+        statistics.enemy.stressRemaining = enemy.stress
+        statistics.enemy.uses.special1++
+        battle = { ...battle, enemy, statistics, history: [...battle.history, {
+          kind: 'special', actor: enemy.name, tick: battle.tick + 1,
+          slot: 'special1', name: kitFor(enemy).special1.name, type: 'graveward',
+          damage: 0, percent: 0, cost: kitFor(enemy).special1.stressCost, resource: 'Stress',
+          reductionPercent: kitFor(enemy).special1.reductionPercent, bleedingRemoved: removed,
+        }] }
+        enemyBasicOnly = true
+      }
+    }
+  }
   const basic = action === 'basic'
   const player = advance(
     battle,
@@ -1588,13 +1680,13 @@ function takeTurn(
     rollEffect,
     { ...options, actor: basic ? 'player' : 'ability' }
   )
-  if (player === battle) return player
+  if (player === battle) return originalBattle
   const move = (events) => ({
     kind: 'move',
     tick: player.tick,
     events: events.filter((event) => event.kind !== 'roll'),
   })
-  const playerMove = move(player.history.slice(battle.history.length))
+  const playerMove = move(player.history.slice(originalBattle.history.length))
   if (player.status !== 'playing')
     return {
       ...player,
@@ -1614,6 +1706,8 @@ function takeTurn(
       ...options,
       actor: 'enemy',
       enemySpendableFear: Duality.value(battle.enemy),
+      enemyBasicOnly,
+      preparedEnemyRecovery,
     }
   )
   return {

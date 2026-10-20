@@ -16,7 +16,7 @@ test('Hendrix has one finished identity, preserving his saved variant ID', () =>
   assert.equal(resolveCharacter('Hendrix [Template]'), null)
   assert.equal(resolveCharacter('classic:hen'), c)
   assert(
-    require('../config/arena/characters/arena-template-development.json').identity.family !==
+    require('../config/arena/characters/arena-template.json').identity.family !==
       'hendrix'
   )
 })

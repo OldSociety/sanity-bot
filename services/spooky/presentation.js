@@ -143,6 +143,8 @@ function actionMessages(
     variantKey,
   })
   const details = []
+  if (result.fateDrop) details.push('**Fate Point found!** +1 added to your bank.')
+  else if (result.fateDropRolled) details.push('**Fate Point found!** Your bank is full.')
   for (const shield of result.blockedShields || [])
     details.push(
       shield.popped
