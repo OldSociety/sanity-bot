@@ -60,6 +60,10 @@ test('Admin card label comes from the selected member role', async t => {
 
 test('birthday and level previews are private and never change saved levels, currency or Sanity', async t => {
   const f = await fixture(t)
+  const oldRole = process.env.UNWANTEDROLEID
+  t.after(() => oldRole === undefined ? delete process.env.UNWANTEDROLEID : process.env.UNWANTEDROLEID = oldRole)
+  process.env.UNWANTEDROLEID = 'unwanted'
+  f.interaction.guild.members.fetch = async () => ({ displayName: 'Alice', roles: ['unwanted'], displayAvatarURL: f.interaction.user.displayAvatarURL })
   await f.User.create({ user_id: 'alice', user_name: 'Alice', chat_level: 27, chat_exp: 3000, fate_points: 100, bank: 63 })
   const before = (await f.User.findByPk('alice')).get({ plain: true })
   let balanceReads = 0
@@ -116,9 +120,13 @@ test('production profiles show persisted Sanity and still reject previews', asyn
   t.after(() => { process.env.NODE_ENV = previous })
   process.env.NODE_ENV = 'production'
   await require('../migrations/sanity').up(f.User.sequelize.getQueryInterface())
+  await require('../migrations/sanity-account-names').up(f.User.sequelize.getQueryInterface())
   await require('../migrations/sanity-daily').up(f.User.sequelize.getQueryInterface())
   let freshness
-  f.interaction.guild.members.fetch = async input => { freshness = input; return { user: { bot: false }, roles: { cache: new Map() }, displayName: 'Alice', displayAvatarURL: f.interaction.user.displayAvatarURL } }
+  const oldRole = process.env.UNWANTEDROLEID
+  t.after(() => oldRole === undefined ? delete process.env.UNWANTEDROLEID : process.env.UNWANTEDROLEID = oldRole)
+  process.env.UNWANTEDROLEID = 'unwanted'
+  f.interaction.guild.members.fetch = async input => { freshness = input; return { user: { bot: false }, roles: { cache: new Map([['unwanted', {}]]) }, displayName: 'Alice', displayAvatarURL: f.interaction.user.displayAvatarURL } }
   await f.execute()
   assert.deepEqual(freshness, { user: 'alice', force: true }); assert.equal(f.rendered[0].sanity.balance, 100)
   assert.equal(await require('../services/sanity').runtime(f.User).models.Account.count(), 1)
@@ -137,4 +145,27 @@ test('unavailable members and production Bots-role targets cannot render cards',
   await f.execute(); assert.match(f.edits[0], /not available/)
   f.interaction.guild.members.fetch = async () => ({ user: { bot: false }, roles: { cache: new Map([['bots', { name: 'Bots' }]]) } })
   await f.execute(); assert.match(f.edits[1], /Bots are excluded/); assert.equal(f.rendered.length, 0)
+})
+
+test('profiles without the Unwanted role hide Sanity and cannot initialize or settle an account', async t => {
+  const f = await fixture(t)
+  let disabled = false
+  await f.execute({ sanityService: {
+    syncMember: async input => { assert.equal(input.eligible, false); disabled = true; return null },
+    view: async () => { throw Error('Non-Unwanted profile must not settle Sanity') },
+  } })
+  assert.equal(disabled, true)
+  assert.equal(f.rendered[0].sanity, null)
+})
+
+test('hendrixh keeps the paused Sanity display even without the Unwanted role', async t => {
+  const f = await fixture(t)
+  f.interaction.user.id = '596071449219956915'
+  f.interaction.user.username = 'hendrixh'
+  await f.execute({ sanityService: { syncMember: async input => {
+    assert.equal(input.userId, '596071449219956915')
+    return { balance: 85, maximum: 100, paused: true }
+  } } })
+  assert.equal(f.rendered[0].sanity.balance, 85)
+  assert.equal(f.rendered[0].sanity.paused, true)
 })

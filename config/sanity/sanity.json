@@ -1,5 +1,6 @@
 {
-  "version": 3,
+  "version": 4,
+  "pausedUserIds": ["596071449219956915"],
   "developmentEnabled": true,
   "productionEnabled": true,
   "developmentSpendingEnabled": true,

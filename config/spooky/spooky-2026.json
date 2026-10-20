@@ -38,6 +38,7 @@
     "dailyDrawLimit": null
   },
   "fate": {
+    "excludedUserIds": ["138131238803210240"],
     "uniquePieceReward": 1,
     "completeCollectionBonus": 2,
     "quarterCost": 10,

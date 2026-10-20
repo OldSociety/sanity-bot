@@ -1,9 +1,10 @@
 const test = require('node:test'), assert = require('node:assert/strict')
 const { nudge, nudgeChat } = require('../services/sanity-reminder')
 test('reminders stay private, actor-scoped and excluded from birthday/level test previews', async t => {
-  const prior = { NODE_ENV: process.env.NODE_ENV, GUILDID: process.env.GUILDID }
+  const prior = { NODE_ENV: process.env.NODE_ENV, GUILDID: process.env.GUILDID, UNWANTEDROLEID: process.env.UNWANTEDROLEID }
   t.after(() => { for (const [key, value] of Object.entries(prior)) value === undefined ? delete process.env[key] : process.env[key] = value })
   process.env.NODE_ENV = 'development'; process.env.GUILDID = 'guild'
+  process.env.UNWANTEDROLEID = 'unwanted'
   let claims = 0
   const messages = [], interaction = { guildId: 'guild', user: { id: 'alice', bot: false }, commandName: 'profile',
     options: { getSubcommand: () => 'birthday' }, deferred: true, followUp: async value => messages.push(value) }
@@ -11,7 +12,7 @@ test('reminders stay private, actor-scoped and excluded from birthday/level test
   assert.equal(await nudge(interaction, {}, service), null); assert.equal(claims, 0)
   interaction.options.getSubcommand = () => 'view'
   assert.equal(await nudge(interaction, {}, service), null)
-  const message = { guild: { id: 'guild' }, createdTimestamp: Date.now(), author: { id: 'alice', send: async value => messages.push(value) } }
+  const message = { guild: { id: 'guild' }, member: { roles: ['unwanted'] }, createdTimestamp: Date.now(), author: { id: 'alice', send: async value => messages.push(value) } }
   await nudgeChat(message, service)
   assert.deepEqual(messages[0].allowedMentions, { parse: [] })
   assert.match(messages[0].embeds[0].description, /24\/100/)
@@ -19,9 +20,12 @@ test('reminders stay private, actor-scoped and excluded from birthday/level test
   assert.equal(await nudge(interaction, {}, service), null); assert.equal(claims, 1)
 })
 test('chat DM failure never attempts a public fallback', async t => {
+  const oldRole = process.env.UNWANTEDROLEID
+  t.after(() => oldRole === undefined ? delete process.env.UNWANTEDROLEID : process.env.UNWANTEDROLEID = oldRole)
+  process.env.UNWANTEDROLEID = 'unwanted'
   const prior = process.env.GUILDID; t.after(() => prior === undefined ? delete process.env.GUILDID : process.env.GUILDID = prior)
   process.env.GUILDID = 'guild'
-  const message = { guild: { id: 'guild' }, createdTimestamp: Date.now(), author: { id: 'alice', send: async () => { throw Error('closed DM') } } }
+  const message = { guild: { id: 'guild' }, member: { roles: ['unwanted'] }, createdTimestamp: Date.now(), author: { id: 'alice', send: async () => { throw Error('closed DM') } } }
   await assert.rejects(nudgeChat(message, { claimReminder: async () => ({ balance: 69, band: 'fading' }) }), /closed DM/)
 })
 test('maintenance creates no scheduler or storage service in test environment', t => {

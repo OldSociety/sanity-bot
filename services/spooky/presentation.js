@@ -384,6 +384,7 @@ function actionMessages(
 function collectionFateText(award) {
   const reward = award?.fateReward
   if (!reward) return ''
+  if (reward.excluded) return ''
   return `\n**Collection Fate:** +${reward.credited} added to your Bank.${reward.completionBonus ? ` Includes the +${reward.completionBonus} bonus for collecting all 28 unique pieces!` : ''}${reward.capped ? ` ${reward.capped} could not be banked because your Bank is full.` : ''}`
 }
 function privateScreen(title, description, fields = []) {

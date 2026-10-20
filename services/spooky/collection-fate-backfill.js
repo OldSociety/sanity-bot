@@ -13,6 +13,7 @@ function createCollectionFateBackfill({ User, models, economy, event, guildId })
     const prior = await models.Ledger.findAll({ where: { ...scope, resource: 'bank' }, transaction })
     const targets = []
     for (const player of players) {
+      if (event.fate.excludedUserIds?.includes(player.userId)) continue
       const inventory = await models.Inventory.findAll({ where: { participantId: player.id }, transaction })
       if (!inventory.length) continue
       if (inventory.some(row => !valid.has(row.pieceId) || !Number.isSafeInteger(row.quantity) || row.quantity < 1)) throw Error('Invalid backfill inventory')

@@ -3,6 +3,7 @@ const { defineDailyModels, dayIndex, dayAt } = require('./sanity-daily-models')
 const { serialize } = require('./spooky/economy')
 const { dayKey } = require('./community-leveling/config')
 const data = require('../config/sanity/sanity.json')
+function isPaused(userId, config = data) { return config.pausedUserIds?.includes(userId) === true }
 function selected(environment = process.env.NODE_ENV) {
   const enabled = (environment === 'development' && data.developmentEnabled === true) ||
     (environment === 'production' && data.productionEnabled === true)
@@ -13,6 +14,7 @@ function defineModels(db) {
   const integer = defaultValue => ({ type: D.INTEGER, defaultValue, allowNull: false })
   return {
     Account: db.models.SanityAccount || db.define('SanityAccount', { guildId: key(), userId: key(), balance: integer(data.starting),
+      userName: D.STRING, displayName: D.STRING, trackingEnabled: { type: D.BOOLEAN, allowNull: false, defaultValue: true },
       day: { type: D.STRING, allowNull: false }, earned: integer(0), lastEarnedAt: D.DATE,
       lastActiveAt: { type: D.DATE, allowNull: false }, decayDays: integer(0) }, { timestamps: false, freezeTableName: true }),
     ...defineDailyModels(db),
@@ -24,8 +26,12 @@ function createSanity({ sequelize, config = selected(), models = defineModels(se
   const transaction = work => serialize(sequelize, () => sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, work))
   async function accountInTransaction(guildId, userId, now, tx) {
     if (!guildId || !userId || !Number.isFinite(+now)) throw new Error('Invalid Sanity identity/time')
+    // Pauses preserve the visible saved balance without creating activity or
+    // settling decay. Deliberate purchases may still spend that saved balance.
+    if (isPaused(userId, config)) return models.Account.findOne({ where: { guildId, userId }, transaction: tx })
     const [account] = await models.Account.findOrCreate({ where: { guildId, userId }, defaults: {
       balance: config.starting, day: dayKey(now, timezone), lastActiveAt: now }, transaction: tx })
+    if (!account.trackingEnabled) return null
     if (!Number.isSafeInteger(account.balance) || account.balance < 0 || account.balance > config.capacity) throw new Error('Invalid saved Sanity')
     const today = dayKey(now, timezone), lastClosed = dayIndex(today) - 1
     const [state] = await models.State.findOrCreate({ where: { guildId, userId }, defaults: { lastSettledDay: dayAt(lastClosed) }, transaction: tx })
@@ -45,11 +51,13 @@ function createSanity({ sequelize, config = selected(), models = defineModels(se
   }
   async function viewInTransaction(guildId, userId, now, tx) {
     const account = await accountInTransaction(guildId, userId, now, tx)
+    if (!account) return null
     return { balance: account.balance, maximum: config.capacity }
   }
   async function spendInTransaction({ guildId, userId, now, cost, expected }, tx) {
     if (!Number.isSafeInteger(cost) || cost <= 0) throw new Error('Invalid Sanity cost')
     const account = await accountInTransaction(guildId, userId, now, tx)
+    if (!account) throw new Error('Sanity is only available to Unwanted members')
     if (expected !== undefined && account.balance !== expected) throw new Error('Your Sanity changed. Review the purchase again.')
     if (account.balance < cost) throw new Error('Insufficient Sanity')
     const before = account.balance
@@ -57,12 +65,14 @@ function createSanity({ sequelize, config = selected(), models = defineModels(se
     return { sanityBefore: before, sanity: account.balance, sanitySpent: cost }
   }
   async function gain({ guildId, userId, messageId, channelId = null, now }) {
-    if (!config.enabled) return null
+    if (!config.enabled || isPaused(userId, config)) return null
     return transaction(async tx => {
       const operationId = `chat:${messageId}`, where = { guildId, operationId }
       const old = await models.Receipt.findOne({ where, transaction: tx })
       if (old) { if (old.userId !== userId) throw new Error('Sanity message owner changed'); return { ...old.result, replayed: true } }
-      const account = await accountInTransaction(guildId, userId, now, tx), before = account.balance
+      const account = await accountInTransaction(guildId, userId, now, tx)
+      if (!account) return null
+      const before = account.balance
       if (now < new Date(account.lastActiveAt)) throw new Error('Out-of-order Sanity activity')
       const day = dayKey(now, timezone)
       const [presence] = await models.Day.findOrCreate({ where: { guildId, userId, day }, defaults: { firstActiveAt: now, channelId }, transaction: tx })
@@ -84,9 +94,10 @@ function createSanity({ sequelize, config = selected(), models = defineModels(se
   }
   const view = (guildId, userId, now = new Date()) => config.enabled ? transaction(tx => viewInTransaction(guildId, userId, now, tx)) : null
   async function claimReminder(guildId, userId, now = new Date()) {
-    if (!config.enabled || !config.reminderDelivery) return null
+    if (!config.enabled || !config.reminderDelivery || isPaused(userId, config)) return null
     return transaction(async tx => {
       const account = await accountInTransaction(guildId, userId, now, tx)
+      if (!account) return null
       const state = await models.State.findOne({ where: { guildId, userId }, transaction: tx })
       if (account.balance >= 70 || (state.lastReminderAt && now - new Date(state.lastReminderAt) < config.reminderIntervalMs)) return null
       const band = require('./sanity-eye').sanityStage({ balance: account.balance, maximum: config.capacity })
@@ -97,7 +108,33 @@ function createSanity({ sequelize, config = selected(), models = defineModels(se
       return { balance: account.balance, band, special: account.balance === 0 }
     })
   }
-  return { view, gain, viewInTransaction, spendInTransaction, claimReminder, models }
+  async function syncMember({ guildId, userId, userName, displayName, eligible, now = new Date() }) {
+    if (!config.enabled) return null
+    if (typeof eligible !== 'boolean') throw Error('Trusted Sanity membership is required')
+    return transaction(async tx => {
+      let account = await models.Account.findOne({ where: { guildId, userId }, transaction: tx })
+      const names = { ...(userName ? { userName } : {}), ...(displayName ? { displayName } : {}) }
+      if (isPaused(userId, config)) {
+        if (account) await account.update({ ...names, trackingEnabled: false }, { transaction: tx })
+        return { balance: account?.balance ?? config.starting, maximum: config.capacity, paused: true }
+      }
+      if (!eligible) {
+        if (account) await account.update({ ...names, trackingEnabled: false }, { transaction: tx })
+        return null
+      }
+      if (account && !account.trackingEnabled) {
+        // Rejoining the role does not charge inactivity from the exempt period.
+        const lastSettledDay = dayAt(dayIndex(dayKey(now, timezone)) - 1)
+        const [state] = await models.State.findOrCreate({ where: { guildId, userId }, defaults: { lastSettledDay }, transaction: tx })
+        await state.update({ lastSettledDay }, { transaction: tx })
+        await account.update({ trackingEnabled: true, lastActiveAt: now }, { transaction: tx })
+      }
+      account = await accountInTransaction(guildId, userId, now, tx)
+      await account.update(names, { transaction: tx })
+      return { balance: account.balance, maximum: config.capacity }
+    })
+  }
+  return { view, gain, viewInTransaction, spendInTransaction, claimReminder, syncMember, models }
 }
 const instances = new WeakMap()
 function runtime(User) {
@@ -110,19 +147,29 @@ async function handleMessage(message, User) {
   const config = { ...require('./community-leveling/config').selectConfig(), enabled: true }
   if (config.guildId !== process.env.GUILDID) throw new Error('Sanity guild must match selected environment')
   if (!require('./community-leveling/eligibility').qualifies(message, config)) return null
+  const membership = require('./sanity-membership')
+  const service = runtime(User)
+  if (!await service.syncMember({ guildId: message.guild.id, userId: message.author.id,
+    ...membership.identity(message.author, message.member), eligible: membership.hasUnwantedRole(message.member),
+    now: new Date(message.createdTimestamp) })) return null
   // Show the settled returning state before this post earns today's presence.
   // A closed DM never prevents activity credit or falls back to public delivery.
   try { await require('./sanity-reminder').nudgeChat(message, runtime(User)) }
   catch (error) { console.error('Sanity private chat nudge failed:', error.code || error.name) }
   return runtime(User).gain({ guildId: message.guild.id, userId: message.author.id, messageId: message.id, channelId: message.channelId, now: new Date(message.createdTimestamp) })
 }
-async function handleInteraction(interaction, User, { config = selected(), service, guildId = process.env.GUILDID } = {}) {
+async function handleInteraction(interaction, User, { config = selected(), service, guildId = process.env.GUILDID, unwantedRoleId = process.env.UNWANTEDROLEID } = {}) {
   if (!config.enabled || !interaction.guild?.id || interaction.guild.id !== guildId ||
     !interaction.user?.id || interaction.user.bot || !interaction.member ||
     require('./member-policy').excludedMember(interaction.member)) return null
   if (!(interaction.isChatInputCommand?.() || interaction.isButton?.() || interaction.isStringSelectMenu?.())) return null
-  return (service || runtime(User || require('../Models/model').User)).gain({ guildId: interaction.guild.id, userId: interaction.user.id,
+  const membership = require('./sanity-membership')
+  const sanity = service || runtime(User || require('../Models/model').User)
+  if (!await sanity.syncMember({ guildId: interaction.guild.id, userId: interaction.user.id,
+    ...membership.identity(interaction.user, interaction.member), eligible: membership.hasUnwantedRole(interaction.member, unwantedRoleId),
+    now: new Date(interaction.createdTimestamp) })) return null
+  return sanity.gain({ guildId: interaction.guild.id, userId: interaction.user.id,
     messageId: `interaction:${interaction.id}`, channelId: interaction.channelId,
     now: new Date(interaction.createdTimestamp) })
 }
-module.exports = { selected, defineModels, createSanity, runtime, handleMessage, handleInteraction }
+module.exports = { selected, defineModels, createSanity, runtime, handleMessage, handleInteraction, isPaused }

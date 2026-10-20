@@ -10,7 +10,7 @@ async function nudge(interaction, User, service = require('./sanity').runtime(Us
   if (interaction.commandName === 'profile' && ['birthday', 'level'].includes(interaction.options.getSubcommand?.(false))) return null
   if (!interaction.replied && !interaction.deferred) return null
   const member = interaction.member
-  if (require('./member-policy').excludedMember(member || { user: interaction.user })) return null
+  if (!require('./sanity-membership').hasUnwantedRole(member)) return null
   const reminder = await service.claimReminder(interaction.guildId, interaction.user.id)
   if (!reminder) return null
   await interaction.followUp({ ephemeral: true, allowedMentions: { parse: [] },
@@ -21,6 +21,7 @@ async function nudge(interaction, User, service = require('./sanity').runtime(Us
 async function nudgeChat(message, service) {
   if (!service || require('./sanity').selected().reminderDelivery !== 'private-chat-dm' ||
     message.guild?.id !== process.env.GUILDID || !message.author || message.author.bot) return null
+  if (!require('./sanity-membership').hasUnwantedRole(message.member)) return null
   const reminder = await service.claimReminder(message.guild.id, message.author.id, new Date(message.createdTimestamp))
   if (!reminder) return null
   await message.author.send({ allowedMentions: { parse: [] }, embeds: [{

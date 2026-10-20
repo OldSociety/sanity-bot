@@ -46,13 +46,17 @@ function createProfileCommand({ User, badgeService = createBadges({ sequelize: U
       }))
       const name = member?.displayName || player.globalName || player.username
       let sanity = null
-      if (sanityService) {
+      if (sanityService && (require('./sanity-membership').hasUnwantedRole(member) || require('./sanity').isPaused(player.id))) {
         if (preview) {
           // Preview reads never initialize accounts, settle decay or award funds.
           const account = await sanityService.models.Account.findOne({ where: { guildId: interaction.guild.id, userId: player.id } })
           const config = require('../config/sanity/sanity.json')
           sanity = { balance: account?.balance ?? config.starting, maximum: config.capacity }
-        } else sanity = await sanityService.view(interaction.guild.id, player.id)
+        } else sanity = await sanityService.syncMember({ guildId: interaction.guild.id, userId: player.id,
+          ...require('./sanity-membership').identity(player, member), eligible: true })
+      } else if (sanityService && !preview) {
+        await sanityService.syncMember({ guildId: interaction.guild.id, userId: player.id,
+          ...require('./sanity-membership').identity(player, member), eligible: false })
       }
       const saved = user?.get({ plain: true }) || {}
       const example = previewCard(saved, mode)

@@ -51,6 +51,7 @@ function validateEvent(config) {
   for (const [value, label] of [[config.eyes.quarterCost, 'Eye quarter cost'], [config.fate.quarterCost, 'fate quarter cost'], [config.duplicates.exchangeCost, 'duplicate cost'], [config.protection.theftDurationMs, 'protection duration']]) requirePositiveInteger(value, label)
   if (!['bank-then-fate', 'normal-fate-only', 'sanity'].includes(config.fate.paymentResource)) throw new Error('Invalid Fate purchase policy')
   for (const key of ['uniquePieceReward', 'completeCollectionBonus']) requirePositiveInteger(config.fate[key], `fate.${key}`)
+  if (!Array.isArray(config.fate.excludedUserIds) || config.fate.excludedUserIds.some(id => typeof id !== 'string' || !id)) throw Error('Invalid collection Fate exclusions')
   validateOutcomes(Object.entries(config.fate.rarityPercent || {}).map(([id, percent]) => ({ id, percent })), 'Fate rarity')
   if (Object.keys(config.fate.rarityPercent).sort().join(',') !== 'common,legendary,rare') throw new Error('Invalid Fate rarity categories')
   for (const [key, value] of Object.entries(config.crown || {})) requirePositiveInteger(value, `crown.${key}`)

@@ -291,6 +291,8 @@ function createController({
         )
         return finishResult(interaction, input, result)
       }
+      if (event.fate.paymentResource === 'sanity' && !require('../sanity-membership').hasUnwantedRole(interaction.member, roleIds.unwanted))
+        throw new Error('Sanity is only available to Unwanted members')
       const quote = await economy.read(async (transaction) => {
         if (!event.enabled || getEventState(clock(), event) !== 'ACTIVE')
           throw new Error('Spooky is not active')
@@ -542,6 +544,7 @@ function createController({
         economy,
         collection: wrapped,
         event,
+        canPurchase: () => event.fate.paymentResource !== 'sanity' || snapshot.some(member => member.userId === input.actorId && member.roleIds.includes(roleIds.unwanted)),
         finalizeReceipt,
       }).purchase(input)
     } else

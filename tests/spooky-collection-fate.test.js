@@ -135,3 +135,35 @@ test('online backup captures a WAL database and verifies integrity without chang
     await assert.rejects(onlineBackup(source, destination), /already exists/)
   } finally { await new Promise(resolve => db.close(resolve)) }
 })
+
+test('Junkrabbit earns no piece or completion Fate and is excluded from backfill', async t => {
+  const f = await fixture(t)
+  const ownerId = '138131238803210240'
+  await f.User.create({ user_id: ownerId, user_name: 'junkrabbit', bank: 5 })
+  const owner = await f.models.Participant.create({ eventId: f.event.eventId, guildId: 'guild', userId: ownerId,
+    registeredAt: new Date(f.event.startsAt), refillAnchor: new Date(f.event.startsAt) })
+  for (const piece of pieces.slice(0, -1)) await f.models.Inventory.create({ participantId: owner.id, pieceId: piece.id, quantity: 1 })
+  const result = await f.run('owner-last', ctx => f.collection.grantQuarter(ctx, ownerId, pieces.at(-1).id))
+  assert.equal(result.receipt.awards[0].fateReward.excluded, true)
+  assert.equal((await f.User.findByPk(ownerId)).bank, 5)
+  assert.equal((await f.backfill.plan()).targets.some(target => target.userId === ownerId), false)
+  assert.equal(await f.models.Ledger.count({ where: { userId: ownerId, resource: 'bank' } }), 0)
+})
+
+test('owner correction reverses only historical piece credits once, retaining the Crown reward and inventory', async t => {
+  const f = await fixture(t)
+  const ownerId = '138131238803210240'
+  await f.User.create({ user_id: ownerId, user_name: 'junkrabbit', bank: 25, fate_points: 10 })
+  await f.run('previous-grants', async ctx => {
+    await ctx.record({ userId: ownerId, resource: 'bank', delta: 20, before: 0, after: 20, metadata: { reason: 'spooky_collection_backfill' } })
+    await ctx.record({ userId: ownerId, resource: 'bank', delta: 5, before: 20, after: 25, metadata: { reason: 'sweet_tooth_bonus' } })
+    return {}
+  })
+  const economy = require('../services/spooky/economy').createEconomy({ sequelize: f.db, models: f.models })
+  const run = () => require('../services/spooky/owner-collection-correction').correctOwnerCollectionFate({
+    User: f.User, models: f.models, economy, event: f.event, guildId: 'guild', userId: ownerId })
+  assert.equal((await run()).receipt.reversed, 20)
+  assert.equal((await run()).replayed, true)
+  assert.equal((await f.User.findByPk(ownerId)).bank, 5)
+  assert.equal((await f.User.findByPk(ownerId)).fate_points, 10)
+})

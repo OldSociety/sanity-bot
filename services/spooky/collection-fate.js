@@ -9,6 +9,7 @@ function collectionEntitlement(ownedPieces, event) {
 // Share the caller's inventory/purchase transaction and existing bank ledger.
 async function creditCollectionFate({ User, ctx, userId, amount, event, metadata }) {
   if (!Number.isSafeInteger(amount) || amount < 1) throw Error('Invalid collection Fate reward')
+  if (event.fate.excludedUserIds?.includes(userId)) return { entitled: 0, credited: 0, capped: 0, excluded: true }
   const user = await User.findByPk(userId, { transaction: ctx.transaction })
   if (!user || !Number.isSafeInteger(user.bank) || user.bank < 0) throw Error('Invalid collection Fate wallet')
   const before = user.bank

@@ -4,6 +4,7 @@ const { handleInteraction } = require('../services/sanity')
 async function fixture(t, origin = '2026-10-04T16:00:00Z') {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
   await require('../migrations/sanity').up(db.getQueryInterface())
+  await require('../migrations/sanity-account-names').up(db.getQueryInterface())
   await require('../migrations/sanity-daily').up(db.getQueryInterface())
   // Most behavior checks use 50 to leave room for daily credits.
   const service = createSanity({ sequelize: db, config: { ...require('../config/sanity/sanity.json'), starting: 50, enabled: true } })
@@ -17,9 +18,9 @@ test('Sanity is enabled in both bot environments but not tests', () => {
 
 test('bot commands and buttons share chat presence, spaced activity, replay protection and the daily cap', async t => {
   const f = await fixture(t)
-  const interaction = (id, hours, extra = {}) => ({ id, guild: { id: 'guild' }, user: { id: 'alice' }, member: {},
+  const interaction = (id, hours, extra = {}) => ({ id, guild: { id: 'guild' }, user: { id: 'alice' }, member: { roles: ['unwanted'] },
     channelId: 'games', createdTimestamp: +f.now(hours), isChatInputCommand: () => true, ...extra })
-  const credit = i => handleInteraction(i, null, { config: { enabled: true }, guildId: 'guild', service: f.service })
+  const credit = i => handleInteraction(i, null, { config: { enabled: true }, guildId: 'guild', service: f.service, unwantedRoleId: 'unwanted' })
   assert.equal((await credit(interaction('one', 0))).after, 52)
   assert.equal((await credit(interaction('one', 0))).replayed, true)
   assert.equal((await f.gain('chat', .25)).credited, 0)
@@ -114,6 +115,7 @@ test('weekly reminder reservation uses current bands, never duplicates across th
 test('daily migration preserves an old-policy balance, prevents duplicate credits today and does not backdate losses', async t => {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close())
   await require('../migrations/sanity').up(db.getQueryInterface())
+  await require('../migrations/sanity-account-names').up(db.getQueryInterface())
   const model = createSanity({ sequelize: db }).models.Account
   const now = new Date('2026-10-04T16:00:00Z')
   await model.create({ guildId: 'guild', userId: 'alice', balance: 58, earned: 8, day: '2026-10-04', lastEarnedAt: now, lastActiveAt: now })
