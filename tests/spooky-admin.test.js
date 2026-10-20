@@ -300,7 +300,7 @@ test('development reset preserves wallet/permanent sentinel/audit/other scopes, 
     adapter: { getMember: async () => ({ roleIds: ['curse-role'], nickname: 'ecilA' }), setRole: async () => {}, setNickname: async () => {} } })
   const player = await seed(f, { candy: 20, eyes: 3, treatPrestige: -2, trickPrestige: 4 })
   await seed(f, { userId: 'bob' }); await seed(f, { guildId: 'other' })
-  await f.User.create({ user_id: 'alice', user_name: 'Alice', bank: 70, fate_points: 15 })
+  await f.User.update({ bank: 70, fate_points: 15 }, { where: { user_id: 'alice' } })
   await f.sequelize.query('CREATE TABLE PermanentBadgeSentinel (owner TEXT PRIMARY KEY)')
   await f.sequelize.query("INSERT INTO PermanentBadgeSentinel VALUES ('alice')")
   await f.models.Inventory.create({ participantId: player.id, pieceId: 'had_tl', quantity: 2 })
@@ -368,6 +368,7 @@ test('control adapter defers privately and reconciles only after commit with the
 })
 
 async function seed(f, values = {}) {
+  await f.User.findOrCreate({ where: { user_id: values.userId || 'alice' }, defaults: { user_name: values.userId || 'Alice' } })
   return f.models.Participant.create({ eventId: config.eventId, guildId: 'guild', userId: 'alice', candy: 10, eyes: 0,
     registeredAt: new Date(config.startsAt), refillAnchor: new Date(config.startsAt), ...values })
 }
@@ -390,7 +391,7 @@ test('every repair requires fresh authorization, exact scope, a reason and bound
 test('candy corrections are bounded stored deltas, preserve partial anchors and discard full-cap surplus', async t => {
   const f = await fixture(t)
   const player = await seed(f, { candy: 80, registeredAt: null })
-  await f.User.create({ user_id: 'alice', user_name: 'Alice', bank: 80, fate_points: 25 })
+  await f.User.update({ bank: 80, fate_points: 25 }, { where: { user_id: 'alice' } })
   const result = await f.admin.repair(repairInput('subtract', { delta: -1 }))
   assert.equal(result.receipt.candy, 79)
   let fresh = await f.models.Participant.findByPk(player.id)

@@ -1,6 +1,7 @@
 const { config: defaultConfig, pieces, requireApprovedRarity } = require('./config')
 
-function createCollection({ models, participants, event = defaultConfig, random = Math.random, allowPaused = false, badges = null }) {
+function createCollection({ User, models, participants, event = defaultConfig, random = Math.random, allowPaused = false, badges = null }) {
+  if (User && User.sequelize !== models.Participant.sequelize) throw Error('Collection and Fate models must share a connection')
   const byId = new Map(pieces.map(piece => [piece.id, piece]))
   function roll() {
     const value = random()
@@ -71,7 +72,13 @@ function createCollection({ models, participants, event = defaultConfig, random 
     // duplicate exchange can change the circle shown for this particular award.
     const ownedPositions = pieces.filter(item => item.characterId === piece.characterId && owned.has(item.id)).map(item => item.position)
     const newlyAwardedBadge = badges && ownedPositions.length === 4 ? await badges.award(ctx, participant.userId, piece.characterId) : null
+    const completionBonus = !before && owned.size === pieces.length ? event.fate.completeCollectionBonus : 0
+    const fateReward = User && !before ? await require('./collection-fate').creditCollectionFate({
+      User, ctx, userId: participant.userId, event, amount: event.fate.uniquePieceReward + completionBonus,
+      metadata: { reason: 'spooky_unique_piece', pieceId: piece.id, participantId: participant.id, completionBonus },
+    }) : null
     return { ...piece, duplicate: before > 0, source: reason, ownedPositions,
+      ...(fateReward ? { fateReward: { ...fateReward, completionBonus } } : {}),
       // Keep the count at this acquisition, before an automatic exchange consumes
       // five extras. Saved reveals must not read today's inventory on replay.
       duplicates: [...owned.values()].reduce((sum, row) => sum + row.quantity - 1, 0),

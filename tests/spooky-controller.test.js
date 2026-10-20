@@ -369,7 +369,8 @@ test('fate purchase publicly reveals quarter; replay retains render plan and deb
   await fresh.execute(replay)
   assert.deepEqual(replay.sent, fate.sent)
   assert.equal(replay.sent[0].enforceNonce, true)
-  assert.equal((await f.User.findByPk('alice')).bank, 0)
+  assert.equal((await f.User.findByPk('alice')).bank, 1)
+  assert.match(fate.sent[0].embeds[0].description, /Collection Fate.*\+1 added to your Bank/)
 })
 test('failed public notification does not refund or reroll committed theft', async t => {
   const f = await fixture(t, { failSend: true })

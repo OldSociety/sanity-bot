@@ -26,7 +26,9 @@ function createFatePurchases({ User, models, economy, collection, event = defaul
         const payment = await sanity.spendInTransaction({ guildId: ctx.scope.guildId, userId, now: ctx.now,
           cost: event.fate.quarterCost, expected: input.expectedWallet?.sanity }, ctx.transaction)
         await ctx.record({ userId, resource: 'sanity', delta: -payment.sanitySpent, before: payment.sanityBefore, after: payment.sanity, metadata: { reason: 'quarter_purchase' } })
-        return finalizeReceipt(ctx, { ...await collection.drawFateQuarter(ctx, userId), userId, ...payment,
+        const collected = await collection.drawFateQuarter(ctx, userId)
+        await user.reload({ transaction: ctx.transaction })
+        return finalizeReceipt(ctx, { ...collected, userId, ...payment,
           bank: user.bank, fatePoints: user.fate_points })
       }
       if (input.expectedWallet && (user.bank !== input.expectedWallet.bank || user.fate_points !== input.expectedWallet.fatePoints)) throw new Error('Your balances changed. Use /spooky spend-fate again to review them.')
@@ -41,7 +43,8 @@ function createFatePurchases({ User, models, economy, collection, event = defaul
         if (amount) await ctx.record({ userId, resource, delta: -amount, before, after, metadata: { reason: 'fate_quarter_purchase' } })
       }
       const result = await collection.drawFateQuarter(ctx, userId)
-      return finalizeReceipt(ctx, { ...result, userId, ...payment })
+      await user.reload({ transaction: ctx.transaction })
+      return finalizeReceipt(ctx, { ...result, userId, ...payment, bank: user.bank, fatePoints: user.fate_points })
     })
   }
   return { purchase }

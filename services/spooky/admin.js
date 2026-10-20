@@ -87,7 +87,7 @@ function createAdmin({ sequelize, models, User, economy, authorize, guildId,
         policy: 'Inspection only. Sending/uncertain notifications must not be blindly resent.' }
     })
   }
-  const { repair } = require('./admin-repairs').createAdminRepairs({ models, economy, event, scope, checkAccess, random, finalizeRepair, badges })
+  const { repair } = require('./admin-repairs').createAdminRepairs({ User, models, economy, event, scope, checkAccess, random, finalizeRepair, badges })
   const { control } = require('./admin-controls').createAdminControls({ sequelize, models, economy, event, scope, checkAccess,
     environment, developmentStorage, delivery, roleIds, badges })
   const { resolve } = require('./admin-resolution').createAdminResolution({ models, economy, event, scope, checkAccess, readMessage, readMember })

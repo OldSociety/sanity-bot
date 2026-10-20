@@ -2,7 +2,7 @@ const { createHash } = require('node:crypto')
 const { pieces, getEventState } = require('./config')
 const { createCollection } = require('./collection')
 
-function createAdminRepairs({ models, economy, event, scope, checkAccess, random, finalizeRepair, badges = null }) {
+function createAdminRepairs({ User, models, economy, event, scope, checkAccess, random, finalizeRepair, badges = null }) {
   const byId = new Map(pieces.map(piece => [piece.id, piece]))
   async function existing(ctx, userId, registered = false) {
     if (ctx.scope.eventId !== scope.eventId || ctx.scope.guildId !== scope.guildId) throw new Error('Repair scope mismatch')
@@ -16,7 +16,7 @@ function createAdminRepairs({ models, economy, event, scope, checkAccess, random
     if (registered && !participant.registeredAt) throw new Error('Collection repair requires registration')
     return participant
   }
-  const collection = createCollection({ models, event, random, allowPaused: true, badges,
+  const collection = createCollection({ User, models, event, random, allowPaused: true, badges,
     participants: { prepare: async (ctx, userId) => ({ participant: await existing(ctx, userId, true) }) } })
   async function inventory(ctx, participant) {
     const rows = await models.Inventory.findAll({ where: { participantId: participant.id }, transaction: ctx.transaction })

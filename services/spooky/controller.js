@@ -43,6 +43,7 @@ function createController({
   const participants = createParticipants({ models, economy, event })
   const effects = createEffects({ models, participants, event })
   const collection = createCollection({
+    User,
     models,
     participants,
     event,
@@ -546,7 +547,6 @@ function createController({
     } else
       result = await require('./actions')
         .createActions({
-          User,
           models,
           economy,
           participants,

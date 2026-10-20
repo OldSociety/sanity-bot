@@ -143,8 +143,6 @@ function actionMessages(
     variantKey,
   })
   const details = []
-  if (result.fateDrop) details.push('**Fate Point found!** +1 added to your bank.')
-  else if (result.fateDropRolled) details.push('**Fate Point found!** Your bank is full.')
   for (const shield of result.blockedShields || [])
     details.push(
       shield.popped
@@ -306,7 +304,7 @@ function actionMessages(
               award.source === 'duplicate_exchange'
                 ? '\nFive extras exchanged for a missing piece.'
                 : ''
-            }`,
+            }${collectionFateText(award)}`,
           },
         ],
       },
@@ -375,13 +373,18 @@ function actionMessages(
                   )
                 ? '**Permanent badge already unlocked.**'
                 : 'Permanent badge ownership is unavailable in this saved result.'
-            }\nSee your full collection with **/spooky collection**.`,
+            }${collectionFateText(finishing)}\nSee your full collection with **/spooky collection**.`,
           },
         ],
       },
     })
   }
   return messages
+}
+function collectionFateText(award) {
+  const reward = award?.fateReward
+  if (!reward) return ''
+  return `\n**Collection Fate:** +${reward.credited} added to your Bank.${reward.completionBonus ? ` Includes the +${reward.completionBonus} bonus for collecting all 28 unique pieces!` : ''}${reward.capped ? ` ${reward.capped} could not be banked because your Bank is full.` : ''}`
 }
 function privateScreen(title, description, fields = []) {
   const decorate = require('./flavor').currencyWords
@@ -449,6 +452,7 @@ function helpScreen() {
       'Start with **10 candy**. Gain **1 every 18 minutes**. Every action costs **1 candy**.',
       `Five 🧿 Evil Eyes automatically award a random piece. You cannot receive duplicates of an incomplete character. Once a character is complete, its pieces can repeat; every five duplicates exchange for a new unowned piece. Once all seven characters are complete, you stop receiving pieces and paid draws close. Existing pieces and duplicates are kept. ${config.plotPointsEnabled ? 'Every five Eyes then automatically contribute five 📖 Plot points to the community; leftover Eyes count toward your next set.' : 'Unspent Eyes are kept.'}`,
       'Tricks steal candy/Eyes or cause curses and reversed nicknames. Treats gift candy, grant protection and break curses.',
+      `**Collection Fate:** Each new unique piece adds **${config.fate.uniquePieceReward} Fate Point** to your Bank. Collect all **28** for a **+${config.fate.completeCollectionBonus} bonus**: **30 Fate Points total**. Duplicates give no Fate. The existing **+5 Crown reward** is separate, for **35 total** including the Crown. Bank capacity: ${config.fate.bankCapacity}.`,
       ...(config.plotPointsEnabled
         ? [
             'Sometimes your story adds one 📖 Plot point to the community instead of a candy reward. View our shared progress with `/profile community:True`. Each new chapter brings the community closer to a shared badge.',

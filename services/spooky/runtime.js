@@ -66,7 +66,7 @@ function runtime(client) {
   const participants = require('./participants').createParticipants({ models, economy })
   const effects = require('./effects').createEffects({ models, participants })
   const playful = require('./playful').createPlayful({ models, participants, effects, delivery,
-    collection: require('./collection').createCollection({ models, participants, badges }), roleIds, listMembers: () => [] })
+    collection: require('./collection').createCollection({ User, models, participants, badges }), roleIds, listMembers: () => [] })
   const winnerSnapshots = require('./winner-snapshot').createWinnerSnapshot({ models })
   const lifecycle = require('./lifecycle').createLifecycle({ models, economy, playful, delivery, guildId, winnerSnapshots })
   const reminders = require('./reminders').createReminders({ models, economy, notifications, guildId,
