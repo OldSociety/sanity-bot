@@ -279,12 +279,12 @@ function screen(session) {
       .setDisabled(Boolean(disabled || session.busy))
   if (battle)
     embed.setFooter({
-      text: `Hope ${battle.player.hope}/6 | ${battle.enemy.name}: Fear ${battle.enemy.fear}/6`,
+      text: `${icons.hope} ${battle.player.hope}/6 | ${icons.fear} Fear ${battle.enemy.fear}/6`,
     })
   const payload = (buttons) => {
     if (session.arenaVersion || battle?.arenaVersion) {
       const version = require('./versioning').label(battle?.arenaVersion || session.arenaVersion)
-      embed.setFooter({ text: [version, embed.data.footer?.text].filter(Boolean).join(' | ').slice(0, 2048) })
+      embed.setFooter({ text: [embed.data.footer?.text, version].filter(Boolean).join(' · ').slice(0, 2048) })
     }
     return ({
     content: '',
