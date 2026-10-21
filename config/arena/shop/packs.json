@@ -1,0 +1,38 @@
+{
+  "currency": null,
+  "packs": [
+    {
+      "id": "bronze",
+      "name": "Bronze Pack",
+      "tier": "bronze",
+      "color": 13467442,
+      "description": "Start building your roster with a Bronze character pack.",
+      "price": null,
+      "characterPool": [],
+      "cardsPerPack": null,
+      "odds": null
+    },
+    {
+      "id": "silver",
+      "name": "Silver Pack",
+      "tier": "silver",
+      "color": 12632256,
+      "description": "Expand your roster with a Silver character pack.",
+      "price": null,
+      "characterPool": [],
+      "cardsPerPack": null,
+      "odds": null
+    },
+    {
+      "id": "gold",
+      "name": "Gold Pack",
+      "tier": "gold",
+      "color": 16766720,
+      "description": "Build toward a Gold character pack for your roster.",
+      "price": null,
+      "characterPool": [],
+      "cardsPerPack": null,
+      "odds": null
+    }
+  ]
+}

@@ -274,6 +274,14 @@ module.exports = {
         interaction.customId?.startsWith('arena:'))
     ) {
       const customId = interaction.customId
+      if (customId.startsWith('arena:shop:')) {
+        await require('../services/arena/shop').shop.handleButton(interaction)
+        return
+      }
+      if (customId.startsWith('arena:campaign:')) {
+        await require('../services/arena/campaign').campaign.handleButton(interaction)
+        return
+      }
       if (customId.startsWith('arena:')) {
         // The controller authorizes both routed and direct calls.
         await require('../services/arena/controller').arena.handleButton(

@@ -1,0 +1,18 @@
+{
+  "id": "tower-01",
+  "number": 1,
+  "name": "The First Climb",
+  "description": "Face ten Arena roster matchups in a fixed order, ending with Marq [Spooky] as the boss.",
+  "encounters": [
+    { "id": "floor-01", "enemyId": "classic:azu", "name": "Azulis [Classic]", "health": 180, "damage": 140, "boss": false },
+    { "id": "floor-02", "enemyId": "spooky-2026:max", "name": "Maxim [Spooky]", "health": 190, "damage": 150, "boss": false },
+    { "id": "floor-03", "enemyId": "spooky-2026:mrq", "name": "Marq [Spooky]", "health": 200, "damage": 155, "boss": false },
+    { "id": "floor-04", "enemyId": "classic:hen", "name": "Hendrix [Classic]", "health": 210, "damage": 160, "boss": false },
+    { "id": "floor-05", "enemyId": "spooky-2026:sel", "name": "Selene [Spooky]", "health": 220, "damage": 170, "boss": false },
+    { "id": "floor-06", "enemyId": "classic:kyl", "name": "Kylax [Classic]", "health": 230, "damage": 180, "boss": false },
+    { "id": "floor-07", "enemyId": "spooky-2026:hfm", "name": "Marq [Hell-fed]", "health": 240, "damage": 190, "boss": false },
+    { "id": "floor-08", "enemyId": "classic:azu", "name": "Azulis [Classic]", "health": 250, "damage": 200, "boss": false },
+    { "id": "floor-09", "enemyId": "classic:hen", "name": "Hendrix [Classic]", "health": 260, "damage": 210, "boss": false },
+    { "id": "floor-10", "enemyId": "spooky-2026:mrq", "name": "Marq [Spooky]", "health": 300, "damage": 240, "boss": true }
+  ]
+}

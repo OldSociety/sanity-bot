@@ -439,7 +439,7 @@ test('production rejects diagnostic changes and its command schema stays unchang
   )
   const dev = require('../commands/Arena/Arena').data.toJSON()
   assert.equal(
-    dev.options.find((option) => option.name === 'diagnostic').type,
+    dev.options.find((option) => option.name === 'diagnostic').options[0].type,
     5
   )
 })

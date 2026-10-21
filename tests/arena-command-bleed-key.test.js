@@ -6,11 +6,11 @@ const { resolveCharacter } = require("../services/arena/characters");
 const { legendData, legendSvg } = require("../services/arena/legend");
 const { healthCost } = require("../services/arena/resources");
 const { kitFor } = require("../services/arena/rules");
-test("Arena starts with its menu and exposes only the access command option", () => {
+test("development Arena exposes fight, campaign and management subcommands", () => {
   const command = require("../commands/Arena/Arena");
   assert.deepEqual(
     command.data.toJSON().options.map((x) => x.name),
-    ["access"]
+    ["fight", "campaign", "shop", "access", "diagnostic"]
   );
   assert.equal(command.autocomplete, undefined);
 });

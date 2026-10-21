@@ -279,7 +279,7 @@ function screen(session) {
       .setDisabled(Boolean(disabled || session.busy))
   if (battle)
     embed.setFooter({
-      text: `${icons.hope} ${battle.player.hope}/6 | ${icons.fear} Fear ${battle.enemy.fear}/6`,
+      text: `🟡${battle.player.hope}/6 | 🟣Fear ${battle.enemy.fear}/6`,
     })
   const payload = (buttons) => {
     if (session.arenaVersion || battle?.arenaVersion) {
