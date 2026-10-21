@@ -52,6 +52,7 @@ function act(
     accuracy = 0,
     critical = 99,
     recovery = 99,
+    spend = 99,
   } = {}
 ) {
   return advance(
@@ -59,7 +60,7 @@ function act(
     slot ? { [slot]: true, ...(slot === 'special3' ? { choice: 3 } : {}) } : {},
     () => 1,
     dice(h, f),
-    () => 99,
+    () => spend,
     () => accuracy,
     () => critical,
     () => 99,
@@ -156,8 +157,8 @@ test('Aura of Life follows all eight healing steps and advances on partial heali
 })
 test('AI Aura of Life uses the same diminishing counter and never exceeds max HP', () => {
   let b = make(0, 'Spooky Selene')
-  b.enemy.hp = 130
-  let n = act(b, null, { actor: 'enemy' })
+  b.enemy.hp = 120 // Under the AI's 70% healing threshold.
+  let n = act(b, null, { actor: 'enemy', spend: 0 })
   assert.equal(n.enemySpecial, 'special1')
   assert.equal(n.enemy.lifeUses, 1)
   assert.equal(n.statistics.enemy.hpRestored, 26)

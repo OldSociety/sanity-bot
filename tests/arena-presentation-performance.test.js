@@ -744,10 +744,14 @@ test('compact/full diagnostic changes affect the next view without replaying a m
 
 test('private diagnostic waits for final timing, stays off the player path and deduplicates refreshes', async () => {
   const reports = []
+    const completed = []
+    const version = { version: '0.0.0.17', build: 17, rulesetId: 4, environment: 'production' }
   let release
   const pending = new Promise(resolve => { release = resolve })
   const f = fixture({
     diagnostics: () => false,
+      arenaVersion: () => version,
+      onComplete: report => completed.push(report),
     engine: {
       newBattle: () => fixedBattle(),
       takeTurn: battle => ({
@@ -762,12 +766,24 @@ test('private diagnostic waits for final timing, stays off the player path and d
       return reports.length === 1 ? pending : undefined
     },
   })
+  f.interaction.user.username = 'testpilot'
+  f.interaction.user.globalName = 'Test Pilot'
   try {
     await f.open()
+      version.version = '0.0.0.99' // Existing sessions keep their captured release.
     await f.click('basic')
     await new Promise(resolve => setImmediate(resolve))
     assert.equal(reports.length, 1)
     assert.equal(reports[0].battle.status, 'victory')
+    assert.equal(reports[0].ownerUsername, 'testpilot')
+    assert.equal(reports[0].ownerDisplayName, 'Test Pilot')
+      assert.equal(reports[0].arenaVersion.version, '0.0.0.17')
+      assert.equal(reports[0].battle.arenaVersion.rulesetId, 4)
+      assert.match(f.view().embeds[0].data.footer.text, /Arena 0\.0\.0\.17.*Ruleset 4.*production/)
+      assert.equal(completed.length, 1)
+      assert.equal(completed[0].arenaVersion.build, 17)
+      assert.equal(completed[0].outcome, 'victory')
+      assert.equal(completed[0].playerUsername, 'testpilot')
     assert.ok(Number.isFinite(reports[0].roundTimings[1].deliveryMs))
     assert.ok(reports[0].interactionTimings.some(r => r.action === 'basic' && Number.isFinite(r.deliveryMs)))
     assert.doesNotMatch(JSON.stringify(f.view()), /PRIVATE ARENA|INTERACTION TIMINGS|Processing/)
@@ -780,6 +796,9 @@ test('private diagnostic waits for final timing, stays off the player path and d
     assert.equal(reports[1].fightNumber, 2)
     assert.equal(reports[0].fightNumber, 1)
     assert.equal(reports[0].battle.tick, 1)
+      assert.equal(completed.length, 2)
+      assert.notEqual(completed[0].gameId, completed[1].gameId)
+      assert.equal(completed[1].arenaVersion.version, '0.0.0.17')
   } finally {
     release()
     await f.arena.dispose()
@@ -809,6 +828,26 @@ test('autonomous Finisher timeout also records processing and delivery without p
     await f.arena.dispose()
   }
 })
+
+  test('versioned abandoned games retain quit and expiry outcomes without duplicate completion', async () => {
+    const completed = []
+    const f = fixture({
+      arenaVersion: () => ({ version: '0.0.0.1', rulesetId: 1, environment: 'development' }),
+      onComplete: report => completed.push(report),
+    })
+    try {
+      await f.open()
+      await f.click('quit')
+      assert.equal(completed.length, 1)
+      assert.equal(completed[0].outcome, 'quit')
+      assert.equal(completed[0].winner, null)
+      await f.click('start')
+      await f.arena.dispose()
+      assert.equal(completed.length, 2)
+      assert.equal(completed[1].outcome, 'expired')
+      assert.equal(completed[1].arenaVersion.rulesetId, 1)
+    } finally { await f.arena.dispose() }
+  })
 
 test('fast delivery uses one full callback and no separate message edit or fetch', async () => {
   const records = []

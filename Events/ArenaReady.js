@@ -4,6 +4,7 @@ module.exports = {
   once: true,
   async execute(client) {
     if (!['development', 'production'].includes(process.env.NODE_ENV)) return
+    require('../services/arena/versioning').runtimeVersion()
     if (process.env.NODE_ENV === 'development' || require('../services/arena/build-profile').productionPlaytest) {
       require('../services/arena/timing').startMetrics(client)
       require('../services/arena/shutdown').installShutdown(client)

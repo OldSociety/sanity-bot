@@ -8,7 +8,7 @@ const { reportLines } = require('../services/arena/battle-report')
 const settings = { enabled: true, guildId: 'guild', channelId: 'personal' }
 function report() {
   return {
-    sessionId: 'session', fightNumber: 1, ownerId: 'player', guildId: 'guild', channelId: 'public', messageId: 'message',
+    sessionId: 'session', fightNumber: 1, ownerId: 'player', ownerUsername: 'pilot', ownerDisplayName: 'Pilot', guildId: 'guild', channelId: 'public', messageId: 'message',
     battle: {
       status: 'victory', tick: 1, player: { name: 'Marq', hp: 58, maxHp: 230 }, enemy: { name: 'Maxim', hp: 0, maxHp: 220 },
       statistics: { player: { damage: { basic: 7 }, hpDamage: 7 }, enemy: {} },
@@ -37,20 +37,45 @@ test('production sends a full final diagnostic only to the private channel', asy
   const send = createPrivateDiagnosticReporter({ settings, environment: () => 'production', persist: async (r, text) => { saved.push(text); return {name:'report.txt'} } })
   assert.equal(await send(report(), bot), true)
   assert.equal(bot.calls[0][1], 'personal')
-  const payload = bot.calls[1][1], text = payload.files[0].attachment.toString()
-  assert.match(text, /PRIVATE ARENA DIAGNOSTIC/)
-  assert.match(text, /🟡10 \+ 🟣2/)
-  assert.match(text, /\(2076ms\)/)
-  assert.match(text, /deliveryMs=1931/)
-  assert.match(text, /final player-update timing is included/)
+  const payload = bot.calls[1][1], buffer = payload.files[0].attachment,
+    text = buffer.toString().replace(/^\uFEFF/,'')
+  assert.deepEqual([...buffer.subarray(0,3)],[0xef,0xbb,0xbf])
+  assert.match(text, /ARENA - VICTORY/)
+  assert.match(text, /Player: Pilot \(@pilot\)/)
+  assert.match(text, /Hope 10 \+ Fear 2/)
+  assert.match(text, /Turn 1 - 2.08s/)
+  assert.match(text, /1.93s/)
+  assert.doesNotMatch(text, /Player ID:|🟡|🟣|🔺|\*\*|FULL TIMING DETAILS|INTERACTION TIMINGS/)
+  assert.ok(text.indexOf('TURN-BY-TURN') < text.indexOf('TIMING BREAKDOWN'))
   assert.deepEqual(payload.allowedMentions, { parse: [] })
   assert.equal(saved[0], text)
+  assert.match(payload.content, /Pilot \(@pilot\)/)
 })
 test('development never persists or sends a private production report', async () => {
   const bot = client()
   const send = createPrivateDiagnosticReporter({ settings, environment: () => 'development', persist: () => { throw Error('must not persist') } })
   assert.equal(await send(report(), bot), false)
   assert.deepEqual(bot.calls, [])
+})
+test('junkrabbit is excluded by stable account ID before persistence or Discord access', async () => {
+  const bot = client()
+  const send = createPrivateDiagnosticReporter({ settings: {...settings, excludedUserIds:['138131238803210240']}, environment: () => 'production', persist: () => { throw Error('must not persist') } })
+  assert.equal(await send({...report(),ownerId:'138131238803210240',ownerUsername:'renamed-host'},bot),false)
+  assert.deepEqual(bot.calls,[])
+})
+test('reports from outside bot-tests are skipped', async () => {
+  const bot = client()
+  const send = createPrivateDiagnosticReporter({ settings: {...settings,sourceChannelId:'bot-tests'},environment:()=> 'production',persist:()=>{throw Error('must not persist')} })
+  assert.equal(await send(report(),bot),false)
+  assert.deepEqual(bot.calls,[])
+})
+test('username fallback resolves missing metadata and preserves Unicode without emoji clutter', async () => {
+  const bot = client(), saved=[]
+  bot.users={fetch:async id=>({username:'pilot',globalName:'🌟名字'})}
+  const send=createPrivateDiagnosticReporter({settings,environment:()=> 'production',persist:async (r,text)=>{saved.push(text);return{name:'report.txt'}}})
+  await send({...report(),ownerUsername:undefined,ownerDisplayName:undefined},bot)
+  assert.match(saved[0],/名字 \(@pilot\)/)
+  assert.doesNotMatch(saved[0],/🌟/)
 })
 test('public diagnostic destination is rejected and no public fallback is sent', async () => {
   const bot = client({ publicChannel: true }), saved = []

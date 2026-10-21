@@ -6,9 +6,10 @@ function createTiming({
   logger = console,
   sample = Math.random() < 0.05,
   onFinish = () => {},
+  metadata = {},
 } = {}) {
   const start = performance.now(),
-    stages = {}
+    stages = { ...metadata }
   return {
     add: (name, value) => {
       stages[name] = (stages[name] || 0) + value

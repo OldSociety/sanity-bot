@@ -241,6 +241,7 @@ function advance(
   {
     aiPolicy = 'tactical',
     enemyBasicOnly = false,
+    enemySupportEvaluated = false,
     preparedEnemyRecovery,
     actor = 'exchange',
     enemySpendableFear,
@@ -399,6 +400,7 @@ function advance(
             resource: spendableFear,
             roll: rollFearSpend,
             context: {
+              supportEvaluated: enemySupportEvaluated,
               rounds: battle.tick,
               ownSpecialDamage: ['special1', 'special2', 'special3'].reduce(
                 (n, key) => n + battle.statistics.enemy.damage[key],
@@ -1636,11 +1638,53 @@ function takeTurn(
   options = {}
 ) {
   const originalBattle = battle
-  let enemyBasicOnly = false, preparedEnemyRecovery
+  let enemyBasicOnly = false, preparedEnemyRecovery, enemySupportEvaluated = false
+  const smartDefense = balance.ai.supportPolicy?.enabled && options.aiPolicy !== 'legacy'
+  if (smartDefense && battle.status === 'playing' && battle.mode !== 'idle' &&
+    (kylax.isKylax(battle.enemy) || selene.isSelene(battle.enemy))) {
+    enemySupportEvaluated = true
+    const slot = decide(battle.enemy, battle.player, {
+      roll: rollFearSpend || abilityPercentile,
+      context: { rounds: battle.tick, defenseOnly: true, targetFinisherPaid: Boolean(battle.finisherPaid) },
+    }).slot
+    const definition = slot && kitFor(battle.enemy)[slot]
+    if (definition && ['graveward', 'windWall'].includes(definition.type)) {
+      const recovery = battle.enemy.stress < battle.enemy.maxStress
+        ? (options.rollRecovery || abilityPercentile)() : 99
+      if (!Number.isFinite(recovery) || recovery < 0 || recovery >= 100) throw Error('Expected recovery percentile from 0 to below 100')
+      preparedEnemyRecovery = Number(recovery < balance.ai.stressRecoveryChance)
+      if (!preparedEnemyRecovery) {
+        const enemy = Duality.spend({ ...battle.enemy, stress: battle.enemy.stress - (definition.stressCost || 0) }, Duality.cost(definition))
+        let removed = 0
+        if (definition.type === 'graveward') {
+          removed = kylax.activate(enemy, battle.tick + 1)
+          const metrics = enemy.kylaxMetrics || { wards: 0, bleedingRemoved: 0, criticalPrevented: 0, wardPrevented: 0, packets: [] }
+          enemy.kylaxMetrics = { ...metrics, wards: metrics.wards + 1, bleedingRemoved: metrics.bleedingRemoved + removed }
+        } else {
+          enemy.combatRound = battle.tick + 1
+          selene.activateWall(enemy, battle.player, battle.tick + 1)
+        }
+        const statistics = structuredClone(battle.statistics)
+        statistics.enemy.stressSpent += definition.stressCost || 0
+        statistics.enemy.stressRemaining = enemy.stress
+        statistics.enemy.spent += Duality.cost(definition)
+        statistics.enemy.remaining = Duality.value(enemy)
+        statistics.enemy.uses[slot]++
+        battle = { ...battle, enemy, statistics, history: [...battle.history, {
+          kind: 'special', actor: enemy.name, tick: battle.tick + 1,
+          slot, name: definition.name, type: definition.type, damage: 0, percent: 0,
+          cost: Duality.cost(definition) || definition.stressCost || 0,
+          resource: Duality.cost(definition) ? 'Fear' : 'Stress',
+          ...(definition.type === 'graveward' ? { reductionPercent: definition.reductionPercent, bleedingRemoved: removed } : {}),
+        }] }
+        enemyBasicOnly = true
+      }
+    }
+  }
   // A one-round enemy defense must be committed before the player's attack.
   // Only this Kylax action moves earlier; payment, cleanse and exhaustion are
   // visible to the incoming attack. The response still supplies its basic.
-  if (battle.status === 'playing' && battle.mode !== 'idle' && kylax.isKylax(battle.enemy) && canUse(battle.enemy, 'special1')) {
+  if (!smartDefense && battle.status === 'playing' && battle.mode !== 'idle' && kylax.isKylax(battle.enemy) && canUse(battle.enemy, 'special1')) {
     const decision = options.aiPolicy === 'legacy'
       ? selectEnemySpecial(battle.enemy, Duality.value(battle.enemy), rollFearSpend || abilityPercentile)
       : decide(battle.enemy, battle.player, { resource: Duality.value(battle.enemy), context: { rounds: battle.tick } }).slot
@@ -1707,6 +1751,7 @@ function takeTurn(
       actor: 'enemy',
       enemySpendableFear: Duality.value(battle.enemy),
       enemyBasicOnly,
+      enemySupportEvaluated,
       preparedEnemyRecovery,
     }
   )

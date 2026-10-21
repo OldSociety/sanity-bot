@@ -185,6 +185,7 @@ function recapText(battle, lines, { diagnostic = true, interactions = [], comple
   }
   return [
     `BATTLE RECAP · ${battle.tick} rounds · ${battle.status}`,
+    ...(battle.arenaVersion ? [require('./versioning').label(battle.arenaVersion)] : []),
     ...summaryFields(battle).flatMap((field) => [field.name, field.value]),
     'Damage totals include overkill; HP removed is effective opponent HP damage. Blocks count packets, including independent strikes; self-damage is separate. Specials excludes Finals. HP restored includes revives.',
     ...(diagnostic

@@ -164,6 +164,7 @@ function recordRound(before, next, details) {
 }
 function combatReport(battle) {
   return {
+    ...(battle.arenaVersion ? { arenaVersion: structuredClone(battle.arenaVersion) } : {}),
     ruleset: require('./outcomes').enabled()
       ? `player-first-turns-v12-basic-special-equalized-${balance.profile}`
       : balance.profile

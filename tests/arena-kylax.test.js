@@ -143,7 +143,7 @@ test('enemy Graveward protects simultaneous activation but expires at the respon
 test('enemy commits Graveward before player attack; pays once and retains response basic', () => {
   const b=battle('Kylax'); b.enemy.bleeding={remaining:4}
   let die=0
-  const n=combat.takeTurn(b,'basic',()=>2,()=>++die%2?8:7,()=>99,()=>0,()=>99,()=>99,
+  const n=combat.takeTurn(b,'basic',()=>2,()=>++die%2?8:7,()=>0,()=>0,()=>99,()=>99,
     {rollRecovery:()=>99,rollResistance:()=>99,rollBlock:()=>99,rollFinisher:()=>40})
   assert.equal(n.playerBasicDamage,4)
   assert.equal(n.enemy.stress,5)
@@ -159,17 +159,17 @@ test('enemy commits Graveward before player attack; pays once and retains respon
 test('enemy recovery replaces Graveward and no cost is charged for an invalid player action', () => {
   const b=battle('Kylax'); b.enemy.stress=4;b.enemy.bleeding={remaining:4}
   let die=0
-  const n=combat.takeTurn(b,'basic',()=>2,()=>++die%2?8:7,()=>99,()=>0,()=>99,()=>99,
+  const n=combat.takeTurn(b,'basic',()=>2,()=>++die%2?8:7,()=>0,()=>0,()=>99,()=>99,
     {rollRecovery:()=>0,rollResistance:()=>99,rollBlock:()=>99,rollFinisher:()=>40})
   assert.equal(n.enemy.stress,5)
   assert.equal(n.statistics.enemy.uses.special1,0)
   assert.equal(n.playerBasicDamage,6)
-  const invalid=combat.takeTurn(b,'invalid',()=>2,()=>7,()=>99,()=>0,()=>99,()=>99,{rollRecovery:()=>99})
+  const invalid=combat.takeTurn(b,'invalid',()=>2,()=>7,()=>0,()=>0,()=>99,()=>99,{rollRecovery:()=>99})
   assert.equal(invalid,b);assert.equal(b.enemy.stress,4)
 })
 test('early committed enemy cost and metrics survive a player knockout hit', () => {
   const b=battle('Kylax');b.enemy.hp=1;b.enemy.bleeding={remaining:2}
-  const n=combat.takeTurn(b,'basic',()=>2,()=>7,()=>99,()=>0,()=>99,()=>99,{rollRecovery:()=>99})
+  const n=combat.takeTurn(b,'basic',()=>2,()=>7,()=>0,()=>0,()=>99,()=>99,{rollRecovery:()=>99})
   assert.equal(n.status,'victory')
   assert.equal(n.statistics.enemy.stressSpent,1)
   assert.equal(n.enemy.kylaxMetrics.wards,1)

@@ -86,7 +86,8 @@ async function buildPresentation(
             interactions: state.interactionTimings,
           }
         )
-      : actionLines(state.battle.history).join('\n') || 'No actions recorded.'
+      : require('./versioning').label(state.arenaVersion) + '\n' +
+        (actionLines(state.battle.history).join('\n') || 'No actions recorded.')
     files.push({
       attachment: Buffer.from(text),
       name: `arena-recap-${state.id}-${state.revision}-${createHash('sha256')

@@ -472,6 +472,7 @@ function decide(
   } = {}
 ) {
   const actor = Duality.withValue(fighter, resource)
+  const supportPolicy = actor.isAI && balance.ai.supportPolicy?.enabled
   const available = specialSlots.filter((slot) => canUse(actor, slot))
   const base = preview(actor, target, null, choice)
   const candidates = available.map((slot) => ({
@@ -488,8 +489,12 @@ function decide(
   )
   const lethal = ordered.find(
     (item) =>
-      item.knockout > base.knockout + 0.1 ||
-      (item.guaranteed && !base.guaranteed)
+      !(
+        supportPolicy &&
+        ['heal', 'graveward', 'windWall'].includes(kitFor(actor)[item.slot].type)
+      ) &&
+      (item.knockout > base.knockout + 0.1 ||
+        (item.guaranteed && !base.guaranteed))
   )
   const horizon = survival(actor, target, context)
   const s1 = candidates.find((item) => item.slot === 'special1'),
@@ -524,6 +529,95 @@ function decide(
   // Never spend solely to match the basic's existing knockout probability.
   if (base.guaranteed) return result(null, 'basic-lethal')
   if (lethal) return result(lethal.slot, 'knockout')
+  if (
+    supportPolicy &&
+    (kitFor(actor).special1.type === 'heal' || require('./kylax').isKylax(actor))
+  ) {
+    const policy = balance.ai.supportPolicy
+    const kit = kitFor(actor)
+    const hpPercent = (actor.hp * 100) / actor.maxHp
+    const urgent = hpPercent <= policy.urgentBelowPercent || horizon.own <= 1.5
+    // An affordable Finisher takes priority unless immediate survival needs help.
+    if (s3 && !urgent) return result('special3', 'spend-finisher')
+    let supportSlot = null,
+      chance = 0
+    if (s1 && kit.special1.type === 'heal' && !context.defenseOnly) {
+      const heal = Math.ceil(
+        (actor.maxHp * selene.healPercent(actor, kit.special1)) / 100
+      )
+      const enoughStress =
+        actor.stress - (kit.special1.stressCost || 0) >= policy.stressReserve
+      // Require both an HP threshold and room for a complete heal. Diminishing
+      // Selene heals use their current value, never the original coefficient.
+      if (
+        hpPercent <= policy.healBelowPercent &&
+        actor.maxHp - actor.hp >= heal &&
+        (enoughStress || urgent)
+      ) {
+        const after = survival(
+          {
+            ...actor,
+            hp: Math.min(actor.maxHp, actor.hp + heal),
+            stress: actor.stress - (kit.special1.stressCost || 0),
+          },
+          target,
+          context
+        )
+        if (after.own > horizon.own + 0.25) {
+          supportSlot = 'special1'
+          chance = urgent
+            ? policy.urgentHealChance
+            : hpPercent <= 50
+              ? policy.woundedHealChance
+              : policy.healChance
+        }
+      }
+    }
+    const defenseSlot = kit.special1.type === 'graveward'
+      ? 'special1'
+      : kit.special2.type === 'windWall' ? 'special2' : null
+    if (
+      !supportSlot && defenseSlot && canUse(actor, defenseSlot) &&
+      !context.supportEvaluated &&
+      !(defenseSlot === 'special2' && selene.wallActive(actor, undefined, target)) &&
+      (!kit[defenseSlot].stressCost ||
+        actor.stress - kit[defenseSlot].stressCost >= policy.stressReserve || urgent)
+    ) {
+      supportSlot = defenseSlot
+      // Only public, currently affordable player abilities are threats.
+      chance = context.targetFinisherPaid || canUse(target, 'special3')
+        ? policy.finisherThreatChance
+        : canUse(target, 'special2')
+          ? policy.specialThreatChance
+          : policy.defenseChance
+      if (urgent) chance = Math.max(chance, policy.urgentDefenseChance)
+      if (kit[defenseSlot].type === 'graveward' && actor.bleeding)
+        chance = Math.max(chance, policy.bleedingDefenseChance)
+      // Spending Fear on a wall delays a Finisher; conserve it when close.
+      if (
+        Duality.cost(kit[defenseSlot]) > 0 &&
+        resource >= Duality.cost(kit.special3) - 1 && !urgent
+      )
+        chance *= policy.saveFinisherMultiplier
+    }
+    if (supportSlot) {
+      const draw = roll()
+      if (!Number.isFinite(draw) || draw < 0 || draw >= 100)
+        throw Error('Expected support percentile from 0 to below 100')
+      if (draw < chance)
+        return result(supportSlot, kit[supportSlot].type === 'heal'
+          ? 'health-gated-healing' : 'public-threat-defense')
+    }
+    if (s3) return result('special3', 'spend-finisher')
+    if (
+      s2 && kit.special2.type !== 'windWall' &&
+      (kit.special1.type === 'heal' || target.hp <= target.maxHp / 2 || horizon.own <= 3)
+    ) {
+      const allowed = new Set(['special2'])
+      return result(selectEnemySpecial(actor, resource, roll, allowed), 'offensive-pressure')
+    }
+    return result(null, 'preserve-support-resources')
+  }
   if (require('./kylax').isKylax(actor)) {
     // Public state only. Save the last Stress unless survival is immediate.
     if (s1 && (actor.bleeding || horizon.own <= 2) && (!exhausts || horizon.own <= 1.5))

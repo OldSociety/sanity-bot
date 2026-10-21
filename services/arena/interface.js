@@ -281,7 +281,12 @@ function screen(session) {
     embed.setFooter({
       text: `Hope ${battle.player.hope}/6 | ${battle.enemy.name}: Fear ${battle.enemy.fear}/6`,
     })
-  const payload = (buttons) => ({
+  const payload = (buttons) => {
+    if (session.arenaVersion || battle?.arenaVersion) {
+      const version = require('./versioning').label(battle?.arenaVersion || session.arenaVersion)
+      embed.setFooter({ text: [version, embed.data.footer?.text].filter(Boolean).join(' | ').slice(0, 2048) })
+    }
+    return ({
     content: '',
     embeds:
       battle?.status === 'playing'
@@ -299,7 +304,8 @@ function screen(session) {
           new ActionRowBuilder().addComponents(buttons.slice(i * 5, i * 5 + 5))
         )
       : [],
-  })
+    })
+  }
   const startButtons = (again = false) => [
     button(
       'start',

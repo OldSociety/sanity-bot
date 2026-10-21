@@ -68,6 +68,7 @@ function createArena({
   diagnostics = () => true,
   onTiming = () => {},
   onDiagnosticReport = null,
+  arenaVersion = () => require('./versioning').runtimeVersion(),
   quickResponses = responsive,
   setResponseTimer = setTimeout,
   clearResponseTimer = clearTimeout,
@@ -81,7 +82,9 @@ function createArena({
     session.diagnosticQueued = true
     const report = structuredClone({
       sessionId: session.id, fightNumber: session.fightNumber,
-      ownerId: session.ownerId, guildId: session.guildId,
+      ownerId: session.ownerId, ownerUsername: session.ownerUsername,
+      ownerDisplayName: session.ownerDisplayName, guildId: session.guildId,
+      arenaVersion: session.arenaVersion,
       channelId: session.channelId, messageId: session.messageId,
       battle: { ...session.battle, status },
       roundTimings: session.roundTimings,
@@ -105,12 +108,14 @@ function createArena({
     const initialRound = session.battle?.tick || 0
     return createTiming({
       logger,
+      metadata: { arenaVersion: session.arenaVersion },
       sample: session.diagnostic === true,
       onFinish(record) {
         Object.assign(record, {
           sessionId: session.id,
           round: session.battle?.tick || 0,
           fightNumber: session.fightNumber || 0,
+          arenaVersion: session.arenaVersion,
         })
         if (!['duplicate', 'stale', 'expired'].includes(record.action)) {
           session.interactionTimings.push({ ...record })
@@ -245,8 +250,8 @@ function createArena({
     if (['victory', 'defeat', 'quit'].includes(session.battle?.status))
       files.push({
         attachment: Buffer.from(
-          actionLines(session.battle.history).join('\n') ||
-            'No actions recorded.'
+          require('./versioning').label(session.arenaVersion) + '\n' +
+          (actionLines(session.battle.history).join('\n') || 'No actions recorded.')
         ),
         name: `arena-recap-${session.id}-${session.revision}.txt`,
       })
@@ -295,6 +300,7 @@ function createArena({
         logger.warn?.(`Arena button cleanup failed: ${error.message}`)
       }
       queueDiagnostic(session, session.battle?.status === 'playing' ? 'expired' : session.battle?.status)
+      complete(session, session.battle?.status === 'playing' ? 'expired' : session.battle?.status)
       if (notify && !responsive)
         await session
           .notify({
@@ -328,15 +334,26 @@ function createArena({
     }, delay)
     session.expiryTimer?.unref?.()
   }
-  function complete(session) {
+  function complete(session, status = session.battle?.status) {
     if (
       session.reported ||
-      !['victory', 'defeat'].includes(session.battle?.status)
+      !session.battle || !['victory', 'defeat', 'quit', 'expired'].includes(status)
     )
       return
     session.reported = true
     try {
-      Promise.resolve(onComplete(combatReport(session.battle))).catch((error) =>
+      Promise.resolve(onComplete({
+        ...combatReport({ ...session.battle, status }),
+        arenaVersion: session.arenaVersion,
+        gameId: `${session.id}:${session.fightNumber}`,
+        sessionId: session.id, fightNumber: session.fightNumber,
+        playerId: session.ownerId, playerUsername: session.ownerUsername,
+        guildId: session.guildId, channelId: session.channelId,
+        startedAt: session.startedAt, completedAt: new Date(now()).toISOString(),
+        outcome: status, gameMode: 'arena', aiPolicy,
+        playerCharacterId: session.battle.player.id || session.character,
+        opponentCharacterId: session.battle.enemy.id || session.opponent,
+      })).catch((error) =>
         logger.error('Arena report failed:', error.message)
       )
     } catch (error) {
@@ -509,7 +526,10 @@ function createArena({
     }
     const session = {
       id: interaction.id,
+      arenaVersion: structuredClone(arenaVersion()),
       ownerId: interaction.user.id,
+      ownerUsername: interaction.user.username,
+      ownerDisplayName: interaction.member?.displayName || interaction.member?.nick || interaction.user.globalName || interaction.user.username,
       diagnosticClient: interaction.client,
       diagnosticQueued: false,
       fightNumber: 0,
@@ -549,6 +569,7 @@ function createArena({
           ? interaction.followUp(payload)
           : Promise.resolve(),
     }
+    timing?.detail('arenaVersion', session.arenaVersion)
     sessions.set(session.id, session)
     try {
       const prepareArt = () =>
@@ -904,6 +925,7 @@ function createArena({
         },
       }
       session.revision++
+      complete(session)
       armExpiry(session)
     } else if (start) {
       cancel(session)
@@ -914,6 +936,8 @@ function createArena({
         level: session.level,
         opponent: session.opponent,
       })
+      session.battle.arenaVersion = structuredClone(session.arenaVersion)
+      session.startedAt = new Date(now()).toISOString()
       session.roundTimings = {}
       session.fightNumber++
       session.diagnosticQueued = false
@@ -1018,6 +1042,7 @@ function createArena({
   return { execute, handleButton, dispose }
 }
 const live = ['development', 'production'].includes(process.env.NODE_ENV)
+if (live && !process.env.NODE_TEST_CONTEXT) require('./versioning').runtimeVersion()
 const leases = live ? require('./message-leases').createLeaseStore() : null
 module.exports = {
   createArena,

@@ -11,6 +11,21 @@
     }
   },
   "ai": {
+    "supportPolicy": {
+      "enabled": true,
+      "healBelowPercent": 70,
+      "urgentBelowPercent": 35,
+      "stressReserve": 2,
+      "healChance": 40,
+      "woundedHealChance": 65,
+      "urgentHealChance": 85,
+      "defenseChance": 10,
+      "specialThreatChance": 45,
+      "finisherThreatChance": 70,
+      "urgentDefenseChance": 65,
+      "bleedingDefenseChance": 60,
+      "saveFinisherMultiplier": 0.5
+    },
     "deferFearSpending": true,
     "costs": {
       "special2": {
