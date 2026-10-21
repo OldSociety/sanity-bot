@@ -27,7 +27,7 @@ const {
 const { artFiles, bannerName } = require('./art')
 const { cardName } = require('./health-card')
 const { legendNameFor } = require('./legend')
-const { familyFor, variantsFor, groupsFor } = require('./selection')
+const { familyFor, variantsFor, groupsFor, rosterFor } = require('./selection')
 const {
   abilityCost,
   abilitySummary,
@@ -341,9 +341,9 @@ function screen(session) {
   }
   if (!battle && ['characters', 'skins'].includes(session.page)) {
     const family = familyFor(character),
-      stats = statsForLevel(1, character.kit),
+      stats = statsForLevel(session.level || 1, character.kit),
       skinPage = session.page === 'skins'
-    const groups = groupsFor(),
+    const groups = groupsFor(rosterFor(session.allowedVariantIds)),
       group =
         groups.find((entry) => entry.id === session.groupId) ||
         groups.find((entry) =>
@@ -365,11 +365,16 @@ function screen(session) {
           : skinPage
           ? `**${character.version} ${family.name}**\n${
               family.role
-            } · Level 1\n${stats.maxHp} HP · ${stats.attack} Attack\n${
+            } · Level ${session.level || 1}\n${stats.maxHp} HP · ${stats.attack} Attack\n${
               character.kit === 'hellfed-marq' ? 'Rage 0/3' : 'Stress 6/6'
             }`
           : `**${family.name}** · ${family.role}\n${family.lore}`
       )
+    if (session.allowedVariantIds) embed.addFields({ name: `Arena Player · Level ${session.level}`,
+      value: session.diagnosticRoster ? 'Diagnostic mode: full testing roster available.' : 'Your unlocked fighters share your Arena player level.' })
+    if (session.ownershipUnavailable) embed.addFields({ name: 'Badge access unavailable', value: session.diagnosticRoster
+      ? 'Badge ownership could not be checked. Diagnostic roster access is temporary.'
+      : 'Only starter fighters are shown until your badges can be checked.' })
     if (skinPage) {
       const fighter = { ...stats, kit: character.kit }
       if (character.passive)
@@ -440,7 +445,7 @@ function screen(session) {
         ? select(
             'selectskin',
             'Choose skin',
-            variantsFor(family).map((variant) => ({
+            variantsFor(family, session.allowedVariantIds).map((variant) => ({
               label: `${variant.version} ${family.name}`,
               value: variant.id,
               default: variant.id === character.id,

@@ -3,7 +3,10 @@ function installShutdown(
   client,
   {
     signals = process,
-    dispose = () => require('./controller').arena.dispose(),
+    dispose = async () => {
+      await require('./menu-lifecycle').menuLifecycle.dispose()
+      await require('./controller').arena.dispose()
+    },
     flush = () => require('./async-state').flushState(),
     exit = (code) => process.exit(code),
     setTimer = setTimeout,

@@ -8,7 +8,9 @@ function fixture(overrides = {}) {
     now: () => time, timeoutMs: 1000, setTimer: callback => { expire = callback; return 1 }, clearTimer: () => {}, ...overrides })
   const editReply = async payload => {
     if (fail) { fail = false; throw Error('delivery failed') }
-    current = { ...payload, embeds: payload.embeds.map(item => item.toJSON()), components: payload.components.map(item => item.toJSON()) }
+    current = { ...current, ...payload,
+      embeds: payload.embeds ? payload.embeds.map(item => item.toJSON()) : current?.embeds,
+      components: payload.components.map(item => item.toJSON()) }
     return { id: 'message' }
   }
   const interaction = { user: { id: 'owner' }, guildId: 'guild', channelId: 'channel',
@@ -57,7 +59,7 @@ test('browse all pack detail screens, return to the shop, and close', async () =
     await f.click('close')
     assert.deepEqual(f.current.components, [])
     await f.click('close', { customId: close })
-    assert.match(f.replies.at(-1).content, /ended/)
+    assert.deepEqual(f.current.components, [])
   } finally { f.shop.dispose() }
 })
 test('guards owner, message, guild and fresh Arena access on each click', async () => {
@@ -94,10 +96,10 @@ test('expiry, clock expiry, restart and production entry all leave purchases una
   const f = fixture()
   await f.shop.execute(f.interaction)
   const old = f.control('pack-bronze').custom_id
-  f.expire()
+  await f.expire()
   assert.deepEqual(f.current.components, [])
   await f.click('pack-bronze', { customId: old })
-  assert.match(f.replies.at(-1).content, /ended/)
+  assert.deepEqual(f.current.components, [])
   await f.shop.execute(f.interaction)
   f.advance()
   await f.click('pack-bronze')

@@ -25,8 +25,9 @@ function createShop({
   config = packConfig,
   authorize = interaction => require('./access').access.authorize(interaction),
   environment = () => process.env.NODE_ENV,
-  now = Date.now, timeoutMs = 15 * 60 * 1000, maxSessions = 1000,
+  now = Date.now, timeoutMs = 5 * 60 * 1000, maxSessions = 1000,
   setTimer = setTimeout, clearTimer = clearTimeout,
+  lifecycle = null, logger = console,
 } = {}) {
   const catalog = validateCatalog(config), sessions = new Map()
   const reply = (interaction, content) => interaction.reply({ content, ephemeral: true, allowedMentions: { parse: [] } })
@@ -58,23 +59,43 @@ function createShop({
     actions.addComponents(button('close', 'Close Shop', ButtonStyle.Danger))
     return { content: '', embeds: [embed], components: [packs, actions], allowedMentions: { parse: [] } }
   }
-  function remove(session) { clearTimer(session.timer); sessions.delete(session.id) }
+  function remove(session) { session.expiryGeneration = (session.expiryGeneration || 0) + 1; clearTimer(session.timer); sessions.delete(session.id); session.release?.() }
+  async function retire(session) {
+    remove(session)
+    await session.work?.catch(() => {})
+    try { await session.edit({ components: [], allowedMentions: { parse: [] } }) }
+    catch (error) {
+      if (![10008, 10015, 50027].includes(Number(error.code))) logger.warn?.(`Arena shop cleanup failed: ${error.code || error.name}`)
+    }
+  }
+  function armExpiry(session) {
+    clearTimer(session.timer)
+    const generation = session.expiryGeneration = (session.expiryGeneration || 0) + 1
+    session.expiresAt = now() + timeoutMs
+    session.timer = setTimer(() => {
+      if (generation === session.expiryGeneration && sessions.has(session.id)) return retire(session)
+    }, timeoutMs)
+    session.timer?.unref?.()
+  }
   async function execute(interaction) {
     if (environment() !== 'development') return reply(interaction, 'Shop preview is available on the development bot only.')
     if (!(await authorize(interaction))) return
-    if (sessions.size >= maxSessions) return reply(interaction, 'The shop is busy. Please try again shortly.')
+    await interaction.deferReply({ ephemeral: true })
+    return lifecycle ? lifecycle.open(interaction, () => openSession(interaction)) : openSession(interaction)
+  }
+  async function openSession(interaction) {
+    for (const previous of sessions.values())
+      if (previous.ownerId === interaction.user.id && previous.guildId === interaction.guildId) await retire(previous)
+    if (sessions.size >= maxSessions) return interaction.editReply({ content: 'The shop is busy. Please try again shortly.' })
     const session = { id: randomUUID(), ownerId: interaction.user.id, guildId: interaction.guildId, channelId: interaction.channelId,
-      packId: null, revision: 0, expiresAt: now() + timeoutMs, busy: true }
+      packId: null, revision: 0, expiresAt: now() + timeoutMs, busy: true,
+      edit: payload => interaction.editReply(payload) }
     sessions.set(session.id, session)
+    session.release = lifecycle?.track(interaction, () => retire(session))
     try {
-      await interaction.deferReply({ ephemeral: true })
       const message = await interaction.editReply(view(session))
       session.messageId = message.id
-      session.timer = setTimer(() => {
-        remove(session)
-        interaction.editReply(view(session, true)).catch(() => {})
-      }, timeoutMs)
-      session.timer?.unref?.()
+      armExpiry(session)
     } catch (error) { remove(session); throw error }
     finally { session.busy = false }
   }
@@ -83,10 +104,10 @@ function createShop({
     if (!(await authorize(interaction))) return
     const [, , id, revision, action] = (interaction.customId || '').split(':')
     const session = sessions.get(id)
-    if (!session) return reply(interaction, 'This shop menu has ended. Use /arena shop to browse again.')
+    if (!session) return interaction.update({ components: [], allowedMentions: { parse: [] } })
     if (session.ownerId !== interaction.user.id || session.guildId !== interaction.guildId || session.channelId !== interaction.channelId || session.messageId !== interaction.message?.id)
       return reply(interaction, 'This shop menu belongs to another session. Use /arena shop.')
-    if (now() >= session.expiresAt) { remove(session); return interaction.update(view(session, true)) }
+    if (now() >= session.expiresAt) { remove(session); return interaction.update({ components: [], allowedMentions: { parse: [] } }) }
     if (session.busy || String(session.revision) !== revision) return reply(interaction, 'This menu has changed. Use its latest buttons.')
     const next = { ...session, revision: session.revision + 1 }
     if (action === 'close') next.closed = true
@@ -94,19 +115,27 @@ function createShop({
     else if (action?.startsWith('pack-') && catalog.packs.some(pack => pack.id === action.slice(5) && pack.id !== session.packId)) next.packId = action.slice(5)
     else return reply(interaction, 'That action is not available. Pack purchases are coming soon.')
     session.busy = true
-    try {
+    const work = (async () => { try {
       await interaction.deferUpdate()
+      session.edit = payload => interaction.editReply(payload)
       await interaction.editReply(view(next, next.closed))
-      if (!sessions.has(id)) { await interaction.editReply(view(session, true)); return }
+      if (!sessions.has(id)) { await interaction.editReply({ components: [], allowedMentions: { parse: [] } }); return }
       if (next.closed) remove(session)
-      else Object.assign(session, next)
+      else {
+        const edit = session.edit
+        Object.assign(session, next, { edit, work })
+        armExpiry(session)
+      }
     } finally { session.busy = false }
+    })()
+    session.work = work
+    return work
   }
-  function dispose() { for (const session of sessions.values()) remove(session) }
+  function dispose() { return Promise.allSettled([...sessions.values()].map(session => retire(session))) }
   return { execute, handleButton, dispose }
 }
 let singleton
 module.exports = { validateCatalog, createShop, shop: {
-  execute: interaction => (singleton ||= createShop()).execute(interaction),
-  handleButton: interaction => (singleton ||= createShop()).handleButton(interaction),
+  execute: interaction => (singleton ||= createShop({ lifecycle: require('./menu-lifecycle').menuLifecycle })).execute(interaction),
+  handleButton: interaction => (singleton ||= createShop({ lifecycle: require('./menu-lifecycle').menuLifecycle })).handleButton(interaction),
 } }

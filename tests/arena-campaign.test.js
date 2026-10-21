@@ -27,15 +27,15 @@ function fixture(overrides = {}) {
   })
   const serialize = (payload) => ({
     ...payload,
-    embeds: payload.embeds.map((embed) => embed.toJSON()),
-    components: payload.components.map((row) => row.toJSON()),
+    embeds: payload.embeds.map((embed) => embed.toJSON?.() || embed),
+    components: payload.components.map((row) => row.toJSON?.() || row),
   })
   const editReply = async (payload) => {
     if (fail) {
       fail = false
       throw Error('delivery failed')
     }
-    current = serialize(payload)
+    current = serialize({ ...current, ...payload })
     payloads.push(current)
     return { id: 'message' }
   }
@@ -176,7 +176,7 @@ test('duplicate clicks cannot advance, failed delivery can retry, and cancel clo
     await f.click('close')
     assert.deepEqual(f.current.components, [])
     await f.click('close', { customId: close })
-    assert.match(f.payloads.at(-1).content, /ended/)
+    assert.deepEqual(f.current.components, [])
   } finally {
     f.campaign.dispose()
   }
@@ -186,10 +186,10 @@ test('expired menus lose controls and cannot be used after restart or timeout', 
   const f = fixture()
   await f.campaign.execute(f.interaction)
   const old = f.control('select').custom_id
-  f.expire()
+  await f.expire()
   assert.deepEqual(f.current.components, [])
   await f.click('select', { customId: old, values: ['tower-01'] })
-  assert.match(f.payloads.at(-1).content, /ended/)
+  assert.deepEqual(f.current.components, [])
   await f.campaign.execute(f.interaction)
   f.advance()
   await f.click('select', { values: ['tower-01'] })
@@ -351,4 +351,29 @@ test('a second click cannot enter while the first navigation delivery is pending
   } finally {
     f.campaign.dispose()
   }
+})
+
+test('fight options are optional autocomplete inputs and explicit selections route directly without a second acknowledgement', async () => {
+  const calls = [], edits = []
+  let denied = false
+  const variant = { id: 'classic:azu' }
+  const command = isolatedModule('commands/Arena/Arena.js', {
+    '../../services/arena/access': { access: { authorize: async () => !denied } },
+    '../../services/arena/fight-options': { fightOptions: { resolve: async () => ({ character: variant, selection: false, startImmediately: true }) } },
+    '../../services/arena/controller': { arena: { execute: async (interaction, character, options) => calls.push({ deferred: interaction.deferred, character, options }) } },
+  })
+  const fields = command.data.toJSON().options.find(option => option.name === 'fight').options
+  assert.deepEqual(Array.from(fields, field => field.name), ['character', 'skin'])
+  assert(fields.every(field => field.autocomplete === true && !field.required))
+  let acknowledgements = 0
+  const interaction = { options: { getSubcommand: () => 'fight', getString: key => ({ character: 'azulis', skin: 'classic:azu' })[key] || null },
+    deferReply: async () => { acknowledgements++; interaction.deferred = true }, editReply: async payload => edits.push(payload) }
+  await command.execute(interaction)
+  assert.equal(acknowledgements, 1)
+  assert.equal(calls[0].deferred, true)
+  assert.equal(calls[0].character, variant)
+  assert.equal(calls[0].options.startImmediately, true)
+  denied = true
+  await command.execute(interaction)
+  assert.equal(calls.length, 1)
 })

@@ -53,10 +53,16 @@ const roster = Object.freeze(
 )
 const familyFor = (variant) =>
   roster.find((entry) => entry.variantIds.includes(variant?.id)) || roster[0]
-const variantsFor = (family) =>
+const variantsFor = (family, allowedIds) =>
   family.variantIds
     .map((id) => characters.find((variant) => variant.id === id))
-    .filter((variant) => variant && isSelectable(variant))
+    .filter((variant) => variant && isSelectable(variant) && (!allowedIds || allowedIds.includes(variant.id)))
+const rosterFor = allowedIds => !allowedIds ? roster : roster
+  .map(family => ({ ...family, variantIds: family.variantIds.filter(id => allowedIds.includes(id)) }))
+  .filter(family => family.variantIds.length)
+const defaultPlayerVariant = allowedIds => characters
+  .filter(character => isSelectable(character) && (!allowedIds || allowedIds.includes(character.id)))
+  .sort((a, b) => Number(b.version === 'Classic') - Number(a.version === 'Classic') || a.name.localeCompare(b.name) || a.id.localeCompare(b.id))[0]
 // Presentation fallback only: this does not add a playable Classic variant.
 const basePortraitFor = (variant) =>
   characters.find((entry) => entry.id === familyFor(variant).variantIds[0])
@@ -159,6 +165,8 @@ const preferredVariant = (saved, explicit) =>
   defaultCharacter
 module.exports = {
   roster,
+  rosterFor,
+  defaultPlayerVariant,
   familyFor,
   variantsFor,
   basePortraitFor,

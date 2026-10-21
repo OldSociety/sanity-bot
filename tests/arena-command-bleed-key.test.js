@@ -12,7 +12,7 @@ test("development Arena exposes fight, campaign and management subcommands", () 
     command.data.toJSON().options.map((x) => x.name),
     ["fight", "campaign", "shop", "access", "diagnostic"]
   );
-  assert.equal(command.autocomplete, undefined);
+  assert.equal(typeof command.autocomplete, 'function');
 });
 test("immediate critical has no symbol in the second embed key", () => {
   const b = newBattle(6, {

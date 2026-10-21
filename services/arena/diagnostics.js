@@ -64,7 +64,7 @@ async function manageDiagnostic(
         value
           ? 'Detailed logs with rolls, costs and timings are enabled.'
           : 'Compact gameplay logs are enabled; log rolls, detailed tracking and timings are hidden.'
-      } Portraits, live dice and Duality emojis, and the status key stay visible in both modes. Active fights use this setting on their next update.`,
+      } ${value ? 'The full Arena roster is available for development testing; no ownership is granted.' : 'Arena character selection follows badge unlocks plus the three starter fighters.'} Portraits, live dice and Duality emojis, and the status key stay visible in both modes. Active fights use this setting on their next update.`,
       allowedMentions: { parse: [] },
     })
   } catch {

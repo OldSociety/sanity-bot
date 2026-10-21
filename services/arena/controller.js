@@ -8,6 +8,8 @@ const {
   familyFor,
   variantsFor,
   groupsFor,
+  rosterFor,
+  defaultPlayerVariant,
   createMemoryPreferences,
   createPreferenceStore,
   createAsyncPreferenceStore,
@@ -72,8 +74,27 @@ function createArena({
   quickResponses = responsive,
   setResponseTimer = setTimeout,
   clearResponseTimer = clearTimeout,
+  lifecycle = null,
+  getPlayerAccess = null,
 } = {}) {
   const sessions = new Map()
+  function applyPlayerAccess(session, access) {
+    const { characters, isSelectable } = require('./characters')
+    if (!access || !Array.isArray(access.allowedVariantIds) || !Number.isInteger(access.level) || access.level < 1 || access.level > 60)
+      throw Error('Invalid Arena player profile')
+    const allowed = characters.filter(character => isSelectable(character) && access.allowedVariantIds.includes(character.id))
+    if (!allowed.length) throw Error('No unlocked Arena fighters are available')
+    session.allowedVariantIds = allowed.map(character => character.id)
+    session.diagnosticRoster = access.diagnosticRoster === true
+    session.ownershipUnavailable = access.ownershipUnavailable === true
+    session.level = access.level
+    session.playerProgress = access.progress || null
+    if (!allowed.some(character => character.id === session.character.id)) {
+      session.character = defaultPlayerVariant(session.allowedVariantIds)
+      return true
+    }
+    return false
+  }
   const pendingDiagnostics = new Set()
   let disposed = false
   function queueDiagnostic(session, status = session.battle?.status) {
@@ -280,18 +301,67 @@ function createArena({
       .finally(() => {
         session.clickResponse?.cancel()
         session.clickResponse = null
+        drainSelection(session)
       })
     return session.work
+  }
+  function queueSelection(session, interaction, match, acknowledgement) {
+    if (!session.selectionFlow || session.expired || session.battle?.status === 'playing' ||
+        interaction.isStringSelectMenu?.() !== true || interaction.values?.length !== 1 ||
+        !['selectcharacter', 'selectskin', 'selectgroup'].includes(match[3]) ||
+        (match[3] === 'selectskin' ? session.page !== 'skins' : session.page !== 'characters') ||
+        ![session.revision, session.deliveredRevision].includes(Number(match[2]))) return null
+    session.pendingSelection?.resolve()
+    let resolve, reject
+    const promise = new Promise((yes, no) => { resolve = yes; reject = no })
+    session.pendingSelection = { interaction, action: match[3], value: interaction.values[0], acknowledgement, resolve, reject }
+    return promise
+  }
+  function drainSelection(session) {
+    if (session.drainingSelection || !session.pendingSelection || session.expired) return
+    session.drainingSelection = true
+    session.busy = true
+    // This is deliberately outside session.work: replay appends to that queue.
+    session.pendingDrain = Promise.resolve().then(async () => {
+      while (session.pendingSelection) {
+        session.busy = true
+        const pending = session.pendingSelection
+        session.pendingSelection = null
+        const ackError = await pending.acknowledgement
+        if (ackError || session.expired || session.pendingSelection) { pending.resolve(); continue }
+        session.busy = true
+        const source = pending.interaction
+        try {
+          await handleButton({
+            user: source.user, guildId: source.guildId, channelId: source.channelId,
+            client: source.client, member: source.member, message: { id: session.messageId },
+            customId: `arena:${session.id}:${session.revision}:${pending.action}`,
+            values: [pending.value], isStringSelectMenu: () => true, queuedSelection: true,
+            deferUpdate: async () => {}, editReply: payload => source.editReply(payload),
+            reply: payload => source.followUp?.(payload) || Promise.resolve(),
+          })
+          pending.resolve()
+        } catch (error) { pending.reject(error) }
+      }
+    }).finally(() => {
+      session.drainingSelection = false
+      session.busy = false
+      drainSelection(session)
+    })
+    session.pendingDrain.catch(error => logger.warn?.(`Arena selection replay failed: ${error.code || error.name}`))
   }
   function expire(session, notify = true) {
     if (session.expired) return session.work
     session.expired = true
+    session.pendingSelection?.resolve()
+    session.pendingSelection = null
     session.stopped = true
     session.revision++
     cancel(session)
     session.minigame = null
     cancelExpiry(session)
     sessions.delete(session.id)
+    session.releaseMenu?.()
     return enqueue(session, async () => {
       try {
         if ((await render(session)) !== false)
@@ -448,6 +518,21 @@ function createArena({
       throw Error('Expected an available Arena opponent')
     return chosen
   }
+  function startBattle(session) {
+    cancel(session)
+    if (session.battle && !session.manualOpponentSelection) session.opponent = opponent()
+    session.battle = engine.newBattle(0, { character: session.character, level: session.level, opponent: session.opponent })
+    session.battle.arenaVersion = structuredClone(session.arenaVersion)
+    session.startedAt = new Date(now()).toISOString()
+    session.roundTimings = {}
+    session.fightNumber++
+    session.diagnosticQueued = false
+    session.lastTiming = null
+    session.minigame = null
+    session.stopped = false
+    session.reported = false
+    session.revision++
+  }
   async function execute(interaction, character, options = {}) {
     const timing = responsive
       ? createTiming({
@@ -478,7 +563,7 @@ function createArena({
   async function executeSession(
     interaction,
     character,
-    { selection = false } = {},
+    { selection = false, startImmediately = false, initialPage } = {},
     timing
   ) {
     if (disposed)
@@ -488,20 +573,36 @@ function createArena({
       )
     if (authorize && !(await authorize(interaction))) return
     const deferred = Boolean(interaction.deferReply)
-    if (deferred) {
+    if (deferred && !interaction.deferred && !interaction.replied) {
       if (timing) await timing.phase('ackMs', () => interaction.deferReply())
       else await interaction.deferReply()
     }
-    const level = 1
+    return lifecycle
+      ? lifecycle.open(interaction, () => openSession(interaction, character, selection, timing, deferred, { startImmediately, initialPage }))
+      : openSession(interaction, character, selection, timing, deferred, { startImmediately, initialPage })
+  }
+  async function openSession(interaction, character, selection, timing, deferred, { startImmediately, initialPage }) {
+    let playerAccess
+    if (getPlayerAccess) {
+      try { playerAccess = await getPlayerAccess(interaction) }
+      catch (error) {
+        logger.warn?.(`Arena player profile unavailable: ${error.code || error.name}`)
+        const payload = { content: 'Your Arena player data is unavailable. Please try again shortly.', components: [], allowedMentions: { parse: [] } }
+        return deferred ? interaction.editReply(payload) : interaction.reply({ ...payload, ephemeral: true })
+      }
+    }
+    const level = playerAccess?.level || 1
     let saved
-    if (selection) {
+    if (selection && !getPlayerAccess) {
       try {
         saved = await preferences.get(interaction.guildId, interaction.user.id)
       } catch (error) {
         logger.warn?.(`Arena preference read failed: ${error.message}`)
       }
     }
-    character = preferredVariant(saved, character)
+    character = getPlayerAccess
+      ? character || defaultPlayerVariant(playerAccess.allowedVariantIds)
+      : preferredVariant(saved, character)
     for (const previous of sessions.values()) {
       if (
         previous.ownerId === interaction.user.id &&
@@ -544,7 +645,7 @@ function createArena({
       level,
       opponent: opponent(),
       manualOpponentSelection: Boolean(balance.manualOpponentSelection),
-      page: selection ? 'characters' : 'prefight',
+      page: selection ? (initialPage === 'skins' ? 'skins' : 'characters') : 'prefight',
       selectionFlow: selection,
       groupId: null,
       artKey: null,
@@ -569,16 +670,22 @@ function createArena({
           ? interaction.followUp(payload)
           : Promise.resolve(),
     }
+    if (playerAccess && applyPlayerAccess(session, playerAccess) && startImmediately) {
+      const payload = { content: 'That fighter is no longer unlocked. Use /arena fight to choose an available character.', components: [], allowedMentions: { parse: [] } }
+      return deferred ? interaction.editReply(payload) : interaction.reply({ ...payload, ephemeral: true })
+    }
     timing?.detail('arenaVersion', session.arenaVersion)
     sessions.set(session.id, session)
+    session.releaseMenu = lifecycle?.track(interaction, () => expire(session, false))
     try {
+      if (startImmediately) startBattle(session)
       const prepareArt = () =>
-        framedArtFiles(character, session.opponent, session.page, logger)
-      const files = timing
-        ? await timing.phase('renderMs', prepareArt)
-        : await prepareArt()
+        framedArtFiles(session.character, session.opponent, session.page, logger)
+      const presentation = startImmediately ? await buildPresentation(snapshot(session), { renderCard, renderLegend, logger, now, timing }) : null
+      const files = presentation ? presentation.files : timing ? await timing.phase('renderMs', prepareArt) : await prepareArt()
+      if (presentation) Object.assign(session, { card: presentation.card, cardRetryAt: presentation.cardRetryAt, legendRetryAt: presentation.legendRetryAt })
       session.artKey = files.map((file) => file.name).join('|')
-      const initial = { ...screen(session), files, fetchReply: true }
+      const initial = { ...(presentation?.view || screen(session)), files, fetchReply: true }
       if (timing && session.diagnostic !== false)
         timingFooter(initial, timing.snapshot())
       const deliver = () =>
@@ -609,6 +716,7 @@ function createArena({
       armExpiry(session)
     } catch (error) {
       sessions.delete(session.id)
+      session.releaseMenu?.()
       if (session.messageId)
         await interaction.editReply({ components: [] }).catch(() => {})
       throw error
@@ -628,6 +736,8 @@ function createArena({
       session.channelId !== interaction.channelId ||
       session.messageId !== interaction.message?.id
     ) {
+      if (lifecycle && match && (!session || session.expired) && interaction.update)
+        return interaction.update({ components: [], allowedMentions: { parse: [] } })
       return privateReply(
         interaction,
         'This arena session has ended or the bot restarted. Use /arena for a new fight.'
@@ -639,6 +749,10 @@ function createArena({
         'Only the player who opened this arena can control it. Use /arena for your own fight.'
       )
     if (session.expiresAt !== null && now() >= session.expiresAt) {
+      if (lifecycle && interaction.update) {
+        await interaction.update({ components: [], allowedMentions: { parse: [] } })
+        return expire(session, false)
+      }
       const reply = privateReply(
         interaction,
         'This arena session expired. Use /arena for a new fight.'
@@ -722,10 +836,11 @@ function createArena({
         (error) => error
       )
     // Drop repeat/stale input immediately; never append it to the edit queue.
-    if (session.busy) {
+    if (session.busy && !interaction.queuedSelection) {
+      const queued = queueSelection(session, interaction, match, acknowledgement)
       await acknowledgement
-      timing?.finish({ action: 'duplicate' })
-      return
+      timing?.finish({ action: queued ? 'queued-selection' : 'duplicate' })
+      return queued
     }
     session.busy = true
     const ackError = await acknowledgement
@@ -737,6 +852,7 @@ function createArena({
       }
       logger.warn?.(`Arena acknowledgement failed: ${ackError.message}`)
       timing?.finish({ action: match[3], failed: true })
+      drainSelection(session)
       return
     }
     if (session.expired) {
@@ -748,6 +864,36 @@ function createArena({
     }
     session.timing = timing
     session.clickResponse = clickResponse
+    if (getPlayerAccess && session.battle?.status !== 'playing') {
+      try {
+        const access = timing
+          ? await timing.phase('playerAccessMs', () => getPlayerAccess(interaction))
+          : await getPlayerAccess(interaction)
+        const replaced = applyPlayerAccess(session, access)
+        if (replaced) {
+          session.battle = null
+          session.selectionFlow = true
+          session.page = 'characters'
+          session.groupId = null
+          session.revision++
+          return enqueue(session, async () => {
+            await render(session, true)
+            session.busy = false
+            armExpiry(session)
+            timing?.finish({ action: 'ownership-refresh' })
+            session.timing = null
+          })
+        }
+      } catch (error) {
+        logger.warn?.(`Arena player profile unavailable: ${error.code || error.name}`)
+        session.busy = false
+        await clickResponse?.defer()
+        await expire(session, false)
+        timing?.finish({ action: 'ownership-unavailable', failed: true })
+        session.timing = null
+        return
+      }
+    }
     // A stale display can only refresh the committed state, never spend again.
     if (responsive && (match[3] === 'refresh' || session.deliveryPending)) {
       cancelExpiry(session)
@@ -810,10 +956,11 @@ function createArena({
         isSelect &&
         session.page === 'characters'
       ) {
-        const group = groupsFor().find((entry) => entry.id === value)
-        if (group && groupsFor().length > 1) {
+        const groups = groupsFor(rosterFor(session.allowedVariantIds))
+        const group = groups.find((entry) => entry.id === value)
+        if (group && groups.length > 1) {
           session.groupId = group.id
-          session.character = variantsFor(group.entries[0])[0]
+          session.character = variantsFor(group.entries[0], session.allowedVariantIds)[0]
           navigation = true
         }
       } else if (
@@ -822,14 +969,14 @@ function createArena({
         session.page === 'characters'
       ) {
         const group =
-          groupsFor().find((entry) => entry.id === session.groupId) ||
-          groupsFor().find((entry) =>
+          groupsFor(rosterFor(session.allowedVariantIds)).find((entry) => entry.id === session.groupId) ||
+          groupsFor(rosterFor(session.allowedVariantIds)).find((entry) =>
             entry.entries.some((item) => item.id === family.id)
           )
-        const entry = group.entries.find((item) => item.id === value)
+        const entry = group?.entries.find((item) => item.id === value)
         if (entry) {
           session.character =
-            entry.id === family.id ? session.character : variantsFor(entry)[0]
+            entry.id === family.id ? session.character : variantsFor(entry, session.allowedVariantIds)[0]
           navigation = true
         }
       } else if (
@@ -837,7 +984,7 @@ function createArena({
         isSelect &&
         session.page === 'skins'
       ) {
-        const variant = variantsFor(family).find((entry) => entry.id === value)
+        const variant = variantsFor(family, session.allowedVariantIds).find((entry) => entry.id === value)
         if (variant) {
           session.character = variant
           navigation = true
@@ -858,7 +1005,7 @@ function createArena({
       } else if (
         action === 'confirmfighter' &&
         session.page === 'skins' &&
-        variantsFor(family).some((entry) => entry.id === session.character.id)
+        variantsFor(family, session.allowedVariantIds).some((entry) => entry.id === session.character.id)
       ) {
         session.page = 'prefight'
         navigation = true
@@ -928,24 +1075,7 @@ function createArena({
       complete(session)
       armExpiry(session)
     } else if (start) {
-      cancel(session)
-      if (session.battle && !session.manualOpponentSelection)
-        session.opponent = opponent()
-      session.battle = engine.newBattle(0, {
-        character: session.character,
-        level: session.level,
-        opponent: session.opponent,
-      })
-      session.battle.arenaVersion = structuredClone(session.arenaVersion)
-      session.startedAt = new Date(now()).toISOString()
-      session.roundTimings = {}
-      session.fightNumber++
-      session.diagnosticQueued = false
-      session.lastTiming = null
-      session.minigame = null
-      session.stopped = false
-      session.reported = false
-      session.revision++
+      startBattle(session)
       armExpiry(session)
     } else if (basic) {
       session.revision++
@@ -978,6 +1108,7 @@ function createArena({
       session.timing = null
       clickResponse?.cancel()
       session.clickResponse = null
+      drainSelection(session)
       return
     }
     cancelExpiry(session)
@@ -1029,8 +1160,8 @@ function createArena({
   }
   function dispose() {
     disposed = true
-    const pending = [...sessions.values()].map((session) =>
-      expire(session, false)
+    const pending = [...sessions.values()].flatMap((session) =>
+      [expire(session, false), session.pendingDrain].filter(Boolean)
     )
     sessions.clear()
     return Promise.allSettled(pending).then(async (results) => {
@@ -1047,6 +1178,8 @@ const leases = live ? require('./message-leases').createLeaseStore() : null
 module.exports = {
   createArena,
   arena: createArena({
+    getPlayerAccess: process.env.NODE_ENV === 'development' ? interaction => require('./player-access').playerAccess(interaction) : null,
+    lifecycle: process.env.NODE_ENV === 'development' ? require('./menu-lifecycle').menuLifecycle : null,
     authorize: require('./access').access.authorize,
     leases,
     preferences:

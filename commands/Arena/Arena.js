@@ -18,7 +18,9 @@ else {
   data
     .addSubcommand(command => command
       .setName('fight')
-      .setDescription('Choose a character and start an Arena fight.'))
+      .setDescription('Choose a character and start an Arena fight.')
+      .addStringOption(option => option.setName('character').setDescription('Your unlocked fighter; leave blank to use the picker.').setAutocomplete(true))
+      .addStringOption(option => option.setName('skin').setDescription('An unlocked skin for the chosen character.').setAutocomplete(true)))
     .addSubcommand(command => command
       .setName('campaign')
       .setDescription('Choose a tower and begin a campaign climb.'))
@@ -42,6 +44,10 @@ else {
 module.exports = {
   environments: ['development', 'production'],
   data,
+  async autocomplete(interaction) {
+    if (require('../../services/arena/access').access.restriction(interaction)) return interaction.respond([])
+    return require('../../services/arena/fight-options').fightOptions.autocomplete(interaction)
+  },
   async execute(interaction) {
     const { access } = require('../../services/arena/access')
     const subcommand = interaction.options?.getSubcommand?.(false)
@@ -65,6 +71,13 @@ module.exports = {
       return require('../../services/arena/campaign').campaign.execute(interaction)
     if (subcommand === 'shop')
       return require('../../services/arena/shop').shop.execute(interaction)
+    if (subcommand === 'fight' && (interaction.options.getString('character') || interaction.options.getString('skin'))) {
+      await interaction.deferReply()
+      let options
+      try { options = await require('../../services/arena/fight-options').fightOptions.resolve(interaction) }
+      catch (error) { return interaction.editReply({ content: error.code === 'ARENA_FIGHT_OPTION' ? error.message : 'Your Arena character data is unavailable. Please try again shortly.', components: [], allowedMentions: { parse: [] } }) }
+      return require('../../services/arena/controller').arena.execute(interaction, options.character, options)
+    }
     return require('../../services/arena/controller').arena.execute(
       interaction,
       undefined,

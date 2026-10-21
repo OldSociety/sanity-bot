@@ -636,6 +636,17 @@ test('expiry during rendering discards the in-flight snapshot and removes contro
   assert.match(f.view().embeds[0].data.description, /expired/)
 })
 
+test('direct fighter entry publishes the active mock fight immediately without a picker or start click', async () => {
+  const f = fixture()
+  try {
+    await f.arena.execute(f.interaction, character, { startImmediately: true })
+    assert(f.message.components.flatMap(row => row.components).some(control => control.custom_id.endsWith(':basic')))
+    assert(!f.message.components.flatMap(row => row.components).some(control => /:(selectcharacter|selectskin|start)$/.test(control.custom_id)))
+    assert.equal(f.calls(), 0)
+    assert.equal(f.message.attachments.size, 2)
+  } finally { await f.arena.dispose() }
+})
+
 test('refresh of an unchanged view retains both attachments without upload', async () => {
   const f = fixture()
   try {

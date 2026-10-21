@@ -14,10 +14,12 @@ function createCampaign({
     require('./access').access.authorize(interaction),
   environment = () => process.env.NODE_ENV,
   now = Date.now,
-  timeoutMs = 15 * 60 * 1000,
+  timeoutMs = 5 * 60 * 1000,
   maxSessions = 1000,
   setTimer = setTimeout,
   clearTimer = clearTimeout,
+  lifecycle = null,
+  logger = console,
 } = {}) {
   const sessions = new Map()
   const reply = (interaction, content) =>
@@ -152,8 +154,28 @@ function createCampaign({
     }
   }
   function remove(session) {
+    session.expiryGeneration = (session.expiryGeneration || 0) + 1
     clearTimer(session.timer)
     sessions.delete(session.id)
+    session.release?.()
+  }
+  async function retire(session) {
+    remove(session)
+    await session.work?.catch(() => {})
+    try { await session.edit({ components: [], allowedMentions: { parse: [] } }) }
+    catch (error) {
+      if (![10008, 10015, 50027].includes(Number(error.code)))
+        logger.warn?.(`Arena campaign cleanup failed: ${error.code || error.name}`)
+    }
+  }
+  function armExpiry(session) {
+    clearTimer(session.timer)
+    const generation = session.expiryGeneration = (session.expiryGeneration || 0) + 1
+    session.expiresAt = now() + timeoutMs
+    session.timer = setTimer(() => {
+      if (generation === session.expiryGeneration && sessions.has(session.id)) return retire(session)
+    }, timeoutMs)
+    session.timer?.unref?.()
   }
   async function execute(interaction) {
     if (environment() !== 'development')
@@ -162,8 +184,14 @@ function createCampaign({
         'Campaign preview is available on the development bot only.',
       )
     if (!(await authorize(interaction))) return
+    await interaction.deferReply({ ephemeral: true })
+    return lifecycle ? lifecycle.open(interaction, () => openSession(interaction)) : openSession(interaction)
+  }
+  async function openSession(interaction) {
+    for (const previous of sessions.values())
+      if (previous.ownerId === interaction.user.id && previous.guildId === interaction.guildId) await retire(previous)
     if (sessions.size >= maxSessions)
-      return reply(interaction, 'Campaign is busy. Please try again shortly.')
+      return interaction.editReply({ content: 'Campaign is busy. Please try again shortly.' })
     const session = {
       id: randomUUID(),
       ownerId: interaction.user.id,
@@ -175,17 +203,14 @@ function createCampaign({
       expiresAt: now() + timeoutMs,
       interaction,
       busy: true,
+      edit: payload => interaction.editReply(payload),
     }
     sessions.set(session.id, session)
+    session.release = lifecycle?.track(interaction, () => retire(session))
     try {
-      await interaction.deferReply({ ephemeral: true })
       const message = await interaction.editReply(view(session))
       session.messageId = message.id
-      session.timer = setTimer(() => {
-        remove(session)
-        interaction.editReply(view(session, true)).catch(() => {})
-      }, timeoutMs)
-      session.timer?.unref?.()
+      armExpiry(session)
     } catch (error) {
       remove(session)
       throw error
@@ -202,11 +227,7 @@ function createCampaign({
     if (!(await authorize(interaction))) return
     const [, , id, revision, action] = (interaction.customId || '').split(':')
     const session = sessions.get(id)
-    if (!session)
-      return reply(
-        interaction,
-        'This climb has ended. Use /arena campaign to start again.',
-      )
+    if (!session) return interaction.update({ components: [], allowedMentions: { parse: [] } })
     if (
       session.ownerId !== interaction.user.id ||
       session.guildId !== interaction.guildId ||
@@ -219,7 +240,7 @@ function createCampaign({
       )
     if (now() >= session.expiresAt) {
       remove(session)
-      return interaction.update(view(session, true))
+      return interaction.update({ components: [], allowedMentions: { parse: [] } })
     }
     if (session.busy || String(session.revision) !== revision)
       return reply(
@@ -256,22 +277,29 @@ function createCampaign({
       next.page = 'towers'
     else return reply(interaction, 'That action is not available in this menu.')
     session.busy = true
-    try {
+    const work = (async () => { try {
       await interaction.deferUpdate()
+      session.edit = payload => interaction.editReply(payload)
       // Commit navigation only after delivery; a failed edit can be retried.
       await interaction.editReply(view(next, next.closed))
       if (!sessions.has(id)) {
-        await interaction.editReply(view(session, true))
+        await interaction.editReply({ components: [], allowedMentions: { parse: [] } })
         return
       }
       if (next.closed) remove(session)
-      else Object.assign(session, next)
+      else {
+        const edit = session.edit
+        Object.assign(session, next, { edit, work })
+        armExpiry(session)
+      }
     } finally {
       session.busy = false
-    }
+    } })()
+    session.work = work
+    return work
   }
   function dispose() {
-    for (const session of sessions.values()) remove(session)
+    return Promise.allSettled([...sessions.values()].map(session => retire(session)))
   }
   return { execute, handleButton, dispose }
 }
@@ -280,8 +308,8 @@ module.exports = {
   createCampaign,
   campaign: {
     execute: (interaction) =>
-      (singleton ||= createCampaign()).execute(interaction),
+      (singleton ||= createCampaign({ lifecycle: require('./menu-lifecycle').menuLifecycle })).execute(interaction),
     handleButton: (interaction) =>
-      (singleton ||= createCampaign()).handleButton(interaction),
+      (singleton ||= createCampaign({ lifecycle: require('./menu-lifecycle').menuLifecycle })).handleButton(interaction),
   },
 }

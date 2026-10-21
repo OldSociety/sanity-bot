@@ -5,7 +5,6 @@ const root = path.resolve(__dirname, '../..')
 const store = path.join(root, 'artifacts/arena-versions')
 const mechanics = [
   'combat',
-  'controller',
   'rules',
   'tactics',
   'damage',
@@ -41,6 +40,35 @@ const digest = (value) =>
     .update(JSON.stringify(canonical(value)))
     .digest('hex')
 
+// UI, access, progression and orchestration stay in the full build snapshot.
+// Put new combat rules (including controller timing/choice rules) in these
+// modules or resolved balance, rather than expanding this to whole UI modules.
+function rulesSnapshot({ balance, builds, sources }) {
+  return {
+    schema: 2,
+    balance,
+    builds,
+    sources: Object.fromEntries(
+      mechanics.map((name) => {
+        const key = `services/arena/${name}.js`
+        if (typeof sources[key] !== 'string')
+          throw Error(`Arena combat source missing: ${key}`)
+        return [key, sources[key]]
+      }),
+    ),
+  }
+}
+
+function comparisonHash(snapshot) {
+  // Project historical broad snapshots in memory; never rewrite their hashes,
+  // IDs or contents. Unknown schemas retain exact-hash matching only.
+  return digest(
+    snapshot.schema === 1 || snapshot.schema === 2
+      ? rulesSnapshot(snapshot)
+      : snapshot,
+  )
+}
+
 // Explicit allowlist: never archive credentials, databases, player state, or reports.
 function capture() {
   const sources = {}
@@ -65,7 +93,7 @@ function capture() {
   for (const file of files.sort())
     sources[file] = fs.readFileSync(path.join(root, file), 'utf8')
   if (process.env.NODE_ENV !== 'production') {
-    for (const folder of ['campaign', 'shop']) {
+    for (const folder of ['campaign', 'shop', 'progression']) {
       for (const name of fs
         .readdirSync(path.join(root, `config/arena/${folder}`))
         .filter((name) => name.endsWith('.json'))
@@ -83,16 +111,10 @@ function capture() {
         ? require('../../config/arena/arena-builds-production.json')
         : {}
       : require('./character-config').sheets
-  const mechanicsSources = Object.fromEntries(
-    mechanics.map((name) => {
-      const key = `services/arena/${name}.js`
-      return [key, sources[key]]
-    }),
-  )
   const release = require('../../config/arena/arena-version.json').release
   if (!/^\d+\.\d+\.\d+$/.test(release))
     throw Error('Arena release must be Major.Minor.Revision')
-  const rules = { schema: 1, balance, builds, sources: mechanicsSources }
+  const rules = rulesSnapshot({ balance, builds, sources })
   return {
     release,
     sources,
@@ -150,7 +172,20 @@ function register(
       )
         throw Error(`Arena build ${row.id} archive was modified`)
     }
-    let ruleset = ruleRecords.find((row) => row.hash === candidate.rulesHash)
+    if (digest(candidate.rules) !== candidate.rulesHash)
+      throw Error('Arena candidate ruleset hash mismatch')
+    const build = records.find((row) => row.hash === candidate.buildHash)
+    const candidateComparisonHash = comparisonHash(candidate.rules)
+    const matchingRules = ruleRecords.filter(
+      (row) => comparisonHash(row.snapshot) === candidateComparisonHash,
+    )
+    // Exact restarts/rollbacks retain their original link. New builds reuse the
+    // most recent equivalent ruleset, avoiding a policy-only ruleset increment.
+    let ruleset = build
+      ? matchingRules.find((row) => row.id === build.rulesetId)
+      : matchingRules.sort((a, b) => b.id - a.id)[0]
+    if (build && (!ruleset || build.rulesetHash !== ruleset.hash))
+      throw Error('Arena build/ruleset mismatch')
     if (!ruleset) {
       ruleset = {
         id: Math.max(0, ...ruleRecords.map((row) => row.id)) + 1,
@@ -160,28 +195,26 @@ function register(
       }
       exclusive(path.join(directory, `ruleset-${ruleset.id}.json`), ruleset)
     }
-    let build = records.find((row) => row.hash === candidate.buildHash)
-    if (!build) {
+    let registeredBuild = build
+    if (!registeredBuild) {
       const id = Math.max(0, ...records.map((row) => row.id)) + 1
-      build = {
+      registeredBuild = {
         id,
         version: `${candidate.release}.${id}`,
         hash: candidate.buildHash,
         rulesetId: ruleset.id,
-        rulesetHash: candidate.rulesHash,
+        rulesetHash: ruleset.hash,
         createdAt: now(),
         sources: candidate.sources,
         balance: candidate.rules.balance,
         builds: candidate.rules.builds,
       }
-      exclusive(path.join(directory, `build-${id}.json`), build)
+      exclusive(path.join(directory, `build-${id}.json`), registeredBuild)
     }
-    if (build.rulesetHash !== candidate.rulesHash)
-      throw Error('Arena build/ruleset mismatch')
     const stamp = {
-      version: build.version,
-      build: build.id,
-      buildHash: build.hash,
+      version: registeredBuild.version,
+      build: registeredBuild.id,
+      buildHash: registeredBuild.hash,
       rulesetId: ruleset.id,
       rulesetHash: ruleset.hash,
       environment,
@@ -219,4 +252,6 @@ function label(stamp) {
       }`
     : 'Arena version untracked'
 }
-module.exports = { canonical, digest, capture, register, runtimeVersion, label }
+module.exports = {
+  canonical, digest, rulesSnapshot, capture, register, runtimeVersion, label,
+}
