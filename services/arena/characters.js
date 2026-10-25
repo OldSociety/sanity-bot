@@ -101,6 +101,7 @@ const defaultCharacter = characters.find(
 const isSelectable = (character) =>
   Boolean(
     character &&
+      (!require('./secondary').enabled() || require('./secondary').testRosterIds.includes(character.id)) &&
       !character.hidden &&
       (!character.developmentOnly ||
         Boolean(require('./rules').balance.characters[character.kit])) &&

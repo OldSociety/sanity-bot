@@ -1,0 +1,52 @@
+{
+  "development": {
+    "testCommandEnabled": true,
+    "guildId": "684459745167671453",
+    "reviewGuildId": "684459745167671453",
+    "reviewChannelId": "1076618367294771200",
+    "commandChannelId": "1076618367294771200",
+    "scheduledEnabled": false
+  },
+  "production": {
+    "testCommandEnabled": false,
+    "liveEnabled": true,
+    "scheduledEnabled": true,
+    "guildId": "1259991510410334219",
+    "reviewGuildId": "1259991510410334219",
+    "reviewChannelId": "1287945944444309564",
+    "commandChannelId": "1262878387551342602",
+    "reviewerUserIds": [
+      "138131238803210240"
+    ],
+    "reviewerRoleIds": [],
+    "playerRoleIds": {
+      "monday": "1262472162560835594",
+      "wednesday": "1262472124522696774"
+    }
+  },
+  "campaigns": {
+    "wednesday": {
+      "name": "WednesdaysinHell",
+      "anchor": "2026-10-28"
+    },
+    "monday": {
+      "name": "MondaysinHell",
+      "anchor": "2026-11-02"
+    }
+  },
+  "schedule": {
+    "timezone": "America/Los_Angeles",
+    "intervalWeeks": 2,
+    "openingHour": 12,
+    "reminderHour": 12,
+    "windowCalendarDays": 5,
+    "backupDelayHours": 24,
+    "extendForMissedLastDayReminder": true,
+    "breaks": [
+      {
+        "start": "2026-12-07",
+        "end": "2027-01-01"
+      }
+    ]
+  }
+}

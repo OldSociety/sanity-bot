@@ -31,6 +31,20 @@ module.exports.run = async (client, message, args) => {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    // Test check-ins cannot award Sanity/activity credit. Buttons and modals
+    // are handled before the guild-only dispatch and unrelated button handlers.
+    if (interaction.customId?.startsWith('ci:')) {
+      await require('../services/checkins/runtime').handle(interaction)
+      return
+    }
+    if (interaction.isChatInputCommand?.() && interaction.commandName === 'checkin-test') {
+      await require('../commands/CheckIn/CheckInTest').execute(interaction)
+      return
+    }
+    if (interaction.isChatInputCommand?.() && interaction.commandName === 'check-in') {
+      await require('../commands/CheckIn/CheckIn').execute(interaction)
+      return
+    }
     // Chat and bot activity share the same daily Sanity markers and cap.
     // Start independently so Discord acknowledgement is never delayed by SQLite.
     const sanityActivity = require('../services/sanity').handleInteraction(interaction)

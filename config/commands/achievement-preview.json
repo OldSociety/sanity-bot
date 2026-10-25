@@ -1,0 +1,9 @@
+{
+  "emojiSourceGuildId": "684459745167671453",
+  "achievementName": "First Steps",
+  "tasks": [
+    { "label": "Explore your profile", "target": 2, "sampleProgress": 2 },
+    { "label": "Try an Arena fight", "target": 2, "sampleProgress": 1 },
+    { "label": "Collect a badge", "target": 2, "sampleProgress": 0 }
+  ]
+}

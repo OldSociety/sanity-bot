@@ -1,4 +1,5 @@
 const { randomInt } = require('node:crypto')
+const secondary = require('./secondary')
 const { newBattle, takeTurn, beginFinisher } = require('./combat')
 const { screen, actionLines, fallbackStatus } = require('./interface')
 const { framedArtFiles } = require('./art')
@@ -566,6 +567,8 @@ function createArena({
     { selection = false, startImmediately = false, initialPage } = {},
     timing
   ) {
+    // Give direct /arena fight choices the same equipment step as the picker.
+    if (secondary.enabled()) startImmediately = false
     if (disposed)
       return privateReply(
         interaction,
@@ -603,6 +606,8 @@ function createArena({
     character = getPlayerAccess
       ? character || defaultPlayerVariant(playerAccess.allowedVariantIds)
       : preferredVariant(saved, character)
+    if (secondary.enabled() && !require('./characters').isSelectable(character))
+      character = defaultPlayerVariant(playerAccess?.allowedVariantIds)
     for (const previous of sessions.values()) {
       if (
         previous.ownerId === interaction.user.id &&
@@ -639,6 +644,8 @@ function createArena({
       revision: 0,
       battle: null,
       character,
+      secondaryId: null,
+      secondaryDetails: false,
       initializing: true,
       expired: false,
       messageId: null,
@@ -725,7 +732,7 @@ function createArena({
   async function handleButton(interaction) {
     if (authorize && !(await authorize(interaction))) return
     const match =
-      /^arena:([^:]+):(0|[1-9]\d*):(start|basic|opponent|quit|special1|special2|special3|pick|selectgroup|selectcharacter|selectskin|chooseskin|backcharacters|backskins|confirmfighter|changefighter|refresh)(?::([1-5]))?$/.exec(
+      /^arena:([^:]+):(0|[1-9]\d*):(start|basic|opponent|quit|special1|special2|special3|pick|selectgroup|selectcharacter|selectskin|chooseskin|backcharacters|backskins|confirmfighter|changefighter|refresh|equipsecondary|secondary)(?::([1-5]))?$/.exec(
         interaction.customId
       )
     const session = match && sessions.get(match[1])
@@ -919,6 +926,23 @@ function createArena({
       session.battle?.status === 'playing' &&
       !session.stopped
     let navigation = false
+    if (current && !match[4] && secondary.enabled()) {
+      if (match[3] === 'equipsecondary' && session.page === 'prefight' &&
+          (!session.battle || session.battle.status !== 'playing') &&
+          interaction.isStringSelectMenu?.() === true && interaction.values?.length === 1) {
+        const value = interaction.values[0]
+        if (value === 'none' || secondary.choices(session).some(character => character.id === value)) {
+          session.secondaryId = value === 'none' ? null : value
+          session.secondaryDetails = false
+          navigation = true
+        }
+      } else if (match[3] === 'secondary' && secondary.equipped(session) &&
+          session.battle?.status === 'playing' && !session.stopped && !session.minigame) {
+        session.secondaryDetails = !session.secondaryDetails
+        navigation = true
+      }
+      if (navigation) session.revision++
+    }
     if (
       current &&
       session.manualOpponentSelection &&
@@ -1027,6 +1051,7 @@ function createArena({
         navigation = true
       }
       if (navigation) {
+        if (!secondary.equipped(session)) session.secondaryId = null
         session.revision++
         armExpiry(session)
       }

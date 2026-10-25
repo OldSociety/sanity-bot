@@ -52,3 +52,4 @@ yarn-error.log**.sqlite
 
 /config/arena/state/arena-diagnostics-development.json
 /config/arena/state/arena-diagnostics-development.json.*.tmp
+config/checkins/state/

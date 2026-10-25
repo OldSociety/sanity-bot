@@ -26,6 +26,7 @@ const {
 } = require('./rules')
 const { artFiles, bannerName } = require('./art')
 const { cardName } = require('./health-card')
+const secondary = require('./secondary')
 const { legendNameFor } = require('./legend')
 const { familyFor, variantsFor, groupsFor, rosterFor } = require('./selection')
 const {
@@ -265,6 +266,9 @@ function screen(session) {
         ? `${idle ? '⏩' : '⚔️'} ${playerName} vs ${enemyName} · ${battle.tick}`
         : '⚔️ Arena'
     )
+  const equippedSecondary = secondary.equipped(session)
+  if (equippedSecondary && (!battle || session.secondaryDetails))
+    embed.addFields({ name: 'Secondary', value: `${equippedSecondary.label}\nEquipped for this session. Combat abilities coming later.` })
   const button = (
     action,
     label,
@@ -314,6 +318,21 @@ function screen(session) {
     ).setEmoji('⚔️'),
   ]
   const withOpponentPicker = (view) => {
+    if (secondary.enabled() && !session.expired && session.page === 'prefight' &&
+        (!battle || battle.status !== 'playing')) {
+      view.components.unshift(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`arena:${id}:${revision}:equipsecondary`)
+          .setPlaceholder('Equip secondary character')
+          .setDisabled(Boolean(session.busy))
+          .addOptions([
+            { label: 'No secondary', value: 'none', default: !equippedSecondary },
+            ...secondary.choices(session).map(character => ({
+              label: character.label, value: character.id,
+              default: character.id === equippedSecondary?.id,
+            })),
+          ])))
+    }
     if (!session.manualOpponentSelection || session.expired) return view
     view.components.unshift(
       new ActionRowBuilder().addComponents(
@@ -643,6 +662,7 @@ function screen(session) {
       button('basic', 'Basic Attack', ButtonStyle.Secondary).setEmoji('⚔️')
     )
     buttons.push(quitButton())
+    if (secondary.enabled()) buttons.push(button('secondary', '2nd', ButtonStyle.Secondary, !equippedSecondary))
   }
   return payload(buttons)
 }

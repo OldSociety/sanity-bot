@@ -52,6 +52,7 @@ global.client = client // Set global client after client initialization
 // startup catches up expired effects and the minute worker continues without play.
 client.once('ready', () => require('./services/spooky/runtime').startMaintenance(client))
 client.once('ready', () => require('./services/sanity-maintenance').start(client, User))
+client.once('ready', () => require('./services/checkins/runtime').start(client))
 
 client.cooldowns = new Collection()
 client.commands = new Collection()
@@ -91,7 +92,7 @@ const birthdayHandler = require('./handlers/birthdayHandler');
 
 messageHandler(client, User)
 boosterHandler(client, User)
-reminderHandler(client)
+if (!require('./services/checkins/runtime').replacesLegacyReminders()) reminderHandler(client)
 reportHandler(client)
 birthdayHandler(client)
 

@@ -83,6 +83,6 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    return interaction.reply({ content: 'The Fate shop is temporarily closed while new rewards are being planned.', ephemeral: true })
+    return interaction.reply({ content: 'The Fate shop is closed.', ephemeral: true })
   },
 }

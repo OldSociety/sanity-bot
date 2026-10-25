@@ -66,6 +66,7 @@ function cardData(session) {
   return {
     frameVersion,
     portraitVersion,
+    ...(require('./secondary').equipped(session) ? { secondaryId: session.secondaryId } : {}),
     ...(session.assetVersion ? { assetVersion: session.assetVersion } : {}),
     fighters: [
       fighter(session.battle.player, character, 'YOU'),
@@ -182,7 +183,7 @@ function cardSvg(data) {
     .join('')
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${logicalWidth}" height="${logicalHeight}" font-family="Segoe UI, sans-serif"><rect width="${logicalWidth}" height="${logicalHeight}" rx="16" fill="#15151e"/>${panels}</svg>`
 }
-async function renderHealthCard(
+async function renderPrimaryHealthCard(
   session,
   { optimized = process.env.NODE_ENV !== 'production' || require('./build-profile').productionPlaytest } = {}
 ) {
@@ -261,6 +262,20 @@ async function renderHealthCard(
       .png()
       .toBuffer(),
   }
+}
+async function renderHealthCard(session, options) {
+  const card = await renderPrimaryHealthCard(session, options)
+  const secondary = require('./secondary').equipped(session)
+  if (!secondary) return card
+  const size = 64
+  const art = await sharp(secondary.image).resize(size, size, { fit: 'cover' }).png().toBuffer()
+  const mask = Buffer.from(`<svg width="64" height="64"><circle cx="32" cy="32" r="30" fill="white"/></svg>`)
+  const badge = await sharp(art).composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer()
+  const border = Buffer.from('<svg width="68" height="68"><circle cx="34" cy="34" r="32" fill="#171822" stroke="#edbd65" stroke-width="2"/></svg>')
+  return { ...card, attachment: await sharp(card.attachment).composite([
+    { input: border, left: 116, top: 184 },
+    { input: badge, left: 118, top: 186 },
+  ]).png().toBuffer() }
 }
 // Composite above the unchanged portrait artwork, so opaque art cannot cover
 // the border. Rarity and palette both participate in the existing content key.
