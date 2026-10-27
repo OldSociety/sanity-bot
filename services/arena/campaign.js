@@ -97,7 +97,7 @@ function createCampaign({
             ButtonStyle.Secondary,
             start + 5 >= catalog.length,
           ),
-          button('close', 'Cancel Climb', ButtonStyle.Danger),
+          button('close', 'Cancel', ButtonStyle.Danger),
         ),
       )
       embed.setFooter({
@@ -126,7 +126,7 @@ function createCampaign({
           new ActionRowBuilder().addComponents(
             button('begin', 'Begin Climb', ButtonStyle.Success),
             button('towers', 'Back to Towers'),
-            button('close', 'Cancel Climb', ButtonStyle.Danger),
+            button('close', 'Cancel', ButtonStyle.Danger),
           ),
         )
       } else {
@@ -141,7 +141,7 @@ function createCampaign({
           new ActionRowBuilder().addComponents(
             button('combat', 'Combat Coming Soon', ButtonStyle.Primary, true),
             button('tower', 'Back to Tower'),
-            button('close', 'Leave Climb', ButtonStyle.Danger),
+            button('close', 'Cancel', ButtonStyle.Danger),
           ),
         )
       }

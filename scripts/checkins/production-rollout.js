@@ -5,8 +5,10 @@ const cp = require('node:child_process')
 const { createHash } = require('node:crypto')
 const { snapshot } = require('./development-rollout')
 const root = path.resolve(__dirname, '../..')
-const maintenance = process.argv[3] === '--reminder-backup'
-const directory = path.join(root, maintenance ? 'artifacts/checkins-reminder-backup-2026-10-25/production' : 'artifacts/checkins-reminders-2026-10-25/production')
+const maintenanceFlag = process.argv[3]
+const maintenance = ['--reminder-backup','--owner-access'].includes(maintenanceFlag)
+const directory = path.join(root, maintenanceFlag === '--owner-access' ? 'artifacts/checkins-owner-access-2026-10-25/production'
+  : maintenance ? 'artifacts/checkins-reminder-backup-2026-10-25/production' : 'artifacts/checkins-reminders-2026-10-25/production')
 const configFile = path.join(root, 'config/checkins/checkins.json')
 const hash = value => createHash('sha256').update(value).digest('hex')
 const save = (name, value) => fs.writeFileSync(path.join(directory, name), JSON.stringify(value, null, 2) + '\n')
@@ -63,6 +65,7 @@ async function main() {
     if (live.pid !== prod.pid || live.buildHash !== candidates.production) throw Error('Production Arena differs from the live build; no unrelated promotion is allowed.')
     const arenaFiles = Object.keys(JSON.parse(fs.readFileSync(path.join(root, `artifacts/arena-versions/build-${live.build}.json`))).sources)
     const sourceFiles = [...new Set(['app.js','Events/InteractionCreate.js','commands/CheckIn/CheckIn.js','commands/CheckIn/CheckInTest.js',
+      'services/command-channels.js','config/commands/channel-policy.json',
       ...filesUnder(path.join(root,'services/checkins')).map(f => path.relative(root,f)), ...arenaFiles])]
     const hashes = Object.fromEntries(sourceFiles.map(file => [file, hash(fs.readFileSync(path.join(root,file)))]))
     const archives = Object.fromEntries(filesUnder(path.join(root,'artifacts/arena-versions')).map(file => [path.relative(root,file), { hash: hash(fs.readFileSync(file)), size: fs.statSync(file).size }]))

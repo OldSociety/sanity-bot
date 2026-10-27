@@ -1,0 +1,31 @@
+// Targeted development registration; preserve every other guild command.
+const fs = require('node:fs')
+const path = require('node:path')
+const { REST, Routes } = require('discord.js')
+const { matches } = require('../deploy-commands')
+async function main() {
+  const mode = process.argv[2]
+  if (process.argv.length !== 3 || !['--plan', '--apply'].includes(mode)) throw Error('Use --plan or --apply.')
+  if (process.env.NODE_ENV !== 'development') throw Error('Development environment required.')
+  const runtime = require('../config/runtime/runtime').loadDiscordEnvironment('development')
+  if (runtime.guildId !== '684459745167671453') throw Error('Unexpected development guild.')
+  const desired = require('../commands/Winter/Snow').data.toJSON()
+  const rest = new REST().setToken(process.env.TOKEN)
+  const route = Routes.applicationGuildCommands(runtime.clientId, runtime.guildId)
+  const before = await rest.get(route)
+  const existing = before.find(c => c.name === 'snow' && c.type === 1)
+  const directory = path.join(runtime.root, 'artifacts/winter-dirty-recipe-development-2026-10-27')
+  fs.mkdirSync(directory, { recursive: true })
+  console.log(JSON.stringify({ environment: runtime.env, guildId: runtime.guildId, desired, existing: existing?.id, preserved: before.filter(c => c.id !== existing?.id).map(c => c.name) }))
+  if (mode === '--plan') return
+  fs.writeFileSync(path.join(directory, `registry-before-${Date.now()}.json`), JSON.stringify(before, null, 2), { flag: 'wx' })
+  if (existing) await rest.patch(Routes.applicationGuildCommand(runtime.clientId, runtime.guildId, existing.id), { body: desired })
+  else await rest.post(route, { body: desired })
+  const after = await rest.get(route)
+  const snow = after.find(c => c.name === 'snow' && c.type === 1)
+  const others = rows => rows.filter(c => c.id !== snow?.id).sort((a, b) => a.id.localeCompare(b.id))
+  if (!matches(snow, desired) || JSON.stringify(others(before)) !== JSON.stringify(others(after))) throw Error('Registry verification failed; inspect saved snapshot.')
+  fs.writeFileSync(path.join(directory, `registry-after-${Date.now()}.json`), JSON.stringify(after, null, 2), { flag: 'wx' })
+  console.log(`Verified /snow; ${others(after).length} other development commands unchanged.`)
+}
+main().catch(error => { console.error(error.message); process.exitCode = 1 })

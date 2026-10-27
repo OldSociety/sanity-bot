@@ -13,7 +13,7 @@ function createAccess({ config, environment, botAdminId }) {
   async function authorize(client, record, actor, purpose = 'player') {
     validateRecord(record)
     const c = scope()
-    const guild = await client.guilds.fetch(c.guildId)
+    const guild = await client.guilds.fetch({ guild: c.guildId, force: true })
     if (environment() === 'production' && purpose === 'delivery' && record?.submittedAt) return guild
     const member = await guild.members.fetch({ user: actor, force: true })
     if (environment() === 'development') {
@@ -25,14 +25,16 @@ function createAccess({ config, environment, botAdminId }) {
       if (!reviewer || member.user?.bot || actor === record?.owner) throw Error('You are not authorized to review this check-in.')
     } else if (!(purpose === 'delivery' && record?.submittedAt)) {
       const role = record && c.playerRoleIds?.[record.campaign]
-      if (member.user?.bot || (record ? !role || role !== record.playerRoleId || !member.roles.cache.has(role)
-        : !Object.values(c.playerRoleIds || {}).some(id => member.roles.cache.has(id)))) throw Error('Only MondaysinHell or WednesdaysinHell players may check in.')
+      const serverOwner = actor === guild.ownerId && !record?.isNotice
+      if (member.user?.bot || (record ? !role || role !== record.playerRoleId || (!serverOwner && !member.roles.cache.has(role))
+        : !serverOwner && !Object.values(c.playerRoleIds || {}).some(id => member.roles.cache.has(id)))) throw Error('Only the server owner or MondaysinHell/WednesdaysinHell players may check in.')
     }
     return guild
   }
   async function command(interaction) {
     const c = scope()
-    if (interaction.guildId !== c.guildId || interaction.channelId !== c.commandChannelId) throw Error(`Use /check-in in <#${c.commandChannelId}>.`)
+    const channels = require('../../command-channels').withBotTests([c.commandChannelId], { guildId: c.guildId, environment: environment() })
+    if (interaction.guildId !== c.guildId || !channels.includes(interaction.channelId)) throw Error(`Use /check-in in ${channels.map(id => `<#${id}>`).join(' or ')}.`)
     if (!interaction.deferred) await interaction.deferReply({ ephemeral: true })
     const guild = await authorize(interaction.client, null, interaction.user.id)
     return guild

@@ -1,0 +1,19 @@
+{
+  "sturdyPriceDiamonds": 1,
+  "sturdyBaseHp": 100,
+  "playerMaxHp": 10,
+  "playerIntervalMs": 2000,
+  "enemyIntervalMs": 3000,
+  "specialCooldownMs": 3000,
+  "sweatPerHit": 1,
+  "playerAccuracy": 0.5,
+  "enemyAccuracy": 0.75,
+  "regularSnowCost": 10,
+  "regularDamage": 1,
+  "enemyDamage": 1,
+  "specialDamage": 10,
+  "dirtyStunSecondChance": 0.8,
+  "dirtyStunThirdChance": 0.75,
+  "workerIntervalMs": 1000,
+  "maxEventsPerSettlement": 1000
+}

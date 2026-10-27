@@ -521,6 +521,7 @@ function createArena({
   }
   function startBattle(session) {
     cancel(session)
+    session.secondaryDetails = false
     if (session.battle && !session.manualOpponentSelection) session.opponent = opponent()
     session.battle = engine.newBattle(0, { character: session.character, level: session.level, opponent: session.opponent })
     session.battle.arenaVersion = structuredClone(session.arenaVersion)

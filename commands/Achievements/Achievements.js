@@ -91,6 +91,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const { confirmationButtons } = require('../../services/confirmation-controls')
     return interaction.reply({ content: 'Achievement commands are temporarily disabled.', ephemeral: true, allowedMentions: { parse: [] } })
     const subcommand = interaction.options.getSubcommand()
     console.log(`Subcommand triggered: ${subcommand}`)
@@ -356,14 +357,7 @@ module.exports = {
 
           // Confirmation before deletion
           const confirmationRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('confirm-delete')
-              .setLabel('Confirm')
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId('cancel-delete')
-              .setLabel('Cancel')
-              .setStyle(ButtonStyle.Secondary)
+            ...confirmationButtons('confirm-delete', 'cancel-delete')
           )
 
           await i.update({
@@ -561,14 +555,7 @@ module.exports = {
               }
 
               const confirmationRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                  .setCustomId('confirm-achievement')
-                  .setLabel('Confirm')
-                  .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                  .setCustomId('cancel-achievement')
-                  .setLabel('Cancel')
-                  .setStyle(ButtonStyle.Secondary)
+                ...confirmationButtons('confirm-achievement', 'cancel-achievement')
               )
 
               await i.reply({

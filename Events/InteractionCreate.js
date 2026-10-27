@@ -31,6 +31,10 @@ module.exports.run = async (client, message, args) => {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (interaction.isButton?.() && interaction.customId?.startsWith('snow:')) {
+      await require('../services/winter/runtime').handle(interaction)
+      return
+    }
     // Test check-ins cannot award Sanity/activity credit. Buttons and modals
     // are handled before the guild-only dispatch and unrelated button handlers.
     if (interaction.customId?.startsWith('ci:')) {

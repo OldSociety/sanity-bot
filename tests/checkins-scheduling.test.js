@@ -28,12 +28,12 @@ test('fortnightly cadence and holiday skip/resume preserve anchors', () => {
   assert.equal(calendar.occurrence(config, 'monday', Date.parse('2027-01-11T20:00:00Z')).openDate, '2027-01-11')
 })
 
-test('production command requires exact guild/channel and fresh campaign role; no owner bypass', async t => {
+test('production command requires exact guild/channel and fresh campaign role for ordinary members', async t => {
   const f = productionFixture(); t.after(() => f.store.close())
   await assert.rejects(f.command({ channelId: 'wrong' }), /Use \/check-in/)
   await assert.rejects(f.command({ guildId: 'wrong' }), /Use \/check-in/)
   f.member.roles.cache.clear()
-  await assert.rejects(f.command(), /Only MondaysinHell/)
+  await assert.rejects(f.command(), /server owner or MondaysinHell/)
   assert.equal((await f.store.list()).length, 0)
   f.member.roles.cache.set('monday-role', {})
   await f.command()
@@ -111,7 +111,7 @@ test('revoked campaign role blocks subsequent answers and queued reminder delive
   f.member.roles.cache.set('monday-role', {})
   await f.command(); const r = await f.record()
   f.member.roles.cache.clear()
-  await assert.rejects(f.click(r, 'begin'), /Only MondaysinHell/)
+  await assert.rejects(f.click(r, 'begin'), /server owner or MondaysinHell/)
   assert.equal((await f.store.get(r.id)).status, 'INVITED')
 })
 

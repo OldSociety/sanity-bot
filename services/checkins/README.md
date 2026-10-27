@@ -37,6 +37,8 @@ docs/
 
 `app.js`, the interaction dispatcher and slash command import `runtime.js`. Internal modules belong to the responsibility folders above. Operational tools belong in `scripts/checkins/`, rather than the scripts root. Keep configuration separate from generated state; never move or delete a live SQLite/WAL/SHM set during source cleanup.
 
+Command channel access includes the environment's permanent bot-tests channel through `services/command-channels.js`, plus the check-in feature's primary channel. See [the standing channel policy](../../docs/command-channel-policy.md) and its current deployment status.
+
 The root test entry point is intentional: the existing `npm test` command selects `tests/*.test.js`. Command definitions also stay one directory below `commands/` to match the shared command loader. Do not deepen either entry point without updating and validating discovery.
 
 Run focused verification with `NODE_ENV=test node --test --test-concurrency=1 tests/checkins.test.js tests/checkins-scheduling.test.js tests/checkins-backup.test.js`. On PowerShell, set `$env:NODE_ENV='test'` first. Operational commands use `node scripts/checkins/<environment>-<purpose>.js`; retain their explicit environment, plan-hash and stopped-writer requirements. Historical backups and rollout evidence keep their original paths.

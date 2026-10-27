@@ -439,8 +439,8 @@ function screen(session) {
     const view = payload(
       skinPage
         ? [
-            button('backcharacters', 'Back', ButtonStyle.Secondary),
-            button('confirmfighter', 'Confirm Fighter', ButtonStyle.Primary),
+            button('confirmfighter', 'Confirm', ButtonStyle.Success),
+            button('backcharacters', 'Cancel', ButtonStyle.Danger),
           ]
         : [button('chooseskin', 'Choose Skin →', ButtonStyle.Primary)]
     )

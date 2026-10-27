@@ -53,6 +53,7 @@ global.client = client // Set global client after client initialization
 client.once('ready', () => require('./services/spooky/runtime').startMaintenance(client))
 client.once('ready', () => require('./services/sanity-maintenance').start(client, User))
 client.once('ready', () => require('./services/checkins/runtime').start(client))
+client.once('ready', () => require('./services/winter/runtime').startMaintenance(client))
 
 client.cooldowns = new Collection()
 client.commands = new Collection()

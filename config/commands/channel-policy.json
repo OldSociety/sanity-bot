@@ -1,0 +1,4 @@
+{
+  "development": { "guildId": "684459745167671453", "botTestChannelId": "1076618367294771200" },
+  "production": { "guildId": "1259991510410334219", "botTestChannelId": "1262485722275905596" }
+}

@@ -125,10 +125,11 @@ function createController({ store, config, environment, botAdminId, clock = Date
     const guild = await access.command(interaction)
     const c = scope()
     const member = await guild.members.fetch({ user: interaction.user.id, force: true })
-    const eligible = Object.keys(c.playerRoleIds).filter(key => member.roles.cache.has(c.playerRoleIds[key]))
+    const eligible = Object.keys(c.playerRoleIds).filter(key => interaction.user.id === guild.ownerId || member.roles.cache.has(c.playerRoleIds[key]))
     const requested = interaction.options.getString('campaign')
     const campaign = requested || (eligible.length === 1 ? eligible[0] : null)
-    if (!campaign || !eligible.includes(campaign)) throw Error('Choose a campaign whose player role you hold.')
+    if (!campaign || !eligible.includes(campaign)) throw Error(interaction.user.id === guild.ownerId
+      ? 'Choose the campaign you want to check in for.' : 'Choose a campaign whose player role you hold.')
     const calendar = require('../scheduling/calendar')
     let current = calendar.occurrence(settings(), campaign, clock())
     if (!current) {

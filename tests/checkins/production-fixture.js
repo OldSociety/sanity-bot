@@ -2,6 +2,7 @@ const { fixture } = require('./fixture')
 const liveConfig = require('../../config/checkins/checkins.json')
 function productionFixture(store) {
   const f = fixture(store)
+  f.setOwner('server-owner')
   f.config.production = { liveEnabled: true, scheduledEnabled: true, guildId: 'prod', commandChannelId: 'chat',
     reviewGuildId: 'prod', reviewChannelId: 'review', playerRoleIds: { monday: 'monday-role', wednesday: 'wednesday-role' },
     reviewerUserIds: ['reviewer'], reviewerRoleIds: [] }

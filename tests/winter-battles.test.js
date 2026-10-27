@@ -1,0 +1,270 @@
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const { Sequelize } = require('sequelize')
+const { createEconomy } = require('../services/winter/economy')
+const { config } = require('../services/winter/battle')
+const { screen } = require('../services/winter/presentation')
+const { createLive, keyFor } = require('../services/winter/live')
+
+async function fixture(t, { snow = 1000, tier = 1, random = () => 0, settings = config } = {}) {
+  const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
+  t.after(() => db.close())
+  let now = 0, id = 0
+  const economy = createEconomy({ sequelize: db, clock: () => now, random, battleSettings: settings, allowRestart: true })
+  const execute = (action = 'status', quantity, extra = {}) => economy.execute({ guildId: 'g', userId: 'p', interactionId: `battle-${++id}`, action, quantity, ...extra })
+  await execute()
+  await db.query('UPDATE WinterPlayers SET snow=$snow,diamonds=30,tier=$tier', { bind: { snow, tier } })
+  await db.query('UPDATE WinterProgress SET dummyHp=0')
+  await db.query('UPDATE WinterShopProgress SET helped=1,snowmanOwned=1,snowmanHp=0')
+  await db.query('UPDATE WinterKitchen SET spicyUnlocked=1,spicy=20')
+  const bought = await execute('buy-sturdy')
+  const start = () => execute('battle-start', bought.battle.fightId)
+  const state = async () => JSON.parse((await db.query('SELECT state FROM WinterBattles'))[0][0].state)
+  const replace = async change => {
+    const value = { ...await state(), ...change }
+    await db.query('UPDATE WinterBattles SET state=$state', { bind: { state: JSON.stringify(value) } })
+    return value
+  }
+  return { db, economy, execute, bought, start, state, replace, now: () => now, at: value => { now = value } }
+}
+const buttons = payload => payload.components.flatMap(r => r.toJSON?.().components || r.components)
+
+test('owner-specified Sturdy price and idle battle settings match; only Snowman can be selected', async t => {
+  assert.deepEqual([config.sturdyPriceDiamonds, config.sturdyBaseHp, config.playerMaxHp, config.playerIntervalMs, config.enemyIntervalMs, config.specialCooldownMs, config.sweatPerHit, config.playerAccuracy, config.enemyAccuracy], [1, 100, 10, 2000, 3000, 3000, 1, .5, .75])
+  const f = await fixture(t)
+  assert.equal(f.bought.player.diamonds, 29)
+  assert.equal(f.bought.view, 'sturdy-purchased')
+  assert.match((await f.execute('buy-sturdy')).message, /already own/)
+  const choose = await f.execute('throw')
+  assert.equal(choose.view, 'opponents')
+  const payload = screen(choose, choose.view)
+  assert.deepEqual(buttons(payload).map(b => b.label), ['⛄️'])
+  assert.match(payload.embeds[0].toJSON().description, /he fights back/)
+  const started = await f.start()
+  assert.equal(started.battle.enemyHp, 100)
+  assert.equal(started.battle.playerHp, 10)
+  assert.equal(started.battle.active, 1)
+  assert.equal(started.battle.nextPlayerAt, 2000)
+  assert.equal(started.battle.nextEnemyAt, 3000)
+})
+
+test('independent schedules deduct raw snow, award Sweat and damage player health atomically', async t => {
+  const f = await fixture(t)
+  await f.start()
+  f.at(2000)
+  const thrown = await f.execute('battle-tick')
+  assert.deepEqual([thrown.player.snow, thrown.player.snowballs, thrown.battle.sweat, thrown.battle.enemyHp, thrown.battle.playerHp], [1002, 0, 1, 99, 10])
+  f.at(3000)
+  const enemy = await f.execute('battle-tick')
+  assert.equal(enemy.battle.playerHp, 9)
+  assert.equal(enemy.battle.enemyHp, 99)
+  const payload = screen(enemy, 'fight', { now: 3000 })
+  assert.match(payload.embeds[0].toJSON().fields[0].value, /⛄️ Defeated: 0/)
+  assert.match(payload.embeds[0].toJSON().footer.text, /29💎 · 1💦$/)
+})
+
+test('accuracy boundaries and misses still spend resources but earn no Sweat; specialty cooldown is three seconds', async t => {
+  const values = [.5, .5, .75]
+  const f = await fixture(t, { random: () => values.length ? values.shift() : .99 })
+  const started = await f.start()
+  f.at(2000)
+  const special = await f.execute('battle-special', started.battle.fightId)
+  assert.equal(special.battle.enemyHp, 100)
+  assert.equal(special.battle.sweat, 0)
+  assert.equal(special.kitchen.spicy, 19)
+  assert.equal(special.battle.specialReadyAt, 5000)
+  assert.ok(buttons(screen(special, 'fight', { now: 2000 })).find(b => b.label === '🔴').disabled)
+  const notReady = await f.execute('battle-special', started.battle.fightId)
+  assert.equal(notReady.kitchen.spicy, 19)
+  assert.equal(notReady.battle.sweat, 0)
+  f.at(3000)
+  assert.equal((await f.execute('battle-tick')).battle.playerHp, 10)
+  f.at(5000)
+  const ready = await f.execute('battle-special', started.battle.fightId)
+  assert.equal(ready.kitchen.spicy, 18)
+  assert.equal(ready.battle.enemyHp, 100)
+})
+
+test('future snow income cannot fund earlier automatic throws; insufficient snow never goes negative', async t => {
+  const f = await fixture(t, { snow: 0, tier: 0, random: () => .99 })
+  await f.start()
+  f.at(10000)
+  const receipt = await f.execute('battle-tick')
+  assert.equal(receipt.player.snow, 0)
+  assert.equal(receipt.battle.throws, 1)
+  assert.equal(receipt.battle.sweat, 0)
+  assert.equal(receipt.battle.enemyHp, 100)
+})
+
+test('snowman defeat heals fully, respawns at base HP plus cumulative defeats, and resets enemy schedule', async t => {
+  const f = await fixture(t)
+  const started = await f.start()
+  await f.replace({ enemyHp: 7, playerHp: 2 })
+  const won = await f.execute('battle-special', started.battle.fightId)
+  assert.deepEqual([won.battle.defeated, won.battle.enemyMaxHp, won.battle.enemyHp, won.battle.playerHp], [1, 101, 101, 10])
+  assert.equal(won.battle.nextEnemyAt, 3000)
+  await f.replace({ enemyHp: 2, playerHp: 1, specialReadyAt: 0 })
+  const next = await f.execute('battle-special', started.battle.fightId)
+  assert.deepEqual([next.battle.defeated, next.battle.enemyHp, next.battle.playerHp], [2, 102, 10])
+})
+
+test('first defeat stops attacks, preserves Sweat, and opens the Gym with three level-one purchases', async t => {
+  const f = await fixture(t)
+  await f.start()
+  f.at(30000)
+  const lost = await f.execute('battle-tick')
+  assert.equal(lost.view, 'battle-defeat')
+  assert.equal(lost.battle.active, 0)
+  assert.equal(lost.battle.playerHp, 0)
+  assert.equal(lost.battle.sweat, 15)
+  assert.equal(lost.battle.trainIntroPending, 1)
+  const payload = screen(lost, lost.view)
+  assert.equal(payload.embeds[0].toJSON().title, 'Oh No!')
+  assert.match(payload.embeds[0].toJSON().description, /Use `\/snow train`/)
+  assert.deepEqual(buttons(payload).map(b => b.label), ['Train'])
+  f.at(100000)
+  assert.equal((await f.execute('battle-tick')).battle.sweat, 15)
+  const train = await f.execute('train')
+  assert.equal(train.view, 'train')
+  assert.equal(train.battle.trainIntroPending, 0)
+  assert.equal(train.battle.sweat, 15)
+  assert.deepEqual(buttons(screen(train, 'train')).map(b => b.label), ['💪🏽 STR · 1💦', '🎯 ACC · 1💦', '🛡️ DEF · 1💦', '⚔️ ATT · 1💦', '🏋️ Lift 100lbs'])
+})
+
+test('specialty retries and stale fight IDs cannot spend twice; Restart clears fight and Sweat state', async t => {
+  const f = await fixture(t)
+  const started = await f.start()
+  const hit = await f.execute('battle-special', started.battle.fightId, { interactionId: 'once-special' })
+  assert.deepEqual(await f.execute('battle-special', started.battle.fightId, { interactionId: 'once-special' }), hit)
+  const paused = await f.execute('battle-pause', started.battle.fightId)
+  assert.equal(paused.battle.active, 0)
+  const restarted = await f.execute('battle-start', paused.battle.fightId)
+  const stale = await f.execute('battle-special', started.battle.fightId)
+  assert.equal(stale.kitchen.spicy, 19)
+  assert.equal(stale.battle.fightId, restarted.battle.fightId)
+  const confirm = await f.execute('restart')
+  const reset = await f.execute('restart-confirm', confirm.progress.restartToken)
+  assert.deepEqual([reset.battle.sturdyOwned, reset.battle.active, reset.battle.defeated, reset.battle.sweat, reset.battle.sweatUnlocked], [0, 0, 0, 0, 0])
+})
+
+test('the scheduler settles live fights without command input; delivery failures never replay combat', async t => {
+  const f = await fixture(t)
+  const started = await f.start()
+  const edits = []
+  let fail = false
+  const live = createLive({ getEconomy: () => f.economy, render: screen, now: f.now, guildId: () => 'g' })
+  const interaction = { guildId: 'g', user: { id: 'p' }, editReply: async p => { if (fail) throw Error('expired token'); edits.push(p) } }
+  await live.show(interaction, started, 'fight', true)
+  const release = live.claim(keyFor('g', 'p'))
+  f.at(6000)
+  await live.pulse()
+  assert.equal((await f.state()).sweat, 0)
+  release()
+  await live.pulse()
+  await live.flush()
+  assert.equal((await f.state()).sweat, 3)
+  assert.equal(edits.length, 2)
+  await live.pulse()
+  assert.equal((await f.state()).sweat, 3)
+  fail = true
+  f.at(8000)
+  await live.pulse()
+  await live.flush()
+  assert.equal(live.views.size, 0)
+  assert.equal((await f.state()).sweat, 4)
+  f.at(10000)
+  await live.pulse()
+  assert.equal((await f.state()).sweat, 5)
+})
+
+test('cold scheduler does not initialize storage and configured event guards stop scheduled work', async t => {
+  const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false })
+  t.after(() => db.close())
+  const economy = createEconomy({ sequelize: db })
+  assert.deepEqual(await economy.dueBattles(), [])
+  const [tables] = await db.query("SELECT name FROM sqlite_master WHERE type='table'")
+  assert.equal(tables.length, 0)
+  const live = createLive({ getEconomy: () => { throw Error('Must not open storage') }, render: screen, canRun: () => false })
+  await live.pulse()
+})
+
+test('slow Discord delivery coalesces intermediate frames without delaying scheduled resource settlement', async t => {
+  const f = await fixture(t)
+  const started = await f.start()
+  const frames = []
+  let block = false, releaseEdit
+  const live = createLive({ getEconomy: () => f.economy, render: screen, now: f.now, guildId: () => 'g' })
+  await live.show({ guildId: 'g', user: { id: 'p' }, editReply: async p => {
+    frames.push(p)
+    if (block) { block = false; await new Promise(resolve => { releaseEdit = resolve }) }
+  } }, started, 'fight', true)
+  block = true
+  f.at(2000); await live.pulse()
+  f.at(4000); await live.pulse()
+  f.at(6000); await live.pulse()
+  assert.equal((await f.state()).sweat, 3)
+  assert.equal(frames.length, 2)
+  releaseEdit()
+  await live.flush()
+  assert.equal(frames.length, 3)
+  assert.match(frames.at(-1).embeds[0].toJSON().footer.text, /29💎 · 3💦$/)
+})
+
+test('idle fight persists across database reopen and future ticks do not repeat earlier attacks', async t => {
+  const fs = require('node:fs/promises'), os = require('node:os'), path = require('node:path')
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'winter-idle-'))
+  let db = new Sequelize({ dialect: 'sqlite', storage: path.join(directory, 'test.sqlite'), logging: false })
+  t.after(async () => { await db.close(); await fs.rm(directory, { recursive: true, force: true }) })
+  let now = 0, id = 0
+  let economy = createEconomy({ sequelize: db, clock: () => now, random: () => 0 })
+  const run = (action = 'status', quantity) => economy.execute({ guildId: 'g', userId: 'p', interactionId: `persist-${++id}`, action, quantity })
+  await run()
+  await db.query('UPDATE WinterPlayers SET snow=1000,diamonds=10,tier=1')
+  await db.query('UPDATE WinterProgress SET dummyHp=0')
+  await db.query('UPDATE WinterShopProgress SET snowmanOwned=1,snowmanHp=0,helped=1')
+  const bought = await run('buy-sturdy')
+  await run('battle-start', bought.battle.fightId)
+  now = 2000
+  const before = await run('battle-tick')
+  await db.close()
+  db = new Sequelize({ dialect: 'sqlite', storage: path.join(directory, 'test.sqlite'), logging: false })
+  economy = createEconomy({ sequelize: db, clock: () => now, random: () => 0 })
+  const restored = await run('throw')
+  assert.deepEqual(restored.battle, before.battle)
+  now = 4000
+  const advanced = await run('battle-tick')
+  assert.equal(advanced.battle.sweat, 2)
+  assert.equal(advanced.battle.enemyHp, 98)
+  assert.equal(advanced.battle.playerHp, 9)
+})
+
+test('pause/resume preserves health and remaining attack timers', async t => {
+  const f = await fixture(t)
+  const started = await f.start()
+  f.at(3500)
+  const pause = await f.execute('battle-pause', started.battle.fightId)
+  f.at(10000)
+  const resumed = await f.execute('battle-start', pause.battle.fightId)
+  assert.deepEqual([resumed.battle.playerHp,resumed.battle.enemyHp,resumed.battle.nextPlayerAt,resumed.battle.nextEnemyAt], [9,99,10500,12500])
+})
+
+test('specialty UI locks while processing and rejects overlapping clicks before spending', async t => {
+  const { createHandler } = require('../services/winter/runtime')
+  const f = await fixture(t), started = await f.start()
+  const handle = createHandler({ getEconomy: () => f.economy, authorize: () => null, environment: () => 'development' })
+  const frames = []
+  let unblock, pending = false
+  await handle.live.show({ guildId:'g',user:{id:'p'},editReply:async p=>{frames.push(p);if(pending){pending=false;await new Promise(r=>{unblock=r})}} },started,'fight',true)
+  let serial=0
+  const click=()=>({id:`special-ui-${++serial}`,guildId:'g',user:{id:'p'},customId:`snow:p:battle-special:${started.battle.fightId}`,isButton:()=>true,deferUpdate:async()=>{},editReply:async p=>frames.push(p),reply:async p=>frames.push(p)})
+  pending=true
+  const first=handle(click())
+  for(let i=0;i<20&&!unblock;i++)await new Promise(r=>setImmediate(r))
+  assert.ok(unblock)
+  assert.ok(frames.some(p=>p.components?.[0]?.components?.every(b=>b.disabled)))
+  await handle(click())
+  assert.match(frames.at(-1).content,/still processing/)
+  unblock();await first
+  assert.equal((await f.state()).sweat,1)
+  assert.equal((await f.db.query('SELECT spicy FROM WinterKitchen'))[0][0].spicy,19)
+})
