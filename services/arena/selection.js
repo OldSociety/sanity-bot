@@ -11,7 +11,7 @@ const roster = Object.freeze(
             name: entry.name,
             role: entry.role,
             lore: entry.lore,
-            variantIds: [entry.id],
+            variantIds: entry.id === 'classic:hen' && process.env.NODE_ENV === 'development' ? [entry.id, 'winter-2026:hen'] : [entry.id],
           })),
           {
             id: 'selene',

@@ -1,3 +1,4 @@
+// Superseded pre-handoff rule assertions are retained in artifacts/winter-iron-progression-development-2026-10-27/before/. Native replacement coverage: winter-iron.test.js.
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { mkdtemp, rm } = require('node:fs/promises')
@@ -15,7 +16,7 @@ async function fixture(t) {
   const db = connection()
   t.after(() => db.close())
   let now = 0, sequence = 0
-  const economy = createEconomy({ sequelize: db, clock: () => now, allowRestart: true })
+  const economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now, allowRestart: true })
   const input = { guildId: 'guild', userId: 'player' }
   const execute = (action = 'status', quantity, extra = {}) => economy.execute({ ...input, interactionId: String(++sequence), action, quantity, ...extra })
   await execute()
@@ -28,7 +29,7 @@ test('Bare Hands rates and guild/user balance isolation are preserved', async t 
   const f = await fixture(t)
   const { player } = await f.execute()
   assert.deepEqual([player.snow, player.snowballs, player.diamonds, player.tier, player.rock, player.remainder], [0, 0, 0, 0, 0, 0])
-  assert.deepEqual(SHOVELS.map(s => s.rate), [1, 6, 36])
+  assert.deepEqual(SHOVELS.map(s => s.rate), [1, 6, 36, 216])
   f.at(10000)
   assert.equal((await f.execute()).player.snow, 10)
   assert.equal((await f.execute('status', undefined, { guildId: 'other' })).player.snow, 10)
@@ -114,7 +115,7 @@ test('Stone requires both snow and rock, consumes both once, retains inventory a
   assert.equal((await f.execute()).player.snow, p.snow + 36)
   assert.match((await f.execute('upgrade-1')).message, /changed/)
   assert.match((await f.execute('buy-rock')).message, /no longer/)
-  assert.match(screen({ player: p }, 'shovel').embeds[0].toJSON().fields.at(-1).value, /Maximum shovel/)
+  assert.doesNotMatch(JSON.stringify(screen({ player: p }, 'status').embeds[0].toJSON()), /Next evolution|Iron/)
   assert.equal(screen({ player: p }, 'shop').components.length, 1)
 })
 
@@ -155,7 +156,7 @@ test('on-disk reopen preserves all resources, fraction, production, and replay r
     if (other) await other.close()
     await rm(directory, { recursive: true, force: true })
   })
-  let economy = createEconomy({ sequelize: db, clock: () => now })
+  let economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   const input = { guildId: 'guild', userId: 'player' }
   const execute = (action = 'status', quantity) => economy.execute({ ...input, interactionId: String(++sequence), action, quantity })
   await execute()
@@ -165,7 +166,7 @@ test('on-disk reopen preserves all resources, fraction, production, and replay r
   const before = await execute()
   await db.close()
   db = connection(file)
-  economy = createEconomy({ sequelize: db, clock: () => now })
+  economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   assert.deepEqual(await economy.execute({ ...input, interactionId: String(sequence), action: 'status' }), before)
   now += 500
   const p = (await execute()).player
@@ -174,7 +175,7 @@ test('on-disk reopen preserves all resources, fraction, production, and replay r
   assert.equal((await execute()).progress.diamondsUnlocked, 1)
   // Two independent SQLite connections contend on the same player record.
   other = connection(file)
-  const parallel = createEconomy({ sequelize: other, clock: () => now })
+  const parallel = createEconomy({ dropRandom: () => .99, sequelize: other, clock: () => now })
   await parallel.initialize()
   const results = await Promise.all([
     execute('diamonds', 'max'),
@@ -188,7 +189,7 @@ test('event accrual clamps at boundaries and unsafe balances roll back without l
   const db = connection()
   t.after(() => db.close())
   let now = 0
-  const economy = createEconomy({ sequelize: db, clock: () => now, startsAt: 1000, endsAt: 5000 })
+  const economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now, startsAt: 1000, endsAt: 5000 })
   const input = { guildId: 'g', userId: 'p', interactionId: 'start' }
   await economy.execute(input)
   now = 10000
@@ -214,7 +215,7 @@ test('Discord slash and button screens are ephemeral, navigable, owner-validated
   await handle(slash)
   assert.equal(slash.calls[0][1].ephemeral, true)
   const navigation = slash.calls[1][1].components[0].toJSON().components
-  assert.equal(navigation.length, 3)
+  assert.equal(navigation.length, 1)
   f.at(10000)
   const convert = interaction(true, 'snow:player:snowballs:1')
   await handle(convert)
@@ -250,7 +251,7 @@ test('command schema, winter window and bot-tests policy are enforced on command
   }
   const command = require('../commands/Winter/Snow')
   require('../services/command-registry').validateDefinition(command.data.toJSON())
-  assert.deepEqual(command.data.toJSON().options.map(o => o.name), ['hidden', 'train', 'kitchen', 'throw', 'help', 'status', 'snowballs', 'diamonds', 'shop', 'shovel'])
+  assert.deepEqual(command.data.toJSON().options.map(o => o.name), ['admin','emporium', 'slots', 'hidden', 'train', 'kitchen', 'throw', 'help', 'status', 'diamonds', 'shop'])
   const { definition } = require('../scripts/command-registry-audit')
   const source = require('node:fs').readFileSync(path.join(__dirname, '../commands/Winter/Snow.js'), 'utf8')
   assert.equal(definition(source, 'commands/Winter/Snow.js', 'production').eventKey, 'winter')
@@ -260,7 +261,7 @@ test('command schema, winter window and bot-tests policy are enforced on command
 test('first use welcomes with ten snow; dummy crafting and throwing retain discovered currencies', async t => {
   const db = connection(); t.after(() => db.close())
   let id = 0
-  const e = createEconomy({ sequelize: db, clock: () => 0 })
+  const e = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => 0 })
   const run = (action, quantity) => e.execute({ guildId: 'g', userId: 'p', interactionId: `intro-${++id}`, action, quantity })
   const first = await run('throw')
   assert.equal(first.view, 'welcome')
@@ -280,7 +281,7 @@ test('first use welcomes with ten snow; dummy crafting and throwing retain disco
   assert.equal(embed.thumbnail.url, 'attachment://winter-dummy.png')
   assert.match((await run('attack')).message, /need a snowball/)
   assert.equal((await run('help')).progress.dummyHp, 4)
-  const reopened = createEconomy({ sequelize: db, clock: () => 0 })
+  const reopened = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => 0 })
   const saved = await reopened.execute({ guildId: 'g', userId: 'p', interactionId: 'after-reopen' })
   assert.equal(saved.view, undefined)
   assert.equal(saved.progress.dummyHp, 4)
@@ -326,7 +327,7 @@ test('confirmed development restart resets only this profile and rejects stale c
   f.advance(1000)
   assert.equal((await f.execute()).player.snow, 11)
   assert.match((await f.execute('restart-confirm', prompt2.progress.restartToken)).message, /expired/)
-  const prod = createEconomy({ sequelize: f.db })
+  const prod = createEconomy({ dropRandom: () => .99, sequelize: f.db })
   await assert.rejects(prod.execute({ guildId: 'g', userId: 'p', interactionId: 'prod-reset', action: 'restart' }), /development/)
   assert.ok(!screen(reset, 'status').components.some(r => r.toJSON().components.some(b => b.label === 'Restart')))
 })
@@ -344,7 +345,7 @@ test('concurrent dummy throws cannot duplicate damage, go below zero or spend un
 
 test('Discord first-use, dummy buttons and confirmed restart work end to end; production rejects reset controls', async t => {
   const db = connection(); t.after(() => db.close())
-  const economy = createEconomy({ sequelize: db, clock: () => 0, allowRestart: true })
+  const economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => 0, allowRestart: true })
   let sequence = 0
   const handle = createHandler({ getEconomy: () => economy, authorize: () => null, environment: () => 'development' })
   const interaction = (action = 'throw', button = false, user = 'p') => {
@@ -381,7 +382,7 @@ test('crafting and exchange controls show only affordable quantities; no Status 
     assert.deepEqual(craft.map(b => b.custom_id.split(':').at(-1)), expected)
     assert.ok(craft.every(b => !b.disabled))
     const factory = buttons(screen(receipt, 'snowballs')).filter(b => /:snowballs:/.test(b.custom_id))
-    assert.deepEqual(factory.map(b => b.custom_id.split(':').at(-1)), expected)
+    assert.deepEqual(factory, [])
   }
   for (const view of ['welcome', 'status', 'snowballs', 'diamonds', 'shop', 'shovel', 'throw', 'help', 'broken', 'broken-again', 'shovel-gift', 'snowman-purchased']) {
     const payload = screen({ player, progress }, view, { development: true })
@@ -454,7 +455,7 @@ test('broken dummy leads to Requia gift, first diamond, one-diamond snowman and 
   assert.equal(hit.shopProgress.snowmanHp, 49)
   assert.equal(hit.progress.dummyHp, 0)
   assert.match((await f.execute('buy-snowman')).message, /already own/)
-  const reopened = createEconomy({ sequelize: f.db, clock: () => 300000, allowRestart: true })
+  const reopened = createEconomy({ dropRandom: () => .99, sequelize: f.db, clock: () => 300000, allowRestart: true })
   const saved = await reopened.execute({ guildId: 'guild', userId: 'player', interactionId: 'shop-reopen', action: 'throw' })
   assert.deepEqual(saved.shopProgress, hit.shopProgress)
   const reset = await f.execute('restart')
@@ -487,7 +488,7 @@ test('shop and snowman progress survive closing and reopening SQLite', async t =
   const file = path.join(directory, 'test.sqlite')
   let db = connection(file), now = 0, sequence = 0
   t.after(async () => { await db.close(); await rm(directory, { recursive: true, force: true }) })
-  let economy = createEconomy({ sequelize: db, clock: () => now })
+  let economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   const execute = (action = 'status', quantity) => economy.execute({ guildId: 'g', userId: 'p', interactionId: `disk-shop-${++sequence}`, action, quantity })
   await execute()
   now = 1000000
@@ -505,7 +506,7 @@ test('shop and snowman progress survive closing and reopening SQLite', async t =
   const before = await execute('pepper')
   await db.close()
   db = connection(file)
-  economy = createEconomy({ sequelize: db, clock: () => now })
+  economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   const after = await execute('throw')
   assert.deepEqual(after.shopProgress, before.shopProgress)
   assert.equal(after.shopProgress.snowmanHp, 47)
@@ -521,7 +522,7 @@ test('shop and snowman progress survive closing and reopening SQLite', async t =
   const composed = await execute('ingredient', 'garlic')
   await db.close()
   db = connection(file)
-  economy = createEconomy({ sequelize: db, clock: () => now })
+  economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   const restored = await execute('kitchen')
   assert.deepEqual(restored.recipeDraft, composed.recipeDraft)
   assert.equal(restored.kitchen.spicyUnlocked, 1)
@@ -530,7 +531,7 @@ test('shop and snowman progress survive closing and reopening SQLite', async t =
 test('Discord routes shop help, exchange, purchase and snowman buttons to the correct screens', async t => {
   const db = connection(); t.after(() => db.close())
   let now = 0, sequence = 0
-  const economy = createEconomy({ sequelize: db, clock: () => now })
+  const economy = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => now })
   const handle = createHandler({ getEconomy: () => economy, authorize: () => null, environment: () => 'development' })
   const run = async (action, button = true) => {
     let payload
@@ -652,7 +653,7 @@ test('third successful snowman throw replaces its HP display with the Kitchen pr
   assert.equal(third.shopProgress.snowmanHp, 47)
   assert.equal(payload.embeds[0].toJSON().description, '_This is going to take forever. Let’s go to the Kitchen and create something a bit more impactful._')
   assert.doesNotMatch(payload.embeds[0].toJSON().description, /HP|🟩|⬛/)
-  const reopened = createEconomy({ sequelize: f.db, clock: () => 1000000 })
+  const reopened = createEconomy({ dropRandom: () => .99, sequelize: f.db, clock: () => 1000000 })
   const saved = await reopened.execute({ guildId: 'guild', userId: 'player', interactionId: 'kitchen-reopen', action: 'throw' })
   assert.equal(screen(saved, 'throw').embeds[0].toJSON().description, payload.embeds[0].toJSON().description)
 })
@@ -753,7 +754,7 @@ test('Kitchen gate removes throw/crafting until the three-pepper recipe is mixed
   assert.deepEqual(allButtons(returning).map(b => b.label), ['🌶️', '🍒', '🥑', '🧄', '🍆', 'Cancel'])
   const shop = screen(await f.execute('shop'), 'shop').embeds[0].toJSON()
   assert.equal(shop.title, 'Requia’s Winter Shop')
-  assert.deepEqual(shop.fields.map(f => [f.name, f.value]), [['🔴 `Spicy Snowballs`', '**1💎**'], ['`Old Skipping Stone`', '**10💎**']])
+  assert.deepEqual(shop.fields.map(f => [f.name, f.value]), [['🔴 `Spicy Snowballs`', '**100❄️**'], ['`Old Skipping Stone`', '**10💎**']])
 })
 
 test('Kitchen ingredients cap at three, concurrent mixes unlock once, early/stale actions cannot bypass discovery', async t => {
@@ -771,47 +772,7 @@ test('Kitchen ingredients cap at three, concurrent mixes unlock once, early/stal
   assert.equal((await f.execute('pepper')).kitchen.peppers, 0)
 })
 
-test('Spicy Snowballs cost one diamond, deal ten damage, melt the snowman and reveal the one-diamond Sturdy Snowman', async t => {
-  const f = await kitchenFixture(t)
-  for (let i = 0; i < 3; i++) await f.execute('pepper')
-  await f.execute('mix')
-  assert.match((await f.execute('buy-spicy')).message, /need 1/)
-  f.at(10000000)
-  await f.execute('diamonds', '1')
-  const before = await f.execute()
-  const buys = await Promise.all(Array.from({ length: 8 }, () => f.execute('buy-spicy')))
-  assert.equal(buys.filter(r => r.message.startsWith('Purchased')).length, 1)
-  assert.ok(buys.every(r => r.player.diamonds === 0 && r.kitchen.spicy === 1 && r.player.snow === before.player.snow))
-  const hit = await f.execute('attack-spicy', undefined, { interactionId: 'spicy-hit-retry' })
-  assert.equal(hit.shopProgress.snowmanHp, 37)
-  assert.equal(hit.kitchen.spicy, 0)
-  assert.deepEqual(await f.execute('attack-spicy', undefined, { interactionId: 'spicy-hit-retry' }), hit)
-  assert.match((await f.execute('attack-spicy')).message, /need a 🔴/)
-  await f.execute('diamonds', '10')
-  for (let i = 0; i < 4; i++) await f.execute('buy-spicy')
-  let melted
-  for (let i = 0; i < 4; i++) melted = await f.execute('attack-spicy')
-  assert.equal(melted.view, 'melted')
-  assert.equal(melted.shopProgress.snowmanHp, 0)
-  assert.equal(melted.kitchen.spicy, 0)
-  const result = screen(melted, melted.view)
-  assert.equal(result.embeds[0].toJSON().description, '_Not again! You know what to do._')
-  assert.equal(result.embeds[0].toJSON().thumbnail.url, 'attachment://winter-melted-snowman.png')
-  assert.deepEqual(allButtons(result).map(b => b.label), ['Shop'])
-  assert.equal((await f.execute('throw')).view, 'melted')
-  const shop = screen(await f.execute('shop'), 'shop')
-  assert.deepEqual(shop.embeds[0].toJSON().fields.find(f => f.name === '`Sturdy Snowman` ⛄️'), { name: '`Sturdy Snowman` ⛄️', value: '**1💎**', inline: true })
-  assert.ok(allButtons(shop).some(b => /buy-sturdy/.test(b.custom_id)))
-  assert.equal(allButtons(shop).find(b => /buy-sturdy/.test(b.custom_id)).label, 'Sturdy ⛄️ · 1💎')
-  assert.equal(allButtons(shop).find(b => /buy-spicy/.test(b.custom_id)).label, 'Spicy 🔴 ×1 · 1💎')
-  await f.db.query('UPDATE WinterPlayers SET diamonds=1')
-  const purchased = await f.execute('buy-sturdy')
-  assert.equal(purchased.player.diamonds, 0)
-  assert.equal(purchased.battle.sturdyOwned, 1)
-  const again = await f.execute('attack-spicy')
-  assert.equal(again.kitchen.spicy, 0)
-  assert.equal(again.player.snowballs, melted.player.snowballs)
-})
+
 
 test('Old Skipping Stone costs ten diamonds once and grants the Stone Shovel', async t => {
   const f = await kitchenFixture(t)
@@ -842,7 +803,7 @@ test('legacy target caps reduce once, preserving damage, profile balances, owner
     await db.query('INSERT INTO WinterProgress(eventId,guildId,userId,dummyHp) VALUES ($event,$guild,$user,$hp)', { bind: { event: 'winter-2026', guild: 'g', user, hp: dummy } })
     await db.query('INSERT INTO WinterShopProgress(eventId,guildId,userId,snowmanHp) VALUES ($event,$guild,$user,$hp)', { bind: { event: 'winter-2026', guild: 'g', user, hp: snowman } })
   }
-  const e = createEconomy({ sequelize: db, clock: () => 0 })
+  const e = createEconomy({ dropRandom: () => .99, sequelize: db, clock: () => 0 })
   let id = 0
   const run = userId => e.execute({ guildId: 'g', userId, interactionId: `legacy-${++id}` })
   assert.equal((await run('dummy')).progress.dummyHp, 4)
@@ -1021,7 +982,7 @@ test('Stone Shovel switches to 36 per second after old-rate accrual, including e
 test('accuracy, enemy attacks and Sweat begin only with Sturdy combat; its footer transition persists', async t => {
   const f = await fixture(t)
   let now = 1000000, id = 0
-  const economy = createEconomy({ sequelize:f.db,clock:()=>now,allowRestart:true,random:()=>{throw Error('Tutorial must never roll accuracy')} })
+  const economy = createEconomy({ dropRandom: () => .99, sequelize:f.db,clock:()=>now,allowRestart:true,random:()=>{throw Error('Tutorial must never roll accuracy')} })
   const run=(action='status',quantity)=>economy.execute({guildId:'guild',userId:'player',interactionId:`boundary-${++id}`,action,quantity})
   await run('craft','10')
   for(let i=0;i<5;i++){

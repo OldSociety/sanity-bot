@@ -14,7 +14,7 @@ async function main() {
   const route = Routes.applicationGuildCommands(runtime.clientId, runtime.guildId)
   const before = await rest.get(route)
   const existing = before.find(c => c.name === 'snow' && c.type === 1)
-  const directory = path.join(runtime.root, 'artifacts/winter-dirty-recipe-development-2026-10-27')
+  const directory = path.join(runtime.root, 'artifacts/winter-button-gym-2026-10-27')
   fs.mkdirSync(directory, { recursive: true })
   console.log(JSON.stringify({ environment: runtime.env, guildId: runtime.guildId, desired, existing: existing?.id, preserved: before.filter(c => c.id !== existing?.id).map(c => c.name) }))
   if (mode === '--plan') return

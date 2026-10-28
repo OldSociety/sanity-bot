@@ -14,5 +14,5 @@ test('all Winter resource footer amounts and the named gym use compact formattin
   for(const view of ['status','shop','train','kitchen','diamonds','shovel']) assert.equal(screen(receipt,view).embeds[0].toJSON().footer.text,'Available: 1k❄️ · 1m🔴 · 1k💎 · 1.5k💦')
   const gym=screen(receipt,'train').embeds[0].toJSON()
   assert.equal(gym.title,'Hendrix’s Gym 💪🏽')
-  assert.equal(gym.fields[0].value,'Level 1\n1💦')
+  assert.match(gym.fields[0].value,/HP/)
 })

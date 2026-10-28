@@ -9,6 +9,13 @@ const {
 
 // Prototype variants. No ownership, shop or XP imports.
 const characters = Object.freeze([
+  ...(process.env.NODE_ENV === 'development' ? [Object.freeze({
+    id: 'winter-2026:hen', rarity: rarityByVariant['classic:hen'],
+    name: 'Hendrix', version: 'Winter', label: 'Hendrix [Winter]', kit: 'classic-hendrix',
+    aliases: ['winter-hendrix'], developmentOnly: true,
+    // Reuse current Hendrix portrait until dedicated Winter artwork is supplied.
+    image: path.join(__dirname, '../../assets/badges/Classic/HENDRIX_BADGE.png'),
+  })] : []),
   ...prototypeEntries.map((entry) =>
     Object.freeze({
       id: entry.id,
@@ -101,7 +108,7 @@ const defaultCharacter = characters.find(
 const isSelectable = (character) =>
   Boolean(
     character &&
-      (!require('./secondary').enabled() || require('./secondary').testRosterIds.includes(character.id)) &&
+      (!require('./secondary').enabled() || require('./secondary').testRosterIds.includes(character.id) || character.id === 'winter-2026:hen') &&
       !character.hidden &&
       (!character.developmentOnly ||
         Boolean(require('./rules').balance.characters[character.kit])) &&
@@ -112,6 +119,7 @@ const isSelectable = (character) =>
           ? [
               'spooky-2026:hfm',
               'classic:azu',
+              ...(process.env.NODE_ENV === 'development' ? ['winter-2026:hen'] : []),
               ...(require('./rules').balance.characters['spooky-selene']
                 ? ['spooky-2026:sel']
                 : []),

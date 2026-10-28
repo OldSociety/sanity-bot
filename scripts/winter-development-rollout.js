@@ -5,7 +5,7 @@ const cp = require('node:child_process')
 const { createHash } = require('node:crypto')
 const { snapshot } = require('./checkins/development-rollout')
 const root = path.resolve(__dirname, '..')
-const directory = path.join(root, 'artifacts/winter-gym-max-dialogue-development-2026-10-27')
+const directory = path.join(root, 'artifacts/winter-button-gym-2026-10-27')
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 const save = (name, value) => fs.writeFileSync(path.join(directory, name), JSON.stringify(value, null, 2))
 const read = name => JSON.parse(fs.readFileSync(path.join(directory, name)))
@@ -23,7 +23,7 @@ async function main() {
   if (!dev || !prod || dev.cwd.toLowerCase() !== root.toLowerCase()) throw Error('Unexpected PM2 target.')
   const phase = process.argv[2]
   if (phase === 'before') {
-    const candidates = [...['app.js', 'ecosystem.config.js', 'AGENTS.md', 'assets/badges/Winter/WINTER_KYLAX_BADGE.png', 'assets/badges/Classic/REQUIA_BADGE.png', 'assets/badges/Classic/HENDRIX_BADGE.png'].map(f => path.join(root, f)), ...['commands', 'Events', 'handlers', 'services', 'config/arena', 'config/commands', 'config/runtime', 'config/winter', 'assets/winter', 'artifacts/arena-versions'].flatMap(f => files(path.join(root, f)))]
+    const candidates = [...['app.js', 'ecosystem.config.js', 'AGENTS.md', 'assets/badges/Winter/WINTER_KYLAX_BADGE.png', 'assets/badges/Classic/REQUIA_BADGE.png', 'assets/badges/Classic/HENDRIX_BADGE.png', 'assets/badges/Classic/AZULIS_BADGE.png'].map(f => path.join(root, f)), ...['commands', 'Events', 'handlers', 'services', 'config/arena', 'config/commands', 'config/runtime', 'config/winter', 'assets/winter', 'artifacts/arena-versions'].flatMap(f => files(path.join(root, f)))]
     const hashes = Object.fromEntries(candidates.map(file => [path.relative(root, file), hash(fs.readFileSync(file))]))
     save('before.json', { processes: list, hashes, logs: { out: fs.statSync(dev.out).size, error: fs.statSync(dev.error).size } })
     console.log(JSON.stringify({ processes: list, protectedFiles: candidates.length }))

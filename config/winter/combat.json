@@ -1,19 +1,141 @@
 {
+  "version": 2,
   "sturdyPriceDiamonds": 1,
-  "sturdyBaseHp": 100,
+  "sturdyBaseHp": 80,
   "playerMaxHp": 10,
-  "playerIntervalMs": 2000,
-  "enemyIntervalMs": 3000,
+  "playerIntervalMs": 3000,
+  "enemyIntervalMs": 10000,
   "specialCooldownMs": 3000,
-  "sweatPerHit": 1,
-  "playerAccuracy": 0.5,
-  "enemyAccuracy": 0.75,
+  "sweatPerVictory": 1,
+  "buttonDropChance": 0.05,
+  "playerAccuracy": 0.9,
+  "enemyAccuracy": 1,
   "regularSnowCost": 10,
-  "regularDamage": 1,
-  "enemyDamage": 1,
+  "regularDamage": 2,
+  "enemyDamage": 3,
   "specialDamage": 10,
+  "victoryHealing": 10,
+  "challengerVictories": 10,
+  "strengthPerLevel": 0.01,
+  "accuracyPerLevel": 0.001,
+  "dodgePerLevel": 0.0025,
+  "maxDodge": 0.25,
+  "spicySnowCost": 100,
+  "dirtySnowCost": 1000,
   "dirtyStunSecondChance": 0.8,
   "dirtyStunThirdChance": 0.75,
   "workerIntervalMs": 1000,
-  "maxEventsPerSettlement": 1000
+  "maxEventsPerSettlement": 2000000,
+  "weight20Strength": 20,
+  "weight20Sweat": 50,
+  "ironSnowCost": 1000000,
+  "ironRate": 216,
+  "outfitCost": 100,
+  "outfitMaxHp": 100,
+  "snowSlotsCost": 10000,
+  "snowSlotsRewards": [
+    {
+      "buttons": 0,
+      "weight": 40
+    },
+    {
+      "buttons": 2,
+      "weight": 30
+    },
+    {
+      "buttons": 5,
+      "weight": 20
+    },
+    {
+      "buttons": 14,
+      "weight": 10
+    }
+  ],
+  "hendrixRecipe": null,
+  "gymMaxLevel": 100,
+  "gymUnlockLevel": 20,
+  "weight100Strength": 100,
+  "queueInitialCapacity": 1,
+  "queueExpandedCapacity": 10,
+  "bareHandsRate": 1,
+  "woodenRate": 6,
+  "stoneRate": 36,
+  "mittenCost": 10,
+  "mittenMaxHp": 50,
+  "fireFlowerCost": 50,
+  "fireFlowerAmmo": 5,
+  "fireFlowerMultiplier": 5,
+  "emptyButtonDropChance": 0.75,
+  "weightSteps": [
+    25,
+    50,
+    75,
+    100
+  ],
+  "weightStrength": [
+    25,
+    50,
+    75,
+    100
+  ],
+  "specialPerLevel": 0.01,
+  "snowmen": [
+    {
+      "id": "snowman-1",
+      "name": "Sturdy Snowman",
+      "baseHp": 80,
+      "damage": 3,
+      "killsToUnlockNext": 10,
+      "sweat": 1,
+      "intervalMs": 10000
+    },
+    {
+      "id": "snowman-2",
+      "name": "Snowman 2",
+      "baseHp": 139,
+      "damage": 8,
+      "killsToUnlockNext": 15,
+      "sweat": 2,
+      "intervalMs": 10000
+    },
+    {
+      "id": "snowman-3",
+      "name": "Snowman 3",
+      "baseHp": 328,
+      "damage": 16,
+      "killsToUnlockNext": 25,
+      "sweat": 3,
+      "intervalMs": 10000
+    },
+    {
+      "id": "snowman-4",
+      "name": "Snowman 4",
+      "baseHp": 670,
+      "damage": 25,
+      "killsToUnlockNext": 35,
+      "sweat": 4,
+      "intervalMs": 10000
+    },
+    {
+      "id": "snowman-5",
+      "name": "Snowman 5",
+      "baseHp": 1230,
+      "damage": 36,
+      "killsToUnlockNext": 45,
+      "sweat": 5,
+      "intervalMs": 10000
+    },
+    {
+      "id": "snowman-6",
+      "name": "Snowman 6",
+      "baseHp": 2087,
+      "damage": 50,
+      "killsToUnlockNext": 55,
+      "sweat": 6,
+      "intervalMs": 10000
+    }
+  ],
+  "buttonDropMinimumThrows": 5,
+  "testButtonAfterThrows": 5,
+  "gymStarterSweat": 6
 }

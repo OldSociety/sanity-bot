@@ -56,6 +56,8 @@ async function badgeField(guild, userId, sequelize) {
   await require('./badge-access').reconcileGuildUser(guild, userId, sequelize).catch(error => console.error('Badge access pending:', error.message))
   const service = createBadges({ sequelize })
   const [ownedIds, emojiMap] = await Promise.all([service.owned(guild.id, userId), guild.emojis.fetch()])
-  return { name: 'Spooky 2026 Badges', value: `${renderBadges(ownedIds, [...emojiMap.values()])}\n${ownedIds.length}/7 collected` }
+  const spookyIds = ownedIds.filter(id => id.startsWith('spooky-2026:'))
+  const winter = ownedIds.includes('winter-2026:hen') ? '\n\nWinter 2026 · 🏅 Hendrix' : ''
+  return { name: winter ? 'Badges' : 'Spooky 2026 Badges', value: `${renderBadges(spookyIds, [...emojiMap.values()])}\n${spookyIds.length}/7 collected${winter}` }
 }
 module.exports = { badges, defineBadgeModel, createBadges, renderBadges, badgeField }
