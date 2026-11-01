@@ -43,6 +43,7 @@ function freshBattle(s = config) {
     trainUnlocked: 0,
     gymVisited: 0,
     gymStarterClaimed: 0,
+    gymTutorialActive: 0,
     zeroButtonThrows: 0,
     zeroButtonWindowActive: 0,
     trainIntroPending: 0,

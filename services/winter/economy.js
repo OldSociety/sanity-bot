@@ -20,6 +20,7 @@ const {
   LIFT_TAUNT,
   buyLevels,
   liftWeight,
+  enterGym,
   normalizeSkill,
   RECIPE_PRICE
 } = require('./gym');
@@ -27,6 +28,7 @@ const battleRules = require('./battle');
 const slotsRules = require('./slots');
 const {tradeShovel}=require('./shovels');
 const opponents=require('./opponents');
+const diagnostics = require('./diagnostics');
 const {
   compactNumber
 } = require('./numbers');
@@ -136,6 +138,7 @@ function createEconomy({
       await sequelize.query(`CREATE TABLE IF NOT EXISTS WinterSlotJackpots (
         eventId TEXT NOT NULL, guildId TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount BETWEEN 0 AND 9007199254740991),
         PRIMARY KEY(eventId,guildId))`);
+      if (allowRestart) await diagnostics.initialize(sql => sequelize.query(sql));
     }).catch(error => {
       initialized = undefined;
       throw error;
@@ -148,8 +151,16 @@ function createEconomy({
     interactionId,
     action = 'status',
     quantity,
-    admin = false
+    admin = false,
+    diagnostic
   }) {
+    const diagnosticCommand = action === 'diagnostic', diagnosticReport = action === 'diagnostic-report';
+    if (diagnosticCommand || diagnosticReport) {
+      if (!allowRestart || !admin) throw Error('Development administrators only.');
+      if (diagnosticCommand) diagnostics.validate(diagnostic);
+      // Reuse the existing protected admin settlement path, without granting resources.
+      action = 'admin';
+    }
     if (action === 'shovel') { action = 'status'; quantity = undefined; }
     for (const value of [guildId, userId, interactionId]) {
       if (typeof value !== 'string' || !value.trim()) throw new Error('Missing winter interaction identity');
@@ -178,14 +189,14 @@ function createEconomy({
           transaction
         });
       };
-      const automatic = action === 'battle-tick' && interactionId.startsWith('winter-auto:');
+      const automatic = diagnosticReport || action === 'battle-tick' && interactionId.startsWith('winter-auto:');
       const identity = {
         eventId,
         guildId,
         userId,
-        interactionId: automatic ? 'winter-maintenance:' + eventId + ':' + guildId + ':' + userId : interactionId
+        interactionId: automatic ? (diagnosticReport ? 'winter-diagnostic-maintenance:' : 'winter-maintenance:') + eventId + ':' + guildId + ':' + userId : interactionId
       };
-      const operation = JSON.stringify(automatic ? [action, quantity ?? null, interactionId] : [action, quantity ?? null]);
+      const operation = JSON.stringify(diagnosticCommand ? ['diagnostic', diagnostic] : automatic ? [action, quantity ?? null, interactionId] : [action, quantity ?? null]);
       const [previous] = await query('SELECT * FROM WinterInteractions WHERE interactionId=:interactionId', identity);
       if (previous.length) {
         const row = previous[0];
@@ -193,7 +204,9 @@ function createEconomy({
         if (row.action === operation) return JSON.parse(row.receipt);
       }
       // Clock sampled after acquiring the lock, never from a Discord payload.
-      const now = Math.min(endsAt, Math.max(startsAt, timestamp(clock())));
+      const realNow = timestamp(clock());
+      let diagnosticState = allowRestart ? await diagnostics.read(query, identity) : null;
+      const now = Math.min(endsAt, Math.max(startsAt, diagnostics.gameNow(diagnosticState, realNow)));
       await query(`INSERT OR IGNORE INTO WinterPlayers (eventId,guildId,userId,lastAccrual,snow)
         VALUES (:eventId,:guildId,:userId,:now,10)`, {
         ...identity,
@@ -269,6 +282,9 @@ function createEconomy({
         view = 'welcome';
       } else if (battle.buttonIntroPending && !['admin', 'grant-sweat', 'grant-snow', 'grant-ammo', 'emporium', 'restart', 'restart-confirm', 'restart-cancel'].includes(action)) {
         view = 'button-found';
+      } else if (battle.gymTutorialActive && ['battle-start', 'battle-opponent', 'opponents', 'throw', 'attack', 'attack-spicy'].includes(action)) {
+        view = 'train';
+        message = 'Train Strength to level 3 before returning to the snowmen.';
       } else if (quantity === undefined && !commandReady(action, tutorial)) {
         view = 'not-ready';
         continueCommand = nextCommand(tutorial);
@@ -491,6 +507,7 @@ function createEconomy({
       } else if (['train', 'train-strength', 'train-accuracy', 'train-defense', 'train-attack', 'train-dodge', 'train-speed', 'train-special', 'train-select', 'lift', 'lift20'].includes(action)) {
         view = 'train';
         if (battle.trainUnlocked) {
+          const welcome = enterGym(battle, battleSettings);
           if (battle.active) battle.pauseAt = now;
           battle.active = 0;
           battle.phase = 'paused';
@@ -500,6 +517,7 @@ function createEconomy({
           } else if (['lift20', 'lift'].includes(action)) {
             message = liftWeight(battle, battleSettings);
           } else if (action.startsWith('train-')) message = buyLevels(battle, action.slice(6), quantity || '1');
+          message = [message, welcome].filter(Boolean).join('\n\n');
         }
       } else if (action === 'beg') {
         view = 'diamonds';
@@ -640,12 +658,11 @@ function createEconomy({
       if(battle.buttons>0){battle.zeroButtonThrows=0;battle.zeroButtonWindowActive=0;}
       if (battle.buttonIntroPending && !action.startsWith('restart') && !['admin', 'grant-sweat', 'grant-snow', 'grant-ammo'].includes(action)) view = 'button-found';
       if (view==='train' && battle.trainUnlocked) {
-        battle.gymVisited=1;
-        if(!battle.gymStarterClaimed) {
-          battle.sweat=safe(BigInt(battle.sweat)+BigInt(battleSettings.gymStarterSweat));
-          battle.gymStarterClaimed=1;
-          message=[message,'You received '+battleSettings.gymStarterSweat+'💦 to get started.'].filter(Boolean).join('\n\n');
-        }
+        message=[message,enterGym(battle,battleSettings)].filter(Boolean).join('\n\n');
+      }
+      if (battle.gymTutorialActive && battle.gym.strength >= (battleSettings.gymTutorialStrength ?? 3)) {
+        battle.gymTutorialActive=0;
+        if(view==='train') message=[message,'You reached STR3. Return to /snow throw.'].filter(Boolean).join('\n\n');
       }
       await query(`UPDATE WinterShopProgress SET helped=:helped,brokenSeen=:brokenSeen,
         snowmanOwned=:snowmanOwned,snowmanHp=:snowmanHp
@@ -678,6 +695,7 @@ function createEconomy({
         recipeDraft,
         battle,
         now,
+        realNow,
         message,
         ...(slotsJackpot !== undefined ? {
           slotsJackpot
@@ -689,6 +707,13 @@ function createEconomy({
           view
         } : {})
       };
+      if (diagnosticCommand) {
+        diagnosticState = await diagnostics.configure(query, identity, diagnosticState, diagnostic, receipt, realNow, now);
+        receipt.view = 'diagnostic';
+      }
+      if (diagnosticReport) await diagnostics.captureReport(query, identity, diagnosticState, receipt, realNow, now);
+      if (diagnosticState) receipt.diagnostic = { enabled: diagnosticState.enabled, speed: diagnosticState.speed,
+        reportMinutes: diagnosticState.reportMinutes, channelId: diagnosticState.channelId, nextReportAt: diagnosticState.nextReportAt };
       await query(`INSERT ${automatic ? 'OR REPLACE ' : ''}INTO WinterInteractions VALUES (:interactionId,:eventId,:guildId,:userId,:action,:receipt)`, {
         ...identity,
         action: operation,
@@ -701,22 +726,62 @@ function createEconomy({
     return serialize(sequelize, async () => {
       const [tables] = await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name='WinterBattles'");
       if (!tables.length) return [];
+      const realNow = timestamp(clock());
       const [rows] = await sequelize.query('SELECT guildId,userId,state,nextAt FROM WinterBattles WHERE eventId=$eventId AND active=1 AND nextAt<=$now', {
         bind: {
           eventId,
-          now: Math.min(endsAt, timestamp(clock()))
+          now: Math.min(endsAt, realNow)
         }
       });
+      // A diagnostic profile has its own monotonic game clock. Include active
+      // profiles whose next game event is due even if that timestamp is ahead of wall time.
+      const [diagnosticTables] = allowRestart ? await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name='WinterDiagnostics'") : [[]];
+      if (diagnosticTables.length) {
+        const [extra] = await sequelize.query(`SELECT b.guildId,b.userId,b.state,b.nextAt,d.state AS diagnosticState
+          FROM WinterBattles b JOIN WinterDiagnostics d ON b.eventId=d.eventId AND b.guildId=d.guildId AND b.userId=d.userId
+          WHERE b.eventId=$eventId AND b.active=1 AND b.nextAt>$now`, { bind: { eventId, now: realNow } });
+        for (const row of extra) if (row.nextAt <= diagnostics.gameNow(JSON.parse(row.diagnosticState), realNow)) rows.push(row);
+      }
       return rows.map(row => ({
         ...row,
         battle: JSON.parse(row.state)
       }));
     });
   }
+  async function diagnosticRows(kind) {
+    if (!allowRestart) return [];
+    return serialize(sequelize, async () => {
+      const [tables] = await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name='WinterDiagnostics'");
+      if (!tables.length) return [];
+      const [rows] = await sequelize.query(kind === 'due' ?
+        'SELECT guildId,userId,nextReportAt FROM WinterDiagnostics WHERE eventId=$eventId AND enabled=1 AND nextReportAt>0 AND nextReportAt<=$now' :
+        "SELECT id,guildId,userId,channelId FROM WinterDiagnosticReports WHERE eventId=$eventId AND status='pending'",
+      { bind: kind === 'due' ? { eventId, now: timestamp(clock()) } : { eventId } });
+      return rows;
+    });
+  }
+  async function claimDiagnosticReport(id) {
+    if (!allowRestart) return null;
+    return serialize(sequelize, () => sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const [rows] = await sequelize.query("SELECT r.* FROM WinterDiagnosticReports r JOIN WinterDiagnostics d ON r.eventId=d.eventId AND r.guildId=d.guildId AND r.userId=d.userId WHERE r.id=$id AND r.eventId=$eventId AND r.status='pending' AND d.enabled=1", { bind: { id, eventId }, transaction });
+      if (!rows.length) return null;
+      await sequelize.query("UPDATE WinterDiagnosticReports SET status='sending' WHERE id=$id", { bind: { id }, transaction });
+      return { ...rows[0], payload: JSON.parse(rows[0].payload) };
+    }));
+  }
+  async function finishDiagnosticReport(id, sent) {
+    if (!allowRestart) return;
+    return serialize(sequelize, () => sequelize.query("UPDATE WinterDiagnosticReports SET status=$status WHERE id=$id AND eventId=$eventId AND status='sending'",
+      { bind: { id, eventId, status: sent ? 'sent' : 'failed' } }));
+  }
   return {
     execute,
     initialize,
-    dueBattles
+    dueBattles,
+    dueDiagnostics: () => diagnosticRows('due'),
+    pendingDiagnosticReports: () => diagnosticRows('pending'),
+    claimDiagnosticReport,
+    finishDiagnosticReport
   };
 }
 module.exports = {

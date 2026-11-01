@@ -29,6 +29,17 @@ const normalizeSkill = id => ({
   speed: 'special'
 })[id] || id;
 const totalCost = level => level * (level + 1) / 2;
+function enterGym(state, s = settings) {
+  state.gymVisited = 1;
+  if (state.gymStarterClaimed) return '';
+  const amount = s.gymStarterSweat;
+  if (!Number.isSafeInteger(state.sweat + amount)) throw Error('Winter Sweat exceeds the safe integer range.');
+  state.gym.strength = Math.max(state.gym.strength, s.gymStartingStrength ?? 1);
+  state.sweat += amount;
+  state.gymStarterClaimed = 1;
+  state.gymTutorialActive = Number(state.gym.strength < (s.gymTutorialStrength ?? 3));
+  return `You received ${amount}💦 to get started.`;
+}
 function buyLevels(state, id, quantity = '1') {
   id = normalizeSkill(id);
   const skill = SKILLS.find(s => s.id === id);
@@ -67,6 +78,7 @@ module.exports = {
   RECIPE_PRICE,
   normalizeSkill,
   totalCost,
+  enterGym,
   buyLevels,
   liftWeight
 };

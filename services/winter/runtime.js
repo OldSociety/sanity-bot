@@ -20,6 +20,8 @@ const {
   IDS
 } = require('./recipes');
 const slotsRules = require('./slots');
+const diagnostics = require('./diagnostics');
+const { createReporter } = require('./diagnostic-reporter');
 const {
   createLive,
   keyFor
@@ -61,9 +63,15 @@ function createHandler({
   authorize = restriction,
   environment = () => process.env.NODE_ENV
 } = {}) {
+  let client;
+  const reporter = createReporter({ getEconomy, getClient: () => environment() === 'development' ? client : null,
+    claim: (guildId, userId) => live.claim(keyFor(guildId, userId)),
+    allowed: row => environment() === 'development' && row.guildId === process.env.GUILDID &&
+      (!row.channelId || withBotTests([process.env.WINTERCHANNELID, process.env.BOTTESTCHANNELID], { guildId: row.guildId, environment: environment() }).includes(row.channelId)) });
   const live = createLive({
     getEconomy,
     render: screen,
+    onPulse: () => reporter.pulse(),
     canRun: () => ['development', 'production'].includes(environment()) && !disabledMessage('snow') && commandEnabled({
       name: 'snow',
       environments: ['development', 'production'],
@@ -89,6 +97,24 @@ function createHandler({
     } else action = interaction.options.getSubcommand();
     const adminAction = ['admin', 'grant-sweat', 'grant-snow', 'grant-ammo'].includes(action);
     const isAdmin = Boolean(adminMember(interaction.member) || interaction.memberPermissions?.has?.('Administrator'));
+    if (action === 'diagnostic') {
+      if (isButton || environment() !== 'development' || !isAdmin) return deny('Development administrators only.');
+      const diagnostic = { mode: interaction.options.getString('mode'), channelId: interaction.channelId };
+      const speed = interaction.options.getInteger('speed'), minutes = interaction.options.getInteger('report_minutes');
+      if (speed !== null && speed !== undefined) diagnostic.speed = speed;
+      if (minutes !== null && minutes !== undefined) diagnostic.reportMinutes = minutes;
+      try { diagnostics.validate(diagnostic); } catch (error) { return deny(error.message); }
+      await interaction.deferReply({ ephemeral: true });
+      const release = await live.acquire(keyFor(interaction.guildId, interaction.user.id));
+      try {
+        const receipt = await getEconomy().execute({ guildId: interaction.guildId, userId: interaction.user.id,
+          interactionId: interaction.id, action: 'diagnostic', admin: true, diagnostic });
+        return await live.show(interaction, receipt, 'diagnostic', true);
+      } catch (error) {
+        console.error('Winter diagnostic unavailable:', error.message);
+        return interaction.editReply({ content: 'Diagnostic controls could not finish. Use /snow diagnostic mode:status to check your saved settings.', embeds: [], components: [], allowedMentions: { parse: [] } });
+      } finally { release(); }
+    }
     if (adminAction && (environment() !== 'development' || !isAdmin)) return deny('Development administrators only.');
     if (['test-kill', 'test-sturdy', 'test-strength'].includes(action) && environment() !== 'development') return deny('Development testing only.');
     if (action?.startsWith('restart') && (environment() !== 'development' || !isButton)) return deny('Restart is available only through development testing controls.');
@@ -138,12 +164,17 @@ function createHandler({
     }
   };
   handle.live = live;
+  handle.setClient = value => { client = value; };
   return handle;
 }
-const handle = createHandler();
+const legacyHandle = createHandler();
+const playtest = () => require('./playtest-runtime');
+const handle = interaction => playtest().enabled() ? playtest().runtime().handle(interaction) : legacyHandle(interaction);
 function startMaintenance(client) {
-  handle.live.start();
-  client.once?.('invalidated', () => handle.live.stop());
+  if (playtest().enabled()) return playtest().runtime().start(client);
+  legacyHandle.setClient(client);
+  legacyHandle.live.start();
+  client.once?.('invalidated', () => legacyHandle.live.stop());
 }
 module.exports = {
   handle,

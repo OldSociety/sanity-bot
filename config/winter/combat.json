@@ -137,5 +137,7 @@
   ],
   "buttonDropMinimumThrows": 5,
   "testButtonAfterThrows": 5,
-  "gymStarterSweat": 6
+  "gymStartingStrength": 1,
+  "gymTutorialStrength": 3,
+  "gymStarterSweat": 5
 }

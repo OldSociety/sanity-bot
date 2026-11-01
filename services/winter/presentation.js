@@ -20,7 +20,7 @@ const {
   confirmationButtons
 } = require('../confirmation-controls');
 const {
-  config: battleConfig,
+  config: defaultBattleConfig,
   hasStarted,
   derived
 } = require('./battle');
@@ -40,6 +40,7 @@ const {
 const slotsRules = require('./slots');
 const {TRADES}=require('./shovels');
 const snowmen=require('./opponents');
+const diagnosticPresentation = require('./diagnostics');
 function screen({
   player: p,
   progress = {},
@@ -50,11 +51,14 @@ function screen({
   battle = {},
   message,
   continueCommand,
-  slotsJackpot
+  slotsJackpot,
+  diagnostic
 }, view = 'status', {
   development = false,
-  now = Date.now()
+  now = Date.now(),
+  battleConfig = defaultBattleConfig
 } = {}) {
+  if (view === 'diagnostic') return diagnosticPresentation.status({ diagnostic });
   if (['shovel', 'snowballs'].includes(view)) view = 'status';
   const kitchenReady = shopProgress.snowmanOwned && shopProgress.snowmanHp <= TARGETS.snowman - TARGETS.kitchenHits && !kitchen.spicyUnlocked;
   const tier = p.shovelTier ?? (battle.ironShovelOwned ? 3 : p.tier);
@@ -249,6 +253,9 @@ function screen({
     const [firstLine,...extraLines] = (message || '').split('\n\n');
     const taunt = firstLine === LIFT_TAUNT || firstLine === 'You need more strength to lift this.';
     embed.setDescription([taunt ? dialogue(firstLine) : dialogue('It’s time to train. No complaints!'), taunt ? extraLines.join('\n\n') : message].filter(Boolean).join('\n\n'));
+    if (battle.gymTutorialActive) embed.addFields({ name: 'Learn to train', value: battle.gym.strength < 2 ?
+      'You start at STR1. Spend 2💦 to reach STR2, then 3💦 to reach STR3. Press Strength once for each level.' :
+      'Now spend 3💦 to reach STR3. Then return to the snowmen.' });
     const gym = battle.gym || {},
       skills = SKILLS.filter(skill => battle.gymUnlocked?.[skill.id]);
     embed.addFields(...skills.map(skill => ({
@@ -261,8 +268,8 @@ function screen({
       value: number(stats.maxHp) + ' HP · ' + number(battleConfig.regularDamage * stats.multiplier) + ' damage · ' + number(stats.accuracy * 100) + '% hit · ' + number(stats.dodge * 100) + '% dodge'
     });
     if (skills.length) components.push(row(...skills.map(skill => button('train-' + skill.id + ':1', skill.emoji + ' ' + skill.short + ' · Cost: ' + (gym[skill.id] >= MAX_LEVEL ? 'MAX' : (gym[skill.id] + 1) + '💦'), gym[skill.id] >= MAX_LEVEL || battle.sweat < gym[skill.id] + 1))));
-    if(development) components.push(row(button('test-strength','+25 STR · Test')));
-    if ((battle.weightStage || 0) < battleConfig.weightSteps.length) components.push(row(button('lift', '🏋️ ' + battleConfig.weightSteps[battle.weightStage || 0] + ' lb', false, ButtonStyle.Secondary)));
+    if(development && !battle.gymTutorialActive) components.push(row(button('test-strength','+25 STR · Test')));
+    if (!battle.gymTutorialActive && (battle.weightStage || 0) < battleConfig.weightSteps.length) components.push(row(button('lift', '🏋️ ' + battleConfig.weightSteps[battle.weightStage || 0] + ' lb', false, ButtonStyle.Secondary)));
   } else if (view === 'kitchen') {
     badge('Winter', 'WINTER_KYLAX_BADGE.png', 'winter-kitchen-badge');
     if (kitchen.spicyUnlocked) {

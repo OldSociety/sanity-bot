@@ -1,7 +1,7 @@
 const { config } = require('./battle')
 const keyFor = (guildId, userId) => `${guildId}:${userId}`
 function createLive({ getEconomy, render, canRun = () => true, guildId = () => process.env.GUILDID,
-  now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, logger = console } = {}) {
+  now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, logger = console, onPulse = async () => {} } = {}) {
   const busy = new Set(), views = new Map(), transports = new Map(), waiters = new Map()
   let timer, stopped = true
   function claim(key) {
@@ -25,8 +25,9 @@ function createLive({ getEconomy, render, canRun = () => true, guildId = () => p
       waiters.get(key).push(resolve)
     })
   }
+  const gameTime = sub => sub.receipt.diagnostic ? sub.receipt.now + Math.max(0, now() - sub.receipt.realNow) * sub.receipt.diagnostic.speed : now()
   const payload = (sub, locked = false) => {
-    const result = render(sub.receipt, sub.view, { development: sub.development, now: now() })
+    const result = render(sub.receipt, sub.view, { development: sub.development, now: gameTime(sub) })
     if (locked) result.components = result.components.map(row => ({ type: 1,
       components: row.toJSON().components.map(button => ({ ...button, disabled: true })) }))
     return result
@@ -60,7 +61,8 @@ function createLive({ getEconomy, render, canRun = () => true, guildId = () => p
     views.delete(key)
     const previous = transports.get(key)
     if (previous?.sending) await previous.sending
-    const sub = { key, interaction, receipt, view, development, cooldown: receipt.battle?.specialReadyAt > now() }
+    const sub = { key, interaction, receipt, view, development }
+    sub.cooldown = receipt.battle?.specialReadyAt > gameTime(sub)
     await interaction.editReply(payload(sub))
     if (view === 'fight' && receipt.battle?.active) {
       if (views.size >= 500) views.delete(views.keys().next().value)
@@ -80,7 +82,7 @@ function createLive({ getEconomy, render, canRun = () => true, guildId = () => p
         if (sub) {
           sub.receipt = receipt
           sub.view = receipt.view || 'fight'
-          sub.cooldown = receipt.battle.specialReadyAt > now()
+          sub.cooldown = receipt.battle.specialReadyAt > gameTime(sub)
           // Delivery never replays a committed attack or a purchase.
           void queueEdit(sub, payload(sub))
           if (!receipt.battle.active) views.delete(key)
@@ -90,7 +92,7 @@ function createLive({ getEconomy, render, canRun = () => true, guildId = () => p
     for (const result of results) if (result.status === 'rejected') logger.error('Winter scheduled battle unavailable:', result.reason.message)
     // Re-enable a specialty control when cooldown ends, even between attacks.
     for (const [key, sub] of views) {
-      const cooldown = sub.receipt.battle.specialReadyAt > now()
+      const cooldown = sub.receipt.battle.specialReadyAt > gameTime(sub)
       if (cooldown !== sub.cooldown) {
         const release = claim(key)
         if (!release) continue
@@ -98,6 +100,7 @@ function createLive({ getEconomy, render, canRun = () => true, guildId = () => p
         finally { release() }
       }
     }
+    await onPulse()
   }
   function schedule() {
     if (stopped) return

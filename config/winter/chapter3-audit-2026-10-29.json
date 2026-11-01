@@ -1,0 +1,124 @@
+{
+  "id": "winter-chapter3-audit-2026-10-29-v1",
+  "status": "Preregistered experimental options; none replaces owner-locked runtime or design values",
+  "chapter4": "Necro opens the path to Kylax, Hendrix, Requia and Azulis. No S10 requirement and no invented character combat/rewards in this study.",
+  "screenSeeds": 32,
+  "trainingPolicies": ["strength", "balanced", "spc"],
+  "visitProfiles": ["four", "hourly", "twice"],
+  "sharedTraining": true,
+  "defenseUnlock": "STR25",
+  "defenseModel": "dodge",
+  "defensePerLevel": 0.0025,
+  "specialPerLevel": 0.02,
+  "fire": { "damage": 40, "snowCost": 4000 },
+  "shops": {
+    "balanced": [
+      { "id": "warmCoat", "buttons": 600, "hp": 200 },
+      { "id": "yield", "buttons": 1200, "yieldNumerator": 3, "yieldDenominator": 2 },
+      { "id": "belt", "buttons": 1000, "fallbackFire": true }
+    ],
+    "supply": [
+      { "id": "yield", "buttons": 900, "yieldNumerator": 2, "yieldDenominator": 1 },
+      { "id": "belt", "buttons": 1200, "fallbackFire": true },
+      { "id": "potency", "buttons": 1800, "yellowMultiplier": 1.25 }
+    ],
+    "endurance": [
+      { "id": "warmCoat", "buttons": 600, "hp": 200 },
+      { "id": "heavyCoat", "buttons": 1800, "hp": 250 },
+      { "id": "belt", "buttons": 1200, "fallbackFire": true }
+    ],
+    "ritual": [
+      { "id": "belt", "buttons": 600, "fallbackFire": true },
+      { "id": "potency", "buttons": 1500, "yellowMultiplier": 1.5 },
+      { "id": "yield", "buttons": 2000, "yieldNumerator": 5, "yieldDenominator": 4 }
+    ]
+  },
+  "packages": [
+    {
+      "id": "steady-ritual", "name": "Steady ritual", "targetDays": [5, 8],
+      "yellowPerHour": 18, "yellowDamage": 220, "yellowSnowCost": 4000, "yellowEffect": "direct",
+      "selfMode": "persistent", "poisonThrows": 10, "corpseTarget": 360,
+      "s5Hp": 900, "s5Damage": 22, "fireMultiplier": 0.75, "otherMultiplier": 0.25,
+      "shop": "balanced", "winRequirement": 25, "craftSnow": 25000000, "tradeGolden": true, "ritualSteps": 1,
+      "necroOrdinaryMultiplier": 6, "necroYellowMultiplier": 2
+    },
+    {
+      "id": "scarce-corrosion", "name": "Scarce corrosion", "targetDays": [6, 10],
+      "yellowPerHour": 8, "yellowDamage": 320, "yellowSnowCost": 6000, "yellowEffect": "corrosion",
+      "selfMode": "persistent", "poisonThrows": 8, "corpseTarget": 180,
+      "s5Hp": 1100, "s5Damage": 26, "fireMultiplier": 0.5, "otherMultiplier": 0,
+      "shop": "ritual", "winRequirement": 25, "craftSnow": 50000000, "tradeGolden": true, "ritualSteps": 3,
+      "necroOrdinaryMultiplier": 3, "necroYellowMultiplier": 4
+    },
+    {
+      "id": "generous-harvest", "name": "Generous harvest", "targetDays": [3, 6],
+      "yellowPerHour": 36, "yellowDamage": 160, "yellowSnowCost": 3000, "yellowEffect": "direct",
+      "selfMode": "persistent", "poisonThrows": 12, "corpseTarget": 420,
+      "s5Hp": 800, "s5Damage": 20, "fireMultiplier": 1, "otherMultiplier": 0.5,
+      "shop": "supply", "winRequirement": 100, "craftSnow": 25000000, "tradeGolden": true, "ritualSteps": 1,
+      "necroOrdinaryMultiplier": 6, "necroYellowMultiplier": 2
+    },
+    {
+      "id": "blood-price", "name": "Actual HP sacrifice", "targetDays": [4, 8],
+      "yellowPerHour": 24, "yellowDamage": 260, "yellowSnowCost": 5000, "yellowEffect": "corrosion",
+      "selfMode": "fraction", "selfFraction": 0.1, "corpseTarget": 300,
+      "s5Hp": 1000, "s5Damage": 24, "fireMultiplier": 0.75, "otherMultiplier": 0.25,
+      "shop": "balanced", "winRequirement": 100, "craftSnow": 25000000, "tradeGolden": true, "ritualSteps": 1,
+      "necroOrdinaryMultiplier": 6, "necroYellowMultiplier": 2
+    },
+    {
+      "id": "flat-poison", "name": "Flat HP poison", "targetDays": [4, 8],
+      "yellowPerHour": 24, "yellowDamage": 240, "yellowSnowCost": 4000, "yellowEffect": "direct",
+      "selfMode": "flat", "selfDamage": 20, "corpseTarget": 300,
+      "s5Hp": 900, "s5Damage": 22, "fireMultiplier": 0.75, "otherMultiplier": 0.25,
+      "shop": "endurance", "winRequirement": 100, "craftSnow": 25000000, "tradeGolden": false, "ritualSteps": 1,
+      "necroOrdinaryMultiplier": 2, "necroYellowMultiplier": 2
+    },
+    {
+      "id": "hit-poison", "name": "Poison only on landed hits", "targetDays": [5, 10],
+      "yellowPerHour": 24, "yellowDamage": 240, "yellowSnowCost": 4000, "yellowEffect": "direct",
+      "selfMode": "onHit", "poisonThrows": 10, "corpseTarget": 180,
+      "s5Hp": 900, "s5Damage": 22, "fireMultiplier": 0.75, "otherMultiplier": 0.25,
+      "shop": "balanced", "winRequirement": 25, "craftSnow": 25000000, "tradeGolden": true, "ritualSteps": 1,
+      "necroOrdinaryMultiplier": 6, "necroYellowMultiplier": 2
+    },
+    {
+      "id": "fragile-decay", "name": "Decay with loss-sensitive poisoning", "targetDays": [5, 9],
+      "yellowPerHour": 18, "yellowDamage": 150, "yellowSnowCost": 4000, "yellowEffect": "dot",
+      "dotDamage": 45, "dotTicks": 3,
+      "selfMode": "fragile", "poisonThrows": 10, "corpseTarget": 300,
+      "s5Hp": 1000, "s5Damage": 24, "fireMultiplier": 0.5, "otherMultiplier": 0,
+      "shop": "supply", "winRequirement": 100, "craftSnow": 50000000, "tradeGolden": true, "ritualSteps": 3,
+      "necroOrdinaryMultiplier": 3, "necroYellowMultiplier": 4
+    },
+    {
+      "id": "yellow-only-trial", "name": "Yellow-only S5 trial", "targetDays": [5, 9],
+      "yellowPerHour": 24, "yellowDamage": 140, "yellowSnowCost": 5000, "yellowEffect": "direct",
+      "selfMode": "persistent", "poisonThrows": 10, "corpseTarget": 300,
+      "s5Hp": 1400, "s5Damage": 30, "fireMultiplier": 0, "otherMultiplier": 0,
+      "shop": "ritual", "winRequirement": 100, "craftSnow": 75000000, "tradeGolden": true, "ritualSteps": 3,
+      "necroOrdinaryMultiplier": 6, "necroYellowMultiplier": 2
+    }
+  ],
+  "sensitivityFactors": [
+    "supply8", "supply36", "supply60", "damage140", "damage320",
+    "selfFraction", "selfFlat", "selfOnHit", "selfFragile",
+    "shopSupply", "shopEndurance", "shopRitual", "noHpEffect", "noYieldEffect", "noBeltEffect",
+    "corpses180", "corpses540", "wins0", "wins100", "craft75m", "threePhases", "keepGolden",
+    "defUnlockACC25", "defArmor", "defHp", "spc1percent", "spc3percent", "separatePricing",
+    "passiveHalf", "passiveDouble", "dailyVisits", "frequentVisits", "farmS3", "farmS1"
+  ],
+  "declaredAssumptions": [
+    "All candidates are suggestions for audit, not approved gameplay. Existing chapter prices,100-win gates, corrected pre-S3 Ice availability and9h overnight breaks remain.",
+    "Shared price is sum of STR/ACC/DEF/SPC+1; initial STR3 counts in that sum. Existing destination-stat pricing is a comparison control only.",
+    "Default DEF becomes available at STR25, gives0.25 percentage-point dodge per level capped25%; ACC25 unlock and armor/HP alternatives are sensitivity tests.",
+    "Default SPC unlocks at25 in STR/ACC/DEF and gives2% linear special damage per level.1%/3% alternatives are tested separately.",
+    "Yellow is1 resource per base ball, crafted using ordinary snow equivalent to existing ingredients. No additional currency conversion fees. Yield upgrades use whole integer recipes and retain remainders.",
+    "Persistent poisoning survives normal wins/losses/Throw; thresholds, HP-damage and on-hit alternatives are explicit package fields.",
+    "Yellow-caused deaths activate35% accuracy, continue combat, award one corpse; enemy-only death yields none. A mutual KO awards both win Sweat and one corpse, with one reset.",
+    "Chapter3 shop starts after Golden. Belt is an explicit candidate exception allowing stocked Fire fallback after Yellow; without it original regular fallback remains.",
+    "Three-step Kitchen rituals turn in thirds of the same corpse requirement, at most one phase per visit; no extra resource. Final craft deducts declared snow and trades or retains Golden as declared.",
+    "S5 is the last modeled snowman. Necro acquisition ends Chapter3 and opens Chapter4; no need to clear S10 and no character combat or100-Sweat reward is invented.",
+    "Stop at Necro or event day31; failures are censored and count in completion rates. Do not report successful-only median as population median."
+  ]
+}

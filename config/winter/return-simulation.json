@@ -1,0 +1,12 @@
+{
+  "id": "winter-on-return-candidate-1",
+  "inactiveAfterMs": 3600000,
+  "maxChunkMs": 14400000,
+  "returnPolicy": "settle-all-on-return",
+  "backgroundProcessing": false,
+  "discardedTime": "none",
+  "activity": "each-simulated-player-visit",
+  "startup": "load-checkpoints-without-settling-absent-players",
+  "queueConcurrency": 1,
+  "scope": "offline simulator only; no runtime activation"
+}

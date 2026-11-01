@@ -1,0 +1,10 @@
+{
+  "id": "winter-hourly-offline-candidate-1",
+  "captureIntervalMs": 3600000,
+  "maxChunkMs": 14400000,
+  "returnPolicy": "recover-full-hours-then-discard-tail",
+  "discardedCombatTime": "freeze-hp-and-remaining-attack-delays",
+  "activity": "each-simulated-player-visit",
+  "boundaryOrder": "capture-before-command",
+  "scope": "offline simulator only; no runtime activation"
+}

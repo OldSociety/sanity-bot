@@ -35,18 +35,26 @@ test('first and zero-balance recovery drops each wait five actual throws, includ
   assert.equal(s.buttons,1);
 });
 
-test('first Gym visit grants six Sweat once, reveals navigation and uses Cost without speed text', async t => {
+test('first Gym visit grants five Sweat once at STR1; two purchases teach STR2 and STR3', async t => {
   const f=await fixture(t);const start=await f.start();
   assert.ok(!buttons(screen(start,'fight')).some(b=>b.custom_id.endsWith(':train')));
   await f.replace({trainUnlocked:1});
   const first=await f.run('train',undefined,{interactionId:'first-gym'});
-  assert.equal(first.battle.sweat,6);assert.equal(first.battle.gymVisited,1);assert.equal(first.battle.gymStarterClaimed,1);
+  assert.equal(first.battle.sweat,5);assert.equal(first.battle.gym.strength,1);assert.equal(first.battle.gymVisited,1);assert.equal(first.battle.gymStarterClaimed,1);
+  assert.equal(first.battle.gymTutorialActive,1);
   assert.deepEqual(await f.run('train',undefined,{interactionId:'first-gym'}),first);
-  assert.equal((await f.run('train')).battle.sweat,6);
-  const trained=await f.run('train-strength','1');assert.equal(trained.battle.sweat,5);
   assert.equal((await f.run('train')).battle.sweat,5);
+  const trained=await f.run('train-strength','1',{interactionId:'tutorial-level2'});assert.equal(trained.battle.sweat,3);
+  assert.equal(trained.battle.gym.strength,2);
+  assert.deepEqual(await f.run('train-strength','1',{interactionId:'tutorial-level2'}),trained);
+  assert.equal((await f.run('train')).battle.sweat,3);
+  const blocked=await f.run('battle-start',trained.battle.fightId);
+  assert.equal(blocked.view,'train');assert.equal(blocked.battle.active,0);
+  const completed=await f.run('train-strength','1');
+  assert.equal(completed.battle.sweat,0);assert.equal(completed.battle.gym.strength,3);assert.equal(completed.battle.gymTutorialActive,0);
+  assert.equal((await f.run('train')).battle.sweat,0);
   const ui=screen(trained,'train').embeds[0].toJSON();
-  assert.match(ui.fields[0].value,/Cost:/);assert.doesNotMatch(JSON.stringify(ui),/next|SPD|Speed|3s/);
+  assert.match(ui.fields.find(field=>field.name.includes('STR')).value,/Cost:/);assert.doesNotMatch(JSON.stringify(ui),/next|SPD|Speed|3s/);
   assert.ok(buttons(screen(trained,'fight')).some(b=>b.custom_id.endsWith(':train')));
 });
 
@@ -64,10 +72,10 @@ test('status links unlocked Slots and dev strength grants add25 once per receipt
   assert.equal((await f.run('test-strength')).battle.gym.strength,100);
   const prod=await fixture(t);await assert.rejects(prod.run('test-strength'),/development/);
 });
-test('Winter numbers display whole compact values without altering exact accounting', () => {
+test('Winter numbers display one compact decimal without altering exact accounting', () => {
   const {compactNumber}=require('../services/winter/numbers');
-  assert.equal(compactNumber(1999),'1k');
-  assert.equal(compactNumber(1999999),'1m');
+  assert.equal(compactNumber(1999),'1.9k');
+  assert.equal(compactNumber(1999999),'1.9m');
   assert.equal(compactNumber(999),'999');
 });
 
@@ -358,16 +366,17 @@ test('defeat preserves resources and opens Gym; a fresh run restores full clothi
   const lost = await f.run('battle-tick');
   assert.equal(lost.view, 'train');
   assert.equal(lost.battle.playerHp, 0);
-  assert.equal(lost.battle.sweat, 16);
+  assert.equal(lost.battle.sweat, 15);
   assert.equal(lost.kitchen.spicy, 20);
+  await f.run('train-strength','1');await f.run('train-strength','1');
   const fresh = await f.run('battle-start', lost.battle.fightId);
   assert.equal(fresh.battle.playerHp, 100);
 });
 test('training buys one level even with an old bulk control and never reveals stats before lifting', async t => {
   const f=await fixture(t); await f.replace({trainUnlocked:1,sweat:20200});
   const a=await f.run('train-strength','10');
-  assert.equal(a.battle.gym.strength,1); assert.equal(a.battle.sweat,20205);
-  const b=await f.run('train-strength','max');assert.equal(b.battle.gym.strength,2);
+  assert.equal(a.battle.gym.strength,2); assert.equal(a.battle.sweat,20203);
+  const b=await f.run('train-strength','max');assert.equal(b.battle.gym.strength,3);assert.equal(b.battle.sweat,20200);
   assert.equal(b.battle.gymUnlocked.accuracy,0);
   const controls=buttons(screen(b,'train'));
   assert.deepEqual(controls.map(x=>x.custom_id.split(':')[2]),['train-strength','lift']);
@@ -378,7 +387,7 @@ test('25/50/75/100 weights unlock stats sequentially and Iron at25, badge and op
   const f=await fixture(t); await f.replace({trainUnlocked:1,sweat:325});
   assert.ok((await f.run('lift')).message.startsWith(gym.LIFT_TAUNT));
   await f.replace({gym:{strength:25,accuracy:0,dodge:0,speed:0}});
-  const first=await f.run('lift'); assert.equal(first.battle.weightStage,1); assert.equal(first.battle.sweat,331);
+  const first=await f.run('lift'); assert.equal(first.battle.weightStage,1); assert.equal(first.battle.sweat,330);
   assert.equal(first.battle.gymUnlocked.accuracy,1);assert.equal(first.battle.ironShovelOwned,0);assert.equal(first.battle.ironMaterial,1);
   assert.equal(first.battle.queueCapacity,10);
   for(const strength of [50,75,100]){const st=await f.state();await f.replace({gym:{...st.gym,strength}});await f.run('lift');}

@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "iron": {
+    "source": "Source-engine rehearsal, seed314159, four-hour visits, STR-only investment and half-production special-ammunition budget. One reproducible example; not an observed live average.",
+    "balanceHash": "79a292d802104b28667dc6ba33f044548c33401f7612a2ff179cf0d114467250",
+    "sourceGameMs": 158400000,
+    "state": {
+      "version": "winter-live-chapter1-2026-10-29-v1",
+      "now": 158400000,
+      "chapter": 1,
+      "tier": 3,
+      "wallet": {
+        "snow": 610300,
+        "diamonds": 0,
+        "regular": 0,
+        "red": 0,
+        "ice": 0,
+        "sweat": 4,
+        "buttons": 0,
+        "peppers": 0
+      },
+      "ledger": {
+        "gained": {
+          "sweat": 328,
+          "snow": 5702400,
+          "red": 2590
+        },
+        "spent": {
+          "sweat": 324,
+          "snow": 5092100,
+          "red": 2590
+        },
+        "sources": {
+          "gym-gift:sweat:gained": 5,
+          "training:sweat:spent": 324,
+          "gathering:snow:gained": 5702400,
+          "passive:sweat:gained": 196,
+          "regular-attack:snow:spent": 502100,
+          "combat:sweat:gained": 127,
+          "ammunition:snow:spent": 2590000,
+          "ammunition:red:gained": 2590,
+          "attack:red:spent": 2590,
+          "S2-purchase:snow:gained": 0,
+          "iron:snow:spent": 2000000
+        }
+      },
+      "snowRemainder": 0,
+      "sweatRemainder": 0,
+      "dummyHp": 0,
+      "roughHp": 0,
+      "roughOwned": true,
+      "roughThrows": 3,
+      "wooden": true,
+      "diamondGift": true,
+      "redRecipe": true,
+      "oldStone": true,
+      "iceRecipe": false,
+      "gymEntered": true,
+      "gymUnlocked": true,
+      "strength": 25,
+      "accuracy": 0,
+      "defense": 0,
+      "special": 0,
+      "ironMaterial": true,
+      "equipped": "red",
+      "target": 2,
+      "owned": {
+        "1": true,
+        "2": true,
+        "3": false
+      },
+      "active": true,
+      "playerHp": 35,
+      "enemyHp": 153.92000000000007,
+      "nextPlayerAt": 158403000,
+      "nextEnemyAt": 158402000,
+      "penalized": false,
+      "rng": 2150066517,
+      "milestones": {
+        "stone": 0,
+        "gym": 0,
+        "strength3": 0,
+        "firstWinS1": 156000,
+        "firstLoss": 1793000,
+        "clearS1": 101223000,
+        "purchaseS2": 115200000,
+        "firstWinS2": 115272000,
+        "strength25": 158400000,
+        "ironMaterial": 158400000,
+        "iron": 158400000
+      },
+      "tiers": {
+        "1": {
+          "wins": 103,
+          "losses": 718,
+          "attacks": 38400,
+          "hits": 14490,
+          "enemyAttacks": 11463,
+          "enemyHits": 8040,
+          "red": 1813,
+          "regular": 36587,
+          "ice": 0
+        },
+        "2": {
+          "wins": 12,
+          "losses": 294,
+          "attacks": 14400,
+          "hits": 5133,
+          "enemyAttacks": 4313,
+          "enemyHits": 3007,
+          "red": 777,
+          "regular": 13623,
+          "ice": 0
+        }
+      }
+    }
+  }
+}
