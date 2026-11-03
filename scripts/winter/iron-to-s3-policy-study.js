@@ -1,7 +1,7 @@
 // Offline policy study: uses the live development model, no database or bot.
 const fs = require('node:fs');
 const path = require('node:path');
-const M = require('../../services/winter/playtest-model');
+const M = require('../../services/winter/game/game');
 
 function run(seed, visitMinutes, openingSnow) {
   const s = M.fresh('iron', seed);

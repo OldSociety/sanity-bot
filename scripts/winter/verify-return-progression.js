@@ -4,8 +4,8 @@ const crypto = require('node:crypto');
 const sqlite3 = require('sqlite3');
 const { readDatabase } = require('./verify-hourly-progression');
 async function verifyLoad(file, modelRoot) {
-  const M = require(path.join(modelRoot, 'services/winter/early-progression.js'));
-  const R = require(path.join(modelRoot, 'services/winter/simulation-rng.js'));
+  const M = require(fs.existsSync(path.join(modelRoot,'services/winter/studies/early-progression.js')) ? path.join(modelRoot,'services/winter/studies/early-progression.js') : path.join(modelRoot,'services/winter/early-progression.js'));
+  const R = require(fs.existsSync(path.join(modelRoot,'services/winter/studies/simulation-rng.js')) ? path.join(modelRoot,'services/winter/studies/simulation-rng.js') : path.join(modelRoot,'services/winter/simulation-rng.js'));
   const db = await new Promise((resolve, reject) => {
     const c = new sqlite3.Database(file, sqlite3.OPEN_READONLY, error => error ? reject(error) : resolve(c));
   });

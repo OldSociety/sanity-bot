@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 test('both sides display actual hits and misses from saved rolls without changing combat RNG', () => {
   const s = M.fresh('gym', 12345); s.liveRules = true; M.change(s, 'snow', 100000, 'fixture'); M.action(s, 'throw');

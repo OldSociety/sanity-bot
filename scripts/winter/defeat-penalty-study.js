@@ -1,6 +1,6 @@
 // Offline experiment only. Persisted-state engine; no bot/live database imports.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const M=require('../../services/winter/early-progression'),{gymBaseline}=require('./strength-investment');
+const M=require('../../services/winter/studies/early-progression'),{gymBaseline}=require('./strength-investment');
 const H=M.HOUR,END=24*H;
 function run(seed,visitHours,penalty,options={}){
  const c=structuredClone(M.config),s=M.fresh(c),base=gymBaseline(c);
@@ -64,7 +64,7 @@ function main(){
     totalReductionPct:100*(1-mean(rows,'total')/mean(baseline,'total'))});
   }
  }
- const manifest={};for(const file of ['scripts/winter/defeat-penalty-study.js','config/winter/early-progression.json','services/winter/early-progression.js']){
+ const manifest={};for(const file of ['scripts/winter/defeat-penalty-study.js','config/winter/studies/early-progression.json','services/winter/studies/early-progression.js']){
   const bytes=fs.readFileSync(file),dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);manifest[file]=crypto.createHash('sha256').update(bytes).digest('hex');
  }
  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results));

@@ -1,10 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
-const M = require('../services/winter/playtest-model');
-const { IDS, DIRTY_RECIPE } = require('../services/winter/recipes');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
+const M = require('../services/winter/game/game');
+const { IDS } = require('../services/winter/recipes');
+const { recipe: DIRTY_RECIPE } = require('../services/winter/game/brown-snowballs');
 const buttons = out => out.components.flatMap(r => r.components);
 
 test('Gym shows stat levels with cost and native emojis on its buttons', () => {
@@ -34,7 +35,7 @@ test('recipe drafts persist, stay private, enforce seven ingredients and use sep
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close());
   let sequence = 0; const store = createStore({ sequelize: db, clock: () => 0, seed: () => 314159 });
   const run = (action, extra = {}) => store.execute({ id: `kitchen-${++sequence}`, guildId: 'g', userId: 'u', action, ...extra });
-  const start = await run('diagnostic', { diagnostic: { mode: 'start', bookmark: 'chapter1', speed: 1, stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
+  const start = await run('diagnostic', { diagnostic: { mode: 'start', bookmark: 's3', speed: 1, stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
   const combatRng = start.state.rng, originalBalances = structuredClone(start.state.wallet);
   const initialOrder = [...IDS]; let receipt = await run('ingredient', { quantity: 'cherry' });
   assert.notDeepEqual(receipt.state.recipeDraft.ingredientOrder, initialOrder); assert.equal(receipt.state.rng, combatRng);
@@ -55,12 +56,12 @@ test('defined recipe combinations report duplicates and persist new discoveries 
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close());
   const store = createStore({ sequelize: db, clock: () => 0, seed: () => 7 }); let sequence = 0;
   const run = (action, extra = {}) => store.execute({ id: `discover-${++sequence}`, guildId: 'g', userId: 'u', action, ...extra });
-  await run('diagnostic', { diagnostic: { mode: 'start', bookmark: 'chapter1', speed: 1, stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
+  await run('diagnostic', { diagnostic: { mode: 'start', bookmark: 's3', speed: 1, stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
   for (const ingredient of DIRTY_RECIPE) await run('ingredient', { quantity: ingredient });
   const discovery = await run('mix', { id: 'discover-once' }); assert.equal(discovery.state.dirtyRecipeUnlocked, true); assert.match(discovery.message, /discovered/);
   assert.deepEqual(await run('mix', { id: 'discover-once' }), discovery);
   const book = screen(discovery, 'u').embeds[0].data.fields.find(f => f.name === 'Recipes').value;
-  assert.equal(book.split('\n')[1], '2. 🍆🧄🥑🧄🌶️'); assert.equal(book.split('\n').filter(line => line.includes('❔'.repeat(7))).length, 5);
+  assert.equal(book.split('\n')[1], '2. 🍆🧄🍒🥑🧄🥑🌶️'); assert.equal(book.split('\n').filter(line => line.includes('❔'.repeat(7))).length, 5);
   for (const ingredient of DIRTY_RECIPE) await run('ingredient', { quantity: ingredient }); assert.match((await run('mix')).message, /already know/);
   for (let n = 0; n < 3; n++) await run('ingredient', { quantity: 'pepper' }); const repeated = await run('mix'); assert.match(repeated.message, /already know.*Spicy/); assert.equal(screen(repeated, 'u').embeds[0].data.title, 'Kylax’s Kitchen 🌶️');
   await run('diagnostic', { diagnostic: { mode: 'stop' } }); const recap = await store.claimReport(); assert(recap.payload.timeline.some(event => event.name === 'Dirty Snowball recipe discovered'));

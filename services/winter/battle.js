@@ -2,7 +2,7 @@ const {
   randomUUID,
   randomInt
 } = require('node:crypto');
-const config = Object.freeze(require('../../config/winter/combat.json'));
+const config = Object.freeze(require('../../config/winter/legacy/combat.json'));
 const opponents = require('./opponents');
 function add(value, amount) {
   const result = BigInt(value) + BigInt(amount);

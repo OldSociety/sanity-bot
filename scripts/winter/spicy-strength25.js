@@ -1,6 +1,6 @@
 // Offline candidate only: unlimited Spicy, fixed S1 versus immediate tier unlocks.
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
-const M = require('../../services/winter/early-progression');
+const M = require('../../services/winter/studies/early-progression');
 const { gymBaseline } = require('./strength-investment');
 const { createHash } = require('node:crypto');
 const H=M.HOUR, limit=31*24*H;
@@ -47,7 +47,7 @@ function main(){
    }
    summary.push({route:advanceTier?'Advance when unlocked':'Stay S1',passive,reached:reached.length,total:rows.length,metrics});
  }
- const hashes={};for(const file of ['config/winter/early-progression.json','services/winter/early-progression.js','scripts/winter/spicy-strength25.js']){
+ const hashes={};for(const file of ['config/winter/studies/early-progression.json','services/winter/studies/early-progression.js','scripts/winter/spicy-strength25.js']){
   const bytes=fs.readFileSync(file);hashes[file]=createHash('sha256').update(bytes).digest('hex');
   const dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);
  }

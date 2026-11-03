@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Study = require('../scripts/winter/regular-only-month');
-const N = require('../services/winter/chapter-simulation');
-const Live = require('../services/winter/playtest-model');
+const N = require('../services/winter/studies/chapter-simulation');
+const Live = require('../services/winter/game/game');
 test('regular-only study matches development Chapter1 state/RNG through hourly purchases and training', () => {
   for (const seed of [7, 17, 31]) {
     const { c, s } = Study.setup(seed), live = Live.fresh('gym', seed); Live.action(live, 'throw');

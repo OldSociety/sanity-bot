@@ -1,12 +1,12 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { createControls } = require('../services/winter/playtest-controls');
-const { screen } = require('../services/winter/playtest-presentation');
-const tutorial = require('../services/winter/playtest-tutorial');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { createControls } = require('../services/winter/game/buttons');
+const { screen } = require('../services/winter/game/screens');
+const tutorial = require('../services/winter/game/tutorial');
 const labels = out => out.components.flatMap(r => r.components).map(b => b.data.label);
 
 function state(stage) {
@@ -76,7 +76,7 @@ test('every required Chapter0 step survives unrelated navigation and reconstruct
     // A new store instance cannot rely on an old Discord message or collector.
     const reopened = createStore({ sequelize: f.db, clock: () => 0 });
     const receipt = await reopened.execute({ id: `${id}-${action}`, guildId: 'g', userId: 'u', action });
-    if (require('../services/winter/playtest-dialogue').unavailable(s, action)) {
+    if (require('../services/winter/game/dialogue').unavailable(s, action)) {
       const output = screen(receipt, 'u'); assert.equal(output.embeds[0].data.title, 'Stop!');
       assert.match(output.embeds[0].data.thumbnail.url, /winter-kitchen-badge/);
       assert.equal(receipt.state.tutorialCheckpoint, id); assert.deepEqual(receipt.state.wallet, s.wallet); assert.equal(receipt.state.rng, s.rng);

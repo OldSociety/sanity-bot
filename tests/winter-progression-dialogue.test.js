@@ -1,10 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { screen } = require('../services/winter/playtest-presentation');
-const { createStore } = require('../services/winter/playtest-store');
-const { gymLine } = require('../services/winter/playtest-dialogue');
+const M = require('../services/winter/game/game');
+const { screen } = require('../services/winter/game/screens');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { gymLine } = require('../services/winter/game/dialogue');
 const buttons = out => out.components.flatMap(r => r.components);
 
 test('Idol costs 5000 Buttons once, reveals the Shop trade, and does not grant early Golden production', () => {
@@ -56,7 +56,7 @@ test('hidden clue requires Iron and all unavailable locations use Stop with Kyla
     assert.equal(out.embeds[0].data.title, 'Stop!'); assert.match(out.embeds[0].data.thumbnail.url, /winter-kitchen-badge/);
   }
   const iron = M.fresh('s3'); iron.liveRules = true; const before=structuredClone(iron);
-  const message = M.action(iron,'hidden'); assert.equal(message, '🍆🧄🥑🧄🌶️'); assert.deepEqual(iron,before);
+  const message = M.action(iron,'hidden'); assert.equal(message, 'No hidden messages have been found yet.'); assert.deepEqual(iron,before);
   assert.equal(screen({state:iron,action:'hidden',message},'u').embeds[0].data.description,message);
 });
 

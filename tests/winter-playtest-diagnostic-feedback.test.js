@@ -1,8 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
 
 async function fixture(t) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close());

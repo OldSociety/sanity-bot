@@ -19,7 +19,7 @@ const SKILLS = [{
   short: 'SPC',
   emoji: '💥'
 }];
-const settings = require('../../config/winter/combat.json');
+const settings = require('../../config/winter/legacy/combat.json');
 const MAX_LEVEL = settings.gymMaxLevel,
   LIFT_TAUNT = "Those scrawny arms can't lift this!",
   RECIPE_PRICE = 999000;

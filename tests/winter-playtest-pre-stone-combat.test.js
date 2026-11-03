@@ -1,9 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 function beforePurchase() {
   const s = M.fresh('chapter1', 314159); Object.assign(s, { tier: 1, chapter: 0, oldStone: false });

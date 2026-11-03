@@ -2,6 +2,7 @@
 
 | Folder                      | Contents                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------- |
+| [winter/](winter/README.md) | Winter game settings, diagnostic fixtures and offline studies |
 | [arena/](arena/README.md)   | Arena balance, testing, visuals, character builds, and Arena runtime state      |
 | [spooky/](spooky/README.md) | Spooky game rules, pieces, GIFs, reminders, performance, spotlight, and winners |
 | [badges/](badges/)          | Badge catalog and badge access settings                                         |

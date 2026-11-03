@@ -1,6 +1,6 @@
 // Offline-only pacing experiment. No runtime imports, credentials or live DB.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const M=require('../../services/winter/early-progression'),{gymBaseline}=require('./strength-investment');
+const M=require('../../services/winter/studies/early-progression'),{gymBaseline}=require('./strength-investment');
 const H=M.HOUR, LIMIT=7*24*H;
 const visits=[{name:'5-minute proxy',hours:1/12},{name:'Hourly',hours:1},{name:'Every 4h',hours:4},{name:'Every 12h',hours:12},{name:'Daily',hours:24}];
 function run(seed,multiplier,visitHours){
@@ -37,7 +37,7 @@ function main(){
   summary.push({multiplier,startingPassive:multiplier,visit:visit.name,visitHours:visit.hours,seeds:rows.length,reached:hours.length,
    strength25Median:q(str,.5),ironP10:q(hours,.1),ironMedian:q(hours,.5),ironP90:q(hours,.9)});
  }
- const manifest={};for(const file of ['config/winter/early-progression.json','services/winter/early-progression.js','scripts/winter/passive-visit-study.js']){
+ const manifest={};for(const file of ['config/winter/studies/early-progression.json','services/winter/studies/early-progression.js','scripts/winter/passive-visit-study.js']){
   const bytes=fs.readFileSync(file);manifest[file]=crypto.createHash('sha256').update(bytes).digest('hex');const dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);
  }
  const assumptions='Post-Gym STR3, Stone, zero wallet/supplies. Continuous full-health retries. At each visit settle all elapsed time, train up to STR25, lift/buy Iron if affordable, advance to next unlocked tier, buy Spicy with half newly produced snow below STR25. No automatic purchases between visits, no decay, no discarded time, no coat/Accuracy. STR25 training stops to isolate Iron milestone. Passive floor(multiplier*STR/3) through STR25. 7-day limit. Visits scheduled at fixed intervals, zero interaction downtime.';

@@ -1,6 +1,6 @@
 // S3 isolation study: post-purchase Iron/STR25, 100HP, no Ice ever equipped.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const M=require('../../services/winter/early-progression'),H=M.HOUR,END=6*24*H;
+const M=require('../../services/winter/studies/early-progression'),H=M.HOUR,END=6*24*H;
 const scenarios=[
  {id:'stocked-normal',stocked:true,penalty:false},
  {id:'stocked-penalty',stocked:true,penalty:true},
@@ -82,7 +82,7 @@ function main(){
   for(const key of ['hours','wins','losses','strength','snow','buttons','combatSweat']){const v=rows.filter(r=>r.recipe).map(r=>r.recipe[key]);recipe[key]={p10:q(v,.1),median:q(v,.5),p90:q(v,.9)};}
   summary.push({scenario:scenario.id,timeline,recipe});
  }
- const manifest={};for(const file of ['scripts/winter/s3-before-ice.js','services/winter/early-progression.js','config/winter/early-progression.json']){
+ const manifest={};for(const file of ['scripts/winter/s3-before-ice.js','services/winter/studies/early-progression.js','config/winter/studies/early-progression.json']){
   const bytes=fs.readFileSync(file),dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);manifest[file]=crypto.createHash('sha256').update(bytes).digest('hex');
  }
  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results));fs.writeFileSync(path.join(out,'summary.json'),JSON.stringify({assumptions:'Starts after Iron and S3 purchases at STR25, 100HP immediately, zero recipe savings. Four-hour Throw/training/crafting visits, passive current diminishing curve ON, accuracy 70% ->35% after defeat until Throw in penalty cases. S3 starts HP320/damage8, persists wins, no switch to S4. Unlimited Spicy cases receive free stock; funded cases spend half new Iron production per visit on Spicy, regular fallback. One funded case starts with 1555 prepaid Spicy; another zero. Recipe availability is 10m bank after current Spicy batch; never actually buy/equip Ice so later milestones show delaying it. Coat already supplied, not priced, so ten-Button coat is approximated as immediate 100HP. Expected Button chance5%, actual seeded drops. Old chapter prices/saving time excluded.',manifest,histories:results.length,replays:scenarios.length,summary},null,2));

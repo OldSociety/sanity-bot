@@ -1,5 +1,5 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const N=require('../../services/winter/chapter-simulation'),O=require('../../services/winter/early-progression');
+const N=require('../../services/winter/studies/chapter-simulation'),O=require('../../services/winter/studies/early-progression');
 const {run}=require('./chapter-progression');
 function stream(seed){let x=seed>>>0||1;return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return(x>>>0)/4294967296;};}
 function controls(){

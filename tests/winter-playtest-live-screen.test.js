@@ -1,11 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { createControls } = require('../services/winter/playtest-controls');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { createControls } = require('../services/winter/game/buttons');
+const { screen } = require('../services/winter/game/screens');
 
 async function fixture(t, tutorial = false) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });

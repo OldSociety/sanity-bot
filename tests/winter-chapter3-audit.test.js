@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const M=require('../services/winter/chapter3-audit-model');
+const M=require('../services/winter/studies/chapter3-audit-model');
 function setup(index=0){const m=M.fresh(123);m.s.golden=true;m.s.reinforced=true;m.s.playerHp=150;m.s.owned[5]=true;m.s.target=5;
  M.attach(m,M.AUDIT.packages[index]);m.s.enemyHp=M.enemy(m).hp;m.s.yellowRecipe=true;m.s.equipped='yellow';return m;}
 function supply(m,n){const{s}=m;s.yellow+=n;s.ledger.yellowProduced+=n;s.snow+=n*m.p.yellowSnowCost;s.ledger.snowProduced+=n*m.p.yellowSnowCost;M.craft(m,'yellow',Infinity);}

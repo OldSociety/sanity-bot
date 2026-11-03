@@ -1,0 +1,31 @@
+{
+  "enabled": true,
+  "version": "winter-live-chapter1-2026-10-29-v1",
+  "guildId": "684459745167671453",
+  "workerIntervalMs": 30000,
+  "chunkMs": 14400000,
+  "bookmarks": {
+    "chapter0": {
+      "label": "Chapter 0 — fresh tutorial",
+      "source": "Fresh tutorial, 10 starter snow."
+    },
+    "chapter1": {
+      "label": "Chapter 1 — Stone shovel",
+      "source": "Conservative tutorial-complete fixture: recipes and Stone retained; unspent currencies zero. Not an observed average."
+    },
+    "gym": {
+      "label": "Chapter 1 — after two Gym lessons",
+      "source": "Stone fixture plus first defeat and Gym introduction: free STR1, 5 Sweat spent on STR2 and STR3. Other balances zero."
+    },
+    "iron": {
+      "label": "Chapter 1 — Iron acquired",
+      "source": "Saved source-engine rehearsal: seed314159, four-hour visits, 44 game hours from the post-Gym fixture. Resources, ammunition, persistent wins and ongoing fight retained. One sample, not a live average."
+    },
+    "s3": {
+      "label": "Chapter 2 — S3 diagnostic",
+      "source": "Constructed checkpoint: Iron and free jacket owned, STR25, ACC0, 100 prior S1/S2 wins, S3 unlocked, zero spare resources. Manual stop."
+    }
+  },
+  "stopPoints": ["none", "stone", "iron", "chapter1"],
+  "scope": "Development Winter game: tutorial, Snowmen 1–4, Golden Shovel and hidden recipe. Diagnostic runs stop at their selected stop point."
+}

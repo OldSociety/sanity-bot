@@ -1,6 +1,6 @@
 // Continue genuine S3/150HP/recipe-affordability checkpoints into Ice play.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const M=require('../../services/winter/early-progression'),{run:prelude}=require('./s3-before-ice'),H=M.HOUR;
+const M=require('../../services/winter/studies/early-progression'),{run:prelude}=require('./s3-before-ice'),H=M.HOUR;
 function prepare(seed){return prelude(seed,{id:'150hp-checkpoint',stocked:false,penalty:true,starterRed:1555,upgradeHp:150,upgradeCost:200,stopAtRecipe:true});}
 function run(saved,stocked,advance){
  const cp=structuredClone(saved.checkpoint),s=cp.state,c=cp.config,start=s.now,initialRed=cp.initialRed;
@@ -66,7 +66,7 @@ function main(){
   const milestones={};for(const key of ['clearS3','enteredS4','clearS4']){const v=rows.map(r=>r[key]).filter(v=>v!==null);milestones[key]={reached:v.length,p10Hours:q(v,.1),medianHours:q(v,.5),p90Hours:q(v,.9)};}
   summary.push({scenario:rows[0].scenario,milestones,timeline});
  }
- const manifest={};for(const file of ['scripts/winter/ice-150hp.js','scripts/winter/s3-before-ice.js','services/winter/early-progression.js','config/winter/early-progression.json']){
+ const manifest={};for(const file of ['scripts/winter/ice-150hp.js','scripts/winter/s3-before-ice.js','services/winter/studies/early-progression.js','config/winter/studies/early-progression.json']){
   const bytes=fs.readFileSync(file),dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);manifest[file]=crypto.createHash('sha256').update(bytes).digest('hex');}
  fs.writeFileSync(path.join(out,'checkpoints.json'),JSON.stringify(prepared));fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results));
  fs.writeFileSync(path.join(out,'summary.json'),JSON.stringify({assumptions:'Continue all 128 original upgraded-150HP funded/prepaid S3 seeds at actual 28h recipe-affordability checkpoint, preserving state/RNG/timers. Pay 10m recipe; equip Ice at25 damage/2 diamonds. Funded first batch uses remaining snow above a 48k regular reserve; later four-hour visits allocate half fresh Iron output to Ice (no more Spicy). Four-hour Throw/train visits, passive original curve, defeat accuracy35% until Throw, maxHP150. S4 test switches on next visit after100 S3 wins, with no extra S4 purchase fee specified; starts550HP/14damage. Stay tests retain S3. No further gear/Accuracy/special damage/Golden. Six days AFTER Ice acquisition; prior28h excluded from those elapsed times. Unlimited Ice supplied separately is a combat control.',manifest,histories:results.length,replays:4,summary},null,2));

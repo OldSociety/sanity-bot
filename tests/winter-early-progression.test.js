@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../services/winter/early-progression');
+const M = require('../services/winter/studies/early-progression');
 const { streams, run, scenarios } = require('../scripts/winter/early-progression');
 const HOUR = M.HOUR;
 const hit = { combat: () => 0, buttons: () => 0 };

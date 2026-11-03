@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
-const M = require('../../services/winter/early-progression');
-const R = require('../../services/winter/simulation-rng');
+const M = require('../../services/winter/studies/early-progression');
+const R = require('../../services/winter/studies/simulation-rng');
 const W = require('./weapon-comparison');
 const C = M.config, DAY = 86400000;
 function run(tier, weapon, seed) {
@@ -57,8 +57,8 @@ function main() {
   const out = path.resolve(process.argv[3] || path.join(__dirname, '../../artifacts/winter-first-defeat-2026-10-29'));
   if (fs.existsSync(out)) throw Error('Preserve earlier reports; choose a new output directory.');
   fs.mkdirSync(out, { recursive: true });
-  const sourceFiles = ['config/winter/early-progression.json', 'services/winter/early-progression.js',
-    'services/winter/simulation-rng.js', 'scripts/winter/weapon-comparison.js', 'scripts/winter/first-defeat-comparison.js'];
+  const sourceFiles = ['config/winter/studies/early-progression.json', 'services/winter/studies/early-progression.js',
+    'services/winter/studies/simulation-rng.js', 'scripts/winter/weapon-comparison.js', 'scripts/winter/first-defeat-comparison.js'];
   const manifest = {};
   for (const file of sourceFiles) {
     const bytes = fs.readFileSync(path.resolve(__dirname, '../..', file)), dest = path.join(out, 'model', file);

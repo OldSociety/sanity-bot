@@ -1,11 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const E = require('../services/winter/early-progression');
-const C = require('../services/winter/chapter-simulation');
-const A = require('../services/winter/chapter3-audit-model');
-const { createStore } = require('../services/winter/playtest-store');
+const M = require('../services/winter/game/game');
+const E = require('../services/winter/studies/early-progression');
+const C = require('../services/winter/studies/chapter-simulation');
+const A = require('../services/winter/studies/chapter3-audit-model');
+const { createStore } = require('../services/winter/game/saved-progress');
 const OLD = 'ba42c4ce39e3a310ad73a44fea4f6e1ef8c414ab4d7881ddf91f328908a2f8cc';
 
 test('S2 opening ends exactly at 25 completed wins in every chapter consumer', () => {
@@ -64,7 +64,7 @@ test('S1 save upgrade preserves damage already dealt and unknown rules still fai
 });
 
 test('historical Iron bookmark keeps provenance and inherits both HP adjustments', () => {
-  const bookmark = require('../config/winter/playtest-bookmarks.json').iron;
+  const bookmark = require('../config/winter/testing/bookmarks.json').iron;
   const s = M.fresh('iron');
   assert.equal(bookmark.balanceHash, '79a292d802104b28667dc6ba33f044548c33401f7612a2ff179cf0d114467250');
   assert(Math.abs(s.enemyHp - (bookmark.state.enemyHp - 25 - 33.4)) < 1e-9);

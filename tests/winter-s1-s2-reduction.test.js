@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../services/winter/playtest-model');
-const E = require('../services/winter/early-progression');
-const C = require('../services/winter/chapter-simulation');
-const A = require('../services/winter/chapter3-audit-model');
+const M = require('../services/winter/game/game');
+const E = require('../services/winter/studies/early-progression');
+const C = require('../services/winter/studies/chapter-simulation');
+const A = require('../services/winter/studies/chapter3-audit-model');
 const { hpAtDefeats, damageAtDefeats } = require('../services/winter/snowman-scaling');
 const OPENING = '4e22df0938d4135ff66717cb7d4711d48b5c08bc381128a2869d77fcad792033';
 const close = (actual, expected) => assert(Math.abs(actual-expected)<1e-8, `${actual} != ${expected}`);

@@ -1,9 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { screen } = require('../services/winter/playtest-presentation');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { screen } = require('../services/winter/game/screens');
 async function fixture(t, options = {}) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close());
   let now = 0, n = 0; const store = createStore({ sequelize: db, clock: () => now, seed: () => 17, ...options });

@@ -8,9 +8,9 @@ if (!['saved','fresh'].includes(startingPoint)) throw Error('Use saved or fresh.
 const root = path.resolve(__dirname, '../..');
 const directory = path.join(root, 'artifacts/winter-s1-s2-progression-2026-11-01');
 const input = JSON.parse(fs.readFileSync(path.join(directory,'active-input.json')));
-const rules = require('../../config/winter/chapters-2026-10-29.json');
+const rules = require('../../config/winter/game/balance.json');
 if (mode === 'prior') for (const row of rules.snowmen.slice(0,2)) delete row.statPercent;
-const M = require('../../services/winter/playtest-model');
+const M = require('../../services/winter/game/game');
 const HOUR = 3600000, saved = startingPoint === 'saved' ? JSON.parse(input.run.state) : M.fresh('gym',314159);
 if(startingPoint==='fresh'){saved.liveRules=true;M.action(saved,'throw');}
 else {assert.equal(saved.strength,20); assert.equal(saved.tiers[2].wins,25); assert.equal(saved.liveRules,true);}

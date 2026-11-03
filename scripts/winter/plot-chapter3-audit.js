@@ -6,7 +6,7 @@ function svg(w,h,body){return`<svg xmlns="http://www.w3.org/2000/svg" width="${w
 async function write(out,name,markup){fs.writeFileSync(path.join(out,name+'.svg'),markup);await sharp(Buffer.from(markup)).png().toFile(path.join(out,name+'.png'));}
 async function main(){
  const root=path.resolve(process.argv[2]||'artifacts/winter-chapter3-audit-2026-10-29'),out=path.join(root,'figures');fs.mkdirSync(out,{recursive:true});
- const screen=JSON.parse(fs.readFileSync(path.join(root,'screen-summary.json'))),design=JSON.parse(fs.readFileSync('config/winter/chapter3-audit-2026-10-29.json'));
+ const screen=JSON.parse(fs.readFileSync(path.join(root,'screen-summary.json'))),design=JSON.parse(fs.readFileSync('config/winter/studies/chapter3.json'));
  const left=330,right=1250,top=165,row=78,width=1400,height=900,x=d=>left+d/22*(right-left);
  let b=text(35,48,'Chapter 3: all eight original designs',32)+text(35,82,'Four short visits/day · balanced shared-stat allocation · 32 seeds per option',20)
   +text(35,111,'Bars: median days from Golden to Necro. Whiskers: 10th–90th percentile.',20)

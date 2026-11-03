@@ -2,11 +2,11 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { screen } = require('../services/winter/game/screens');
 const { screen: original } = require('../services/winter/presentation');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
 
 function assertArtwork(output, name) {
   assert(output.embeds[0].data.thumbnail?.url.includes(name), `expected ${name} thumbnail`);
@@ -42,7 +42,7 @@ test('restored Gym and combat show current state without legacy queue, accuracy 
   output = screen({ state: s, action: 'throw' }, 'u');
   assert.equal(output.embeds[0].data.title, 'Sturdy Snowman');
   assert.equal(output.embeds[0].data.description, 'Defeated: 1\n\n**50/65 HP**\n🟥🟥🟥🟥🟥🟥🟥🟥⬛⬛');
-  assert.deepEqual(output.embeds[0].data.fields.map(f => f.name), ['You', 'Next attacks']);
+  assert.deepEqual(output.embeds[0].data.fields.map(f => f.name), ['You', 'Next attacks', 'Next goal']);
   assert.match(output.embeds[0].data.fields[1].value, /^Equipped: /);
   assert.equal(s.enemyHp, 50.32);
   assert(output.embeds[0].data.fields.find(f => f.name === 'You').value.includes('/50 HP'));
@@ -96,7 +96,7 @@ test('full development tutorial works through restored buttons, including two Gy
   await click('train-strength'); assert.equal(output.components.flatMap(r => r.components).length, 1); await click('train-strength');
   assert.deepEqual(output.components.flatMap(r => r.components).map(b => b.data.label), ['Shop']);
   await click('shop'); assert.deepEqual(output.components.flatMap(r => r.components).map(b => b.data.label), ['Old Skipping Stone · 1💎', '💎 Exchange', 'Refresh']);
-  await click('diamonds'); await click('diamonds-convert', '1'); await click('shop'); await click('buy-old-stone'); assertArtwork(output, 'shop-badge'); await click('shop'); await click('throw'); await click('train');
+  await click('diamonds'); await click('diamonds-convert', '1'); await click('shop'); await click('buy-old-stone'); assertArtwork(output, 'shop-badge'); await click('shop'); await click('throw'); await invoke('gym');
   assert(output.components.flatMap(r => r.components).some(b => b.data.custom_id.includes(':lift:') && b.data.emoji.name === '🏋️'));
   const saved = await store.execute({ id: 'final-check', guildId: 'g', userId: 'u', action: 'status' });
   assert.equal(saved.state.strength, 3); assert.equal(saved.state.tier, 2); assert.equal(saved.state.gymLessonReserve, undefined); M.validate(saved.state);

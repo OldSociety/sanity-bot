@@ -1,13 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 test('Pond tug-of-war catches weighed fish and donates without changing combat or currency', () => {
   const s = M.fresh('s3', 1); const rng = s.rng, wallet = structuredClone(s.wallet);
-  assert.throws(() => M.action(s, 'garden-open'), /diagnostic/);
+  assert.throws(() => M.action(s, 'garden-open'), /Soup Kitchen/);
   const act = (name, q) => M.action(s, name, q, { diagnostic: true });
   act('garden-open'); assert.throws(() => act('garden-cast', 'invalid'), /spot/);
   act('garden-cast', 'shallows'); act('garden-reel'); act('garden-reel');

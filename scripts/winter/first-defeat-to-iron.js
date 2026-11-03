@@ -1,6 +1,6 @@
 // Offline first-defeat measurement, using candidate chapter-one rules.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const M=require('../../services/winter/early-progression'),{gymBaseline}=require('./strength-investment');
+const M=require('../../services/winter/studies/early-progression'),{gymBaseline}=require('./strength-investment');
 const H=M.HOUR;
 function run(seed,mode){
  const c=structuredClone(M.config),s=M.fresh(c),b=gymBaseline(c);

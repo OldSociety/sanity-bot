@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../services/winter/playtest-model');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { screen } = require('../services/winter/game/screens');
 const controls = out => out.components.flatMap(r => r.components);
 
 test('three consecutive Spicy batches retain the full Shop and remaining affordable controls', () => {

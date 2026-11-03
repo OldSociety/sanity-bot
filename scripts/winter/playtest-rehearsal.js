@@ -1,7 +1,7 @@
 // Source-only command-policy rehearsal. Never opens a database or Discord.
 const fs = require('node:fs');
 const path = require('node:path');
-const M = require('../../services/winter/playtest-model');
+const M = require('../../services/winter/game/game');
 const directory = path.resolve(__dirname, '../../artifacts/winter-live-chapter1-2026-10-29');
 function rehearse(seed, hours) {
   const s = M.fresh('gym', seed), step = hours * 3600000;

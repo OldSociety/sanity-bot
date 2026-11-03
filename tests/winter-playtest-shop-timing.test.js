@@ -1,10 +1,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { screen } = require('../services/winter/game/screens');
 const { compactNumber } = require('../services/winter/numbers');
 
 async function fixture(t, options = {}) {
@@ -97,6 +97,6 @@ test('diagnostic button timing is saved once, averaged by action, exported and i
   assert.equal(exported.export.timings.filter(v => v.kind === 'button').length, 2);
   await invoke('diagnostic', { mode: 'stop' }); const report = await f.store.claimReport();
   assert.equal(report.payload.timings.find(v => v.kind === 'button').samples, 2);
-  assert.match(JSON.stringify(require('../services/winter/playtest-recap').recapMessage(report.payload)), /Button response times/);
+  assert.match(JSON.stringify(require('../services/winter/game/recaps').recapMessage(report.payload)), /Button response times/);
   assert(report.payload.timings.some(v => v.kind === 'slash' && v.action === 'diagnostic'));
 });

@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../services/winter/playtest-model');
-const C = require('../services/winter/chapter-simulation');
-const E = require('../services/winter/early-progression');
-const A = require('../services/winter/chapter3-audit-model');
+const M = require('../services/winter/game/game');
+const C = require('../services/winter/studies/chapter-simulation');
+const E = require('../services/winter/studies/early-progression');
+const A = require('../services/winter/studies/chapter3-audit-model');
 const B = require('../services/winter/battle');
 
 function live() {

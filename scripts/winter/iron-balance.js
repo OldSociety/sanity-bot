@@ -280,7 +280,7 @@ for (let i = 0; i < 100000; i++) {
     }
   }
 }
-const sourceHashes = Object.fromEntries(['services/winter/battle.js', 'services/winter/gym.js', 'config/winter/combat.json', 'services/winter/slots.js','services/winter/economy.js','scripts/winter/iron-balance.js'].map(p => [p, crypto.createHash('sha256').update(fs.readFileSync(path.resolve(__dirname, '../..', p))).digest('hex')]));
+const sourceHashes = Object.fromEntries(['services/winter/battle.js', 'services/winter/gym.js', 'config/winter/legacy/combat.json', 'services/winter/slots.js','services/winter/economy.js','scripts/winter/iron-balance.js'].map(p => [p, crypto.createHash('sha256').update(fs.readFileSync(path.resolve(__dirname, '../..', p))).digest('hex')]));
 const result = {
   empiricalSlots: {
     spins: 100000,

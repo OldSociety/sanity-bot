@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../services/winter/playtest-model');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { screen } = require('../services/winter/game/screens');
 
 test('S3 costs exactly 3000 diamonds in the shop and purchase, with the 100-win gate retained', () => {
   const s = M.fresh('gym'); s.liveRules = true; s.owned[2] = true; s.tiers[2].wins = 99;
@@ -22,7 +22,7 @@ test('S3 costs exactly 3000 diamonds in the shop and purchase, with the 100-win 
   M.action(s, 'buy-s3', '1', options);
   assert.equal(s.wallet.diamonds, 0); assert.equal(s.ledger.sources['S3-purchase:diamonds:spent'], 3000);
   assert.equal(s.owned[3], true); assert.equal(s.chapter, 2); assert.equal(s.active, false);
-  assert.throws(() => M.action(s, 'buy-s3', '1', options), /complete/);
+  assert.throws(() => M.action(s, 'buy-s3', '1', options), /already owned/);
 });
 
 test('prior jacket-era saves upgrade once without altering combat, ownership or balances', () => {

@@ -1,8 +1,8 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const ROOT=path.resolve(process.argv[2]||path.join(__dirname,'../../artifacts/winter-strength-investment-2026-10-29'));
 function reference(tier,weapon,policy,passive,seed,limit,modelRoot){
-  const M=require(path.join(modelRoot,'services/winter/early-progression.js'));
-  const R=require(path.resolve(__dirname,'../../services/winter/simulation-rng'));
+  const M=require(fs.existsSync(path.join(modelRoot,'services/winter/studies/early-progression.js')) ? path.join(modelRoot,'services/winter/studies/early-progression.js') : path.join(modelRoot,'services/winter/early-progression.js'));
+  const R=require(path.resolve(__dirname,'../../services/winter/studies/simulation-rng.js'));
   const C=passive?M.config:{...M.config,passive:{...M.config.passive,divisor:Number.MAX_SAFE_INTEGER}};
   const H=M.HOUR,DAY=24*H,s=M.fresh(C),saved=R.initial(seed),draws=R.streams(saved);
   s.strength=3;s.target=tier;s.enemyHp=s.enemyMaxHp=C.snowmen.find(r=>r.tier===tier).hp;

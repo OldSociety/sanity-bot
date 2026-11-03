@@ -22,7 +22,7 @@ function main(){
   summary.push({scenario:scenario.id,upgrade:{reached:upgrades.length,p10Hours:q(upgrades,.1),medianHours:q(upgrades,.5),p90Hours:q(upgrades,.9)},timeline,
    recipeMedianHours:q(rows.map(r=>r.recipe.hours),.5),recipeMedianWins:q(rows.map(r=>r.recipe.wins),.5)});
  }
- const manifest={};for(const file of ['scripts/winter/s3-hp-upgrade.js','scripts/winter/s3-before-ice.js','services/winter/early-progression.js','config/winter/early-progression.json']){
+ const manifest={};for(const file of ['scripts/winter/s3-hp-upgrade.js','scripts/winter/s3-before-ice.js','services/winter/studies/early-progression.js','config/winter/studies/early-progression.json']){
   const bytes=fs.readFileSync(file),dest=path.join(out,'model',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);manifest[file]=crypto.createHash('sha256').update(bytes).digest('hex');
  }
  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results));fs.writeFileSync(path.join(out,'summary.json'),JSON.stringify({assumptions:'Same S3 study as preserved prior: Iron, STR25, 100HP supplied, 1555 prepaid Spicy, zero recipe savings, four-hour Throw/training/ammo visits, current passive, first loss 70%->35% accuracy until Throw. Half new production buys Spicy. Upgrade offered on visits at 210 gross Buttons (10 reserved for initial coat plus 200 upgrade); only 200 deducted, initial coat is supplied with its 10-Button price reserved. No immediate healing: 150 max HP applies to next reset. Never equip Ice or leave S3; 28h recipe availability marks actual pre-Ice window; later times illustrate postponing Ice.',manifest,histories:results.length,scenarioReplays:cases.length,summary},null,2));

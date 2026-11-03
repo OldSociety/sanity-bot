@@ -1,11 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const M=require('../services/winter/chapter-simulation');
+const M=require('../services/winter/studies/chapter-simulation');
 const candidate=M.defaults.experimentalFireCandidates[1];
 function setup(){const c=M.rules(candidate),s=M.fresh(123,c);return{c,s};}
 function endow(s,amount){s.snow+=amount;s.ledger.snowProduced+=amount;}
 test('locked design prices and shovel output are centralized; unknown combat stays null',()=>{
  const {c}=setup();assert.equal(c.ironSnowCost,1000000);assert.equal(c.goldenRate,1296);
- assert.deepEqual(c.snowmen.slice(2).map(r=>r.snowPrice),[3000000,5000000,50000000]);
+ assert.deepEqual(c.snowmen.slice(2).map(r=>r.snowPrice),[3000000,8000000,50000000]);
  assert.equal(c.yellowRecipeSnowCost,20000000);assert.deepEqual(c.emporium.map(x=>x.buttons),[10,200,2000,5000]);
  assert.equal(M.defaults.fire.damage,null);assert.equal(c.yellow.damage,null);assert.equal(c.snowmen[4].hp,null);
 });

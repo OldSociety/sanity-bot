@@ -1,11 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createControls } = require('../services/winter/playtest-controls');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createControls } = require('../services/winter/game/buttons');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 test('Discord edit latency cannot push the next live update into a second three-second slot', () => {
   let now = 0;

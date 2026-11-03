@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 test('S4 costs 8,000 diamonds after 100 S3 wins, and only fireballs damage it', () => {
   const s = M.fresh('s3', 1); s.liveRules = true; const act = (name,q) => M.action(s,name,q,{shopCurrency:'diamonds'});
@@ -22,7 +22,7 @@ test('S4 costs 8,000 diamonds after 100 S3 wins, and only fireballs damage it', 
   assert.equal(s.enemyHp, 500); assert.equal(s.lastPlayerAttack.damage, 50); assert.equal(s.wallet.red, 0);
   assert.equal(s.tiers[4].attacks, 4); M.validate(s);
   const out = screen({state:s,action:'throw',run:null},'u'); assert.equal(out.embeds[0].data.title, 'Snowman 4');
-  assert(out.components.flatMap(r => r.components).some(b => b.data.custom_id.includes(':select-s4:')));
+  assert(screen({state:s,action:'snowmen'},'u').components.flatMap(r => r.components).some(b => b.data.custom_id.includes(':select-s4:')));
 });
 
 test('existing S3 runs can buy and record S4 without changing their baseline', async t => {

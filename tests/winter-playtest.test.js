@@ -1,10 +1,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { createRuntime } = require('../services/winter/playtest-runtime');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { createRuntime } = require('../services/winter/game/interactions');
+const { screen } = require('../services/winter/game/screens');
 async function fixture(t, options = {}) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }); t.after(() => db.close());
   let now = 0, id = 0;
@@ -178,7 +178,7 @@ test('manual completion always queues one searchable public recap even with inte
   assert.equal(report.payload.realElapsedMs, 3600000); assert.equal(report.payload.displayName, 'Test Player');
   assert.equal(report.payload.counts.reduce((n, r) => n + r.count, 0), 2);
   assert.equal(await f.store.claimReport(), null);
-  const { recapMessage } = require('../services/winter/playtest-recap');
+  const { recapMessage } = require('../services/winter/game/recaps');
   const message = recapMessage(report.payload), embed = message.embeds[0].toJSON();
   assert.match(message.content, /WINTER-RUN-000001/); assert.match(message.content, /Test Player/); assert.match(embed.title, /Stopped manually/);
   assert.equal(message.ephemeral, undefined); assert.equal(message.flags, undefined);
@@ -207,8 +207,8 @@ test('public recap uses only gains/combat since bookmark and keeps inherited unl
   assert(payload.inherited.some(name => name.includes('S2 owned')));
 });
 test('recap keeps exact simulated milestone timing and respects Discord limits with long runs', async t => {
-  const { buildRecap, recapMessage } = require('../services/winter/playtest-recap');
-  const { summary } = require('../services/winter/playtest-store');
+  const { buildRecap, recapMessage } = require('../services/winter/game/recaps');
+  const { summary } = require('../services/winter/game/saved-progress');
   const base = M.fresh('chapter1'), final = structuredClone(base);
   final.now = 7200000; final.gymUnlocked = true; final.gymEntered = true; final.strength = 25;
   final.milestones = { ...base.milestones, firstLoss: 123000, gym: 4000000, strength25: 7000000 };

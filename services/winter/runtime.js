@@ -169,7 +169,7 @@ function createHandler({
   return handle;
 }
 const legacyHandle = createHandler();
-const playtest = () => require('./playtest-runtime');
+const playtest = () => require('./game/interactions');
 const handle = interaction => playtest().enabled() ? playtest().runtime().handle(interaction) : legacyHandle(interaction);
 function startMaintenance(client) {
   if (playtest().enabled()) return playtest().runtime().start(client);

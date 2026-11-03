@@ -1,3 +1,15 @@
+# Sanity Bot
+
+Start with the feature you want to edit. Public commands retain their original folders under `commands/`; game code is grouped under `services/`; editable rules are under `config/`.
+
+- [Winter Wars: current game and editing map](docs/winter-guide.md)
+- [Configuration folders](config/README.md)
+- [Feature and document index](docs/README.md)
+
+The notes below are retained history. They are not a current file-location guide.
+
+## Historical project notes
+
 Community eligibility now follows the existing Unwanted Fate role and current shared server channels, verified read-only in both guilds. Channel/role refinement can follow later; both activation flags remain disabled. See [configured baseline](docs/community-leveling.md).
 
 Community leveling development: see [foundation and rollout requirements](docs/community-leveling.md). Work is on feature/S-1-leveling with activation disabled in both environments. No new slash commands are added. Event command scheduling/targeted cleanup is staged; live registries and bot processes have not been changed. Run npm run test:leveling and npm run leveling:rehearse for isolated checks.

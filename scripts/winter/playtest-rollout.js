@@ -81,7 +81,7 @@ async function main() {
     const before = read('before.json');
     const { Sequelize } = require('sequelize');
     const db = new Sequelize({ dialect: 'sqlite', storage: path.join(root, 'config/dev.sqlite'), logging: false });
-    try { await require('../../services/winter/playtest-store').createStore({ sequelize: db }).initialize(); } finally { await db.close(); }
+    try { await require('../../services/winter/game/saved-progress').createStore({ sequelize: db }).initialize(); } finally { await db.close(); }
     const after = await snapshot(path.join(root, 'config/dev.sqlite'));
     for (const [name, table] of Object.entries(before.before.tables)) if (JSON.stringify(after.tables[name]) !== JSON.stringify(table)) throw Error(`Prior table changed: ${name}`);
     save('schema.json', { after, addedTables: Object.keys(after.tables).filter(n => !before.before.tables[n]), priorTablesUnchanged: true });

@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 
 test('S3 diagnostic accrues Buttons on throws and keeps combat RNG independent', () => {
   const s = M.fresh('s3', 1); s.liveRules = true;
@@ -17,7 +17,7 @@ test('S3 diagnostic accrues Buttons on throws and keeps combat RNG independent',
   M.action(s, 'select-s1'); M.action(s, 'select-s3'); assert.equal(s.target, 3);
   const out = screen({ state: s, action: 'throw', run: null }, 'u');
   assert.match(out.embeds[0].data.title, /Snowman 3/);
-  assert(out.components.flatMap(r => r.components).some(b => b.data.custom_id.includes(':select-s3:')));
+  assert(screen({state:s,action:'snowmen'},'u').components.flatMap(r => r.components).some(b => b.data.custom_id.includes(':select-s3:')));
 });
 
 test('S3 run remains active, records S3 progress and stops cleanly', async t => {

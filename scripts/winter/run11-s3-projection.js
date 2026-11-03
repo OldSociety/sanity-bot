@@ -1,6 +1,6 @@
 // Read-only Run 11 checkpoint continuation. Does not touch saved runs or Discord.
 const sqlite = require('sqlite3');
-const M = require('../../services/winter/playtest-model');
+const M = require('../../services/winter/game/game');
 function project(checkpoint, seed, interval, fire = true) {
   const s = structuredClone(checkpoint), start = s.now;
   s.fireFlowerOwned = fire;

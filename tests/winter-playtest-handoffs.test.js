@@ -1,9 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { createStore } = require('../services/winter/playtest-store');
-const { screen } = require('../services/winter/playtest-presentation');
+const M = require('../services/winter/game/game');
+const { createStore } = require('../services/winter/game/saved-progress');
+const { screen } = require('../services/winter/game/screens');
 const buttons = output => output.components.flatMap(r => r.components);
 
 test('three real Rough practice throws precede the slow-progress dialogue and Kitchen recipe', () => {
@@ -31,9 +31,9 @@ test('Sturdy waits for entry, has Shop in combat and conceals S2 until its unloc
   output = screen({ state: s, action: 'throw' }, 'u'); assert(buttons(output).some(b => b.data.label === 'Shop')); assert.equal(buttons(output).at(-1).data.label, 'Refresh');
   assert(!buttons(output).some(b => b.data.label === 'Fight S1'));
   assert(!buttons(output).some(b => b.data.label === 'Fight S2')); s.owned[2] = true; s.tiers[1].wins = 99;
-  assert(!buttons(screen({ state: s, action: 'throw' }, 'u')).some(b => b.data.label === 'Fight S2'));
-  s.tiers[1].wins = 100; assert(buttons(screen({ state: s, action: 'throw' }, 'u')).some(b => b.data.label === 'Fight S2'));
-  assert(buttons(screen({ state: s, action: 'throw' }, 'u')).some(b => b.data.label === 'Fight S1'));
+  assert(!buttons(screen({ state: s, action: 'snowmen' }, 'u')).some(b => b.data.label === 'Fight S2'));
+  s.tiers[1].wins = 100; assert(buttons(screen({ state: s, action: 'snowmen' }, 'u')).some(b => b.data.label === 'Fight S2'));
+  assert(buttons(screen({ state: s, action: 'snowmen' }, 'u')).some(b => b.data.label === 'Fight S1'));
 });
 
 test('first S1 awards exactly five combat Sweat before Gym, without a second starter grant', () => {

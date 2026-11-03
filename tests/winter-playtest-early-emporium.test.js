@@ -1,9 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Sequelize } = require('sequelize');
-const M = require('../services/winter/playtest-model');
-const { screen } = require('../services/winter/playtest-presentation');
-const { createStore } = require('../services/winter/playtest-store');
+const M = require('../services/winter/game/game');
+const { screen } = require('../services/winter/game/screens');
+const { createStore } = require('../services/winter/game/saved-progress');
 const controls = out => out.components.flatMap(r => r.components);
 function iron() {
   const s = M.fresh('gym', 3); s.liveRules = true; s.strength = 25;

@@ -1,5 +1,5 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const M=require('../../services/winter/chapter3-audit-model'),R=require('./chapter3-audit'),{factor}=require('./chapter3-sensitivities'),{candidates}=require('./chapter3-confirmation');
+const M=require('../../services/winter/studies/chapter3-audit-model'),R=require('./chapter3-audit'),{factor}=require('./chapter3-sensitivities'),{candidates}=require('./chapter3-confirmation');
 const root=path.resolve(process.argv[2]||'artifacts/winter-chapter3-audit-2026-10-29');
 function load(p){return JSON.parse(fs.readFileSync(p));}const canon=x=>JSON.parse(JSON.stringify(x));
 function verifyRows(rows,p,config={}){for(const r of rows){
@@ -15,7 +15,7 @@ function checkButtons(r){let x=(r.seed^0x9e3779b9)>>>0||1,count=0;const n=r.fina
  for(let i=0;i<n;i++){x^=x<<13;x^=x>>>17;x^=x<<5;if((x>>>0)/4294967296<.05)count++;}assert.equal(r.finalState.ledger.buttonsEarned,count);assert.equal(r.finalState.rng.buttons,x>>>0);}
 function correctMetrics(file,corrections){const rows=load(file);for(const r of rows){const corrected=R.progressVisits(r);if(r.dryVisits!==corrected){corrections.push({file:path.relative(root,file),seed:r.seed,profile:r.profile,policy:r.policy,before:r.dryVisits,after:corrected});r.dryVisits=corrected;}}
  fs.writeFileSync(file,JSON.stringify(rows));return rows;}
-function support(folder){const hashes={};for(const file of ['config/winter/early-progression.json','config/winter/chapters-2026-10-29.json','services/winter/early-progression.js']){
+function support(folder){const hashes={};for(const file of ['config/winter/studies/early-progression.json','config/winter/game/balance.json','services/winter/studies/early-progression.js']){
  const dest=path.join(folder,'model',file);if(!fs.existsSync(dest)){fs.mkdirSync(path.dirname(dest),{recursive:true});const b=fs.readFileSync(file);fs.writeFileSync(dest,b);hashes[file]=crypto.createHash('sha256').update(b).digest('hex');}}
  if(Object.keys(hashes).length)fs.writeFileSync(path.join(folder,'support-snapshot-hashes.json'),JSON.stringify(hashes,null,2));}
 function main(){
