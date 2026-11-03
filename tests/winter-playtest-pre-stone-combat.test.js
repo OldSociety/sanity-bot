@@ -32,7 +32,8 @@ test('existing active Chapter0 checkpoint recovers overdue time and all commands
   now = 257242 + 2 * 3600000;
   const status = await run('status'); assert.equal(status.outcome, 'ok'); assert(status.state.tiers[1].attacks > 0); assert.equal(status.state.tiers[1].wins, 1); assert.equal(status.state.tutorialStage, 'gym');
   assert.equal(status.state.tier, 1); assert.equal(status.state.oldStone, false); M.validate(status.state);
-  const shop = await run('shop'); assert.equal(shop.outcome, 'rejected'); assert.match(shop.message, /Hendrix/);
+  const shop = await run('shop'); assert.equal(shop.outcome, 'ok'); assert.equal(shop.redirected, true);
+  assert.deepEqual(screen(shop, 'u').components.flatMap(r => r.components).map(b => b.data.label), ['Gym']);
   const thrown = await run('throw'); assert.equal(thrown.outcome, 'ok');
   const stopped = await run('diagnostic', { id: 'recovered-stop', diagnostic: { mode: 'stop' } });
   assert.equal(stopped.run.status, 'stopped'); assert.equal(stopped.state.active, false);

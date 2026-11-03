@@ -24,10 +24,13 @@ function diagnosticEmbed(run, counts = []) {
 }
 function viewFor(action) {
   if (isAdminAction(action)) return action === 'restart' ? 'restart' : 'admin';
-  if (['throw', 'attack', 'attack-spicy', 'craft', 'select-s1', 'select-s2'].includes(action) || action?.startsWith('equip-')) return 'throw';
-  if (['shop', 'shop-help', 'buy-snowman', 'buy-old-stone', 'buy-sturdy', 'buy-s2', 'buy-s3', 'iron', 'buy-ice-recipe', 'buy-spicy', 'buy-red-diamonds', 'buy-ice'].includes(action)) return 'shop';
+  if (action?.startsWith('garden-')) return 'garden';
+  if (['throw', 'attack', 'attack-spicy', 'craft', 'select-s1', 'select-s2', 'select-s3', 'select-s4'].includes(action) || action?.startsWith('equip-')) return 'throw';
+  if (['shop', 'shop-help', 'buy-snowman', 'buy-old-stone', 'buy-sturdy', 'buy-s2', 'buy-s3', 'buy-s4', 'iron', 'buy-golden-shovel', 'buy-ice-recipe', 'buy-spicy', 'buy-red-diamonds', 'buy-ice'].includes(action)) return 'shop';
   if (['kitchen', 'pepper', 'mix', 'ingredient', 'recipe-cancel'].includes(action)) return 'kitchen';
-  if (['train', 'train-strength', 'train-accuracy', 'lift'].includes(action)) return 'train';
+  if (['gym', 'train', 'train-strength', 'train-accuracy', 'train-defense', 'lift'].includes(action)) return 'train';
+  if (['buy-jacket', 'buy-fire-flower', 'buy-reinforced-jacket', 'buy-soup-kitchen', 'buy-golden-idol'].includes(action)) return 'emporium';
+  if (action === 'hidden') return 'hidden';
   if (['diamonds', 'beg', 'diamonds-convert'].includes(action)) return 'diamonds';
   if (action === 'diagnostic' || action === 'end-chapter0') return 'status';
   return ['status', 'help', 'emporium'].includes(action) ? action : 'unavailable';
@@ -42,10 +45,11 @@ function pathHint(s, known) {
   if (!s.oldStone) return 'Requia has Old Stone in /snow shop. Buying it finishes Chapter 0.';
   if (s.roughHp > 0) return 'Use /snow throw to finish the Rough Snowman.';
   if (!s.owned[1]) return 'Use /snow shop to get S1, then /snow throw to start your idle fight.';
-  if (s.gymUnlocked && !s.gymEntered) return 'You can now visit Hendrix with /snow train.';
-  return `Use /snow throw for your fight, /snow shop for supplies${s.gymEntered ? ', and /snow train to visit Hendrix' : ''}.`;
+  if (s.gymUnlocked && !s.gymEntered) return 'You can now visit Hendrix with /snow gym.';
+  return `Use /snow throw for your fight, /snow shop for supplies${s.gymEntered ? ', and /snow gym to visit Hendrix' : ''}.`;
 }
 function screen(receipt, userId, diagnostic = false) {
+  if (!diagnostic && receipt.displayAction) receipt = { ...receipt, action: receipt.displayAction };
   const s = receipt.state, run = receipt.run, rows = [];
   if (diagnostic) {
     const failed = ['rejected', 'denied'].includes(receipt.outcome);
@@ -64,9 +68,10 @@ function screen(receipt, userId, diagnostic = false) {
   const row = (...buttons) => rows.push(new ActionRowBuilder().addComponents(buttons));
   const add = (items) => { for (let i = 0; i < items.length; i += 5) row(...items.slice(i, i + 5)); };
   const view = viewFor(receipt.action);
-  const titles = { admin: 'Winter development admin', restart: 'Reset your development Winter profile?', status: 'Winter Wars — Status', help: 'Winter Wars — Help', shop: 'Requia’s Shop', kitchen: 'Kylax’s Kitchen', train: 'Hendrix’s Gym', diamonds: s.wooden ? 'Diamond Press' : 'Not ready yet', emporium: 'Azulis’s Emporium', unavailable: 'Not available yet', throw: s.owned[1] ? `Snowman ${s.target}` : s.dummyHp > 0 ? 'Training dummy' : 'Rough Snowman' };
+  const titles = { admin: 'Winter development admin', restart: 'Reset your development Winter profile?', status: 'Winter Wars — Status', help: 'Winter Wars — Help', shop: 'Requia’s Shop', kitchen: 'Kylax’s Kitchen', garden: 'Pond 🐟', train: 'Hendrix’s Gym', diamonds: s.wooden ? 'Diamond Press' : 'Not ready yet', emporium: 'Azulis’s Emporium', unavailable: 'Not available yet', throw: s.owned[1] ? `Snowman ${s.target}` : s.dummyHp > 0 ? 'Training dummy' : 'Rough Snowman' };
+  titles.hidden = 'A winter secret';
   const embed = new EmbedBuilder().setColor(0xb4d9ed).setTitle(titles[view])
-    .setDescription([receipt.message, `${['Hands', 'Wooden shovel', 'Stone shovel', 'Iron shovel'][s.tier]}${s.gymEntered ? ` · STR${s.strength}${s.strength >= 25 ? ` · ACC${s.accuracy}` : ''}` : ''}`].filter(Boolean).join('\n\n'));
+    .setDescription([receipt.message, `${['Hands', 'Wooden shovel', 'Stone shovel', 'Iron shovel', 'Golden shovel'][s.tier]}${s.gymEntered ? ` · STR${s.strength}${s.strength >= 25 ? ` · ACC${s.accuracy}` : ''}` : ''}`].filter(Boolean).join('\n\n'));
   if (view === 'admin' || view === 'restart') {
     embed.setTitle(view === 'restart' ? 'Reset your development Winter profile?' : 'Winter development admin');
     if (!receipt.admin) embed.setDescription('Development administrators only.');
@@ -77,11 +82,11 @@ function screen(receipt, userId, diagnostic = false) {
       embed.setDescription([receipt.message, 'Testing controls affect only your development Winter profile. Reset requires confirmation.'].filter(Boolean).join('\n\n'));
       embed.addFields({ name: 'Testing resources', value: amounts({ ...s.wallet, sweat: s.wallet.sweat + (s.gymLessonReserve || 0) }) });
       if (s.gymLessonReserve) embed.addFields({ name: 'Gym lesson', value: `${s.wallet.sweat} Sweat is available for the two lessons; ${s.gymLessonReserve} earned/granted Sweat becomes available at STR3.` });
-      const closed = s.chapter === 2 || Boolean(run && run.status !== 'active');
+      const closed = s.chapter === 2 && !s.s3Diagnostic || Boolean(run && run.status !== 'active');
       row(button('grant-sweat', '+100 Sweat', closed), button('grant-snow', '+1 hour snow', closed), button('grant-ammo', '+10 each snowball', closed));
       row(button('restart', 'Reset', false, '1', ButtonStyle.Danger));
     }
-  } else if (s.chapter === 2 || run && run.status !== 'active') {
+  } else if (s.chapter === 2 && !s.s3Diagnostic || run && run.status !== 'active') {
     embed.addFields({ name: 'Test saved', value: run ? `Run #${run.run} is frozen. Use /snow diagnostic mode:review or mode:export to inspect it, or mode:start for another test.` : 'You purchased S3 and completed Chapter 1. Later chapters are not enabled yet.' });
   } else if (s.gymEntered && s.strength < 3) {
     const cost = s.strength + 1;
@@ -97,9 +102,9 @@ function screen(receipt, userId, diagnostic = false) {
       if (known.diamonds && !s.roughOwned) wares.push('Rough Snowman: 1 💎');
       if (s.redRecipe) wares.push('Spicy: 1,000 ❄️ each', 'Ice recipe: 10,000,000 ❄️');
       if (s.redRecipe && !s.oldStone) wares.push('Old Stone: 10 💎 → Stone shovel');
-      if (s.oldStone) wares.push('Iron shovel: 2,000,000 ❄️ + Gym lift material');
+      if (s.oldStone) wares.push('Iron shovel: 1,000,000 ❄️ + Gym lift material');
       if (s.owned[1]) wares.push('S2: 100 S1 victories');
-      if (s.owned[2]) wares.push('S3: 100 S2 victories + 5,000,000 ❄️');
+      if (s.owned[2]) wares.push(`S3: 100 S2 victories + ${M.rules.snowmen[2].snowPrice.toLocaleString('en-US')} ❄️`);
       if (s.iceRecipe) wares.push('Ice: 2,000 ❄️ each');
       embed.addFields({ name: 'Requia’s Shop', value: wares.join('\n') || pathHint(s, known) });
       const buttons = [];
@@ -108,7 +113,7 @@ function screen(receipt, userId, diagnostic = false) {
       if (s.redRecipe && !s.oldStone) buttons.push(button('buy-old-stone', 'Old Stone · 10 💎'));
       if (s.roughOwned && !s.roughHp && !s.owned[1]) buttons.push(button('buy-sturdy', 'S1 · 1 💎', s.wallet.diamonds < 1));
       if (s.owned[1] && !s.owned[2]) buttons.push(button('buy-s2', 'Unlock S2', s.tiers[1].wins < 100));
-      if (s.owned[2] && !s.owned[3]) buttons.push(button('buy-s3', 'S3 · 5m ❄️', s.tiers[2].wins < 100));
+      if (s.owned[2] && !s.owned[3]) buttons.push(button('buy-s3', `S3 · ${compactNumber(M.rules.snowmen[2].snowPrice)} ❄️`, s.tiers[2].wins < 100));
       if (s.oldStone && s.tier < 3) buttons.push(button('iron', 'Iron · 2m ❄️', !s.ironMaterial));
       if (s.redRecipe && !s.iceRecipe) buttons.push(button('buy-ice-recipe', 'Ice recipe · 10m ❄️'));
       if (s.redRecipe) {
@@ -121,15 +126,16 @@ function screen(receipt, userId, diagnostic = false) {
       embed.addFields({ name: 'Kylax’s Kitchen', value: !known.kitchen ? 'Practice with the Rough Snowman first.' : s.redRecipe ? '🔴 Spicy recipe discovered. Requia stocks your ammunition and the Ice recipe.' : `Three peppers might warm up a snowball. Added: ${s.wallet.peppers}/3.` });
       if (receipt.action === 'recipe-cancel') embed.setDescription('Mixing cancelled. Use /snow kitchen when you want to start again.');
       else if (known.kitchen && !s.redRecipe) row(button('pepper', 'Add Pepper', s.wallet.peppers >= 3), button('mix', 'Mix', s.wallet.peppers !== 3, '1', ButtonStyle.Success), button('recipe-cancel', 'Cancel', false, '1', ButtonStyle.Danger));
-    } else if (['train', 'train-strength', 'train-accuracy', 'lift'].includes(view)) {
+    } else if (['train', 'train-strength', 'train-accuracy', 'train-defense', 'lift'].includes(view)) {
       const cost = s.strength + s.accuracy + s.defense + s.special + 1;
       embed.addFields({ name: 'Hendrix’s Gym', value: !s.gymUnlocked ? 'Return after your first defeat.' : !s.gymEntered ? 'Enter the Gym to begin your lessons.' : `Next training purchase: ${cost} Sweat. STR${s.strength}${s.strength >= 25 ? ` / ACC${s.accuracy}` : ''}.\n${s.ironMaterial ? 'You lifted 25lbs and found Iron. Take it to Requia.' : 'Keep training, and return when you are ready.'}` });
       if (s.gymEntered) {
         const controls = [button('train-strength', `Strength · ${s.strength >= 100 ? 'MAX' : `${cost}💦`}`, s.wallet.sweat < cost || s.strength >= 100).setEmoji('💪🏽')];
         if (s.strength >= 25) controls.push(button('train-accuracy', `Accuracy · ${s.accuracy >= 100 ? 'MAX' : `${cost}💦`}`, s.wallet.sweat < cost || s.accuracy >= 100).setEmoji('🎯'));
-        if ((s.gymLiftRevealed || s.gymLiftRevealed === undefined && s.strength > 3) && !s.ironMaterial) controls.push(button('lift', '25 lbs').setEmoji('🏋️'));
+        if (s.lift50Completed) controls.push(button('train-defense', `Endurance · ${s.defense >= 100 ? 'MAX' : `${cost}💦`}`, s.wallet.sweat < cost || s.defense >= 100).setEmoji('🛡️'));
+        if ((s.gymLiftRevealed || s.gymLiftRevealed === undefined && s.strength > 3) && !s.lift50Completed) controls.push(button('lift', s.ironMaterial ? '50 lbs' : '25 lbs').setEmoji('🏋️'));
         row(...controls);
-        if (s.strength === 3 && !s.gymLiftRevealed) embed.addFields({ name: 'Lessons complete', value: 'You reached Level 3. Return to the snowmen with /snow throw. Visit Hendrix again with /snow train when you are ready.' });
+        if (s.strength === 3 && !s.gymLiftRevealed) embed.addFields({ name: 'Lessons complete', value: 'You reached Level 3. Return to the snowmen with /snow throw. Visit Hendrix again with /snow gym when you are ready.' });
       }
     } else if (['diamonds', 'beg', 'diamonds-convert'].includes(view)) {
       embed.addFields({ name: s.wooden ? 'Diamond Press' : 'Continue your current path', value: s.wooden ? '1 💎 = 1,000 ❄️.' : 'Ask Requia for help first.' });
@@ -141,14 +147,14 @@ function screen(receipt, userId, diagnostic = false) {
     } else if (view === 'unavailable') {
       embed.addFields({ name: 'Continue your current path', value: pathHint(s, known) });
     } else if (view === 'throw') {
-      embed.addFields({ name: 'Throw', value: !s.owned[1] ? (s.dummyHp ? `Training dummy: ${s.dummyHp}/5 HP. Make and throw snowballs.` : !s.roughOwned ? 'The dummy is broken. Ask Requia for help, then obtain a Rough Snowman.' : s.roughHp ? `Rough Snowman: ${s.roughHp}/50 HP. ${s.roughThrows < 3 ? 'Practice three hits.' : !s.redRecipe ? 'Visit the Kitchen.' : 'Use your new recipe to finish it.'}` : !s.oldStone ? 'Buy Old Stone from Requia to receive the Stone shovel and finish Chapter 0.' : 'Purchase S1 at the shop, then return to Throw.') : `S${s.target}: ${s.tiers[s.target].wins} victories · ${s.tiers[s.target].losses} defeats\nYou: ${s.playerHp}/50 HP · Snowman: ${Number(s.enemyHp.toFixed(2))} HP\n${s.active ? 'Combat continues while you are away.' : 'Use Throw to start.'}` });
+      embed.addFields({ name: 'Throw', value: !s.owned[1] ? (s.dummyHp ? `Training dummy: ${s.dummyHp}/5 HP. Make and throw snowballs.` : !s.roughOwned ? 'The dummy is broken. Ask Requia for help, then obtain a Rough Snowman.' : s.roughHp ? `Rough Snowman: ${s.roughHp}/50 HP. ${s.roughThrows < 3 ? 'Practice three hits.' : !s.redRecipe ? 'Visit the Kitchen.' : 'Use your new recipe to finish it.'}` : !s.oldStone ? 'Buy Old Stone from Requia to receive the Stone shovel and finish Chapter 0.' : 'Purchase S1 at the shop, then return to Throw.') : `S${s.target}: ${s.tiers[s.target].wins} victories · ${s.tiers[s.target].losses} defeats\nYou: ${s.playerHp}/${M.maxHp(s)} HP · Snowman: ${Number(s.enemyHp.toFixed(2))} HP\n${s.active ? 'Combat continues while you are away.' : 'Use Throw to start.'}` });
       if (!s.owned[1] && (s.dummyHp > 0 || s.roughOwned && s.roughHp > 0)) row(button('craft', 'Make 1 ⚪'), button('craft', 'Make 10 ⚪', false, '10'), button('attack', 'Throw ⚪'), ...(s.redRecipe ? [button('attack-spicy', 'Throw 🔴')] : []));
       else if (s.owned[1]) {
-        const ammunition = [['regular', '⚪ Regular'], ['red', '🔴 Spicy'], ['ice', '🔵 Ice']].filter(([type]) => known[type]);
+        const ammunition = [['regular', '⚪ Regular'], ['red', s.fireFlowerOwned ? '🔥 Fire Ball' : '🔴 Spicy'], ['ice', '🔵 Ice']].filter(([type]) => known[type]);
         const equipped = ammunition.find(([type]) => type === s.equipped)?.[1] || '⚪ Regular';
         const fallback = s.equipped !== 'regular' && !M.ammoAvailable(s, s.equipped);
         embed.addFields({ name: 'Equipped', value: `**${equipped}**\n${fallback ? `Out of stock. ${M.ammoAvailable(s, 'regular') ? 'Currently using ⚪ Regular.' : 'Waiting for snow for ⚪ Regular.'} ${equipped} resumes when restocked.` : M.ammoAvailable(s, s.equipped) ? 'Your idle attacks use this snowball while it is available.' : 'Waiting for snow for ⚪ Regular.'}` });
-        row(button('throw', 'Refresh'), ...(s.owned[2] && s.tiers[1].wins >= 100 ? [button('select-s1', 'Fight S1'), button('select-s2', 'Fight S2')] : []), ...(s.gymUnlocked && !s.gymEntered ? [button('train', 'Visit Hendrix')] : []));
+        row(button('throw', 'Refresh'), ...(s.owned[2] && s.tiers[1].wins >= 100 ? [button('select-s1', 'Fight S1'), button('select-s2', 'Fight S2')] : []), ...(s.s3Diagnostic ? [button('select-s3', 'Fight S3')] : []), ...(s.s3Diagnostic && s.owned[4] ? [button('select-s4', 'Fight S4')] : []), ...(s.gymUnlocked && !s.gymEntered ? [button('train', 'Visit Hendrix')] : []));
         row(...ammunition.map(([type, label]) => button(`equip-${type}`, label, !M.ammoAvailable(s, type), '1', s.equipped === type ? ButtonStyle.Success : ButtonStyle.Secondary)));
       }
     }

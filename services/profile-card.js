@@ -1,5 +1,4 @@
 const path = require('node:path')
-const fs = require('node:fs/promises')
 const sharp = require('sharp')
 
 const WIDTH = 1200,
@@ -8,6 +7,7 @@ const WIDTH = 1200,
 const assetRoot = path.resolve(__dirname, '../assets')
 const { sanityStage, eyeSvg, placement: eyePlacement } = require('./sanity-eye')
 const { badgeSkin, readBadgeImage } = require('./profile-badge-art')
+const chatRewards = require('./chat-level-rewards')
 const xml = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -144,7 +144,7 @@ async function renderProfileCard({
   before = {},
   sanity = null,
   community = null,
-  unlockPreview = process.env.NODE_ENV === 'development',
+  unlockPreview = true,
   background = path.join(
     assetRoot,
     'profile-backgrounds/default/blackhole.png',
@@ -153,6 +153,11 @@ async function renderProfileCard({
   if (!['profile', 'level-up', 'birthday', 'adjustment'].includes(occasion))
     throw new Error('Unknown profile occasion')
   if (community) sanity = null
+  if (!community) {
+    const earned = chatRewards.unlockedBadges(user)
+    badges = [...earned, ...badges.filter(badge => !earned.some(reward => reward.id === badge.id))]
+  }
+  const nextReward = community ? null : chatRewards.nextUnlock(user)
   const progress = community?.progress || progression(user),
     overlays = []
   const eventCard = occasion !== 'profile'
@@ -302,11 +307,11 @@ async function renderProfileCard({
       : community
       ? `NEXT UNLOCK: LEVEL ${progress.level + 1}`
       : showUnlock
-      ? 'NEXT UNLOCK: LEVEL 5'
+      ? nextReward ? `NEXT UNLOCK: LEVEL ${nextReward.level}` : 'NEXT UNLOCK TO COME'
       : `LEVEL ${progress.level + 1}`
   }</text>
   ${
-    showUnlock && community
+    showUnlock && (community ? progress.required !== null : !nextReward)
       ? `<circle cx="1086" cy="${
           barY - 30
         }" r="24" fill="#0d2029" stroke="#7b9aa8" stroke-dasharray="4 4"/>
@@ -367,10 +372,8 @@ async function renderProfileCard({
     { input: name, left: 260, top: eventCard ? 110 : 73 },
   )
   // Unlock previews are separate from earned badges and never grant ownership.
-  if (showUnlock && !community) {
-    const badge = await fs.readFile(
-      path.join(assetRoot, 'badges', 'Classic', 'AZULIS_BADGE.png'),
-    )
+  if (showUnlock && !community && nextReward) {
+    const badge = await readBadgeImage(nextReward)
     overlays.push({
       input: await sharp(badge)
         .resize(64, 64, { fit: 'contain', background: '#00000000' })

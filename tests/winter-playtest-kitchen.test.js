@@ -10,11 +10,13 @@ const buttons = out => out.components.flatMap(r => r.components);
 test('Gym shows stat levels with cost and native emojis on its buttons', () => {
   const s = M.fresh('gym'); M.action(s, 'train'); M.change(s, 'sweat', 10000, 'fixture');
   let out = screen({ state: s, action: 'train' }, 'u');
-  assert.equal(out.embeds[0].data.description, '_It’s time to train. No complaints!_');
+  assert.match(out.embeds[0].data.description, /Strength has no effect on specialty weapons/);
   assert.deepEqual(out.embeds[0].data.fields, [{ name: 'STR 💪🏽', value: 'Level 3', inline: true }]);
   let strength = buttons(out).find(b => b.data.custom_id.includes(':train-strength:'));
   assert.equal(strength.data.label, 'Strength · 4💦'); assert.equal(strength.data.emoji.name, '💪🏽');
   const lift = buttons(out).find(b => b.data.custom_id.includes(':lift:')); assert.equal(lift.data.label, '25 lbs'); assert.equal(lift.data.emoji.name, '🏋️');
+  assert.deepEqual(buttons(out).slice(-2).map(b => b.data.label), ['Shop', 'Throw']);
+  const shop = screen({ state: s, action: 'shop' }, 'u'); assert(buttons(shop).some(b => b.data.label === 'Gym')); assert.equal(buttons(shop).at(-1).data.label, 'Refresh');
   s.strength = 25; s.accuracy = 2; out = screen({ state: s, action: 'train' }, 'u');
   assert.equal(out.embeds[0].data.fields[1].name, 'ACC 🎯'); assert.equal(out.embeds[0].data.fields[1].value, 'Level 2');
   assert(buttons(out).some(b => b.data.label === 'Strength · 28💦')); assert(buttons(out).some(b => b.data.label === 'Accuracy · 28💦' && b.data.emoji.name === '🎯'));

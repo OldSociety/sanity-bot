@@ -251,7 +251,7 @@ test('command schema, winter window and bot-tests policy are enforced on command
   }
   const command = require('../commands/Winter/Snow')
   require('../services/command-registry').validateDefinition(command.data.toJSON())
-  assert.deepEqual(command.data.toJSON().options.map(o => o.name), ['admin','emporium', 'slots', 'hidden', 'train', 'kitchen', 'throw', 'help', 'status', 'diamonds', 'shop'])
+  assert.deepEqual(command.data.toJSON().options.map(o => o.name), ['admin','emporium', 'slots', 'hidden', 'gym', 'kitchen', 'throw', 'help', 'status', 'diamonds', 'shop'])
   const { definition } = require('../scripts/command-registry-audit')
   const source = require('node:fs').readFileSync(path.join(__dirname, '../commands/Winter/Snow.js'), 'utf8')
   assert.equal(definition(source, 'commands/Winter/Snow.js', 'production').eventKey, 'winter')

@@ -1,14 +1,15 @@
 // Pure offline chapter model. Never imported by the Discord runtime.
 const assert=require('node:assert/strict');
 const defaults=require('../../config/winter/chapters-2026-10-29.json');
-const {addedHp,passiveRate,HOUR}=require('./early-progression');
+const {passiveRate,HOUR}=require('./early-progression');
+const {hpAtDefeats,damageAtDefeats}=require('./snowman-scaling');
 function rules(fire){
  const c=structuredClone(defaults);
  if(!fire||!Number.isSafeInteger(fire.damage)||!Number.isSafeInteger(fire.snowCost)||fire.damage<=25||fire.snowCost<=1000)throw Error('Supply an explicitly experimental Fire candidate.');
  c.fire={...fire};return c;
 }
 function fresh(seed,c){
- return {ruleset:c.id,now:0,nextPlayerAt:c.playerIntervalMs,nextEnemyAt:c.enemyIntervalMs,target:1,playerHp:c.playerHp,enemyHp:c.snowmen[0].hp,
+ return {ruleset:c.id,now:0,nextPlayerAt:c.playerIntervalMs,nextEnemyAt:c.enemyIntervalMs,target:1,playerHp:c.playerHp,enemyHp:hpAtDefeats(c.snowmen[0],0),
   strength:3,accuracy:0,sweat:0,sweatRemainder:0,snow:0,snowRemainder:0,buttons:0,penalized:false,
   iron:false,golden:false,coat:false,reinforced:false,fireUnlock:false,iceRecipe:false,yellowRecipe:false,emporiumIndex:0,
   owned:{1:true,2:false,3:false,4:false,5:false},ammo:{red:0,ice:0,fire:0},equipped:'red',
@@ -19,7 +20,7 @@ function fresh(seed,c){
 }
 function mark(s,name){if(s.milestones[name]!==undefined)return;s.milestones[name]=s.now;s.milestoneStates[name]={snow:s.snow,strength:s.strength,accuracy:s.accuracy,sweat:s.sweat,buttons:s.buttons,target:s.target,wins:Object.values(s.tiers).map(t=>t.wins)};}
 function row(c,t){return c.snowmen.find(r=>r.tier===t);}
-function enemy(s,c){const r=row(c,s.target);if(!r||r.hp===null)throw Error('This tier has no selected combat stats.');const k=s.tiers[s.target].wins;return{hp:r.hp+addedHp(k),damage:r.damage+Math.floor(k/25),sweat:r.sweat,immune:r.immune||[]};}
+function enemy(s,c){const r=row(c,s.target);if(!r||r.hp===null)throw Error('This tier has no selected combat stats.');const k=s.tiers[s.target].wins;return{hp:hpAtDefeats(r,k),damage:damageAtDefeats(r,k),sweat:r.sweat,immune:r.immune||[]};}
 function hp(s,c){return s.reinforced?150:s.coat?100:c.playerHp;}
 function rate(s,c){return s.golden?c.goldenRate:s.iron?c.ironRate:c.stoneRate;}
 function accuracy(s,c){return s.penalized?c.defeatedAccuracy:Math.min(1,c.playerAccuracy+s.accuracy*c.accuracyPerLevel);}
@@ -47,12 +48,12 @@ function settle(s,at,c){
    if(random(s,'combat')<accuracy(s,c)){
     record.hits++;const damage=immune?0:ammo==='regular'?c.regularDamage*(1+c.strengthPerLevel*s.strength):ammo==='red'?c.redDamage:ammo==='ice'?c.iceDamage:c.fire.damage;
     s.enemyHp=Math.max(0,s.enemyHp-damage);
-    if(!s.enemyHp){record.wins++;s.sweat+=e.sweat;s.ledger.combatSweat+=e.sweat;mark(s,`firstWinS${s.target}`);if(record.wins===100)mark(s,`clearS${s.target}`);reset(s,c);}
+    if(s.enemyHp<1){record.wins++;s.sweat+=e.sweat;s.ledger.combatSweat+=e.sweat;mark(s,`firstWinS${s.target}`);if(record.wins===100)mark(s,`clearS${s.target}`);reset(s,c);}
    }
   }else{
    s.nextEnemyAt+=c.enemyIntervalMs;record.enemyAttacks++;
    if(random(s,'combat')<c.enemyAccuracy){record.enemyHits++;s.playerHp=Math.max(0,s.playerHp-enemy(s,c).damage);
-    if(!s.playerHp){record.losses++;s.penalized=true;mark(s,'firstLoss');reset(s,c);}}
+    if(s.playerHp<1){record.losses++;s.penalized=true;mark(s,'firstLoss');reset(s,c);}}
   }
  }
  accrue(s,at,c);return s;

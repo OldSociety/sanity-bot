@@ -1,8 +1,9 @@
 {
   "id": "winter-chapters-2026-10-29-v1",
-  "status": "Owner-locked design baseline; offline simulations only, not loaded by Discord runtime",
+  "status": "Chapter design baseline and development Chapter 1 playtest; S2 opening revised by owner November 1",
   "durationDays": 31,
   "playerHp": 50,
+  "defeatBelowHp": 1,
   "playerIntervalMs": 3000,
   "enemyIntervalMs": 10000,
   "playerAccuracy": 0.7,
@@ -25,7 +26,7 @@
   "stoneRate": 36,
   "ironRate": 216,
   "ironStrength": 25,
-  "ironSnowCost": 2000000,
+  "ironSnowCost": 1000000,
   "goldenRate": 1296,
   "yellowRecipeSnowCost": 20000000,
   "gymStartingStrength": 1,
@@ -42,9 +43,9 @@
     { "id": "golden", "buttons": 5000 }
   ],
   "snowmen": [
-    { "tier": 1, "hp": 80, "damage": 3, "sweat": 1, "winsToUnlockNext": 100, "snowPrice": 0 },
-    { "tier": 2, "hp": 180, "damage": 5, "sweat": 2, "winsToUnlockNext": 100, "snowPrice": 0 },
-    { "tier": 3, "hp": 320, "damage": 8, "sweat": 3, "winsToUnlockNext": 100, "snowPrice": 5000000 },
+    { "tier": 1, "hp": 80, "damage": 3, "statPercent": 80, "sweat": 1, "winsToUnlockNext": 100, "snowPrice": 0 },
+    { "tier": 2, "hp": 155, "damage": 5, "openingDamage": 3, "openingDefeats": 25, "statPercent": 80, "sweat": 2, "winsToUnlockNext": 100, "snowPrice": 0 },
+    { "tier": 3, "hp": 320, "damage": 8, "sweat": 3, "winsToUnlockNext": 100, "snowPrice": 3000000 },
     { "tier": 4, "hp": 550, "damage": 14, "sweat": 4, "winsToUnlockNext": 100, "snowPrice": 5000000,
       "immune": ["regular", "red", "ice"] },
     { "tier": 5, "hp": null, "damage": null, "sweat": null, "snowPrice": 50000000 }
@@ -59,7 +60,7 @@
   "testConventions": [
     "Post-tutorial Stone/STR3 start with zero wallet or ammunition; earlier tutorial time excluded.",
     "Retain the original diminishing passive curve and cap100 as the existing test baseline; the doubled curve was never selected.",
-    "Retain100 preceding-tier wins and existing S1-S4 starting/scaling stats for testing; prices are additional gates.",
+    "Retain100 preceding-tier wins; prices are additional gates. S1 and S2 apply80percent to total HP and damage after their existing growth/opening formulas. Actual starting stats: S1 64HP/2.4damage; S2 124HP/2.4damage through24 defeats, then4.8damage at25. Fractional values are retained; other tiers are unchanged.",
     "S4 is Fire-only among the modeled ammunition types so the selected Fire gate cannot be bypassed with Spicy.",
     "Golden supplements ordinary production with a yellow resource, but unknown yellow generation is not simulated.",
     "No explicit Iron prerequisite for S3 or Golden prerequisite for S5; intended gating is economic.",

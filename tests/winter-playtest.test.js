@@ -55,7 +55,7 @@ test('unlocked locations restore contextual navigation; status/help never become
   const s = M.fresh('gym'); s.iceRecipe = true; s.gymLiftRevealed = true;
   const controls = action => screen({ state: s, run: null, action }, 'u').components.flatMap(r => r.components).map(b => b.data.custom_id.split(':')[4]);
   assert.deepEqual(controls('status'), ['diamonds', 'shop', 'throw']); assert.deepEqual(controls('help'), ['throw', 'shop']);
-  assert.deepEqual(controls('train'), ['train-strength', 'lift']);
+  assert.deepEqual(controls('train'), ['train-strength', 'lift', 'shop', 'throw']);
   for (const action of ['shop', 'buy-spicy', 'buy-ice', 'kitchen', 'diamonds', 'emporium']) {
     for (const control of controls(action)) assert(!['craft', 'attack', 'attack-spicy', 'status'].includes(control), `${action} leaked ${control}`);
   }
@@ -115,7 +115,7 @@ test('passive snowball buttons reflect selected, available and discovered ammuni
   assert.equal(buttons[1].data.style, 2); assert.equal(buttons[1].data.disabled, true); assert(!buttons.some(b => b.data.label.includes('Ice')));
   M.change(s, 'red', 2, 'fixture'); M.action(s, 'equip-red');
   buttons = choices(); assert.equal(buttons.find(b => b.data.label.includes('Spicy')).data.style, 3); assert.equal(buttons[0].data.style, 2);
-  assert.match(output().embeds[0].data.fields.find(f => f.name === 'Equipped').value, /^\*\*🔴 Spicy\*\*/);
+  assert(!output().embeds[0].data.fields.some(f => f.name === 'Equipped'));
   s.iceRecipe = true; buttons = choices(); assert.equal(buttons.length, 3); assert.equal(buttons[2].data.disabled, true);
   M.change(s, 'ice', 1, 'fixture'); M.action(s, 'equip-ice'); buttons = choices();
   assert.equal(buttons[2].data.style, 3); assert.equal(buttons[2].data.disabled, false); assert.equal(buttons[1].data.style, 2);
@@ -129,7 +129,7 @@ test('empty ammunition cannot be equipped; fallback retains the preference and r
   const output = screen({ state: s, run: null, action: 'throw' }, 'u');
   const chosen = output.components.flatMap(r => r.components).find(b => b.data.custom_id.includes(':equip-red:'));
   assert.equal(chosen.data.style, 3); assert.equal(chosen.data.disabled, true);
-  assert.match(output.embeds[0].data.fields.find(f => f.name === 'Equipped').value, /Currently using ⚪ Regular/);
+  assert(!output.embeds[0].data.fields.some(f => f.name === 'Equipped'));
   const clock = s.nextPlayerAt, hp = s.enemyHp;
   assert.throws(() => M.action(s, 'equip-red'), /No ammunition/); assert.equal(s.nextPlayerAt, clock); assert.equal(s.enemyHp, hp);
   M.change(s, 'red', 1, 'fixture'); M.settle(s, 9000); assert.equal(s.tiers[1].red, 2); assert.equal(s.tiers[1].regular, 1);
@@ -147,14 +147,15 @@ test('passive equipment selection persists and stale empty-stock controls reject
 test('Stone celebration precedes Chapter0 acknowledgement and atomic diagnostic completion', async t => {
   const f = await fixture(t); await f.start({ bookmark: 'chapter0', stopAt: 'stone' });
   const click = async (a, quantity) => { f.advance(30000); const r = await f.run(a, { kind: 'button', quantity }); assert.equal(r.outcome, 'ok', r.message); return r; };
+  await click('throw');
   for (let n = 0; n < 5; n++) { await click('craft'); await click('attack'); }
-  await click('shop-help'); await click('beg'); await click('buy-snowman');
+  await click('shop'); await click('shop-help'); await click('shop'); await click('diamonds'); await click('beg'); await click('shop'); await click('buy-snowman'); await click('throw');
   await click('craft', '10'); for (let n = 0; n < 3; n++) await click('attack');
-  for (let n = 0; n < 3; n++) await click('pepper'); await click('mix');
+  await click('kitchen'); for (let n = 0; n < 3; n++) await click('pepper'); await click('mix');
   f.advance(4000000); const gift = await click('shop'); assert.equal(gift.state.wallet.red, 10);
   for (let n = 0; n < 5; n++) await click('attack-spicy');
   await click('diamonds-convert', '1'); await click('buy-sturdy'); await click('throw');
-  f.advance(4000000); await click('throw'); await click('train'); await click('train-strength'); await click('train-strength');
+  f.advance(4000000); await click('throw'); await click('train'); await click('train-strength'); await click('train-strength'); await click('shop');
   await click('diamonds-convert', '1');
   const unlock = await click('buy-old-stone'); assert.equal(unlock.run.status, 'active'); assert.equal(unlock.state.chapter0Pending, true);
   const celebration = screen(unlock, 'u'); assert.equal(celebration.embeds[0].data.title, 'New Shovel Unlocked!');
@@ -294,16 +295,16 @@ test('saved runs export exact logs and cannot be read by another account', async
   assert.equal(r.run.status, 'stopped'); assert(r.export.interactions.length >= 4); assert(r.export.checkpoints.length >= 3);
   const other = await f.run('diagnostic', { userId: 'other', diagnostic: { mode: 'export', runId: 1 } }); assert.equal(other.outcome, 'rejected'); assert.equal(other.export, undefined);
 });
-test('Iron costs 2m and requires the lift; S3 costs 5m and 100 S2 wins without an extra Iron rule', () => {
+test('Iron costs 1m and requires the lift; S3 costs 3m and 100 S2 wins without an extra Iron rule', () => {
   const s = M.fresh('gym'); M.change(s, 'snow', 20000000, 'fixture'); s.strength = 25;
-  assert.throws(() => M.action(s, 'iron'), /lift/); M.action(s, 'lift'); M.action(s, 'iron'); assert.equal(s.tier, 3); assert.equal(s.wallet.snow, 18000000);
+  assert.throws(() => M.action(s, 'iron'), /lift/); M.action(s, 'lift'); M.action(s, 'iron'); assert.equal(s.tier, 3); assert.equal(s.wallet.snow, 19000000);
   s.owned[2] = true; s.tiers[2].wins = 99; assert.throws(() => M.action(s, 'buy-s3'), /100 victories/);
-  s.tiers[2].wins = 100; M.action(s, 'buy-s3'); assert.equal(s.wallet.snow, 13000000); assert.equal(s.chapter, 2); assert.equal(s.active, false);
+  s.tiers[2].wins = 100; M.action(s, 'buy-s3'); assert.equal(s.wallet.snow, 16000000); assert.equal(s.chapter, 2); assert.equal(s.active, false);
 });
 test('historical snow-cost simulation retains early Ice; fractional regular damage and per-tier wins persist', () => {
   const s = M.fresh('gym', 42); M.change(s, 'snow', 10000000, 'fixture'); M.action(s, 'buy-ice-recipe'); assert(s.iceRecipe); assert(!s.owned[3]);
-  M.action(s, 'throw'); M.settle(s, 3000); if (s.tiers[1].hits) assert(Math.abs(s.enemyHp - (80 - 2.36)) < 1e-9);
-  s.tiers[1].wins = 100; M.action(s, 'buy-s2'); M.action(s, 'select-s2'); M.action(s, 'select-s1'); assert.equal(s.enemyHp, 180);
+  M.action(s, 'throw'); M.settle(s, 3000); if (s.tiers[1].hits) assert(Math.abs(s.enemyHp - (64 - 2.36)) < 1e-9);
+  s.tiers[1].wins = 100; M.action(s, 'buy-s2'); M.action(s, 'select-s2'); M.action(s, 'select-s1'); assert.equal(s.enemyHp, 144);
 });
 test('every screen respects Discord component limits and Mix precedes red Cancel', () => {
   for (const bookmark of ['chapter0', 'chapter1', 'gym', 'iron']) for (const action of ['status', 'shop', 'kitchen', 'train', 'throw', 'diamonds', 'emporium']) {
@@ -322,7 +323,13 @@ test('25lb lift appears on the next Gym visit after STR3 and requires sufficient
   M.action(s, 'train-strength'); assert(!controls('train-strength').some(b => b.data.custom_id.includes(':lift:')));
   M.action(s, 'train'); const lift = controls('train').find(b => b.data.custom_id.includes(':lift:')); assert(lift); assert(!lift.data.disabled);
   assert.equal(M.action(s, 'lift'), "Those scrawny arms can't lift this!"); assert(!s.ironMaterial);
-  s.strength = 25; M.action(s, 'lift'); assert(s.ironMaterial); assert(!controls('lift').some(b => b.data.custom_id.includes(':lift:')));
+  s.strength = 25; M.action(s, 'lift'); assert(s.ironMaterial); assert.equal(controls('lift').find(b => b.data.custom_id.includes(':lift:')).data.label, '50 lbs');
+  assert.throws(() => M.action(s, 'train-defense'), /Lift 50/);
+  assert.equal(M.action(s, 'lift'), "Those scrawny arms can't lift this!");
+  s.strength = 50; assert.match(M.action(s, 'lift'), /Endurance training unlocked/);
+  assert(!controls('lift').some(b => b.data.custom_id.includes(':lift:')));
+  assert(controls('lift').some(b => b.data.custom_id.includes(':train-defense:')));
+  M.change(s, 'sweat', 100, 'fixture'); M.action(s, 'train-defense'); assert.equal(s.defense, 1);
 });
 test('footer discovers inventories at thresholds, retains zero discoveries and hides regulars after idle starts', () => {
   const s = M.fresh('chapter0'); const footer = () => screen({ state: s, run: null, action: 'status' }, 'u').embeds[0].data.footer.text;

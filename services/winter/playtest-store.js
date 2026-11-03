@@ -5,6 +5,8 @@ const M = require('./playtest-model');
 const { buildRecap } = require('./playtest-recap');
 const { isAdminAction } = require('./playtest-admin');
 const { columns: timingColumns, aggregateSql } = require('./playtest-timings');
+const tutorial = require('./playtest-tutorial');
+const { unavailable } = require('./playtest-dialogue');
 const clone = value => JSON.parse(JSON.stringify(value));
 const balances = state => ({ ...state.wallet, sweat: state.wallet.sweat + (state.gymLessonReserve || 0) });
 function difference(a, b) {
@@ -20,8 +22,8 @@ function summary(run) {
     gained: difference(base.ledger.gained, s.ledger.gained), spent: difference(base.ledger.spent, s.ledger.spent),
     sources: difference(base.ledger.sources, s.ledger.sources), balances: balances(s), spendableSweat: s.wallet.sweat, reservedSweat: s.gymLessonReserve || 0,
     net: difference(balances(base), balances(s)), snowRemainder: s.snowRemainder, sweatRemainder: s.sweatRemainder,
-    tiers: s.tiers, tierChanges: Object.fromEntries(Object.entries(s.tiers).map(([tier, values]) => [tier, difference(base.tiers[tier], values)])),
-    strength: s.strength, accuracy: s.accuracy, tier: s.tier, fingerprint: s.fingerprint };
+    tiers: s.tiers, tierChanges: Object.fromEntries(Object.entries(s.tiers).map(([tier, values]) => [tier, difference(base.tiers[tier] || {}, values)])),
+    strength: s.strength, accuracy: s.accuracy, tier: s.tier, maxHp: M.maxHp(s), jacketOwned: Boolean(s.jacketOwned), fireFlowerOwned: Boolean(s.fireFlowerOwned), ...(s.garden ? { garden: clone(s.garden), foodDonatedTenths: s.foodDonatedTenths || 0 } : {}), fingerprint: s.fingerprint };
 }
 function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).readUInt32LE(0), beforeCommit = async () => {} }) {
   let initialized;
@@ -77,6 +79,7 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
       if (input.expectedRun !== undefined && String(input.expectedRun) !== String(run?.id ?? 'normal')) input = { ...input, denied: 'These controls belong to another test. Open /snow status.' };
       if (isAdminAction(input.action) && input.admin !== true) input = { ...input, denied: 'Development administrators only.' };
       let message = input.denied || null, outcome = input.denied ? 'denied' : 'ok', s, before, settled;
+      let displayAction = null, tutorialView = null, redirected = false;
       let diagnostic = input.diagnostic;
       let mode = input.action === 'diagnostic' ? diagnostic?.mode : null;
       let resetFromRun = null;
@@ -91,7 +94,7 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
       if (!input.denied && mode === 'start') {
         const d = diagnostic;
         const invalid = ![1, 2, 5].includes(d.speed) || !M.settings.bookmarks[d.bookmark] || !M.settings.stopPoints.includes(d.stopAt) || !Number.isInteger(d.reportMinutes) || d.reportMinutes < 0 || d.reportMinutes > 1440 || !d.channelId
-          ? 'Invalid diagnostic settings.' : d.stopAt === 'stone' && d.bookmark !== 'chapter0' ? 'The Stone stop point requires the Chapter 0 bookmark.' : d.stopAt === 'iron' && d.bookmark === 'iron' ? 'The Iron bookmark has already reached the Iron stop point.' : null;
+          ? 'Invalid diagnostic settings.' : d.bookmark === 's3' && d.stopAt !== 'none' ? 'The S3 diagnostic uses manual stop.' : d.stopAt === 'stone' && d.bookmark !== 'chapter0' ? 'The Stone stop point requires the Chapter 0 bookmark.' : d.stopAt === 'iron' && d.bookmark === 'iron' ? 'The Iron bookmark has already reached the Iron stop point.' : null;
         if (invalid) { input = { ...input, denied: invalid }; message = invalid; outcome = 'rejected'; }
       }
       const endedRuns = [];
@@ -117,12 +120,12 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
         await query(`INSERT INTO WinterPlaytestRuns (guildId,userId,status,startedAt,updatedAt,endedAt,speed,bookmark,stopAt,reportMinutes,channelId,lastReportAt,state,baseline,configuration)
           VALUES ($guild,$user,'active',$now,$now,NULL,$speed,$bookmark,$stopAt,$minutes,$channel,$now,$state,$state,$configuration)`,
           { ...identity, now, speed: d.speed, bookmark: d.bookmark, stopAt: d.stopAt, minutes: d.reportMinutes, channel: d.channelId, state: JSON.stringify(s),
-            configuration: JSON.stringify({ rules: M.rules, settings: M.settings, bookmarks: require('../../config/winter/playtest-bookmarks.json'), fingerprint: M.fingerprint }) });
+            configuration: JSON.stringify({ rules: M.rules, settings: M.settings, emporium: M.emporium, s4: M.s4, bookmarks: require('../../config/winter/playtest-bookmarks.json'), fingerprint: M.fingerprint }) });
         const id = (await query('SELECT last_insert_rowid() AS id'))[0].id;
         await query('INSERT INTO WinterPlaytestSessions (guildId,userId,runId) VALUES ($guild,$user,$id) ON CONFLICT(guildId,userId) DO UPDATE SET runId=excluded.runId', { ...identity, id });
         run = { id, guildId: input.guildId, userId: input.userId, state: s, baseline: clone(s), status: 'active', startedAt: now, updatedAt: now,
           endedAt: null, speed: d.speed, bookmark: d.bookmark, stopAt: d.stopAt, reportMinutes: d.reportMinutes, channelId: d.channelId, lastReportAt: now,
-          configuration: { rules: M.rules, settings: M.settings, bookmarks: require('../../config/winter/playtest-bookmarks.json'), fingerprint: M.fingerprint } };
+          configuration: { rules: M.rules, settings: M.settings, emporium: M.emporium, s4: M.s4, bookmarks: require('../../config/winter/playtest-bookmarks.json'), fingerprint: M.fingerprint } };
         before = clone(s); settled = clone(s); message = resetFromRun ? `Run #${resetFromRun} was saved. New Run #${id} starts fresh at Chapter 0.` : `Diagnostic Run #${id} started.`;
       } else {
         if (run) s = run.state;
@@ -142,6 +145,7 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
             s.gymUnlocked = true;
             if (s.tutorialFlow === 2) { s.tutorialStage = s.gymEntered && s.strength >= 3 ? 'stone' : 'gym'; s.active = false; }
           }
+          if (s.tutorialFlow === 2 && s.gymUnlocked && !s.gymEntered && !s.tutorialStage) { s.tutorialStage = 'gym'; s.active = false; }
         }
         if (!input.denied) {
           if (run) advance(run);
@@ -162,7 +166,7 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
                 delete s.restartToken; message = 'Reset cancelled.';
               } else if (input.action === 'restart-confirm') { s = M.fresh('chapter0', seed()); s.profileAnchor = now; message = 'Your development profile has been reset to Chapter 0 with 10 snow. Use /snow throw to begin.'; }
               else {
-                if (run && run.status !== 'active' || s.chapter === 2) throw Error('This test is finished. Reset or start a new run before adding resources.');
+                if (run && run.status !== 'active' || s.chapter === 2 && !s.s3Diagnostic) throw Error('This test is finished. Reset or start a new run before adding resources.');
                 if (input.action === 'grant-sweat') M.change(s, 'sweat', 100, 'admin-grant');
                 if (input.action === 'grant-snow') M.change(s, 'snow', M.rate(s) * 3600, 'admin-grant');
                 if (input.action === 'grant-ammo') for (const type of ['regular', 'red', 'ice']) M.change(s, type, 10, 'admin-grant');
@@ -171,29 +175,39 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
             } else if (input.kind !== 'system') {
               if (run && run.status !== 'active') message = `Run #${run.id} is ${run.status}. Its saved test is frozen. Start a new diagnostic run to play again.`;
               else {
-                message = M.action(s, input.action, input.quantity, { shopCurrency: 'diamonds' });
-                if (run && input.action === 'buy-old-stone') {
-                  s.chapter0Pending = true; s.tutorialStage = 'chapter0-end'; s.chapter = 0; s.active = false;
-                }
-                if (input.action === 'shop' && s.redRecipe && !s.spicyShopGiftClaimed) {
-                  M.change(s, 'red', 10, 'requia-spicy-gift'); s.spicyShopGiftClaimed = true;
-                  message = "Looks like you unlocked a new type of weapon. I really shouldn't but here's a few on the house.";
+                const required = tutorial.step(s);
+                if (unavailable(s, input.action)) throw Error('You’re not ready for that yet. Continue your current path.');
+                if (required && input.action !== 'hidden' && !(run && run.status === 'active' && input.action.startsWith('garden-')) && !required.actions.has(input.action === 'gym' ? 'train' : input.action)) {
+                  displayAction = required.page; tutorialView = required.view; redirected = true;
+                  if (!tutorial.navigation.has(input.action)) { outcome = 'rejected'; message = 'Complete the current Chapter 0 tutorial step before using this control.'; }
+                } else {
+                  message = M.action(s, input.action, input.quantity, { shopCurrency: 'diamonds', diagnostic: Boolean(run && run.status === 'active'), wallNow: now });
+                  if (input.action === 'throw' && s.jacketIntroPending) { displayAction = 'emporium'; redirected = true; }
+                  if (run && input.action === 'buy-old-stone') {
+                    s.chapter0Pending = true; s.tutorialStage = 'chapter0-end'; s.chapter = 0; s.active = false;
+                  }
+                  if (input.action === 'shop' && s.redRecipe && !s.spicyShopGiftClaimed) {
+                    M.change(s, 'red', 10, 'requia-spicy-gift'); s.spicyShopGiftClaimed = true;
+                    message = "Looks like you unlocked a new type of weapon. I really shouldn't but here's a few on the house.";
+                  }
                 }
               }
             }
           } catch (error) { s = clone(settled); if (run) run.state = s; message = error.message; outcome = 'rejected'; }
         }
       }
+      if (!input.denied && (!run || run.status === 'active' || endedRuns.includes(run))) s.tutorialCheckpoint = tutorial.step(s)?.id ?? null;
       if (run && run.status === 'active' && !input.denied) {
-        if (s.chapter === 2 || run.stopAt !== 'none' && s.milestones[run.stopAt] !== undefined && !(run.stopAt === 'stone' && s.chapter0Pending)) { finish(run, 'completed'); message = `Run #${run.id} completed at ${s.chapter === 2 ? 'Chapter 1 / S3 purchase' : run.stopAt}. Results saved; this test is frozen.`; }
+        if (s.chapter === 2 && !s.s3Diagnostic || run.stopAt !== 'none' && s.milestones[run.stopAt] !== undefined && !(run.stopAt === 'stone' && s.chapter0Pending)) { finish(run, 'completed'); message = `Run #${run.id} completed at ${s.chapter === 2 ? 'Chapter 1 / S3 purchase' : run.stopAt}. Results saved; this test is frozen.`; }
       }
       if (run && !input.denied) await saveRun(run);
       else if (!run && !input.denied) await query(`INSERT INTO WinterPlaytestProfiles (guildId,userId,state,anchor) VALUES ($guild,$user,$state,$anchor)
         ON CONFLICT(guildId,userId) DO UPDATE SET state=excluded.state,anchor=excluded.anchor`, { ...identity, state: JSON.stringify(s), anchor: s.profileAnchor ?? now });
       const counts = run ? await getCounts(run.id) : [];
       let presentationView = null;
-      if (!input.denied && !s.wooden && s.dummyHp > 0 && !s.uiWelcomed && ['throw', 'status', 'help'].includes(input.action)) {
+      if (!input.denied && !s.wooden && s.dummyHp > 0 && !s.uiWelcomed && ['throw', 'status', 'help'].includes(displayAction || input.action)) {
         presentationView = 'welcome'; s.uiWelcomed = true;
+        s.tutorialCheckpoint = tutorial.step(s)?.id ?? null;
         // Persist only this presentation flag; no tutorial action or resources
         // are replayed when the player opens the welcome screen again.
         if (run) await saveRun(run);
@@ -205,7 +219,14 @@ function createStore({ sequelize, clock = Date.now, seed = () => randomBytes(4).
         const found = counts.find(r => r.kind === (input.kind || 'slash') && r.action === input.action && r.outcome === outcome && r.control === control);
         if (found) found.count++; else counts.push({ kind: input.kind || 'slash', action: input.action, outcome, control, count: 1 });
       }
-      let response = { state: s, run: run ? summary(run) : null, counts, message, outcome, action: input.action, admin: input.admin === true, resetFromRun, presentationView };
+      let response = { state: s, run: run ? summary(run) : null, counts, message, outcome, action: input.action, admin: input.admin === true, resetFromRun, presentationView, displayAction, tutorialView, redirected };
+      if (!input.denied && before.target === s.target && !resetFromRun) {
+        const old = before.tiers[s.target], latest = s.tiers[s.target];
+        if (old && latest) response.combatUpdate = {
+          target: s.target, attacks: latest.attacks - old.attacks, hits: latest.hits - old.hits,
+          enemyAttacks: latest.enemyAttacks - old.enemyAttacks, enemyHits: latest.enemyHits - old.enemyHits,
+        };
+      }
       if (!input.denied && ['review', 'export'].includes(mode) && input.diagnostic?.runId) {
         const selected = parse((await query('SELECT * FROM WinterPlaytestRuns WHERE id=$id AND guildId=$guild AND userId=$user', { ...identity, id: input.diagnostic.runId }))[0]);
         if (!selected) { response.message = 'Run not found for your account in this server.'; response.outcome = 'rejected'; }

@@ -11,9 +11,9 @@ test('regular-only study matches development Chapter1 state/RNG through hourly p
       Study.operate(s, c, Study.policies[1]); Live.action(live, 'throw');
       while (live.strength < 100 && live.wallet.sweat >= live.strength + 1) Live.action(live, 'train-strength');
       if (live.strength >= 25 && !live.ironMaterial) Live.action(live, 'lift');
-      if (live.ironMaterial && live.tier === 2 && live.wallet.snow >= 2000000) Live.action(live, 'iron');
+      if (live.ironMaterial && live.tier === 2 && live.wallet.snow >= Live.rules.ironSnowCost) Live.action(live, 'iron');
       if (!live.owned[2] && live.tiers[1].wins >= 100) { Live.action(live, 'buy-s2'); Live.action(live, 'select-s2'); }
-      if (!live.owned[3] && live.tiers[2].wins >= 100 && live.wallet.snow >= 5000000) { Live.action(live, 'buy-s3'); break; }
+      if (!live.owned[3] && live.tiers[2].wins >= 100 && live.wallet.snow >= Live.rules.snowmen[2].snowPrice) { Live.action(live, 'buy-s3'); break; }
       for (const [key, value] of Object.entries({ snow: s.snow, sweat: s.sweat })) assert.equal(live.wallet[key], value);
       for (const key of ['strength', 'target', 'playerHp', 'enemyHp', 'nextPlayerAt', 'nextEnemyAt', 'snowRemainder', 'sweatRemainder', 'penalized']) assert.equal(live[key], s[key], `${seed}/${hour}/${key}`);
       assert.equal(live.rng, s.rng.combat);

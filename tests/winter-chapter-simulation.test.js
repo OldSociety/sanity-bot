@@ -4,8 +4,8 @@ const candidate=M.defaults.experimentalFireCandidates[1];
 function setup(){const c=M.rules(candidate),s=M.fresh(123,c);return{c,s};}
 function endow(s,amount){s.snow+=amount;s.ledger.snowProduced+=amount;}
 test('locked design prices and shovel output are centralized; unknown combat stays null',()=>{
- const {c}=setup();assert.equal(c.ironSnowCost,2000000);assert.equal(c.goldenRate,1296);
- assert.deepEqual(c.snowmen.slice(2).map(r=>r.snowPrice),[5000000,5000000,50000000]);
+ const {c}=setup();assert.equal(c.ironSnowCost,1000000);assert.equal(c.goldenRate,1296);
+ assert.deepEqual(c.snowmen.slice(2).map(r=>r.snowPrice),[3000000,5000000,50000000]);
  assert.equal(c.yellowRecipeSnowCost,20000000);assert.deepEqual(c.emporium.map(x=>x.buttons),[10,200,2000,5000]);
  assert.equal(M.defaults.fire.damage,null);assert.equal(c.yellow.damage,null);assert.equal(c.snowmen[4].hp,null);
 });
@@ -39,7 +39,7 @@ test('Golden output applies only to future elapsed time',()=>{
  M.settle(s,2*M.HOUR,c);assert.equal(s.ledger.snowProduced-previous,4665600);M.validate(s,c);
 });
 test('S3 requires preceding victories and payment, but does not explicitly require Iron',()=>{
- const {c,s}=setup();endow(s,5000000);assert(!M.buyOpponent(s,3,c));s.tiers[2].wins=100;s.ledger.combatSweat=200;s.sweat=200;
+ const {c,s}=setup();endow(s,3000000);assert(!M.buyOpponent(s,3,c));s.tiers[2].wins=100;s.ledger.combatSweat=200;s.sweat=200;
  assert(M.buyOpponent(s,3,c));assert.equal(s.snow,0);assert(!s.iron);assert(!M.buyOpponent(s,3,c));M.validate(s,c);
 });
 test('S5 purchase is measurable but combat cannot use invented enemy stats',()=>{
@@ -60,7 +60,7 @@ test('chronological capture chunk boundaries do not alter outcomes',()=>{
  assert.deepEqual(s,split);M.validate(s,c);
 });
 test('experimental price-only S3 gate is explicit and leaves locked baseline unchanged',()=>{
- const {c,s}=setup();s.owned[2]=true;endow(s,5000000);assert(!M.buyOpponent(s,3,c));
+ const {c,s}=setup();s.owned[2]=true;endow(s,3000000);assert(!M.buyOpponent(s,3,c));
  c.experimentalS3Wins=0;assert(M.buyOpponent(s,3,c));assert.equal(s.snow,0);assert.equal(s.tiers[2].wins,0);
 });
 test('experimental Fire stockpiling carries unspent budget without duplicating income',()=>{

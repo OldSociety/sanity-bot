@@ -12,9 +12,9 @@ function rehearse(seed, hours) {
     M.settle(s, at); act('throw');
     while (s.strength < 100 && s.wallet.sweat >= s.strength + s.accuracy + 1) act('train-strength');
     if (s.strength >= 25 && !s.ironMaterial) act('lift');
-    if (s.ironMaterial && s.tier === 2 && s.wallet.snow >= 2000000) { act('iron'); ironState = structuredClone(s); }
+    if (s.ironMaterial && s.tier === 2 && s.wallet.snow >= M.rules.ironSnowCost) { act('iron'); ironState = structuredClone(s); }
     if (s.tiers[1].wins >= 100 && !s.owned[2]) { act('buy-s2'); act('select-s2'); }
-    if (s.owned[2] && s.tiers[2].wins >= 100 && s.wallet.snow >= 5000000) { act('buy-s3'); break; }
+    if (s.owned[2] && s.tiers[2].wins >= 100 && s.wallet.snow >= M.rules.snowmen[2].snowPrice) { act('buy-s3'); break; }
     if (!s.iceRecipe && s.wallet.snow >= 10000000) act('buy-ice-recipe');
     const type = s.iceRecipe ? 'ice' : 'red', cost = type === 'ice' ? 2000 : 1000;
     const production = s.ledger.sources['gathering:snow:gained'] || 0;

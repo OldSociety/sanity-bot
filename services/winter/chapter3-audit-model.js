@@ -2,7 +2,8 @@
 const assert=require('node:assert/strict');
 const BASE=require('../../config/winter/chapters-2026-10-29.json');
 const AUDIT=require('../../config/winter/chapter3-audit-2026-10-29.json');
-const {addedHp,passiveRate,HOUR:H}=require('./early-progression');
+const {passiveRate,HOUR:H}=require('./early-progression');
+const {hpAtDefeats,damageAtDefeats}=require('./snowman-scaling');
 const profiles={four:[0,5,10,15],hourly:Array.from({length:16},(_,i)=>i),twice:[0,12],daily:[0],
  frequent:Array.from({length:181},(_,i)=>i/12)};
 function events(profile){const out=[];for(let d=0;d<=31;d++)for(const h of profiles[profile])out.push(Math.round((d*24+h)*H));return out;}
@@ -11,7 +12,7 @@ function fresh(seed,options={}){
  c.shared=options.shared??true;c.defenseMode=options.defenseMode||AUDIT.defenseModel;
  c.defenseUnlock=options.defenseUnlock||AUDIT.defenseUnlock;c.spcRate=options.spcRate??AUDIT.specialPerLevel;
  return{c,p:null,s:{now:0,nextP:3000,nextE:10000,nextDot:Infinity,dotTicks:0,dotAmount:0,corrosion:false,
-  rng:{combat:seed>>>0||1,buttons:(seed^0x9e3779b9)>>>0||1},target:1,playerHp:50,enemyHp:80,
+  rng:{combat:seed>>>0||1,buttons:(seed^0x9e3779b9)>>>0||1},target:1,playerHp:50,enemyHp:hpAtDefeats(c.snowmen[0],0),
   strength:3,accuracy:0,defense:0,special:0,sweat:0,sweatRem:0,snow:0,snowRem:0,buttons:0,
   iron:false,golden:false,necro:false,coat:false,reinforced:false,fireUnlock:false,iceRecipe:false,yellowRecipe:false,
   emporium:0,chapterShop:0,maxHpOverride:0,yieldN:1,yieldD:1,yellowMultiplier:1,belt:false,
@@ -32,7 +33,7 @@ function maxHp(m){const{s,c}=m;return Math.max(s.maxHpOverride,s.reinforced?150:
 function ordinaryRate(m){const{s,c,p}=m;return s.necro?c.goldenRate*p.necroOrdinaryMultiplier:s.golden?c.goldenRate:s.iron?c.ironRate:c.stoneRate;}
 function enemy(m){const{s,c,p}=m,k=s.tiers[s.target].wins;
  const r=s.target===5?(p?{hp:p.s5Hp,damage:p.s5Damage,sweat:5}:null):c.snowmen.find(r=>r.tier===s.target);
- if(!r||r.hp==null)throw Error('Undefined enemy stats');return{hp:r.hp+addedHp(k),damage:r.damage+Math.floor(k/25),sweat:r.sweat};}
+ if(!r||r.hp==null)throw Error('Undefined enemy stats');return{hp:hpAtDefeats(r,k),damage:damageAtDefeats(r,k),sweat:r.sweat};}
 function accrue(m,at){const{s,c,p}=m,dt=at-s.now;if(dt<0)throw Error('Time reversal');
  const n=dt*ordinaryRate(m)+s.snowRem,a=Math.floor(n/1000);s.snow+=a;s.ledger.snowProduced+=a;s.snowRem=n%1000;
  const w=dt*passiveRate(s.strength,c)+s.sweatRem,b=Math.floor(w/H);s.sweat+=b;s.ledger.passiveSweat+=b;s.sweatRem=w%H;
@@ -52,7 +53,7 @@ function specialMultiplier(m){return 1+m.s.special*m.c.spcRate;}
 function settle(m,at){const{s,c,p}=m;if(!Number.isSafeInteger(at)||at<s.now)throw Error('Invalid timestamp');
  while(Math.min(s.nextP,s.nextE,s.nextDot)<=at){
   const t=Math.min(s.nextP,s.nextE,s.nextDot);accrue(m,t);const record=s.tiers[s.target];
-  // Fixed tie ordering: player, enemy, delayed outgoing damage. Any KO resets once.
+  // Player damage (including delayed damage) wins ties with enemy attacks.
   if(s.nextP===t){
    s.nextP+=3000;let ammo=s.equipped;
    if(ammo!=='regular'&&!s.ammo[ammo])ammo=ammo==='yellow'&&s.belt&&s.ammo.fire?'fire':'regular';
@@ -73,21 +74,21 @@ function settle(m,at){const{s,c,p}=m;if(!Number.isSafeInteger(at)||at<s.now)thro
     if(p.selfMode==='flat')s.playerHp=Math.max(0,s.playerHp-p.selfDamage);
     else if(p.selfMode==='fraction')s.playerHp=Math.max(0,s.playerHp-Math.ceil(maxHp(m)*p.selfFraction));
     else if(p.selfMode!=='onHit'||hit&&mult){s.poison++;if(s.poison>=p.poisonThrows){s.playerHp=0;s.ledger.poisonTriggers++;}}
-    self=s.playerHp<=0;
+    self=s.playerHp<1;
    }
-   const victory=s.enemyHp<=0;if(victory)win(m);if(self){defeat(m,true);if(victory)s.ledger.mutualKos++;}
+   const victory=s.enemyHp<1;if(victory){win(m);if(self){s.ledger.mutualKos++;s.poison=0;}}else if(self)defeat(m,true);
    if(victory||self)reset(m);
-  }else if(s.nextE===t){
+  }else if(s.nextE===t && s.nextDot!==t){
    s.nextE+=10000;record.enemyAttacks++;
    const dodge=c.defenseMode==='dodge'?Math.min(.25,s.defense*.0025):0;
    if(rnd(s,'combat')<c.enemyAccuracy*(1-dodge)){record.enemyHits++;
     const armor=c.defenseMode==='armor'?1-Math.min(.2,s.defense*.002):1;
     s.playerHp=Math.max(0,s.playerHp-enemy(m).damage*armor*(s.corrosion?.8:1));
-    if(!s.playerHp){defeat(m,false);reset(m);}
+    if(s.playerHp<1){defeat(m,false);reset(m);}
    }
   }else{
    s.enemyHp=Math.max(0,s.enemyHp-s.dotAmount);s.dotTicks--;s.nextDot=s.dotTicks?s.now+10000:Infinity;
-   if(!s.enemyHp){win(m);reset(m);}
+   if(s.enemyHp<1){win(m);reset(m);}
   }
  }
  accrue(m,at);return m;

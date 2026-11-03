@@ -50,7 +50,7 @@ async function stoneFixture(t, stopAt, options = {}) {
   const store = createStore({ sequelize: db, clock: () => 0, seed: () => 3, ...options }); let sequence = 0;
   const run = (action, extra = {}) => store.execute({ id: `chapter-end-${++sequence}`, guildId: 'g', userId: 'u', action, ...extra });
   await run('diagnostic', { diagnostic: { mode: 'start', bookmark: 'chapter0', speed: 1, stopAt, reportMinutes: 0, channelId: 'c' } });
-  const s = M.fresh('gym'); Object.assign(s, { liveRules: true, tutorialFlow: 2, tutorialStage: 'stone', oldStone: false, tier: 1, chapter: 0 });
+  const s = M.fresh('gym'); Object.assign(s, { liveRules: true, tutorialFlow: 2, tutorialStage: 'stone', stoneShopVisited: true, oldStone: false, tier: 1, chapter: 0 });
   delete s.milestones.stone; M.change(s, 'diamonds', 1, 'fixture');
   await db.query('UPDATE WinterPlaytestRuns SET state=$state,baseline=$state WHERE id=1', { bind: { state: JSON.stringify(s) } });
   return { db, store, run };

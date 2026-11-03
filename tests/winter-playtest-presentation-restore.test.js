@@ -41,16 +41,17 @@ test('restored Gym and combat show current state without legacy queue, accuracy 
   s.enemyHp = 50.32; s.tiers[1].wins = 1;
   output = screen({ state: s, action: 'throw' }, 'u');
   assert.equal(output.embeds[0].data.title, 'Sturdy Snowman');
-  assert.equal(output.embeds[0].data.description, 'Defeated: 1\n\n**50/81 HP**\n🟥🟥🟥🟥🟥🟥🟥⬛⬛⬛');
-  assert.deepEqual(output.embeds[0].data.fields.map(f => f.name), ['You', 'Equipped', 'Next attacks']);
+  assert.equal(output.embeds[0].data.description, 'Defeated: 1\n\n**50/65 HP**\n🟥🟥🟥🟥🟥🟥🟥🟥⬛⬛');
+  assert.deepEqual(output.embeds[0].data.fields.map(f => f.name), ['You', 'Next attacks']);
+  assert.match(output.embeds[0].data.fields[1].value, /^Equipped: /);
   assert.equal(s.enemyHp, 50.32);
   assert(output.embeds[0].data.fields.find(f => f.name === 'You').value.includes('/50 HP'));
   assert(!JSON.stringify(output).includes('Special queue'));
-  output = screen({ state: s, action: 'train' }, 'u'); assertArtwork(output, 'gym-badge'); assert.equal(output.embeds[0].data.description, '_It’s time to train. No complaints!_');
+  output = screen({ state: s, action: 'train' }, 'u'); assertArtwork(output, 'gym-badge'); assert.match(output.embeds[0].data.description, /Strength has no effect on specialty weapons/);
   s.strength = 25; s.accuracy = 2; s.ironMaterial = true; M.change(s, 'sweat', 10000, 'fixture');
   output = screen({ state: s, action: 'train' }, 'u'); assert.equal(output.embeds[0].data.fields[0].value, 'Level 25'); assert(output.components.flatMap(r => r.components).some(b => b.data.label === 'Strength · 28💦'));
   output = screen({ state: s, action: 'shop' }, 'u'); assert(!JSON.stringify(output).includes('1m❄️'));
-  assert(output.embeds[0].data.fields.some(f => f.value === '**2k💎** + Iron material'));
+  assert(output.embeds[0].data.fields.some(f => f.value === '**1k💎** + Iron material'));
 });
 
 test('legacy renderer default remains unchanged by optional development balance projection', () => {

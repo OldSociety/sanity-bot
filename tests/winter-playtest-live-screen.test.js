@@ -13,7 +13,7 @@ async function fixture(t, tutorial = false) {
   const store = createStore({ sequelize: db, clock: () => now, seed: () => 314159 });
   const start = await store.execute({ guildId: 'g', userId: 'u', id: 'start', action: 'diagnostic', diagnostic: { mode: 'start', bookmark: tutorial ? 'chapter0' : 'gym', speed: 1, stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
   const s = start.state;
-  if (tutorial) Object.assign(s, { wooden: true, tier: 1, roughOwned: true, roughHp: 0, redRecipe: true, dummyHp: 0 });
+  if (tutorial) Object.assign(s, { wooden: true, tier: 1, roughOwned: true, roughHp: 0, redRecipe: true, dummyHp: 0, spicyShopGiftClaimed: true });
   M.change(s, 'snow', 10000, 'fixture'); M.change(s, 'red', 100, 'fixture');
   if (tutorial) { M.change(s, 'diamonds', 1, 'fixture'); M.action(s, 'buy-sturdy', undefined, { shopCurrency: 'diamonds' }); }
   M.action(s, 'equip-red'); M.action(s, 'throw');

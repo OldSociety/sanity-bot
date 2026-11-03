@@ -1,7 +1,7 @@
 const { EmbedBuilder, escapeMarkdown } = require('discord.js');
 const number = value => (value || 0).toLocaleString('en-US');
 const resourceNames = { snow: 'Snow', diamonds: 'Diamonds', regular: 'Regular snowballs', red: 'Spicy snowballs', ice: 'Ice balls', sweat: 'Sweat', buttons: 'Buttons', peppers: 'Peppers' };
-const shovelNames = ['Hands', 'Wooden', 'Stone', 'Iron'];
+const shovelNames = ['Hands', 'Wooden', 'Stone', 'Iron', 'Golden'];
 const time = ms => {
   let seconds = Math.floor(Math.max(0, ms) / 1000);
   const days = Math.floor(seconds / 86400); seconds %= 86400;
@@ -15,13 +15,17 @@ const unlocks = [
   ['oldStone', 'Old Stone purchased → Stone shovel / Chapter 1', 'stone'],
   ['gymUnlocked', 'Gym unlocked after first defeat', 'firstLoss'], ['gymEntered', 'Gym introduction / STR1 + 5 Sweat', 'gym'],
   ['ironMaterial', 'Iron lift material', 'ironMaterial'], ['iceRecipe', 'Ice recipe purchased', 'iceRecipe'],
-  ['dirtyRecipeUnlocked', 'Dirty Snowball recipe discovered', 'dirtyRecipe']
+  ['dirtyRecipeUnlocked', 'Dirty Snowball recipe discovered', 'dirtyRecipe'],
+  ['emporiumIntroduced', 'Met Azule at the Emporium', 'emporiumIntro'],
+  ['jacketOwned', 'Free jacket equipped — +50 HP', 'jacket'],
+  ['fireFlowerOwned', 'Fire Flower purchased — 5 Spicy per fireball / 5× damage', 'fireFlower'],
+  ['reinforcedJacketOwned', 'Reinforced jacket purchased — +50 maximum HP', 'reinforcedJacket'], ['soupKitchenOwned', 'Soup Kitchen fund supported', 'soupKitchen'], ['goldenIdolOwned', 'Golden Idol purchased', 'goldenIdol']
 ];
 const milestoneNames = {
-  chapter0: 'Chapter 0 complete',
+  chapter0: 'Chapter 0 complete', emporiumIntro: 'Met Azule at the Emporium', jacket: 'Free jacket equipped — +50 HP', fireFlower: 'Fire Flower purchased — 5 Spicy per fireball / 5× damage', reinforcedJacket: 'Reinforced jacket purchased', soupKitchen: 'Soup Kitchen fund supported', goldenIdol: 'Golden Idol purchased', goldenShovel: 'Golden Shovel purchased',
   strength3: 'Gym lessons complete — STR3', strength25: 'STR25 / Accuracy training available',
   iron: 'Iron shovel purchased', firstWinS1: 'First S1 victory', clearS1: '100 S1 victories',
-  firstWinS2: 'First S2 victory', clearS2: '100 S2 victories',
+  firstWinS2: 'First S2 victory', clearS2: '100 S2 victories', firstWinS3: 'First S3 victory', clearS3: '100 S3 victories', firstWinS4: 'First S4 victory', clearS4: '100 S4 victories', purchaseS4: 'S4 purchased', firstButton: 'First Button earned',
   purchaseS1: 'S1 purchased', purchaseS2: 'S2 unlocked', purchaseS3: 'S3 purchased / Chapter 1 complete'
 };
 function buildRecap(run, totals, logs, counts, displayName) {
@@ -47,7 +51,7 @@ function buildRecap(run, totals, logs, counts, displayName) {
     displayName: displayName || run.userId, counts, startingBalances: baseline.wallet,
     start: { chapter: baseline.chapter, tier: baseline.tier, strength: baseline.strength, accuracy: baseline.accuracy },
     inherited, timeline: [...timeline.values()].sort((a, b) => a.gameAt - b.gameAt),
-    end: { target: final.target, playerHp: final.playerHp, enemyHp: final.enemyHp, penalized: final.penalized,
+    end: { target: final.target, playerHp: final.playerHp, maxHp: require('./playtest-model').maxHp(final), enemyHp: final.enemyHp, penalized: final.penalized,
       dummyHp: final.dummyHp, roughHp: final.roughHp, roughOwned: final.roughOwned, owned: final.owned, equipped: final.equipped },
     tutorialDefeats: { dummy: baseline.dummyHp > 0 && final.dummyHp === 0 ? 1 : 0,
       rough: (!baseline.roughOwned || baseline.roughHp > 0) && final.roughOwned && final.roughHp === 0 ? 1 : 0 } };
@@ -74,7 +78,7 @@ function recapMessage(run) {
   add('Resources spent during this run', resources(run.spent), true);
   add('Resources remaining', resources(run.balances), true);
   add('Where the progress came from', `Snow gathered: **${number(run.sources['gathering:snow:gained'])}**\nCombat Sweat: **${number(run.sources['combat:sweat:gained'])}**\nPassive Sweat: **${number(run.sources['passive:sweat:gained'])}**\nSweat spent training: **${number(run.sources['training:sweat:spent'])}**\nGains include currency conversions and tutorial gifts; supplied bookmark resources are excluded.`, true);
-  add('Progress made', `Shovel: **${shovelNames[run.start.tier]} → ${shovelNames[run.tier]}**\nStrength: **${run.start.strength} → ${run.strength}** · Accuracy: **${run.start.accuracy} → ${run.accuracy}**\nChapter: **${run.start.chapter} → ${run.chapter}**${run.chapter === 2 ? ' (Chapter 1 complete)' : ''}\n${run.end.owned[1] ? `Stopped fighting S${run.end.target}: player ${number(run.end.playerHp)}/50 HP, snowman ${number(run.end.enemyHp)} HP.${run.end.penalized ? ' Defeat accuracy penalty active.' : ''}` : `Practice targets remaining: dummy ${run.end.dummyHp}/5 HP; Rough ${run.end.roughOwned ? `${run.end.roughHp}/50 HP` : 'not purchased'}.`}`);
+  add('Progress made', `Shovel: **${shovelNames[run.start.tier]} → ${shovelNames[run.tier]}**\nStrength: **${run.start.strength} → ${run.strength}** · Accuracy: **${run.start.accuracy} → ${run.accuracy}**\nChapter: **${run.start.chapter} → ${run.chapter}**${run.chapter === 2 ? ' (Chapter 1 complete)' : ''}\n${run.end.owned[1] ? `Stopped fighting S${run.end.target}: player ${number(run.end.playerHp)}/${run.end.maxHp || 50} HP, snowman ${number(run.end.enemyHp)} HP.${run.end.penalized ? ' Defeat accuracy penalty active.' : ''}` : `Practice targets remaining: dummy ${run.end.dummyHp}/5 HP; Rough ${run.end.roughOwned ? `${run.end.roughHp}/50 HP` : 'not purchased'}.`}`);
   const combat = [];
   if (run.tutorialDefeats.dummy || run.tutorialDefeats.rough) combat.push(`Practice targets defeated: ${run.tutorialDefeats.dummy} dummy, ${run.tutorialDefeats.rough} Rough Snowman.`);
   for (const [tier, changes] of Object.entries(run.tierChanges)) {
@@ -82,6 +86,7 @@ function recapMessage(run) {
       `Throws: ${number(changes.attacks)} (${number(changes.hits)} hits). Used ${number(changes.regular)} regular / ${number(changes.red)} Spicy / ${number(changes.ice)} Ice. Enemy attacks: ${number(changes.enemyAttacks)} (${number(changes.enemyHits)} hits).`);
   }
   add('Enemies defeated and combat progress', combat.join('\n'));
+  if (run.garden) add('Pond 🐟', `Food donated: **${((run.foodDonatedTenths || 0) / 10).toFixed(1)} lbs** · Fish held: **${((run.garden.heldTenths || 0) / 10).toFixed(1)} lbs**\n${Object.entries(run.garden.collection).map(([name, count]) => `${name}: ${number(count)}`).join(' · ') || 'No fish caught yet.'}`);
   add('Unlocks and milestones — elapsed game / real time', run.timeline.map(e => `**${time(e.gameAt)} / ${time(e.realElapsedMs)}** — ${e.name}`).join('\n') || 'No new unlocks or milestones reached.');
   if (run.inherited.length) add('Already unlocked at the bookmark', run.inherited.join(' · '));
   const grouped = new Map();

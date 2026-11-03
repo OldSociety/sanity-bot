@@ -61,10 +61,10 @@ test('live shop spends diamonds exactly, leaves snow untouched, and rejects earl
   const s = M.fresh('gym'); M.change(s, 'snow', 10000000, 'fixture'); M.change(s, 'diamonds', 8000, 'fixture');
   const options = { shopCurrency: 'diamonds' };
   M.action(s, 'buy-spicy', '10', options); assert.equal(s.wallet.diamonds, 7990); assert.equal(s.wallet.red, 10); assert.equal(s.wallet.snow, 10000000);
-  s.strength = 25; M.action(s, 'lift'); M.action(s, 'iron', undefined, options); assert.equal(s.wallet.diamonds, 5990);
+  s.strength = 25; M.action(s, 'lift'); M.action(s, 'iron', undefined, options); assert.equal(s.wallet.diamonds, 6990);
   assert.throws(() => M.action(s, 'buy-ice-recipe', undefined, options), /after Chapter 1/);
   s.tiers[1].wins = 100; M.action(s, 'buy-s2', undefined, options); s.tiers[2].wins = 100;
-  M.action(s, 'buy-s3', undefined, options); assert.equal(s.wallet.diamonds, 990); assert.equal(s.wallet.snow, 10000000); M.validate(s);
+  M.action(s, 'buy-s3', undefined, options); assert.equal(s.wallet.diamonds, 3990); assert.equal(s.wallet.snow, 10000000); M.validate(s);
   const poor = M.fresh('gym'); M.change(poor, 'snow', 1000000, 'fixture'); assert.throws(() => M.action(poor, 'buy-spicy', '1', options), /diamonds/);
 });
 

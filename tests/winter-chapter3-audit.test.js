@@ -64,9 +64,9 @@ test('whole yield recipes retain unused yellow and never create free snow',()=>{
  m.s.snow=24000;m.s.ledger.snowProduced=24000;M.craft(m,'yellow',24000);
  assert.equal(m.s.ammo.yellow,6);assert.equal(m.s.yellow,1);assert.equal(m.s.ledger.yellowSpent,4);M.validate(m);
 });
-test('corpse on mutual KO awards one win and one corpse with one reset',()=>{
+test('mutual KO awards the player a win without a defeat or corpse, with one reset',()=>{
  const m=setup();m.s.poison=9;m.s.enemyHp=.01;m.s.accuracy=100;m.s.rng.combat=1;supply(m,1);M.settle(m,3000);
- assert.equal(m.s.ledger.corpsesEarned,1);assert.equal(m.s.tiers[5].wins,1);assert.equal(m.s.ledger.mutualKos,1);assert.equal(m.s.playerHp,150);
+ assert.equal(m.s.ledger.corpsesEarned,0);assert.equal(m.s.tiers[5].losses,0);assert.equal(m.s.tiers[5].wins,1);assert.equal(m.s.ledger.mutualKos,1);assert.equal(m.s.playerHp,150);
 });
 test('poison self-defeat resets accuracy but cannot be doubled by same-time replay',()=>{
  const m=setup();supply(m,10);M.settle(m,30000);const saved=structuredClone(m);M.settle(m,30000);

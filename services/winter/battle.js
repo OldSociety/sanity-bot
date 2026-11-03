@@ -225,7 +225,7 @@ function throwAtEnemy(state, at, damage, random, s = config, dropRandom, testing
     const amount = damage * (special ? stats.specialMultiplier : stats.multiplier);
     state.enemyHp = Math.max(0, state.enemyHp - amount);
     state.lastEvent = `Your snowball hit for ${Math.floor(amount)} damage.`;
-    if (!state.enemyHp) won(state, at, s, dropRandom);
+    if (state.enemyHp < 1) won(state, at, s, dropRandom);
     buttonDrop(state, at, dropRandom, s);
     if (testing && !state.buttonsUnlocked && state.throws >= s.testButtonAfterThrows) buttonDrop(state, at, () => 0, s, true);
   } else state.lastEvent = 'Your snowball missed.';
@@ -303,7 +303,7 @@ function advanceBattle(player, state, now, accrueTo, random, s = config, dropRan
         state.enemyHits = add(state.enemyHits, 1);
         state.playerHp = Math.max(0, state.playerHp - enemy.damage);
         state.lastEvent = `The snowman hit you for ${enemy.damage} damage.`;
-        if (!state.playerHp) {
+        if (state.playerHp < 1) {
           state.active = 0;
           state.phase = 'defeat';
           state.losses = add(state.losses, 1);

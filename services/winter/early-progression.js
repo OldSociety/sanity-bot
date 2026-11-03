@@ -2,6 +2,7 @@
 // JSON state can be persisted by a future transactional adapter; this module
 // performs no I/O, database access, wall-clock reads or purchases during absence.
 const config = require('../../config/winter/early-progression.json');
+const { addedHp, hpAtDefeats, damageAtDefeats } = require('./snowman-scaling');
 const HOUR = 3600000;
 function integer(value, name) {
   if (!Number.isSafeInteger(value) || value < 0) throw Error(`Invalid ${name}.`);
@@ -12,16 +13,11 @@ function passiveRate(strength, c = config) {
   return Math.floor(strength <= p.breakpoint ? strength / p.divisor :
     p.breakpoint / p.divisor * (strength / p.breakpoint) ** p.exponent);
 }
-function addedHp(k) {
-  integer(k, 'victories');
-  const q = Math.floor(k / 100), r = k % 100;
-  return integer(q === 0 ? k : 100 + 500 * q * (q - 1) + 10 * q * r, 'snowman HP');
-}
 function enemy(state, tier = state.target, c = config) {
   const row = c.snowmen.find(e => e.tier === tier);
   if (!row) throw Error('This tier has no approved candidate definition.');
   const wins = state.tiers[tier].wins;
-  return { ...row, hp: row.hp + addedHp(wins), damage: row.damage + Math.floor(wins / 25) };
+  return { ...row, hp: hpAtDefeats(row, wins), damage: damageAtDefeats(row, wins) };
 }
 function unlocked(state, tier, c = config) {
   const index = c.snowmen.findIndex(e => e.tier === tier);
@@ -36,7 +32,7 @@ function fresh(c = config) {
   return {
     version: 1, ruleset: c.id, now: 0, origin: 0, active: true, target: 1,
     nextPlayerAt: c.playerIntervalMs, nextEnemyAt: c.enemyIntervalMs,
-    playerHp: c.playerHp, enemyHp: c.snowmen[0].hp,
+    playerHp: c.playerHp, enemyHp: hpAtDefeats(c.snowmen[0], 0),
     snow: 0, snowRemainder: 0, diamonds: 0, sweat: 0, sweatRemainder: 0,
     strength: 0, accuracy: 0, ironMaterial: false, iron: false,
     gymStarterClaimed: false, iceRecipe: false, red: 0, ice: 0,
@@ -113,7 +109,7 @@ function settle(state, now, random, c = config, maxEvents = 2000000) {
         const damage = ammo === 'regular' ? c.regularDamage * (1 + c.strengthPerLevel * state.strength) :
           ammo === 'red' ? c.redDamage : c.iceDamage;
         state.enemyHp = Math.max(0, state.enemyHp - damage);
-        if (!state.enemyHp) {
+        if (state.enemyHp < 1) {
           record.wins++;
           const reward = enemy(state, state.target, c).sweat;
           state.sweat += reward;
@@ -129,7 +125,7 @@ function settle(state, now, random, c = config, maxEvents = 2000000) {
       if (draw(random.combat) < c.enemyAccuracy) {
         record.enemyHits++;
         state.playerHp = Math.max(0, state.playerHp - enemy(state, state.target, c).damage);
-        if (!state.playerHp) {
+        if (state.playerHp < 1) {
           record.losses++;
           milestone(state, 'firstLoss');
           resetFight(state, c);

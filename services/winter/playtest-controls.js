@@ -49,7 +49,12 @@ function createControls({ clock = Date.now, ttl = 10 * 60 * 1000 } = {}) {
   }
   const current = entry => screens.get(entry.key) === entry;
   const live = () => [...screens.values()].filter(entry => entry.fight && entry.expires > clock() && clock() - entry.lastCaptureAt >= 3000);
-  const updated = (entry, ids, fight) => { if (current(entry)) { entry.ids = ids; entry.fight = fight; entry.lastCaptureAt = clock(); } };
-  return { accepts, isCurrentMessage, retire, decorate, remember, expire, current, live, updated };
+  // Keep the three-second schedule anchored to its original slots. Starting
+  // the next interval after Discord finishes editing skips the following tick.
+  const capturing = entry => {
+    if (current(entry)) entry.lastCaptureAt += Math.floor(Math.max(0, clock() - entry.lastCaptureAt) / 3000) * 3000;
+  };
+  const updated = (entry, ids, fight) => { if (current(entry)) { entry.ids = ids; entry.fight = fight; } };
+  return { accepts, isCurrentMessage, retire, decorate, remember, expire, current, live, capturing, updated };
 }
 module.exports = { createControls };

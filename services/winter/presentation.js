@@ -246,7 +246,7 @@ function screen({
     components.push(row(button('train', 'Gym'), button('throw', 'Refresh'), ...(snowmen.available(battle,battleConfig).length>1 ? [button('opponents','Opponents')] : [])));
     if (development) components.push(row(button('test-sturdy', 'Defeat opponent · Test', false, ButtonStyle.Danger),button('test-strength','+25 STR · Test')));
   } else if (view === 'battle-defeat') {
-    embed.setDescription('You lost. It’s time to hit the gym and get stronger. Use `/snow train`.');
+    embed.setDescription('You lost. It’s time to hit the gym and get stronger. Use `/snow gym`.');
     components.push(row(button('train', 'Train', false, ButtonStyle.Success)));
   } else if (view === 'train') {
     badge('Classic', 'HENDRIX_BADGE.png', 'winter-gym-badge');

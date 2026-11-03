@@ -95,6 +95,7 @@ function createHandler({
       if (parts[0] !== 'snow' || parts[1] !== interaction.user.id || parts.length < 3 || parts.length > 4) return deny('These winter controls belong to another player or are invalid. Open /snow status.');
       [,, action, quantity] = parts;
     } else action = interaction.options.getSubcommand();
+    if (action === 'gym') action = 'train';
     const adminAction = ['admin', 'grant-sweat', 'grant-snow', 'grant-ammo'].includes(action);
     const isAdmin = Boolean(adminMember(interaction.member) || interaction.memberPermissions?.has?.('Administrator'));
     if (action === 'diagnostic') {

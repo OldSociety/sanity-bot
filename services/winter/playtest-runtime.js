@@ -18,7 +18,7 @@ function createRuntime({ store, authorize = () => null, isAdmin = i => Boolean(a
     void result.finally(() => { if (pending.get(key) === result) pending.delete(key); }).catch(() => {});
     return result;
   }
-  const isFight = receipt => Boolean(receipt.state.active && viewFor(receipt.action) === 'throw' && (!receipt.run || receipt.run.status === 'active'));
+  const isFight = receipt => Boolean(receipt.state.active && viewFor(receipt.displayAction || receipt.action) === 'throw' && (!receipt.run || receipt.run.status === 'active'));
   function handle(i) {
     const receivedAt = Date.now(), started = measure();
     const key = `${i.guildId}:${i.user.id}`;
@@ -48,7 +48,7 @@ function createRuntime({ store, authorize = () => null, isAdmin = i => Boolean(a
     if (diagnostic) {
       if (!administrator) denied ||= 'Development administrators only.';
       d = { mode: i.options.getString('mode'), speed: i.options.getInteger('speed') ?? 1,
-        bookmark: i.options.getString('bookmark') ?? 'chapter0', stopAt: i.options.getString('stop_at') ?? 'chapter1',
+        bookmark: i.options.getString('bookmark') ?? 'chapter0', stopAt: i.options.getString('stop_at') ?? (i.options.getString('bookmark') === 's3' ? 'none' : 'chapter1'),
         reportMinutes: i.options.getInteger('report_minutes') ?? 0, channelId: i.channelId, runId: i.options.getInteger('run') ?? null };
     }
     // An unauthorized attempt is still an interaction in the actor's existing run.
@@ -109,6 +109,7 @@ function createRuntime({ store, authorize = () => null, isAdmin = i => Boolean(a
       if (!client?.isReady?.()) return;
       for (const entry of controls.live()) await enqueue(entry.key, async () => {
         if (!controls.current(entry)) return;
+        controls.capturing(entry);
         const i = entry.interaction;
         const receipt = await store.execute({ guildId: i.guildId, userId: i.user.id, id: `winter-live:${entry.token}:${++captureId}`, action: 'capture', kind: 'system', expectedRun: entry.run });
         if (!controls.current(entry)) return;
