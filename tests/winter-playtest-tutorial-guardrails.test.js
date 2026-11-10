@@ -114,7 +114,7 @@ test('restocking stays reachable while S1 is alive, and a redirected fight does 
   const f = await fixture(t), s = state('first-s1'); s.penalized = true; await f.install(s);
   const status = await f.run('status'); assert.equal(status.displayAction, 'throw'); assert.equal(status.state.penalized, true);
   assert.equal((await f.run('shop')).redirected, false); assert.equal((await f.run('diamonds')).redirected, false);
-  const stocked = await f.run('buy-spicy', { quantity: '1' }); assert.equal(stocked.outcome, 'ok'); assert.equal(stocked.state.wallet.diamonds, 99);
+  const stocked = await f.run('buy-spicy', { quantity: '1' }); assert.equal(stocked.outcome, 'ok'); assert.equal(stocked.state.wallet.diamonds, 100); assert.equal(stocked.state.wallet.snow, s.wallet.snow - 1000);
   assert.equal((await f.run('throw')).state.penalized, false, 'only an actual Throw command refreshes accuracy');
 });
 

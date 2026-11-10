@@ -90,7 +90,7 @@ function createController({ store, config, environment, botAdminId, clock = Date
           } catch (error) {
             // Definite Discord rejection is safe to report as failed. Ambiguous
             // transport/server failures are retained for inspection, never resent.
-            const definite = [50007, 50001, 50013, 10003, 10008].includes(error.code)
+            const definite = [50007, 50278, 50001, 50013, 10003, 10008].includes(error.code)
             await store.finish(delivery.key, definite ? 'failed' : 'uncertain', null, `Delivery unavailable (${error.code || 'transport'}).`)
           }
         } catch {

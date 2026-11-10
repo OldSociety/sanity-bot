@@ -38,6 +38,17 @@ test('a successful Monday opening suppresses its Tuesday backup', async t => {
   assert.equal((await f.store.deliveries('notice:monday:2026-11-02:owner')).some(d => d.key.endsWith(':backup')), false)
 })
 
+test('Discord no-mutual-guild rejection is definite and allows the scheduled backup', async t => {
+  const f = productionFixture(); t.after(() => f.store.close())
+  f.setDMError(Object.assign(Error('No mutual guilds'), { code: 50278 }))
+  await run(f, '2026-11-02T20:00:00Z')
+  const id = 'notice:monday:2026-11-02:owner'
+  assert.equal((await f.store.deliveries(id))[0].status, 'failed')
+  f.setDMError(null)
+  await run(f, '2026-11-03T20:00:00Z')
+  assert.equal((await f.store.deliveries(id)).find(d => d.key.endsWith(':backup')).status, 'sent')
+})
+
 test('Friday outage sends Saturday backup and extends only that recipient through Saturday night', async t => {
   const f = productionFixture(); t.after(() => f.store.close())
   await run(f, '2026-11-07T20:00:00Z')

@@ -15,8 +15,7 @@ function run(seed, visitMinutes, openingSnow) {
     act('throw');
     while (s.accuracy < 100 && s.wallet.sweat >= s.strength + s.accuracy + s.defense + s.special + 1) act('train-accuracy');
     if (s.tiers[2].wins < 100) {
-      if (s.wallet.snow >= 1000) act('diamonds-convert', 'max');
-      if (s.wallet.diamonds) act('buy-spicy', 'max');
+      if (s.wallet.snow >= M.rules.redSnowCost) act('buy-spicy', 'max');
       if (s.wallet.red) act('equip-red');
     } else {
       stoppedSpicyAt ??= s.now;

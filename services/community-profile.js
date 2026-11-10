@@ -1,7 +1,7 @@
 const { AttachmentBuilder } = require('discord.js')
 const plots = require('./plot-points')
 const { serialize } = require('./spooky/economy')
-const { badges: catalog, defineBadgeModel } = require('./badges')
+const { profileCatalog: catalog, defineBadgeModel } = require('./badges')
 const { excludedMember } = require('./member-policy')
 const { renderProfileCard, discordImage } = require('./profile-card')
 const { readBadgeImage } = require('./profile-badge-art')

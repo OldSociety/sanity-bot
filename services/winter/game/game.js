@@ -18,7 +18,17 @@ const HOUR = 3600000;
 const brown = require('./brown-snowballs');
 const secretCharacters = require('./characters');
 const fingerprint = createHash('sha256')
-  .update(JSON.stringify({ rules, settings, bookmarks, emporium, s4, brown: brown.identity }))
+  .update(
+    JSON.stringify({
+      rules,
+      settings,
+      bookmarks,
+      emporium,
+      s4,
+      brown: brown.identity,
+      ammunitionCurrency: 'snow'
+    })
+  )
   .digest('hex');
 // Exact pre-November-1 rules/settings/bookmarks identity. Never accept arbitrary
 // unknown saves or rewrite a historical bookmark as if it used the new balance.
@@ -40,6 +50,8 @@ const beforeSecretCharacterFingerprint =
   '7139b015bb8a70a680d70154823e66a12f0c5c2ee5f43c7476d91bada29edbdf';
 const beforeFlowAuditFingerprint =
   '0ae40ab4e466f1838d1c1d71b3506336d0eb58bc77340ce6d4e8fb3a9fa0e4cd';
+const beforeSnowAmmoFingerprint =
+  'f5189d22b7fc40318e950a63f95994928e7162ae6638ee74132abe8706ce58ad';
 function upgradeOpeningBalance(s) {
   if (s.fingerprint === fingerprint) return false;
   if (
@@ -57,7 +69,8 @@ function upgradeOpeningBalance(s) {
       beforeIdolFingerprint,
       beforeBrownFingerprint,
       beforeSecretCharacterFingerprint,
-      beforeFlowAuditFingerprint
+      beforeFlowAuditFingerprint,
+      beforeSnowAmmoFingerprint
     ].includes(s.fingerprint)
   )
     throw Error('Invalid time or incompatible saved rules.');
@@ -97,7 +110,9 @@ function upgradeOpeningBalance(s) {
   if (s.fingerprint === earlyJacketFingerprint)
     record('s3-price-2026-11-02', s3PriceFingerprint, s.enemyHp);
   record(
-    s.fingerprint === beforeFlowAuditFingerprint
+    s.fingerprint === beforeSnowAmmoFingerprint
+      ? 'snow-ammunition-2026-11-03'
+      : s.fingerprint === beforeFlowAuditFingerprint
       ? 'chapter-two-flow-2026-11-03'
       : s.fingerprint === beforeSecretCharacterFingerprint
       ? 'nnorahc-2026-11-03'
@@ -570,10 +585,7 @@ function action(
     return brown.read(s);
   }
   if (name.startsWith('garden-')) {
-    requireThat(
-      diagnostic || s.soupKitchenOwned,
-      'Support the Soup Kitchen at the Emporium to visit the Pond.'
-    );
+    requireThat(s.soupKitchenOwned, 'Support the Soup Kitchen at the Emporium to visit the Pond.');
     const message = require('./pond').act(s, name, q);
     validate(s);
     return message;
@@ -778,7 +790,10 @@ function action(
     milestone(s, 'purchaseS1');
     if (!s.liveRules) startCombat(s);
   } else if (name === 'end-chapter0') {
-    requireThat(s.chapter0Pending && s.oldStone, 'This chapter transition is already finished.');
+    requireThat(
+      diagnostic && s.chapter0Pending && s.oldStone,
+      'This diagnostic transition is not available.'
+    );
     s.chapter0Pending = false;
     s.chapter = 1;
     s.tutorialStage = null;
@@ -825,24 +840,34 @@ function action(
     milestone(s, 'purchaseS4');
     return 'Snowman 4 unlocked. Fireballs can damage it.';
   } else if (name === 'buy-ice-recipe') {
-    requireThat(!liveShop || s.chapter > 1, 'Recipes become available after Chapter 1.');
+    requireThat(
+      !liveShop || s.chapter > 1,
+      'This recipe becomes available after unlocking Snowman 3.'
+    );
     requireThat(s.redRecipe && !s.iceRecipe, 'Discover Spicy first, or you already know Ice.');
     change(s, shopCurrency, -shopCost(rules.iceRecipeSnowCost), 'ice-recipe');
     s.iceRecipe = true;
     milestone(s, 'iceRecipe');
-  } else if (name === 'buy-red-diamonds') {
-    requireThat(s.redRecipe, 'Discover Spicy Snowballs first.');
-    const n = amount(s, q, 'diamonds', 1);
-    change(s, 'diamonds', -n, 'ammunition');
-    change(s, 'red', n, 'ammunition');
-  } else if (name === 'buy-spicy' || name === 'buy-ice') {
-    const ice = name === 'buy-ice',
+  } else if (
+    ['buy-red-diamonds', 'buy-spicy', 'buy-ice', 'quick-buy-red', 'quick-buy-ice'].includes(name)
+  ) {
+    const quick = name.startsWith('quick-buy-');
+    const ice = name.endsWith('ice'),
       type = ice ? 'ice' : 'red',
       cost = ice ? rules.iceSnowCost : rules.redSnowCost;
     requireThat(ice ? s.iceRecipe : s.redRecipe, 'Discover this recipe first.');
-    const n = amount(s, q, shopCurrency, shopCost(cost));
-    change(s, shopCurrency, -n * shopCost(cost), 'ammunition');
+    if (quick) {
+      requireThat(s.owned[1] && !ammoAvailable(s, type), 'Use the Shop to buy more ammunition.');
+      requireThat(q === 'max', 'Quick purchases buy Max only.');
+    }
+    const n = amount(s, quick ? 'max' : q, 'snow', cost);
+    requireThat(
+      !quick || !s.fireFlowerOwned || ice || n + s.wallet.red >= 5,
+      'You need enough snow for five Spicy Snowballs to use a Fire Ball.'
+    );
+    change(s, 'snow', -n * cost, 'ammunition');
     change(s, type, n, 'ammunition');
+    if (quick) s.equipped = type;
   } else if (name.startsWith('equip-')) {
     const type = name.slice(6);
     requireThat(
@@ -972,7 +997,7 @@ function action(
   } else
     requireThat(
       ['status', 'help', 'shop', 'kitchen', 'emporium', 'diamonds'].includes(name),
-      'This control is unavailable in the Chapter 1 playtest.'
+      'This control is unavailable.'
     );
   validate(s);
   return null;

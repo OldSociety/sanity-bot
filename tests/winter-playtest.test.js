@@ -110,7 +110,7 @@ test('throw restores accuracy without resetting player cadence; supply exhaustio
 test('passive snowball buttons reflect selected, available and discovered ammunition', () => {
   const s = M.fresh('gym'); M.change(s, 'snow', 100, 'fixture');
   const output = () => screen({ state: s, run: null, action: 'throw' }, 'u');
-  const choices = () => output().components.flatMap(r => r.components).filter(b => b.data.custom_id.includes(':equip-'));
+  const choices = () => output().components.flatMap(r => r.components).filter(b => /:(equip-|quick-buy-)/.test(b.data.custom_id));
   let buttons = choices(); assert.equal(buttons.length, 2); assert.equal(buttons[0].data.style, 3); assert.equal(buttons[0].data.disabled, false);
   assert.equal(buttons[1].data.style, 2); assert.equal(buttons[1].data.disabled, true); assert(!buttons.some(b => b.data.label.includes('Ice')));
   M.change(s, 'red', 2, 'fixture'); M.action(s, 'equip-red');
@@ -127,7 +127,7 @@ test('empty ammunition cannot be equipped; fallback retains the preference and r
   M.change(s, 'red', 1, 'fixture'); M.action(s, 'equip-red'); M.action(s, 'throw'); M.settle(s, 6000);
   assert.equal(s.equipped, 'red'); assert.equal(s.tiers[1].red, 1); assert.equal(s.tiers[1].regular, 1);
   const output = screen({ state: s, run: null, action: 'throw' }, 'u');
-  const chosen = output.components.flatMap(r => r.components).find(b => b.data.custom_id.includes(':equip-red:'));
+  const chosen = output.components.flatMap(r => r.components).find(b => b.data.custom_id.includes(':quick-buy-red:'));
   assert.equal(chosen.data.style, 3); assert.equal(chosen.data.disabled, true);
   assert(!output.embeds[0].data.fields.some(f => f.name === 'Equipped'));
   const clock = s.nextPlayerAt, hp = s.enemyHp;

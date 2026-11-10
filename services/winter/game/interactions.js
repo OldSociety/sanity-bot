@@ -9,6 +9,7 @@ const { isAdminAction } = require('./admin');
 const { createControls } = require('./buttons');
 const settings = require('../../../config/winter/game/settings.json');
 function enabled() {
+  if (require('../snowball-fight/runtime').enabled()) return false;
   return (
     process.env.NODE_ENV === 'development' &&
     settings.enabled &&
@@ -51,9 +52,39 @@ function createRuntime({
     const receivedAt = Date.now(),
       started = measure();
     const key = `${i.guildId}:${i.user.id}`;
-    return enqueue(key, () => processInteraction(i, receivedAt, started));
+    // Discord's acknowledgment deadline must not wait for an earlier edit or
+    // offline combat settlement. Mutations still run in the per-player queue.
+    const parts = i.isButton?.() ? i.customId.split(':') : [];
+    const update = parts[1] === i.user.id && controls.accepts(i) && !authorize(i);
+    const acknowledgment = (async () => {
+      try {
+        if (update) await i.deferUpdate();
+        else await i.deferReply({ ephemeral: true });
+      } catch (error) {
+        console.error(
+          'Winter interaction failure:',
+          JSON.stringify({
+            at: receivedAt,
+            id: i.id,
+            action: parts[4] || i.options?.getSubcommand?.(),
+            run: parts[3],
+            phase: 'acknowledgment',
+            code: error.code,
+            message: error.message
+          })
+        );
+        return null;
+      }
+      return measure();
+    })();
+    // Reserve queue order at receipt, even if acknowledgments finish out of order.
+    return enqueue(key, async () => {
+      const acknowledged = await acknowledgment;
+      if (acknowledged === null) return;
+      return processInteraction(i, receivedAt, started, acknowledged);
+    });
   }
-  async function processInteraction(i, receivedAt, started) {
+  async function processInteraction(i, receivedAt, started, acknowledged) {
     const processing = measure();
     const isButton = Boolean(i.isButton?.());
     let staleOwned = false;
@@ -98,11 +129,9 @@ function createRuntime({
     }
     // An unauthorized attempt is still an interaction in the actor's existing run.
     // Replies are private and never modify someone else's message.
-    // Remove the screen from the expiry worker before the first Discord await.
+    // Once this queued turn begins, retire the screen before further Discord work.
     const retirement = !denied ? controls.retire(i, !isButton) : null;
-    if (isButton && !denied) await i.deferUpdate();
-    else await i.deferReply({ ephemeral: true });
-    const acknowledged = measure();
+    let phase = 'processing';
     try {
       // Old messages from before a restart have no in-memory handle. Clicking
       // one lets Discord remove its controls; never clear a newer screen when
@@ -145,6 +174,7 @@ function createRuntime({
             }
       });
       const engineEnd = measure();
+      phase = 'render';
       const output = denied
         ? { content: receipt.message, embeds: [], components: [], allowedMentions: { parse: [] } }
         : screen(receipt, i.user.id, diagnostic);
@@ -159,6 +189,7 @@ function createRuntime({
       }
       const ids = denied ? new Set() : controls.decorate(output);
       const rendered = measure();
+      phase = 'delivery';
       const result = await i.editReply(output);
       const delivered = measure();
       if (!denied)
@@ -172,8 +203,8 @@ function createRuntime({
             id: i.id,
             guildId: i.guildId,
             userId: i.user.id,
-            queueMs: processing - started,
-            ackMs: acknowledged - processing,
+            queueMs: Math.max(0, processing - acknowledged),
+            ackMs: acknowledged - started,
             engineMs: engineEnd - engineStart,
             renderMs: rendered - engineEnd,
             deliveryMs: delivered - rendered,
@@ -189,7 +220,17 @@ function createRuntime({
       void pulse();
       return result;
     } catch (error) {
-      console.error('Winter Chapter 1 playtest:', error.message);
+      console.error(
+        'Winter interaction failure:',
+        JSON.stringify({
+          at: receivedAt,
+          id: i.id,
+          action,
+          phase,
+          code: error.code,
+          message: error.message
+        })
+      );
       return i.editReply({
         content:
           'This request could not finish. Open /snow status before repeating a purchase. Your saved run and committed rewards remain in SQLite.',
@@ -232,7 +273,19 @@ function createRuntime({
           try {
             await i.editReply(output);
             controls.updated(entry, ids, isFight(view));
-          } catch {
+          } catch (error) {
+            console.error(
+              'Winter interaction failure:',
+              JSON.stringify({
+                at: Date.now(),
+                id: i.id,
+                action: 'capture',
+                run: entry.run,
+                phase: 'live-delivery',
+                code: error.code,
+                message: error.message
+              })
+            );
             await controls.retire(i);
           }
         });

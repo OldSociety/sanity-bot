@@ -76,7 +76,8 @@ function viewFor(action) {
   if (
     ['throw', 'attack', 'attack-spicy', 'craft'].includes(action) ||
     /^select-s(?:[1-9]|10)$/.test(action) ||
-    action?.startsWith('equip-')
+    action?.startsWith('equip-') ||
+    action?.startsWith('quick-buy-')
   )
     return 'throw';
   if (
@@ -127,7 +128,8 @@ function pathHint(s, known) {
   if (!s.redRecipe && known.kitchen)
     return 'Use /snow kitchen to meet Kylax and discover your first recipe.';
   if (!s.redRecipe) return 'Use /snow throw to practice with the Rough Snowman.';
-  if (!s.oldStone) return 'Requia has Old Stone in /snow shop. Buying it finishes Chapter 0.';
+  if (!s.oldStone)
+    return 'Requia has Old Stone in /snow shop. Bring it to her to receive a Stone Shovel.';
   if (s.roughHp > 0) return 'Use /snow throw to finish the Rough Snowman.';
   if (!s.owned[1]) return 'Use /snow shop to get S1, then /snow throw to start your idle fight.';
   if (s.gymUnlocked && !s.gymEntered) return 'You can now visit Hendrix with /snow gym.';
@@ -273,7 +275,7 @@ function screen(receipt, userId, diagnostic = false) {
       );
       row(button('restart', 'Reset', false, '1', ButtonStyle.Danger));
     }
-  } else if ((s.chapter === 2 && !chapterTwo(s)) || (run && run.status !== 'active')) {
+  } else if (run && run.status !== 'active') {
     embed.addFields({
       name: 'Test saved',
       value: run
@@ -452,7 +454,7 @@ function screen(receipt, userId, diagnostic = false) {
       embed.addFields({
         name: 'Azulis’s Emporium',
         value: known.buttons
-          ? 'You found a Button. Emporium purchases continue in Chapter 2.'
+          ? 'You found a Button. Keep progressing to discover Emporium purchases.'
           : 'There is nothing to do here yet. Continue your current path.'
       });
     else if (view === 'status' || view === 'help') {
@@ -510,7 +512,7 @@ function screen(receipt, userId, diagnostic = false) {
                   : 'Use your new recipe to finish it.'
               }`
             : !s.oldStone
-            ? 'Buy Old Stone from Requia to receive the Stone shovel and finish Chapter 0.'
+            ? 'Buy Old Stone from Requia to receive the Stone shovel.'
             : 'Purchase S1 at the shop, then return to Throw.'
           : `S${s.target}: ${s.tiers[s.target].wins} victories · ${
               s.tiers[s.target].losses
@@ -554,15 +556,20 @@ function screen(receipt, userId, diagnostic = false) {
           ...(s.gymUnlocked && !s.gymEntered ? [button('train', 'Visit Hendrix')] : [])
         );
         row(
-          ...ammunition.map(([type, label]) =>
-            button(
-              `equip-${type}`,
-              label,
-              !M.ammoAvailable(s, type),
-              '1',
+          ...ammunition.map(([type, label]) => {
+            const quick = ['red', 'ice'].includes(type) && !M.ammoAvailable(s, type);
+            const cost =
+              type === 'ice'
+                ? M.rules.iceSnowCost
+                : M.rules.redSnowCost * (s.fireFlowerOwned ? Math.max(1, 5 - s.wallet.red) : 1);
+            return button(
+              quick ? `quick-buy-${type}` : `equip-${type}`,
+              quick ? `${label} · Buy Max` : label,
+              quick ? s.wallet.snow < cost : !M.ammoAvailable(s, type),
+              quick ? 'max' : '1',
               s.equipped === type ? ButtonStyle.Success : ButtonStyle.Secondary
-            )
-          )
+            );
+          })
         );
       }
     }

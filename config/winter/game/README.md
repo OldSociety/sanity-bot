@@ -11,6 +11,8 @@
 
 Shop prices in `balance.json` use **snow equivalents**. The game converts these at `diamondSnowCost` for diamond purchases. With the current 1,000-snow conversion, S3's `3000000` means 3,000 diamonds and S4's `8000000` means 8,000 diamonds. Edit that single price, not a copied button label.
 
+Spicy and Ice ammunition spend snow directly: `redSnowCost` (currently 1,000) and `iceSnowCost` (currently 2,000). Equipment and recipe unlocks still spend diamonds. The Shop offers quantities; an exhausted ammunition control on Throw buys Max and equips it without resetting the fight. Fire needs five Spicy per attack.
+
 `snowmen` rows hold each tier's base values. `statPercent` scales the complete grown HP/damage total. S2's opening fields apply before that percentage. Do not confuse completed victories with player defeats.
 
 The `version` field is an existing saved-state identifier. Old save compatibility is handled in `services/winter/game/game.js`; do not rename old identifiers or erase upgrade histories to make a changed save load.

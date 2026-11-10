@@ -9,8 +9,7 @@ function project(checkpoint, seed, interval, fire = true) {
   function visit() {
     act('throw');
     while (s.strength < 100 && s.wallet.sweat >= s.strength + s.accuracy + s.defense + s.special + 1) act('train-strength');
-    if (s.wallet.snow >= 1000) act('diamonds-convert', 'max');
-    if (s.wallet.diamonds) act('buy-spicy', 'max');
+    if (s.wallet.snow >= M.rules.redSnowCost) act('buy-spicy', 'max');
     if (M.ammoAvailable(s, 'red')) act('equip-red');
   }
   visit();

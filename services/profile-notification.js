@@ -1,6 +1,6 @@
 const { AttachmentBuilder } = require('discord.js')
 const { renderProfileCard, recentBadges, discordImage } = require('./profile-card')
-const { createBadges, badges: catalog } = require('./badges')
+const { createBadges, profileCatalog: catalog } = require('./badges')
 const { adminMember, excludedMember } = require('./member-policy')
 function createProfileNotification({ User, badgeService = createBadges({ sequelize: User.sequelize }), render = renderProfileCard,
   download = discordImage, environment = process.env.NODE_ENV, guildId = process.env.GUILDID, logger = console }) {

@@ -170,8 +170,11 @@ function createHandler({
 }
 const legacyHandle = createHandler();
 const playtest = () => require('./game/interactions');
-const handle = interaction => playtest().enabled() ? playtest().runtime().handle(interaction) : legacyHandle(interaction);
+const handle = interaction => require('./snowball-fight/runtime').enabled()
+  ? interaction.reply({ content: 'Winter idle controls have been retired. Use /snowball-fight start.', ephemeral: true, allowedMentions: { parse: [] } })
+  : playtest().enabled() ? playtest().runtime().handle(interaction) : legacyHandle(interaction);
 function startMaintenance(client) {
+  if (require('./snowball-fight/runtime').enabled()) return;
   if (playtest().enabled()) return playtest().runtime().start(client);
   legacyHandle.setClient(client);
   legacyHandle.live.start();

@@ -5,7 +5,7 @@ const { screen } = require('../services/winter/game/screens');
 const controls = out => out.components.flatMap(r => r.components);
 
 test('three consecutive Spicy batches retain the full Shop and remaining affordable controls', () => {
-  const s = M.fresh('gym'); M.change(s, 'diamonds', 300, 'fixture');
+  const s = M.fresh('gym'); M.change(s, 'snow', 300000, 'fixture');
   for (let batch = 1; batch <= 3; batch++) {
     M.action(s, 'buy-spicy', '100', { shopCurrency: 'diamonds' });
     const out = screen({ state: s, action: 'buy-spicy', outcome: 'accepted' }, 'u');
@@ -13,7 +13,8 @@ test('three consecutive Spicy batches retain the full Shop and remaining afforda
     assert.match(out.embeds[0].data.description, /You purchased 🔴 Spicy Snowballs/);
     assert(out.embeds[0].data.fields.some(f => f.name.includes('Spicy Snowballs')));
     assert.equal(s.wallet.red, batch * 100);
-    assert.equal(s.wallet.diamonds, 300 - batch * 100);
+    assert.equal(s.wallet.snow, 300000 - batch * 100000);
+    assert.equal(s.wallet.diamonds, 0);
     assert.equal(controls(out).at(-1).data.label, 'Refresh');
     assert.equal(controls(out).some(b => b.data.label.includes('×100')), batch < 3);
     assert(controls(out).some(b => b.data.label === 'Throw'));

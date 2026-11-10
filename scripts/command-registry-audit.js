@@ -56,6 +56,7 @@ function definition(source, filename, environment = process.env.NODE_ENV || 'dev
         '../services/spooky/command-definition',
       '../../services/spooky/admin-command': '../services/spooky/admin-command',
       '../../services/badges': '../services/badges',
+      '../../config/winter/snowball-fight.json': '../config/winter/snowball-fight.json',
     }
     if (safe[name]) return require(safe[name])
     throw new Error(`Unreviewed definition import: ${name} (${filename})`)

@@ -9,6 +9,8 @@ function eventWindow(key, environment) {
   return window
 }
 function commandEnabled(command, environment, now = Date.now()) {
+  if ((command.name || command.data?.name) === 'snowball-fight' && (environment !== 'development' || !require('../config/winter/snowball-fight.json').enabled)) return false
+  if ((command.name || command.data?.name) === 'snow' && environment === 'development' && require('../config/winter/snowball-fight.json').enabled) return false
   // Cocoa/Idle remain development-only; Arena has a channel-scoped locked production test.
   if (['cocoa', 'idle'].includes(command.name || command.data?.name) && environment !== 'development') return false
   if ((command.name || command.data?.name) === 'arena' && environment !== 'development' && !(environment === 'production' && require('../config/arena/arena-testing.json').productionEnabled)) return false

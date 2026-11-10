@@ -37,9 +37,10 @@ function selector({ targets, page = 0, fight, back, optional = [], previous, nex
 }
 function fight(items) {
   const action = (b) => b.data.custom_id.split(':')[4];
-  const ammo = items.filter((b) => action(b).startsWith('equip-'));
+  const isAmmo = (b) => action(b).startsWith('equip-') || action(b).startsWith('quick-buy-');
+  const ammo = items.filter(isAmmo);
   const refresh = items.find((b) => b.data.label === 'Refresh');
-  const navigation = items.filter((b) => !action(b).startsWith('equip-') && b !== refresh);
+  const navigation = items.filter((b) => !isAmmo(b) && b !== refresh);
   if (refresh) navigation.push(refresh);
   const result = [...rows(ammo), ...rows(navigation)];
   if (result.length > 5)

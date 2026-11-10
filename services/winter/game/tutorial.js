@@ -75,6 +75,7 @@ function step(s) {
     'throw',
     'shop',
     'buy-spicy',
+    'quick-buy-red',
     'buy-red-diamonds',
     'diamonds',
     'diamonds-convert',

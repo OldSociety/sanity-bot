@@ -50,9 +50,9 @@ function project({seed,visitHours,policy,horizon=168}) {
     if(s.owned[2]&&s.tiers[2].wins>=100&&worth()>=M.rules.snowmen[2].snowPrice&&fund(M.rules.snowmen[2].snowPrice/M.rules.diamondSnowCost)) {act('buy-s3');return;}
     const production=s.ledger.sources['gathering:snow:gained']||0;
     const regularReserve=Math.ceil(step/3000)*10;
-    const budget=Math.min(Math.max(0,worth()-regularReserve),Math.floor((production-previousProduction)/2));
+    const budget=Math.min(Math.max(0,s.wallet.snow-regularReserve),Math.floor((production-previousProduction)/2));
     const count=Math.floor(budget/1000);
-    if(count&&fund(count))batches(count,q=>act('buy-spicy',q));
+    if(count && s.wallet.snow >= count * M.rules.redSnowCost)batches(count,q=>act('buy-spicy',q));
     if(M.ammoAvailable(s,'red'))act('equip-red');
     previousProduction=production;
   };
@@ -96,7 +96,7 @@ function main(){
   const prefix=mode+(startingPoint==='fresh'?'-fresh':'');
   fs.writeFileSync(path.join(directory,`${prefix}-results.json`),JSON.stringify({mode,startingPoint,rows},null,2));
   const report={mode,startingPoint,histories:rows.length,replays:replay.length,manifest,summary,controls:rows.filter(r=>r.policy!=='train-restock').map(({finalState,...r})=>r),
-    assumptions:(startingPoint==='saved'?'Saved Run9 STR20/S2-25 checkpoint with real balances and saved RNG in first sample; includes outstanding idle time. Hours relative to last saved checkpoint.':'Fresh post-Gym STR3/Stone fixture, zero currencies/ammo and zero wins; tutorial preparation time excluded. Hours from fixture start.')+' Full native live mechanics. Other samples use explicitly varied future RNG. Train STR with earned Sweat; Iron first; half newly produced snow funds finite Spicy batches with regular reserve; convert through real diamonds controls; no Ice before Chapter1 ends. Game-time at1x. No optimality or S3 combat claim.'};
+    assumptions:(startingPoint==='saved'?'Saved Run9 STR20/S2-25 checkpoint with real balances and saved RNG in first sample; includes outstanding idle time. Hours relative to last saved checkpoint.':'Fresh post-Gym STR3/Stone fixture, zero currencies/ammo and zero wins; tutorial preparation time excluded. Hours from fixture start.')+' Full native live mechanics. Other samples use explicitly varied future RNG. Train STR with earned Sweat; Iron first; half newly produced snow funds finite Spicy batches with regular reserve; buy ammunition directly with snow and convert equipment funds through real diamonds controls; no Ice before Chapter1 ends. Game-time at1x. No optimality or S3 combat claim.'};
   fs.writeFileSync(path.join(directory,`${prefix}-summary.json`),JSON.stringify(report,null,2));
   console.log(JSON.stringify({mode,histories:report.histories,replays:report.replays,summary,controls:report.controls.map(r=>({policy:r.policy,visitHours:r.visitHours,final:r.final}))}));
 }

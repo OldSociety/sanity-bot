@@ -44,7 +44,7 @@ test('S3 shop groups Spicy, unnamed recipes, and locked S4', () => {
   const s4 = out.components.flatMap(row => row.components).find(b => b.data.custom_id.includes(':buy-s4:'));
   assert(s4.data.disabled); assert.match(s4.data.label, /8k💎/);
   assert(!actions.some(id => /:buy-(?:yellow|necro):/.test(id)));
-  M.change(s, 'diamonds', 10002, 'fixture'); M.action(s, 'buy-ice-recipe', undefined, { shopCurrency: 'diamonds' });
+  M.change(s, 'diamonds', 10002, 'fixture'); M.change(s, 'snow', 2000, 'fixture'); M.action(s, 'buy-ice-recipe', undefined, { shopCurrency: 'diamonds' });
   M.action(s, 'buy-ice', '1', { shopCurrency: 'diamonds' }); assert.equal(s.wallet.ice, 1);
   const after = screen({ state: s, action: 'shop', run: null }, 'u');
   assert.match(after.embeds[0].data.fields.find(f => f.name === 'Snowballs').value, /Ice Snowballs/);
@@ -53,13 +53,13 @@ test('S3 shop groups Spicy, unnamed recipes, and locked S4', () => {
 
 test('purchased Ice recipe leaves the Shop while Ice ammunition remains available', () => {
   const s = M.fresh('s3', 1); s.liveRules = true;
-  M.change(s, 'diamonds', 10002, 'fixture');
+  M.change(s, 'diamonds', 10002, 'fixture'); M.change(s, 'snow', 2000, 'fixture');
   M.action(s, 'buy-ice-recipe', '1', { shopCurrency: 'diamonds' });
   const out = screen({ state: s, action: 'shop' }, 'u');
   const fields = Object.fromEntries(out.embeds[0].data.fields.map(f => [f.name, f.value]));
   assert(!fields.Recipes.includes('Recipe #1'));
   assert.match(fields.Recipes, /Recipe #2.*Unavailable/);
-  assert.match(fields.Snowballs, /Ice Snowballs.*2💎/);
+  assert.match(fields.Snowballs, /Ice Snowballs.*2,000❄️/);
   const controls = out.components.flatMap(r => r.components);
   assert(!controls.some(b => b.data.custom_id.includes(':buy-ice-recipe:')));
   assert(controls.some(b => b.data.custom_id.includes(':buy-ice:') && !b.data.disabled));

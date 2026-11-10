@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js')
 const draft = require('../config/commands/achievement-preview.json')
+const { progressBar } = require('./achievement-progress')
 
 const states = {
   locked: {
@@ -20,11 +21,6 @@ const states = {
   },
 }
 const pieces = ['PB1C', 'PB1E', 'PB2C', 'PB2E', 'PB3F', 'PB3E']
-const layouts = {
-  empty: ['PB1E', 'PB2E', 'PB2E', 'PB3E'],
-  half: ['PB1C', 'PB2C', 'PB2E', 'PB3E'],
-  full: ['PB1C', 'PB2C', 'PB2C', 'PB3F'],
-}
 
 async function achievementPreview(client, state = 'progress') {
   const view = states[state]
@@ -36,10 +32,7 @@ async function achievementPreview(client, state = 'progress') {
   ]))
   const missing = pieces.filter(name => !emojis[name])
   if (missing.length) throw Error(`Missing progress bar emojis: ${missing.join(', ')}`)
-  const bar = fill => layouts[fill].map(name => {
-    const emoji = emojis[name]
-    return `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}>`
-  }).join('')
+  const bar = fill => progressBar({ empty: 0, half: 1, full: 2 }[fill], 2, emojis)
   const rows = draft.tasks.map(task => {
     const value = state === 'unlocked' ? task.target
       : state === 'locked' ? 0 : task.sampleProgress

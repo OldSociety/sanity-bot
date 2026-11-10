@@ -8,6 +8,8 @@ const { screen } = require('../services/winter/game/screens');
 test('Pond tug-of-war catches weighed fish and donates without changing combat or currency', () => {
   const s = M.fresh('s3', 1); const rng = s.rng, wallet = structuredClone(s.wallet);
   assert.throws(() => M.action(s, 'garden-open'), /Soup Kitchen/);
+  assert.throws(() => M.action(s, 'garden-open', undefined, { diagnostic: true }), /Soup Kitchen/);
+  s.soupKitchenOwned = true;
   const act = (name, q) => M.action(s, name, q, { diagnostic: true });
   act('garden-open'); assert.throws(() => act('garden-cast', 'invalid'), /spot/);
   act('garden-cast', 'shallows'); act('garden-reel'); act('garden-reel');
@@ -24,6 +26,7 @@ test('Pond tug-of-war catches weighed fish and donates without changing combat o
 
 test('legacy unweighed fish are preserved and never invented as pounds', () => {
   const s = M.fresh('s3', 2);
+  s.soupKitchenOwned = true;
   s.garden = { phase: 'waiting', rng: 12, held: 1, caught: 3, donated: 2, missed: 0, collection: { Trout: 3 } };
   const act = (name, q) => M.action(s, name, q, { diagnostic: true });
   act('garden-open'); assert.equal(s.garden.phase, 'idle'); assert.equal(s.garden.unweighedHeld, 1);
@@ -36,6 +39,9 @@ test('Kitchen and Pond preserve weighted donations, action replay and ongoing co
   let i = 0, now = 0; const store = createStore({ sequelize: db, clock: () => now, seed: () => 5 });
   const run = (action, quantity, id = `pond-${++i}`) => store.execute({ id, guildId: 'g', userId: 'u', action, quantity });
   await store.execute({ id: 'start', guildId: 'g', userId: 'u', action: 'diagnostic', diagnostic: { mode: 'start', speed: 1, bookmark: 's3', stopAt: 'none', reportMinutes: 0, channelId: 'c' } });
+  const [[saved]] = await db.query('SELECT state FROM WinterPlaytestRuns WHERE id=1');
+  const unlocked = JSON.parse(saved.state); unlocked.soupKitchenOwned = true;
+  await db.query('UPDATE WinterPlaytestRuns SET state=$state WHERE id=1', { bind: { state: JSON.stringify(unlocked) } });
   await run('throw'); now = 60000;
   const kitchen = await run('kitchen'); const payload = screen(kitchen, 'u');
   assert.equal(kitchen.state.tiers[3].attacks, 20); assert.equal(kitchen.state.active, true);

@@ -15,7 +15,7 @@ const button = (record, action, label, style = ButtonStyle.Secondary) => new But
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons)
 const label = record => record.isTest ? 'TEST CHECK-IN' : 'CHECK-IN'
 function reminder(record) {
-  return { ...quiet, content: `${record.name}\nThis is your reminder to check in for the next game. After you complete this weeks to-dos, reach out to the DM for this week’s code. Use the /check-in command in #chat-in-hell to begin your check in.`, components: [] }
+  return { ...quiet, content: `${record.name}\nThis is your reminder to check in for the next game. After you complete this week's to-dos, reach out to the DM for this week's password. You need the password before you use the /check-in command in the server. Use the /check-in command in #chat-in-hell to begin your check in.`, components: [] }
 }
 function invitation(record) {
   return { ...quiet, content: `${label(record)} — ${record.name}${record.isTest ? '\nOwner-only development test. No game rewards or real attendance records.' : ''}`,

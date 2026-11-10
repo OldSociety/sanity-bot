@@ -1,5 +1,9 @@
 # Winter Wars: start here
 
+**Snowball Fight replaces the development idle game on the `snowball-fight` branch.**
+See [snowball-fight/README.md](snowball-fight/README.md) for commands, rules, verification and activation boundaries.
+The folders described below are preserved historical Winter code. Production routing is unchanged.
+
 The current development game lives in **[game/](game/README.md)**. Its editable numbers live in **[config/winter/game/](../../config/winter/game/README.md)**.
 
 This follows the project's original feature-folder approach: commands stay in `commands/Winter/`, game files stay together, and files use ordinary names such as `game.js`, `screens.js`, `pond.js` and `dialogue.js`.

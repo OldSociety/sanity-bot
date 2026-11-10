@@ -31,6 +31,10 @@ module.exports.run = async (client, message, args) => {
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (interaction.isButton?.() && interaction.customId?.startsWith('sf:')) {
+      await require('../services/winter/snowball-fight/runtime').handle(interaction)
+      return
+    }
     if (interaction.isButton?.() && interaction.customId?.startsWith('snow:')) {
       await require('../services/winter/runtime').handle(interaction)
       return

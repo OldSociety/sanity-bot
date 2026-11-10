@@ -1,6 +1,6 @@
 const { AttachmentBuilder } = require('discord.js')
 const { serialize } = require('./spooky/economy')
-const { createBadges, badges: catalog } = require('./badges')
+const { createBadges, profileCatalog: catalog } = require('./badges')
 const { renderProfileCard, recentBadges, discordImage } = require('./profile-card')
 const { excludedMember, adminMember } = require('./member-policy')
 

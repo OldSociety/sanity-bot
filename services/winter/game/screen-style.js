@@ -73,7 +73,7 @@ function restore(receipt, userId, output, location) {
   }
   if (receipt.tutorialView) view = receipt.tutorialView;
   if (s.liveRules && s.tutorialStage === 'gym' && !s.gymEntered) view = 'battle-defeat';
-  if (s.chapter0Pending) view = 'stone-unlocked';
+  if (s.chapter0Pending && receipt.run?.status === 'active') view = 'stone-unlocked';
   if (unavailable(s, action)) {
     view = 'not-ready';
     continueCommand = next();
@@ -329,24 +329,26 @@ function restore(receipt, userId, output, location) {
         if (chapterTwo(s))
           embed.addFields({
             name: 'Snowballs',
-            value: `🔴 \`Spicy Snowballs\` · **1💎 each**${
-              s.iceRecipe ? '\n🔵 `Ice Snowballs` · **2💎 each**' : ''
+            value: `🔴 \`Spicy Snowballs\` · **1,000❄️ each**${
+              s.iceRecipe ? '\n🔵 `Ice Snowballs` · **2,000❄️ each**' : ''
             }`
           });
-        else ware('🔴 `Spicy Snowballs`', '**1💎 each**');
+        else ware('🔴 `Spicy Snowballs`', '**1,000❄️ each**');
         original.components.push(
           row(
             ...['1', '10', '100', 'max']
               .filter(
                 (q) =>
                   q === '1' ||
-                  (q === 'max' ? s.wallet.diamonds > 0 : Number(q) <= s.wallet.diamonds)
+                  (q === 'max' ? s.wallet.snow >= 1000 : Number(q) * 1000 <= s.wallet.snow)
               )
               .map((q) =>
                 purchase(
                   'buy-spicy',
-                  q === 'max' ? 'Spicy 🔴 Max' : `Spicy 🔴 ×${q} · ${q}💎`,
-                  s.wallet.diamonds < (q === 'max' ? 1 : Number(q)),
+                  q === 'max'
+                    ? 'Spicy 🔴 Max'
+                    : `Spicy 🔴 ×${q} · ${compactNumber(Number(q) * 1000)}❄️`,
+                  s.wallet.snow < (q === 'max' ? 1000 : Number(q) * 1000),
                   q
                 )
               )
@@ -372,13 +374,15 @@ function restore(receipt, userId, output, location) {
               .filter(
                 (q) =>
                   q === '1' ||
-                  (q === 'max' ? s.wallet.diamonds >= 2 : Number(q) * 2 <= s.wallet.diamonds)
+                  (q === 'max' ? s.wallet.snow >= 2000 : Number(q) * 2000 <= s.wallet.snow)
               )
               .map((q) =>
                 purchase(
                   'buy-ice',
-                  q === 'max' ? 'Ice 🔵 Max' : `Ice 🔵 ×${q} · ${Number(q) * 2}💎`,
-                  s.wallet.diamonds < (q === 'max' ? 2 : Number(q) * 2),
+                  q === 'max'
+                    ? 'Ice 🔵 Max'
+                    : `Ice 🔵 ×${q} · ${compactNumber(Number(q) * 2000)}❄️`,
+                  s.wallet.snow < (q === 'max' ? 2000 : Number(q) * 2000),
                   q
                 )
               )
@@ -697,17 +701,13 @@ function restore(receipt, userId, output, location) {
     );
   }
   if (!lesson && action === 'recipe-cancel') original.components = [];
-  if (
-    view === 'kitchen' &&
-    action !== 'recipe-cancel' &&
-    (receipt.run?.status === 'active' || s.soupKitchenOwned)
-  )
+  if (view === 'kitchen' && action !== 'recipe-cancel' && s.soupKitchenOwned)
     original.components.splice(
       Math.max(0, original.components.length - 1),
       0,
       row(button('garden-open', 'Pond 🐟'))
     );
-  if (view === 'garden' && (receipt.run?.status === 'active' || s.soupKitchenOwned)) {
+  if (view === 'garden' && s.soupKitchenOwned) {
     const g = s.garden || { phase: 'idle', held: 0, heldTenths: 0, collection: {} };
     const total = s.foodDonatedTenths || 0,
       pond = require('./pond');
@@ -855,7 +855,7 @@ function restore(receipt, userId, output, location) {
         "You turned that old rock into a Stone Shovel 🪏? Why didn't I think of that? With it you're now collecting 36❄️/second. I'm sure there's other ways to improve it, just keep your eye out for materials. Until then, why don't you stock up on some more spicy snowballs and get back to the fight."
       )
     );
-    if (s.chapter0Pending)
+    if (s.chapter0Pending && receipt.run?.status === 'active')
       original.components = [row(button('end-chapter0', 'End of Chapter 0', ButtonStyle.Success))];
   }
   if (view === 'not-ready' || view === 'unavailable' || unavailable(s, action)) {
@@ -908,7 +908,9 @@ function restore(receipt, userId, output, location) {
             (name === 'diamonds' && !s.wooden) ||
             (name === 'shop' && s.dummyHp > 0) ||
             (name === 'kitchen' && !known.kitchen) ||
-            (name === 'train' && !s.gymUnlocked)
+            (name === 'train' && !s.gymUnlocked) ||
+            (name === 'end-chapter0' && receipt.run?.status !== 'active') ||
+            (name.startsWith('garden-') && !s.soupKitchenOwned)
           );
         })
       )
@@ -929,7 +931,7 @@ function restore(receipt, userId, output, location) {
         receipt.run.timings
       )}`.slice(0, 1024)
     });
-  if (view === 'kitchen' && (receipt.run?.status === 'active' || s.soupKitchenOwned))
+  if (view === 'kitchen' && s.soupKitchenOwned)
     embed.addFields({
       name: 'Total Food donated',
       value: `**${((s.foodDonatedTenths || 0) / 10).toFixed(1)} lbs**`
@@ -956,12 +958,13 @@ function formatCommands(output) {
       (b) =>
         action(b).startsWith('select-s') ||
         action(b).startsWith('equip-') ||
+        action(b).startsWith('quick-buy-') ||
         b.data.label === 'Refresh'
     );
     if (compactFight) {
       const groups = [
         buttons.filter((b) => action(b).startsWith('select-s')),
-        buttons.filter((b) => action(b).startsWith('equip-')),
+        buttons.filter((b) => action(b).startsWith('equip-') || action(b).startsWith('quick-buy-')),
         [refresh.at(-1)]
       ];
       output.components = groups

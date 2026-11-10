@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "guildId": "684459745167671453",
+  "collection": { "amount": 2, "cooldownMs": 60000, "starting": 10, "capacity": 50 },
+  "pvp": { "cost": 1, "cooldownMs": 10000, "hitChance": 0.7, "reward": 1, "dailyCap": 30, "sameTargetMs": 3600000, "reciprocalMs": 600000, "accuracyMinimum": 20 },
+  "daily": { "snowballs": 10, "buttons": 20 },
+  "combat": { "playerHp": 30, "damage": 6, "accuracy": 0.8, "maxRounds": 12, "expiresMs": 1800000, "heal": 10, "maxHeals": 2, "reward": 10, "badgeVictories": 3 },
+  "achievementReward": 5,
+  "items": [
+    { "id": "snowballs", "name": "Snowball bundle", "description": "Ten ordinary snowballs for PvP and character fights.", "category": "ammunition", "quantity": 10, "price": 5, "tradable": true },
+    { "id": "cocoa", "name": "Hot cocoa", "description": "Restore 10 HP during a character fight. Uses your turn; at most twice per encounter.", "category": "consumable", "quantity": 1, "price": 8, "capacity": 10, "tradable": false },
+    { "id": "snowflake", "name": "Snowflake decoration", "description": "A collectible decoration displayed on your profile. No combat bonus.", "category": "cosmetic", "quantity": 1, "price": 40, "capacity": 1, "tradable": false }
+  ],
+  "characters": [
+    { "id": "hen", "name": "Hendrix", "enabled": true, "hp": 30, "damage": 6, "accuracy": 0.7, "description": "Challenge Hendrix to a steady, hard-hitting snowball exchange.", "asset": "HENDRIX_BADGE.png" },
+    { "id": "kyl", "name": "Kylax", "enabled": true, "hp": 36, "damage": 5, "accuracy": 0.7, "description": "Outlast Kylax's patient defense.", "asset": "KYLAX_BADGE.png" },
+    { "id": "azu", "name": "Azulis", "enabled": true, "hp": 24, "damage": 8, "accuracy": 0.8, "description": "Keep pace with Azulis's accurate throws.", "asset": "AZULIS_BADGE.png" },
+    { "id": "req", "name": "Requia", "enabled": false, "asset": "REQUIA_BADGE.png" },
+    { "id": "max", "name": "Maxim", "enabled": false },
+    { "id": "nic", "name": "Nicklaus", "enabled": false },
+    { "id": "sel", "name": "Selene", "enabled": false, "asset": "SELENE_BADGE.png" },
+    { "id": "had", "name": "Hadley", "enabled": false },
+    { "id": "mrq", "name": "Marq", "enabled": false },
+    { "id": "qam", "name": "Qam", "enabled": false }
+  ]
+}

@@ -231,7 +231,12 @@ test('Discord slash and button screens are ephemeral, navigable, owner-validated
   assert.match(malformed.calls[0][1].content, /Invalid winter/)
 })
 
-test('command schema, winter window and bot-tests policy are enforced on commands and buttons', t => {
+test('historical command schema, winter window and bot-tests policy remain intact with the replacement disabled', t => {
+  // Exercise the preserved legacy route; replacement-enabled retirement is covered
+  // separately in snowball-fight.test.js. Keep every historical policy assertion.
+  const replacement = require('../config/winter/snowball-fight.json'), enabled = replacement.enabled
+  replacement.enabled = false
+  t.after(() => { replacement.enabled = enabled })
   const saved = { NODE_ENV: process.env.NODE_ENV, GUILDID: process.env.GUILDID }
   t.after(() => { for (const [key, value] of Object.entries(saved)) value === undefined ? delete process.env[key] : process.env[key] = value })
   const policy = require('../config/commands/channel-policy.json')

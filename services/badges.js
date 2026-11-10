@@ -2,6 +2,11 @@ const { DataTypes } = require('sequelize')
 const { serialize } = require('./spooky/economy')
 const catalog = require('../config/badges/badges.json')
 const badges = Object.freeze(catalog.badges.map(item => Object.freeze({ ...item, id: `${catalog.collectionId}:${item.characterId}` })))
+const profileCatalog = Object.freeze([...badges,
+  ...require('../config/winter/snowball-fight.json').characters.map(character => Object.freeze({
+    id: `snowball-fight:classic:${character.id}`, characterId: character.id, name: character.name,
+    imageCollection: 'Classic', imageAsset: character.asset
+  }))])
 function defineBadgeModel(sequelize) {
   return sequelize.models.BadgeOwnership || sequelize.define('BadgeOwnership', {
     guildId: { type: DataTypes.STRING, primaryKey: true }, userId: { type: DataTypes.STRING, primaryKey: true },
@@ -58,6 +63,18 @@ async function badgeField(guild, userId, sequelize) {
   const [ownedIds, emojiMap] = await Promise.all([service.owned(guild.id, userId), guild.emojis.fetch()])
   const spookyIds = ownedIds.filter(id => id.startsWith('spooky-2026:'))
   const winter = ownedIds.includes('winter-2026:hen') ? '\n\nWinter 2026 · 🏅 Hendrix' : ''
-  return { name: winter ? 'Badges' : 'Spooky 2026 Badges', value: `${renderBadges(spookyIds, [...emojiMap.values()])}\n${spookyIds.length}/7 collected${winter}` }
+  const classics = require('../config/winter/snowball-fight.json').characters
+    .filter(character => ownedIds.includes(`snowball-fight:classic:${character.id}`)).map(character => character.name)
+  const snowball = classics.length ? `\n\nSnowball Fight Classics · ${classics.join(', ')} (${classics.length}/10)` : ''
+  return { name: winter || snowball ? 'Badges' : 'Spooky 2026 Badges', value: `${renderBadges(spookyIds, [...emojiMap.values()])}\n${spookyIds.length}/7 collected${winter}${snowball}` }
 }
-module.exports = { badges, defineBadgeModel, createBadges, renderBadges, badgeField }
+// Shared transaction-aware ownership grant for collections with their own registries.
+async function awardOwnership({ sequelize, transaction, guildId, userId, badgeId, sourceEventId, now }) {
+  if (transaction?.sequelize !== sequelize || !guildId || !userId || !badgeId || !sourceEventId) throw Error('Invalid badge ownership context')
+  const Ownership = defineBadgeModel(sequelize)
+  const [row, created] = await Ownership.findOrCreate({
+    where: { guildId, userId, badgeId }, defaults: { sourceEventId, awardedAt: now }, transaction
+  })
+  return created ? row.badgeId : null
+}
+module.exports = { badges, profileCatalog, defineBadgeModel, createBadges, renderBadges, badgeField, awardOwnership }

@@ -14,14 +14,14 @@ async function fixture(t, options = {}) {
   return { db, store, run };
 }
 
-test('post-Spicy shop contains only Spicy and Stone with diamond prices, Refresh and no Kitchen or recipe', () => {
+test('post-Spicy shop prices ammunition in snow and Stone in diamonds, with contextual navigation', () => {
   const s = M.fresh('chapter1'); Object.assign(s, { chapter: 0, tier: 1, oldStone: false, roughHp: 47 });
-  s.wallet.diamonds = 1;
+  s.wallet.diamonds = 1; M.change(s, 'snow', 1000, 'fixture');
   const output = screen({ state: s, action: 'shop' }, 'u'), embed = output.embeds[0].data;
-  assert.deepEqual(embed.fields.map(f => [f.name, f.value]), [['🔴 `Spicy Snowballs`', '**1💎 each**'], ['`Old Skipping Stone`', '**10💎**']]);
+  assert.deepEqual(embed.fields.map(f => [f.name, f.value]), [['🔴 `Spicy Snowballs`', '**1,000❄️ each**'], ['`Old Skipping Stone`', '**10💎**']]);
   const buttons = output.components.flatMap(r => r.components);
   assert(buttons.some(b => b.data.label === 'Refresh')); assert(!buttons.some(b => /Kitchen|Ice|recipe/i.test(b.data.label)));
-  assert(!JSON.stringify(embed.fields).includes('❄️'));
+  assert(JSON.stringify(embed.fields).includes('❄️'));
   assert.equal(buttons.find(b => b.data.custom_id.includes(':buy-spicy:1')).data.disabled, false);
   assert.equal(buttons.find(b => b.data.custom_id.includes(':buy-spicy:10')), undefined);
 });
@@ -57,15 +57,15 @@ test('shop gift is one-time, ledgered, receipt-deduped, serialized and rolled ba
   const embed = screen(a, 'u').embeds[0].data; assert.equal(embed.description, "_Looks like you unlocked a new type of weapon. I really shouldn't but here's a few on the house._");
 });
 
-test('live shop spends diamonds exactly, leaves snow untouched, and rejects early recipes even with sufficient funds', () => {
+test('live shop spends snow on ammunition and diamonds on equipment, retaining recipe gates', () => {
   const s = M.fresh('gym'); M.change(s, 'snow', 10000000, 'fixture'); M.change(s, 'diamonds', 8000, 'fixture');
   const options = { shopCurrency: 'diamonds' };
-  M.action(s, 'buy-spicy', '10', options); assert.equal(s.wallet.diamonds, 7990); assert.equal(s.wallet.red, 10); assert.equal(s.wallet.snow, 10000000);
-  s.strength = 25; M.action(s, 'lift'); M.action(s, 'iron', undefined, options); assert.equal(s.wallet.diamonds, 6990);
-  assert.throws(() => M.action(s, 'buy-ice-recipe', undefined, options), /after Chapter 1/);
+  M.action(s, 'buy-spicy', '10', options); assert.equal(s.wallet.diamonds, 8000); assert.equal(s.wallet.red, 10); assert.equal(s.wallet.snow, 9990000);
+  s.strength = 25; M.action(s, 'lift'); M.action(s, 'iron', undefined, options); assert.equal(s.wallet.diamonds, 7000);
+  assert.throws(() => M.action(s, 'buy-ice-recipe', undefined, options), /after unlocking Snowman 3/);
   s.tiers[1].wins = 100; M.action(s, 'buy-s2', undefined, options); s.tiers[2].wins = 100;
-  M.action(s, 'buy-s3', undefined, options); assert.equal(s.wallet.diamonds, 3990); assert.equal(s.wallet.snow, 10000000); M.validate(s);
-  const poor = M.fresh('gym'); M.change(poor, 'snow', 1000000, 'fixture'); assert.throws(() => M.action(poor, 'buy-spicy', '1', options), /diamonds/);
+  M.action(s, 'buy-s3', undefined, options); assert.equal(s.wallet.diamonds, 4000); assert.equal(s.wallet.snow, 9990000); M.validate(s);
+  const poor = M.fresh('gym'); M.change(poor, 'diamonds', 1000, 'fixture'); assert.throws(() => M.action(poor, 'buy-spicy', '1', options), /snow/);
 });
 
 test('Available formatting retains only one decimal without rounding balances upward', () => {

@@ -381,6 +381,12 @@ function createStore({
           before = clone(s);
           if (!input.denied && (!run || run.status === 'active')) {
             s.liveRules = true;
+            // Chapter pauses belong to diagnostic runs, including older saves.
+            if (!run && s.chapter0Pending && s.oldStone) {
+              s.chapter0Pending = false;
+              s.chapter = Math.max(1, s.chapter);
+              s.tutorialStage = null;
+            }
             if (!s.oldStone && s.chapter === 0) s.tutorialFlow = 2;
             if (s.tutorialFlow === 2 && !s.oldStone && s.gymEntered && !s.tutorialStage) {
               s.tutorialStage = s.strength >= 3 ? 'stone' : 'gym';
@@ -467,8 +473,7 @@ function createStore({
                     redirected = true;
                     if (!tutorial.navigation.has(input.action)) {
                       outcome = 'rejected';
-                      message =
-                        'Complete the current Chapter 0 tutorial step before using this control.';
+                      message = 'Complete the current tutorial step before using this control.';
                     }
                   } else {
                     message = M.action(s, input.action, input.quantity, {

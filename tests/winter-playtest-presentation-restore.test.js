@@ -31,7 +31,7 @@ test('original tutorial presentation and artwork are reused with current economy
   for (let n = 0; n < 3; n++) M.action(s, 'pepper');
   assert.equal(render('pepper').components[0].components[0].data.label, 'Mix');
   M.action(s, 'mix'); assert.equal(render('mix').embeds[0].data.title, 'New Snowball Unlocked!');
-  output = render('shop'); assert(output.embeds[0].data.fields.some(f => f.name.includes('Spicy Snowballs') && f.value === '**1💎 each**'));
+  output = render('shop'); assert(output.embeds[0].data.fields.some(f => f.name.includes('Spicy Snowballs') && f.value === '**1,000❄️ each**'));
   assert(!output.components.flatMap(r => r.components).some(b => /buy-recipe|battle-special|test-kill/.test(b.data.custom_id)));
 });
 

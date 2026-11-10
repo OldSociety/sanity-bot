@@ -2,7 +2,8 @@
 
 Start with the feature you want to edit. Public commands retain their original folders under `commands/`; game code is grouped under `services/`; editable rules are under `config/`.
 
-- [Winter Wars: current game and editing map](docs/winter-guide.md)
+- [Snowball Fight: development replacement and handoff](services/winter/snowball-fight/README.md)
+- [Winter Wars: preserved game and editing map](docs/winter-guide.md)
 - [Configuration folders](config/README.md)
 - [Feature and document index](docs/README.md)
 
